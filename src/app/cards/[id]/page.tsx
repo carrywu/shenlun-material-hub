@@ -7,14 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MaterialCardView } from "@/components/MaterialCard";
 import { MaterialCardEditor } from "@/components/MaterialCardEditor";
+import { SyncToIma } from "@/components/SyncToIma";
 import {
   ArrowLeft,
   CheckCircle2,
   Edit3,
   ExternalLink,
-  RefreshCw,
   Trash2,
-  Upload,
 } from "lucide-react";
 
 interface CardDetail {
@@ -163,10 +162,11 @@ export default function CardDetailPage() {
                   <CheckCircle2 className="mr-1.5 h-4 w-4" />
                   {card.confirmed ? "取消确认" : "确认"}
                 </Button>
-                <Button variant="outline" size="sm" disabled>
-                  <Upload className="mr-1.5 h-4 w-4" />
-                  同步到 ima
-                </Button>
+                <SyncToIma
+                  cardId={cardId}
+                  cardTitle={card.title}
+                  onSyncComplete={fetchCard}
+                />
                 <Button variant="ghost" size="sm" className="text-destructive" onClick={handleDelete}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -245,7 +245,12 @@ export default function CardDetailPage() {
               {/* Sync records */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">同步记录</CardTitle>
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span>同步记录</span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {card.syncRecords.length}
+                    </Badge>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {card.syncRecords.length === 0 ? (
@@ -253,16 +258,23 @@ export default function CardDetailPage() {
                   ) : (
                     <div className="space-y-2">
                       {card.syncRecords.map((record) => (
-                        <div key={record.id} className="flex items-center justify-between text-xs">
-                          <Badge
-                            variant={record.status === "success" ? "default" : record.status === "failed" ? "destructive" : "secondary"}
-                            className="text-[10px]"
-                          >
-                            {record.status === "success" ? "成功" : record.status === "failed" ? "失败" : "待同步"}
-                          </Badge>
-                          <span className="text-muted-foreground">
-                            {new Date(record.syncedAt).toLocaleString("zh-CN")}
-                          </span>
+                        <div key={record.id} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <Badge
+                              variant={record.status === "success" ? "default" : record.status === "failed" ? "destructive" : "secondary"}
+                              className="text-[10px]"
+                            >
+                              {record.status === "success" ? "成功" : record.status === "failed" ? "失败" : "待同步"}
+                            </Badge>
+                            <span className="text-muted-foreground">
+                              {new Date(record.syncedAt).toLocaleString("zh-CN")}
+                            </span>
+                          </div>
+                          {record.errorMessage && (
+                            <p className="text-[10px] text-destructive truncate">
+                              {record.errorMessage}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>

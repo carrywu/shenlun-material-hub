@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { MaterialCardView } from "@/components/MaterialCard";
-import { ChevronLeft, ChevronRight, RefreshCw, Search, Filter } from "lucide-react";
+import { BatchSyncToIma } from "@/components/SyncToIma";
+import { ChevronLeft, ChevronRight, RefreshCw, Search, Filter, X, Upload } from "lucide-react";
 
 interface CardItem {
   id: string;
@@ -44,6 +46,10 @@ export default function CardsPage() {
   const [search, setSearch] = useState("");
   const [confirmedFilter, setConfirmedFilter] = useState<string>("all");
   const [articleFilter, setArticleFilter] = useState<string>("");
+
+  // Batch selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBatchSync, setShowBatchSync] = useState(false);
 
   const pageSize = 12;
 
@@ -106,6 +112,24 @@ export default function CardsPage() {
     }
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelectedIds(new Set(cards.map((c) => c.id)));
+  }
+
+  function deselectAll() {
+    setSelectedIds(new Set());
+    setShowBatchSync(false);
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -162,6 +186,47 @@ export default function CardsPage() {
         </div>
       </div>
 
+      {/* Batch actions */}
+      {selectedIds.size > 0 && (
+        <div className="border-b px-6 py-3">
+          <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-2.5">
+            <Checkbox
+              checked={selectedIds.size === cards.length}
+              onCheckedChange={(checked) => {
+                if (checked) selectAll();
+                else deselectAll();
+              }}
+            />
+            <span className="text-sm text-muted-foreground">
+              已选 {selectedIds.size} / {cards.length} 张
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBatchSync(!showBatchSync)}
+            >
+              <Upload className="mr-1.5 h-4 w-4" />
+              批量同步
+            </Button>
+            <Button variant="ghost" size="sm" onClick={deselectAll}>
+              <X className="mr-1 h-4 w-4" />
+              取消选择
+            </Button>
+          </div>
+          {showBatchSync && (
+            <div className="mt-3">
+              <BatchSyncToIma
+                cardIds={Array.from(selectedIds)}
+                onSyncComplete={() => {
+                  deselectAll();
+                  fetchCards();
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-auto px-6 py-4">
         {error ? (
@@ -180,23 +245,34 @@ export default function CardsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {cards.map((card) => (
-              <div
-                key={card.id}
-                className="cursor-pointer"
-                onClick={() => router.push(`/cards/${card.id}`)}
-              >
-                <MaterialCardView
-                  id={card.id}
-                  title={card.title}
-                  content={card.content}
-                  category={card.category}
-                  tags={card.tags}
-                  confirmed={card.confirmed}
-                  articleTitle={card.article.title}
-                  articleSource={card.article.source}
-                  onDelete={handleDelete}
-                  onConfirm={handleConfirm}
-                />
+              <div key={card.id} className="relative">
+                <div
+                  className="absolute top-3 left-3 z-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Checkbox
+                    checked={selectedIds.has(card.id)}
+                    onCheckedChange={() => toggleSelect(card.id)}
+                    className="bg-background border-2"
+                  />
+                </div>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/cards/${card.id}`)}
+                >
+                  <MaterialCardView
+                    id={card.id}
+                    title={card.title}
+                    content={card.content}
+                    category={card.category}
+                    tags={card.tags}
+                    confirmed={card.confirmed}
+                    articleTitle={card.article.title}
+                    articleSource={card.article.source}
+                    onDelete={handleDelete}
+                    onConfirm={handleConfirm}
+                  />
+                </div>
               </div>
             ))}
           </div>
