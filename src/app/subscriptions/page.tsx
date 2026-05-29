@@ -407,7 +407,7 @@ export default function SubscriptionsPage() {
             />
           </div>
 
-          <Select value={platform} onValueChange={setPlatform}>
+          <Select value={platform} onValueChange={(v) => { if (v) setPlatform(v); }}>
             <SelectTrigger className="w-28">
               <SelectValue placeholder="平台" />
             </SelectTrigger>
@@ -421,7 +421,7 @@ export default function SubscriptionsPage() {
             </SelectContent>
           </Select>
 
-          <Select value={contentType} onValueChange={setContentType}>
+          <Select value={contentType} onValueChange={(v) => { if (v) setContentType(v); }}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="内容类型" />
             </SelectTrigger>
@@ -435,7 +435,7 @@ export default function SubscriptionsPage() {
             </SelectContent>
           </Select>
 
-          <Select value={trustLevel} onValueChange={setTrustLevel}>
+          <Select value={trustLevel} onValueChange={(v) => { if (v) setTrustLevel(v); }}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="信任等级" />
             </SelectTrigger>
@@ -449,7 +449,7 @@ export default function SubscriptionsPage() {
             </SelectContent>
           </Select>
 
-          <Select value={isEnabled} onValueChange={setIsEnabled}>
+          <Select value={isEnabled} onValueChange={(v) => { if (v) setIsEnabled(v); }}>
             <SelectTrigger className="w-28">
               <SelectValue placeholder="状态" />
             </SelectTrigger>
@@ -462,7 +462,7 @@ export default function SubscriptionsPage() {
 
           <Select
             value={verificationStatus}
-            onValueChange={setVerificationStatus}
+            onValueChange={(v) => { if (v) setVerificationStatus(v); }}
           >
             <SelectTrigger className="w-28">
               <SelectValue placeholder="核验" />
@@ -674,9 +674,9 @@ export default function SubscriptionsPage() {
                   <label className="text-sm font-medium">平台</label>
                   <Select
                     value={form.platform}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, platform: v }))
-                    }
+                    onValueChange={(v) => {
+                      if (v) setForm((f) => ({ ...f, platform: v }));
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -695,9 +695,9 @@ export default function SubscriptionsPage() {
                   <label className="text-sm font-medium">优先级</label>
                   <Select
                     value={form.priority}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, priority: v }))
-                    }
+                    onValueChange={(v) => {
+                      if (v) setForm((f) => ({ ...f, priority: v }));
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -718,9 +718,9 @@ export default function SubscriptionsPage() {
                   <label className="text-sm font-medium">内容类型</label>
                   <Select
                     value={form.contentType}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, contentType: v }))
-                    }
+                    onValueChange={(v) => {
+                      if (v) setForm((f) => ({ ...f, contentType: v }));
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -739,9 +739,9 @@ export default function SubscriptionsPage() {
                   <label className="text-sm font-medium">信任等级</label>
                   <Select
                     value={form.trustLevel}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, trustLevel: v }))
-                    }
+                    onValueChange={(v) => {
+                      if (v) setForm((f) => ({ ...f, trustLevel: v }));
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -887,7 +887,7 @@ export default function SubscriptionsPage() {
             <div className="grid gap-4 py-2">
               <div className="grid gap-1.5">
                 <label className="text-sm font-medium">核验状态</label>
-                <Select value={verifyStatus} onValueChange={setVerifyStatus}>
+                <Select value={verifyStatus} onValueChange={(v) => { if (v) setVerifyStatus(v); }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

@@ -235,8 +235,8 @@ function SyncStatusCard({ syncRecordId }: { syncRecordId: string }) {
   const [record, setRecord] = useState<{
     id: string;
     status: string;
-    imaKnowledgeBaseId: string | null;
-    imaDocumentId: string | null;
+    targetRemoteId: string | null;
+    remoteDocumentId: string | null;
     errorMessage: string | null;
     syncedAt: string;
   } | null>(null);
@@ -277,7 +277,7 @@ function SyncStatusCard({ syncRecordId }: { syncRecordId: string }) {
   return (
     <div className="text-xs text-muted-foreground space-y-1">
       <p>状态：{record.status === "success" ? "成功" : record.status === "failed" ? "失败" : "待同步"}</p>
-      {record.imaDocumentId && <p>文档 ID：{record.imaDocumentId}</p>}
+      {record.remoteDocumentId && <p>文档 ID：{record.remoteDocumentId}</p>}
       {record.errorMessage && <p className="text-destructive">{record.errorMessage}</p>}
       <p>时间：{new Date(record.syncedAt).toLocaleString("zh-CN")}</p>
     </div>

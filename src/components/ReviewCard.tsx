@@ -21,14 +21,11 @@ interface ReviewCardProps {
   id: string;
   title: string;
   content: string;
-  category: string;
-  tags: string;
+  cardType: string;
   confirmed: boolean;
-  articleTitle?: string;
-  articleSource?: string;
-  reviewCount?: number;
-  lastReviewed?: string | null;
-  onMarkReviewed?: (id: string, quality: number) => void;
+  contentItemTitle?: string;
+  sourceName?: string;
+  onMarkReviewed?: (id: string) => void;
 }
 
 function parseContent(c: string): MaterialCardStructuredContent | null {
@@ -43,13 +40,10 @@ export function ReviewCard({
   id,
   title,
   content,
-  category,
-  tags,
+  cardType,
   confirmed,
-  articleTitle,
-  articleSource,
-  reviewCount = 0,
-  lastReviewed,
+  contentItemTitle,
+  sourceName,
   onMarkReviewed,
 }: ReviewCardProps) {
   const structured = parseContent(content);
@@ -109,38 +103,25 @@ export function ReviewCard({
                 {title}
               </h3>
             </div>
-            {articleTitle && (
+            {contentItemTitle && (
               <p className="text-xs text-muted-foreground truncate">
-                来自：{articleTitle}
-                {articleSource && ` (${articleSource})`}
+                来自：{contentItemTitle}
+                {sourceName && ` (${sourceName})`}
               </p>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {reviewCount > 0 && (
+            {confirmed && (
               <Badge variant="outline" className="text-xs">
-                已复习 {reviewCount} 次
+                已复习
               </Badge>
-            )}
-            {lastReviewed && (
-              <span className="text-xs text-muted-foreground">
-                {new Date(lastReviewed).toLocaleDateString("zh-CN")}
-              </span>
             )}
           </div>
         </div>
         <div className="flex items-center gap-1.5 mt-1">
           <Badge variant="secondary" className="text-xs">
-            {category}
+            {cardType}
           </Badge>
-          {tags
-            .split(",")
-            .filter(Boolean)
-            .map((tag) => (
-              <Badge key={tag} variant="outline" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
         </div>
       </CardHeader>
 
@@ -184,7 +165,7 @@ export function ReviewCard({
                               : "升华"}
                       ：
                     </span>
-                    <span>{value}</span>
+                    <span>{value as string}</span>
                   </div>
                 ))}
               </div>
@@ -215,7 +196,7 @@ export function ReviewCard({
             </button>
             {isRevealed("expressions") ? (
               <div className="flex flex-wrap gap-1 pl-5 mt-1">
-                {structured.standardExpressions.map((expr, i) => (
+                {structured.standardExpressions.map((expr: string, i: number) => (
                   <Badge
                     key={i}
                     variant="secondary"
@@ -253,7 +234,7 @@ export function ReviewCard({
               </button>
               {isRevealed("cases") ? (
                 <ul className="list-disc list-inside pl-5 mt-1 space-y-0.5">
-                  {structured.cases.map((c, i) => (
+                  {structured.cases.map((c: string, i: number) => (
                     <li key={i} className="text-xs">
                       {c}
                     </li>
@@ -361,41 +342,15 @@ export function ReviewCard({
               </Button>
             </div>
             {onMarkReviewed && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground mr-1">
-                  掌握程度：
-                </span>
-                {[1, 2, 3, 4, 5].map((q) => (
-                  <Button
-                    key={q}
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 text-xs"
-                    onClick={() => onMarkReviewed(id, q)}
-                    title={
-                      q === 1
-                        ? "完全不会"
-                        : q === 2
-                          ? "比较模糊"
-                          : q === 3
-                            ? "基本记得"
-                            : q === 4
-                              ? "比较熟悉"
-                              : "完全掌握"
-                    }
-                  >
-                    {q === 1
-                      ? "1"
-                      : q === 2
-                        ? "2"
-                        : q === 3
-                          ? "3"
-                          : q === 4
-                            ? "4"
-                            : "5"}
-                  </Button>
-                ))}
-              </div>
+              <Button
+                variant="default"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => onMarkReviewed(id)}
+              >
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                已掌握
+              </Button>
             )}
           </div>
         </CardContent>
@@ -407,21 +362,16 @@ export function ReviewCard({
             {content}
           </p>
           {onMarkReviewed && (
-            <div className="flex items-center justify-end gap-1 pt-3 border-t mt-3">
-              <span className="text-xs text-muted-foreground mr-1">
-                掌握程度：
-              </span>
-              {[1, 2, 3, 4, 5].map((q) => (
-                <Button
-                  key={q}
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-xs"
-                  onClick={() => onMarkReviewed(id, q)}
-                >
-                  {q}
-                </Button>
-              ))}
+            <div className="flex items-center justify-end pt-3 border-t mt-3">
+              <Button
+                variant="default"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => onMarkReviewed(id)}
+              >
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                已掌握
+              </Button>
             </div>
           )}
         </CardContent>

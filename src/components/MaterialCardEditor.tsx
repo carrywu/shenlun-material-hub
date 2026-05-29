@@ -13,18 +13,16 @@ interface MaterialCardEditorProps {
   initialData: {
     title: string;
     content: string;
-    category: string;
-    tags: string;
-    excerpt: string | null;
-    notes: string | null;
+    cardType: string;
+    verificationNotes: string | null;
+    userEditedContent: string | null;
   };
   onSave: (data: {
     title: string;
     content: string;
-    category: string;
-    tags: string;
-    excerpt: string;
-    notes: string;
+    cardType: string;
+    verificationNotes: string;
+    userEditedContent: string;
   }) => Promise<void>;
   onCancel: () => void;
 }
@@ -47,10 +45,9 @@ function parseContent(content: string): MaterialCardStructuredContent {
 
 export function MaterialCardEditor({ initialData, onSave, onCancel }: MaterialCardEditorProps) {
   const [title, setTitle] = useState(initialData.title);
-  const [category, setCategory] = useState(initialData.category);
-  const [tags, setTags] = useState(initialData.tags);
-  const [excerpt, setExcerpt] = useState(initialData.excerpt ?? "");
-  const [notes, setNotes] = useState(initialData.notes ?? "");
+  const [cardType, setCardType] = useState(initialData.cardType);
+  const [verificationNotes, setVerificationNotes] = useState(initialData.verificationNotes ?? "");
+  const [userEditedContent, setUserEditedContent] = useState(initialData.userEditedContent ?? "");
   const [structured, setStructured] = useState<MaterialCardStructuredContent>(
     parseContent(initialData.content)
   );
@@ -116,10 +113,9 @@ export function MaterialCardEditor({ initialData, onSave, onCancel }: MaterialCa
       await onSave({
         title,
         content: JSON.stringify(structured),
-        category,
-        tags,
-        excerpt,
-        notes,
+        cardType,
+        verificationNotes,
+        userEditedContent,
       });
     } finally {
       setSaving(false);
@@ -146,35 +142,27 @@ export function MaterialCardEditor({ initialData, onSave, onCancel }: MaterialCa
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">分类</label>
+              <label className="text-xs font-medium text-muted-foreground">卡片类型</label>
               <Input
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                value={cardType}
+                onChange={(e) => setCardType(e.target.value)}
                 className="mt-1"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">标签（逗号分隔）</label>
+              <label className="text-xs font-medium text-muted-foreground">验证备注</label>
               <Input
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
+                value={verificationNotes}
+                onChange={(e) => setVerificationNotes(e.target.value)}
                 className="mt-1"
               />
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">原文摘录</label>
+            <label className="text-xs font-medium text-muted-foreground">用户编辑内容</label>
             <textarea
-              value={excerpt}
-              onChange={(e) => setExcerpt(e.target.value)}
-              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm min-h-[80px] resize-y"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">用户笔记</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={userEditedContent}
+              onChange={(e) => setUserEditedContent(e.target.value)}
               className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm min-h-[80px] resize-y"
             />
           </div>
@@ -222,7 +210,7 @@ export function MaterialCardEditor({ initialData, onSave, onCancel }: MaterialCa
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex flex-wrap gap-1">
-                {structured.standardExpressions.map((expr, i) => (
+                {structured.standardExpressions.map((expr: string, i: number) => (
                   <Badge key={i} variant="secondary" className="text-xs gap-1">
                     {expr}
                     <button onClick={() => removeExpression(i)} className="ml-0.5 hover:text-destructive">
@@ -252,7 +240,7 @@ export function MaterialCardEditor({ initialData, onSave, onCancel }: MaterialCa
               <CardTitle className="text-sm">可用案例</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {structured.cases.map((c, i) => (
+              {structured.cases.map((c: string, i: number) => (
                 <div key={i} className="flex items-start gap-2 text-xs">
                   <span className="text-muted-foreground">{i + 1}.</span>
                   <span className="flex-1">{c}</span>

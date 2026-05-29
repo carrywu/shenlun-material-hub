@@ -22,22 +22,23 @@ import { ArticleDetail } from "@/components/ArticleDetail";
 import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-interface ArticleItem {
+interface ContentItemData {
   id: string;
   title: string;
-  url: string;
-  source: string;
-  content: string;
-  summary: string | null;
-  category: string;
-  tags: string;
+  originalUrl: string;
+  platform: string;
+  fullText: string | null;
+  excerpt: string | null;
+  contentType: string;
+  topicTags: string;
   publishedAt: string | null;
   createdAt: string;
+  source?: { name: string } | null;
   _count: { materialCards: number };
 }
 
-interface ArticlesResponse {
-  data: ArticleItem[];
+interface ContentItemsResponse {
+  data: ContentItemData[];
   total: number;
   page: number;
   pageSize: number;
@@ -46,7 +47,7 @@ interface ArticlesResponse {
 
 export default function ArticlesPage() {
   const router = useRouter();
-  const [articles, setArticles] = useState<ArticleItem[]>([]);
+  const [items, setItems] = useState<ContentItemData[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -58,7 +59,7 @@ export default function ArticlesPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [source, setSource] = useState("all");
-  const [category, setCategory] = useState("all");
+  const [contentType, setContentType] = useState("all");
   const [tags, setTags] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange>({ from: "", to: "" });
 
@@ -66,11 +67,11 @@ export default function ArticlesPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // Detail view
-  const [detailArticle, setDetailArticle] = useState<ArticleItem | null>(null);
+  const [detailItem, setDetailItem] = useState<ContentItemData | null>(null);
 
   const pageSize = 20;
 
-  const fetchArticles = useCallback(async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -79,15 +80,15 @@ export default function ArticlesPage() {
       params.set("pageSize", String(pageSize));
       if (search) params.set("search", search);
       if (source !== "all") params.set("source", source);
-      if (category !== "all") params.set("category", category);
+      if (contentType !== "all") params.set("category", contentType);
       if (tags !== "all") params.set("tags", tags);
       if (dateRange.from) params.set("dateFrom", dateRange.from);
       if (dateRange.to) params.set("dateTo", dateRange.to);
 
       const res = await fetch(`/api/articles?${params.toString()}`);
       if (!res.ok) throw new Error("请求失败");
-      const json: ArticlesResponse = await res.json();
-      setArticles(json.data);
+      const json: ContentItemsResponse = await res.json();
+      setItems(json.data);
       setTotal(json.total);
       setTotalPages(json.totalPages);
     } catch (err) {
@@ -95,16 +96,16 @@ export default function ArticlesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, source, category, tags, dateRange]);
+  }, [page, search, source, contentType, tags, dateRange]);
 
   useEffect(() => {
-    fetchArticles();
-  }, [fetchArticles]);
+    fetchItems();
+  }, [fetchItems]);
 
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, source, category, tags, dateRange]);
+  }, [search, source, contentType, tags, dateRange]);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -116,7 +117,7 @@ export default function ArticlesPage() {
   }
 
   function selectAll() {
-    setSelected(new Set(articles.map((a) => a.id)));
+    setSelected(new Set(items.map((a) => a.id)));
   }
 
   function deselectAll() {
@@ -127,13 +128,13 @@ export default function ArticlesPage() {
     if (selected.size === 0) return;
 
     setGenerating(true);
-    setGenerateProgress(`正在为 ${selected.size} 篇文章生成素材卡...`);
+    setGenerateProgress(`正在为 ${selected.size} 个内容条目生成素材卡...`);
 
     try {
       const res = await fetch("/api/material-cards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ articleIds: Array.from(selected) }),
+        body: JSON.stringify({ contentItemIds: Array.from(selected) }),
       });
 
       if (!res.ok) {
@@ -148,7 +149,7 @@ export default function ArticlesPage() {
 
       // Clear selection and refresh
       setSelected(new Set());
-      fetchArticles();
+      fetchItems();
 
       // Navigate to cards page after a brief delay
       setTimeout(() => {
@@ -163,7 +164,7 @@ export default function ArticlesPage() {
     }
   }
 
-  const allSelected = articles.length > 0 && articles.every((a) => selected.has(a.id));
+  const allSelected = items.length > 0 && items.every((a) => selected.has(a.id));
 
   return (
     <div className="flex flex-col h-full">
@@ -171,12 +172,12 @@ export default function ArticlesPage() {
       <div className="border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">文章列表</h1>
+            <h1 className="text-xl font-semibold">内容列表</h1>
             <p className="text-sm text-muted-foreground">
-              管理采集的官方文章，筛选并生成素材卡
+              管理采集的内容条目，筛选并生成素材卡
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchArticles}>
+          <Button variant="outline" size="sm" onClick={fetchItems}>
             <RefreshCw className="mr-1.5 h-4 w-4" />
             刷新
           </Button>
@@ -189,14 +190,14 @@ export default function ArticlesPage() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="搜索文章标题..."
+              placeholder="搜索标题..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 h-8"
             />
           </div>
           <SourceFilter value={source} onChange={setSource} />
-          <TopicFilter value={category} onChange={setCategory} />
+          <TopicFilter value={contentType} onChange={setContentType} />
           <RegionFilter value={tags} onChange={setTags} />
         </div>
         <DateRangeFilter value={dateRange} onChange={setDateRange} />
@@ -205,7 +206,7 @@ export default function ArticlesPage() {
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Table area */}
-        <div className={`flex-1 flex flex-col overflow-hidden ${detailArticle ? "w-1/2" : "w-full"}`}>
+        <div className={`flex-1 flex flex-col overflow-hidden ${detailItem ? "w-1/2" : "w-full"}`}>
           {/* Batch actions */}
           <div className="px-6 py-3">
             <BatchActions
@@ -230,10 +231,10 @@ export default function ArticlesPage() {
               <div className="flex items-center justify-center h-48 text-muted-foreground">
                 加载中...
               </div>
-            ) : articles.length === 0 ? (
+            ) : items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-                <p>暂无文章</p>
-                <p className="text-sm">请调整筛选条件或采集新文章</p>
+                <p>暂无内容</p>
+                <p className="text-sm">请调整筛选条件或采集新内容</p>
               </div>
             ) : (
               <Table>
@@ -251,61 +252,64 @@ export default function ArticlesPage() {
                     <TableHead>标题</TableHead>
                     <TableHead className="w-24">来源</TableHead>
                     <TableHead className="w-28">发布日期</TableHead>
-                    <TableHead className="w-20">栏目</TableHead>
+                    <TableHead className="w-20">类型</TableHead>
                     <TableHead className="w-24">标签</TableHead>
                     <TableHead className="w-16 text-right">素材卡</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {articles.map((article) => (
+                  {items.map((item) => (
                     <TableRow
-                      key={article.id}
+                      key={item.id}
                       className="cursor-pointer"
-                      onClick={() => setDetailArticle(article)}
+                      onClick={() => setDetailItem(item)}
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
-                          checked={selected.has(article.id)}
-                          onCheckedChange={() => toggleSelect(article.id)}
+                          checked={selected.has(item.id)}
+                          onCheckedChange={() => toggleSelect(item.id)}
                         />
                       </TableCell>
                       <TableCell className="font-medium max-w-[300px] truncate">
-                        {article.title}
+                        {item.title}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
-                          {article.source}
+                          {item.source?.name ?? item.platform}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {article.publishedAt
-                          ? new Date(article.publishedAt).toLocaleDateString("zh-CN")
+                        {item.publishedAt
+                          ? new Date(item.publishedAt).toLocaleDateString("zh-CN")
                           : "-"}
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="text-xs">
-                          {article.category}
+                          {item.contentType}
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-[120px]">
                         <div className="flex flex-wrap gap-1">
-                          {article.tags
-                            .split(",")
-                            .filter(Boolean)
-                            .slice(0, 2)
-                            .map((tag) => (
-                              <Badge
-                                key={tag}
-                                variant="outline"
-                                className="text-[10px] px-1 py-0"
-                              >
-                                {tag}
-                              </Badge>
-                            ))}
+                          {(() => {
+                            try {
+                              const parsedTags: string[] = JSON.parse(item.topicTags);
+                              return parsedTags.slice(0, 2).map((tag) => (
+                                <Badge
+                                  key={tag}
+                                  variant="outline"
+                                  className="text-[10px] px-1 py-0"
+                                >
+                                  {tag}
+                                </Badge>
+                              ));
+                            } catch {
+                              return null;
+                            }
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
-                        {article._count.materialCards}
+                        {item._count.materialCards}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -318,7 +322,7 @@ export default function ArticlesPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-6 py-3">
               <span className="text-sm text-muted-foreground">
-                共 {total} 篇，第 {page} / {totalPages} 页
+                共 {total} 条，第 {page} / {totalPages} 页
               </span>
               <div className="flex items-center gap-2">
                 <Button
@@ -345,11 +349,11 @@ export default function ArticlesPage() {
         </div>
 
         {/* Detail panel */}
-        {detailArticle && (
+        {detailItem && (
           <div className="w-1/2 border-l overflow-hidden">
             <ArticleDetail
-              article={detailArticle}
-              onClose={() => setDetailArticle(null)}
+              article={detailItem}
+              onClose={() => setDetailItem(null)}
             />
           </div>
         )}

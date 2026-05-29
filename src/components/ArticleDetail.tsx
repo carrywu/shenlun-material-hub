@@ -7,26 +7,27 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { ExternalLink, Pencil, X } from "lucide-react";
 
-interface ArticleDetailProps {
+interface ContentItemDetailProps {
   article: {
     id: string;
     title: string;
-    url: string;
-    source: string;
-    content: string;
-    summary: string | null;
-    category: string;
-    tags: string;
+    originalUrl: string;
+    platform: string;
+    fullText: string | null;
+    excerpt: string | null;
+    contentType: string;
+    topicTags: string;
     publishedAt: string | null;
     createdAt: string;
-    materialCards?: { id: string }[];
+    source?: { name: string } | null;
+    _count?: { materialCards: number };
   };
   onClose: () => void;
 }
 
-export function ArticleDetail({ article, onClose }: ArticleDetailProps) {
-  const tags = article.tags
-    ? article.tags.split(",").filter(Boolean)
+export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
+  const tags = article.topicTags
+    ? (() => { try { return JSON.parse(article.topicTags); } catch { return []; } })()
     : [];
 
   return (
@@ -35,7 +36,7 @@ export function ArticleDetail({ article, onClose }: ArticleDetailProps) {
         <div className="space-y-1 flex-1 min-w-0">
           <CardTitle className="text-lg leading-snug">{article.title}</CardTitle>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>{article.source}</span>
+            <span>{article.source?.name ?? article.platform}</span>
             {article.publishedAt && (
               <>
                 <span>·</span>
@@ -45,12 +46,12 @@ export function ArticleDetail({ article, onClose }: ArticleDetailProps) {
               </>
             )}
             <span>·</span>
-            <Badge variant="secondary">{article.category}</Badge>
+            <Badge variant="secondary">{article.contentType}</Badge>
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <a
-            href={article.url}
+            href={article.originalUrl}
             target="_blank"
             rel="noopener noreferrer"
             className={cn(buttonVariants({ variant: "ghost", size: "icon-xs" }))}
@@ -69,21 +70,21 @@ export function ArticleDetail({ article, onClose }: ArticleDetailProps) {
       <CardContent className="flex-1 overflow-auto pt-4 space-y-4">
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {tags.map((tag) => (
+            {tags.map((tag: string) => (
               <Badge key={tag} variant="outline" className="text-xs">
                 {tag}
               </Badge>
             ))}
           </div>
         )}
-        {article.summary && (
+        {article.excerpt && (
           <div className="rounded-md bg-muted/50 p-3">
             <p className="text-sm font-medium mb-1">摘要</p>
-            <p className="text-sm text-muted-foreground">{article.summary}</p>
+            <p className="text-sm text-muted-foreground">{article.excerpt}</p>
           </div>
         )}
         <div className="text-sm leading-relaxed whitespace-pre-wrap">
-          {article.content}
+          {article.fullText ?? "暂无全文内容"}
         </div>
       </CardContent>
     </Card>

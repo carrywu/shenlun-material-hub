@@ -17,7 +17,6 @@ import {
   BookOpen,
   BarChart3,
   CheckCircle2,
-  Clock,
   Zap,
 } from "lucide-react";
 import { ReviewCard } from "@/components/ReviewCard";
@@ -25,36 +24,42 @@ import { ReviewCard } from "@/components/ReviewCard";
 interface ReviewCardData {
   id: string;
   title: string;
-  content: string;
-  category: string;
-  tags: string;
+  aiSummary: string | null;
+  markdownContent: string | null;
+  userEditedContent: string | null;
+  cardType: string;
   confirmed: boolean;
-  excerpt: string | null;
   createdAt: string;
-  reviewRecords: { id: string; reviewedAt: string; quality: number }[];
-  article?: { id: string; title: string; source: string };
+  contentItem?: {
+    id: string;
+    title: string;
+    source: { name: string } | null;
+  };
 }
 
-const CATEGORIES = [
-  "政治",
-  "经济",
-  "社会",
-  "文化",
-  "生态",
-  "基层治理",
-  "乡村振兴",
-  "科技创新",
-  "民生保障",
+const CARD_TYPES = [
+  "fact_summary",
+  "argument_analysis",
+  "data_highlight",
+  "policy_compare",
+  "case_study",
 ];
+
+const CARD_TYPE_LABELS: Record<string, string> = {
+  fact_summary: "事实摘要",
+  argument_analysis: "论点分析",
+  data_highlight: "数据亮点",
+  policy_compare: "政策对比",
+  case_study: "案例研究",
+};
 
 export default function ReviewPage() {
   const [cards, setCards] = useState<ReviewCardData[]>([]);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState("random");
-  const [category, setCategory] = useState("");
+  const [cardType, setCardType] = useState("");
   const [reviewedInSession, setReviewedInSession] = useState(0);
   const [totalCards, setTotalCards] = useState(0);
-  const [reviewedCards, setReviewedCards] = useState(0);
 
   const fetchCards = useCallback(async () => {
     setLoading(true);
@@ -62,7 +67,7 @@ export default function ReviewPage() {
       const params = new URLSearchParams();
       params.set("mode", mode);
       params.set("limit", "10");
-      if (category) params.set("category", category);
+      if (cardType) params.set("category", cardType);
 
       const res = await fetch(`/api/review?${params.toString()}`);
       const data = await res.json();
@@ -73,16 +78,12 @@ export default function ReviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [mode, category]);
+  }, [mode, cardType]);
 
   const fetchStats = useCallback(async () => {
     try {
-      const [totalRes, reviewRes] = await Promise.all([
-        fetch("/api/material-cards?pageSize=1"),
-        fetch("/api/review?mode=unreviewed&limit=1"),
-      ]);
+      const totalRes = await fetch("/api/material-cards?pageSize=1");
       const totalData = await totalRes.json();
-      const reviewData = await reviewRes.json();
       if (totalRes.ok) setTotalCards(totalData.total);
     } catch {
       // ignore
@@ -94,17 +95,16 @@ export default function ReviewPage() {
     fetchStats();
   }, [fetchCards, fetchStats]);
 
-  const handleMarkReviewed = async (cardId: string, quality: number) => {
+  const handleMarkReviewed = async (cardId: string) => {
     try {
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId, quality }),
+        body: JSON.stringify({ cardId }),
       });
 
       if (res.ok) {
         setReviewedInSession((prev) => prev + 1);
-        setReviewedCards((prev) => prev + 1);
 
         // Remove the card from the current list
         setCards((prev) => prev.filter((c) => c.id !== cardId));
@@ -156,7 +156,7 @@ export default function ReviewPage() {
 
       <div className="flex-1 overflow-auto p-6 space-y-4">
         {/* Stats bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <Card>
             <CardContent className="flex items-center gap-3 pt-4 pb-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
@@ -190,22 +190,6 @@ export default function ReviewPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 pt-4 pb-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
-                <Zap className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-lg font-bold">
-                  {totalCards > 0
-                    ? Math.round((reviewedCards / totalCards) * 100)
-                    : 0}
-                  %
-                </p>
-                <p className="text-xs text-muted-foreground">复习进度</p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Controls */}
@@ -222,17 +206,17 @@ export default function ReviewPage() {
           </Select>
 
           <Select
-            value={category}
-            onValueChange={(v) => setCategory(v === "all" || !v ? "" : v)}
+            value={cardType}
+            onValueChange={(v) => setCardType(v === "all" || !v ? "" : v)}
           >
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="分类" />
+              <SelectValue placeholder="类型" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部分类</SelectItem>
-              {CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
+              <SelectItem value="all">全部类型</SelectItem>
+              {CARD_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {CARD_TYPE_LABELS[t] ?? t}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -266,26 +250,22 @@ export default function ReviewPage() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {cards.map((card) => (
-              <ReviewCard
-                key={card.id}
-                id={card.id}
-                title={card.title}
-                content={card.content}
-                category={card.category}
-                tags={card.tags}
-                confirmed={card.confirmed}
-                articleTitle={card.article?.title}
-                articleSource={card.article?.source}
-                reviewCount={card.reviewRecords.length}
-                lastReviewed={
-                  card.reviewRecords.length > 0
-                    ? card.reviewRecords[0].reviewedAt
-                    : null
-                }
-                onMarkReviewed={handleMarkReviewed}
-              />
-            ))}
+            {cards.map((card) => {
+              const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
+              return (
+                <ReviewCard
+                  key={card.id}
+                  id={card.id}
+                  title={card.title}
+                  content={displayContent}
+                  cardType={card.cardType}
+                  confirmed={card.confirmed}
+                  contentItemTitle={card.contentItem?.title}
+                  sourceName={card.contentItem?.source?.name}
+                  onMarkReviewed={handleMarkReviewed}
+                />
+              );
+            })}
           </div>
         )}
       </div>

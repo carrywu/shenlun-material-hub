@@ -10,11 +10,10 @@ interface MaterialCardProps {
   id: string;
   title: string;
   content: string;
-  category: string;
-  tags: string;
+  cardType: string;
   confirmed: boolean;
-  articleTitle?: string;
-  articleSource?: string;
+  contentItemTitle?: string;
+  sourceName?: string;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onConfirm?: (id: string) => void;
@@ -32,11 +31,10 @@ export function MaterialCardView({
   id,
   title,
   content,
-  category,
-  tags,
+  cardType,
   confirmed,
-  articleTitle,
-  articleSource,
+  contentItemTitle,
+  sourceName,
   onEdit,
   onDelete,
   onConfirm,
@@ -56,10 +54,10 @@ export function MaterialCardView({
                 {title}
               </h3>
             </div>
-            {articleTitle && (
+            {contentItemTitle && (
               <p className="text-xs text-muted-foreground truncate">
-                来自：{articleTitle}
-                {articleSource && ` (${articleSource})`}
+                来自：{contentItemTitle}
+                {sourceName && ` (${sourceName})`}
               </p>
             )}
           </div>
@@ -87,10 +85,7 @@ export function MaterialCardView({
           </div>
         </div>
         <div className="flex items-center gap-1.5 mt-1">
-          <Badge variant="secondary" className="text-xs">{category}</Badge>
-          {tags.split(",").filter(Boolean).map((tag) => (
-            <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
-          ))}
+          <Badge variant="secondary" className="text-xs">{cardType}</Badge>
         </div>
       </CardHeader>
       {structured && (

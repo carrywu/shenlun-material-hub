@@ -27,31 +27,40 @@ import { useRouter } from "next/navigation";
 interface SearchCard {
   id: string;
   title: string;
-  content: string;
-  category: string;
-  tags: string;
+  aiSummary: string | null;
+  markdownContent: string | null;
+  userEditedContent: string | null;
+  cardType: string;
   confirmed: boolean;
-  excerpt: string | null;
+  originalFacts: string | null;
   createdAt: string;
-  article?: { id: string; title: string; source: string };
+  contentItem?: {
+    id: string;
+    title: string;
+    source: { name: string } | null;
+  };
 }
 
-const CATEGORIES = [
-  "政治",
-  "经济",
-  "社会",
-  "文化",
-  "生态",
-  "基层治理",
-  "乡村振兴",
-  "科技创新",
-  "民生保障",
+const CARD_TYPES = [
+  "fact_summary",
+  "argument_analysis",
+  "data_highlight",
+  "policy_compare",
+  "case_study",
 ];
+
+const CARD_TYPE_LABELS: Record<string, string> = {
+  fact_summary: "事实摘要",
+  argument_analysis: "论点分析",
+  data_highlight: "数据亮点",
+  policy_compare: "政策对比",
+  case_study: "案例研究",
+};
 
 export default function SearchPage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("");
+  const [cardType, setCardType] = useState("");
   const [tags, setTags] = useState("");
   const [confirmed, setConfirmed] = useState("all");
   const [results, setResults] = useState<SearchCard[]>([]);
@@ -67,7 +76,7 @@ export default function SearchPage() {
       try {
         const params = new URLSearchParams();
         if (query) params.set("q", query);
-        if (category) params.set("category", category);
+        if (cardType) params.set("category", cardType);
         if (tags) params.set("tags", tags);
         if (confirmed !== "all") params.set("confirmed", confirmed);
         params.set("page", String(p));
@@ -87,7 +96,7 @@ export default function SearchPage() {
         setLoading(false);
       }
     },
-    [query, category, tags, confirmed]
+    [query, cardType, tags, confirmed]
   );
 
   // Search on Enter
@@ -99,7 +108,7 @@ export default function SearchPage() {
 
   const clearFilters = () => {
     setQuery("");
-    setCategory("");
+    setCardType("");
     setTags("");
     setConfirmed("all");
     setResults([]);
@@ -124,14 +133,14 @@ export default function SearchPage() {
   const handleExport = () => {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
-    if (category) params.set("category", category);
+    if (cardType) params.set("category", cardType);
     if (tags) params.set("tags", tags);
     if (confirmed !== "all") params.set("confirmed", confirmed);
     window.open(`/api/export?${params.toString()}`, "_blank");
   };
 
   const activeFilters = [
-    category && { key: "category", label: `分类: ${category}` },
+    cardType && { key: "cardType", label: `类型: ${CARD_TYPE_LABELS[cardType] ?? cardType}` },
     tags && { key: "tags", label: `标签: ${tags}` },
     confirmed !== "all" && {
       key: "confirmed",
@@ -147,7 +156,7 @@ export default function SearchPage() {
           <div>
             <h1 className="text-xl font-semibold">素材卡检索</h1>
             <p className="text-sm text-muted-foreground">
-              全文搜索素材卡内容，支持按分类和标签筛选
+              全文搜索素材卡内容，支持按类型和标签筛选
             </p>
           </div>
           <Button
@@ -187,17 +196,17 @@ export default function SearchPage() {
         {/* Filters */}
         <div className="flex flex-wrap gap-2 items-center">
           <Select
-            value={category}
-            onValueChange={(v) => setCategory(v === "all" || !v ? "" : v)}
+            value={cardType}
+            onValueChange={(v) => setCardType(v === "all" || !v ? "" : v)}
           >
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="分类" />
+              <SelectValue placeholder="类型" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部分类</SelectItem>
-              {CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
+              <SelectItem value="all">全部类型</SelectItem>
+              {CARD_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {CARD_TYPE_LABELS[t] ?? t}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -242,7 +251,7 @@ export default function SearchPage() {
                 {f.label}
                 <button
                   onClick={() => {
-                    if (f.key === "category") setCategory("");
+                    if (f.key === "cardType") setCardType("");
                     if (f.key === "tags") setTags("");
                     if (f.key === "confirmed") setConfirmed("all");
                   }}
@@ -277,33 +286,35 @@ export default function SearchPage() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {results.map((card) => (
-                  <div
-                    key={card.id}
-                    className="cursor-pointer"
-                    onClick={() => router.push(`/cards/${card.id}`)}
-                  >
-                    <MaterialCardView
-                      id={card.id}
-                      title={query ? highlightText(card.title, query) as unknown as string : card.title}
-                      content={card.content}
-                      category={card.category}
-                      tags={card.tags}
-                      confirmed={card.confirmed}
-                      articleTitle={card.article?.title}
-                      articleSource={card.article?.source}
-                    />
-                    {card.excerpt && (
-                      <div className="mt-1 px-1">
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {query
-                            ? highlightText(card.excerpt, query)
-                            : card.excerpt}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {results.map((card) => {
+                  const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
+                  return (
+                    <div
+                      key={card.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/cards/${card.id}`)}
+                    >
+                      <MaterialCardView
+                        id={card.id}
+                        title={query ? highlightText(card.title, query) as unknown as string : card.title}
+                        content={displayContent}
+                        cardType={card.cardType}
+                        confirmed={card.confirmed}
+                        contentItemTitle={card.contentItem?.title}
+                        sourceName={card.contentItem?.source?.name}
+                      />
+                      {card.originalFacts && (
+                        <div className="mt-1 px-1">
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {query
+                              ? highlightText(card.originalFacts, query)
+                              : card.originalFacts}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 

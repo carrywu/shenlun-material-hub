@@ -19,20 +19,20 @@ import {
 interface CardDetail {
   id: string;
   title: string;
-  content: string;
-  category: string;
-  tags: string;
-  excerpt: string | null;
-  notes: string | null;
+  aiSummary: string | null;
+  markdownContent: string | null;
+  userEditedContent: string | null;
+  cardType: string;
+  verificationNotes: string | null;
   confirmed: boolean;
   createdAt: string;
   updatedAt: string;
-  article: {
+  contentItem: {
     id: string;
     title: string;
-    source: string;
-    url: string;
-    category: string;
+    originalUrl: string;
+    contentType: string;
+    source: { name: string } | null;
   };
   syncRecords: Array<{
     id: string;
@@ -74,10 +74,9 @@ export default function CardDetailPage() {
   async function handleSave(data: {
     title: string;
     content: string;
-    category: string;
-    tags: string;
-    excerpt: string;
-    notes: string;
+    cardType: string;
+    verificationNotes: string;
+    userEditedContent: string;
   }) {
     const res = await fetch(`/api/material-cards/${cardId}`, {
       method: "PUT",
@@ -126,6 +125,8 @@ export default function CardDetailPage() {
     );
   }
 
+  const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -143,7 +144,7 @@ export default function CardDetailPage() {
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                来自：{card.article.title}
+                来自：{card.contentItem.title}
               </p>
             </div>
           </div>
@@ -182,11 +183,10 @@ export default function CardDetailPage() {
           <MaterialCardEditor
             initialData={{
               title: card.title,
-              content: card.content,
-              category: card.category,
-              tags: card.tags,
-              excerpt: card.excerpt,
-              notes: card.notes,
+              content: displayContent,
+              cardType: card.cardType,
+              verificationNotes: card.verificationNotes,
+              userEditedContent: card.userEditedContent,
             }}
             onSave={handleSave}
             onCancel={() => setEditing(false)}
@@ -198,20 +198,19 @@ export default function CardDetailPage() {
               <MaterialCardView
                 id={card.id}
                 title={card.title}
-                content={card.content}
-                category={card.category}
-                tags={card.tags}
+                content={displayContent}
+                cardType={card.cardType}
                 confirmed={card.confirmed}
               />
 
               {/* User notes */}
-              {card.notes && (
+              {card.verificationNotes && (
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">用户笔记</CardTitle>
+                    <CardTitle className="text-sm">验证备注</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{card.notes}</p>
+                    <p className="text-sm whitespace-pre-wrap">{card.verificationNotes}</p>
                   </CardContent>
                 </Card>
               )}
@@ -219,19 +218,21 @@ export default function CardDetailPage() {
 
             {/* Sidebar */}
             <div className="space-y-4">
-              {/* Article info */}
+              {/* Content item info */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">原文信息</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-sm font-medium">{card.article.title}</p>
+                  <p className="text-sm font-medium">{card.contentItem.title}</p>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">{card.article.source}</Badge>
-                    <Badge variant="secondary" className="text-xs">{card.article.category}</Badge>
+                    {card.contentItem.source && (
+                      <Badge variant="outline" className="text-xs">{card.contentItem.source.name}</Badge>
+                    )}
+                    <Badge variant="secondary" className="text-xs">{card.contentItem.contentType}</Badge>
                   </div>
                   <a
-                    href={card.article.url}
+                    href={card.contentItem.originalUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-primary hover:underline"

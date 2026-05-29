@@ -13,15 +13,16 @@ import { ChevronLeft, ChevronRight, RefreshCw, Search, Filter, X, Upload } from 
 interface CardItem {
   id: string;
   title: string;
-  content: string;
-  category: string;
-  tags: string;
+  aiSummary: string | null;
+  markdownContent: string | null;
+  userEditedContent: string | null;
+  cardType: string;
   confirmed: boolean;
   createdAt: string;
-  article: {
+  contentItem: {
     id: string;
     title: string;
-    source: string;
+    source: { name: string } | null;
   };
 }
 
@@ -45,7 +46,7 @@ export default function CardsPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [confirmedFilter, setConfirmedFilter] = useState<string>("all");
-  const [articleFilter, setArticleFilter] = useState<string>("");
+  const [contentItemFilter, setContentItemFilter] = useState<string>("");
 
   // Batch selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -62,7 +63,7 @@ export default function CardsPage() {
       params.set("pageSize", String(pageSize));
       if (search) params.set("search", search);
       if (confirmedFilter !== "all") params.set("confirmed", confirmedFilter);
-      if (articleFilter) params.set("articleId", articleFilter);
+      if (contentItemFilter) params.set("contentItemId", contentItemFilter);
 
       const res = await fetch(`/api/material-cards?${params.toString()}`);
       if (!res.ok) throw new Error("请求失败");
@@ -75,7 +76,7 @@ export default function CardsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, confirmedFilter, articleFilter]);
+  }, [page, search, confirmedFilter, contentItemFilter]);
 
   useEffect(() => {
     fetchCards();
@@ -83,7 +84,7 @@ export default function CardsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, confirmedFilter, articleFilter]);
+  }, [search, confirmedFilter, contentItemFilter]);
 
   async function handleDelete(id: string) {
     if (!confirm("确定删除此素材卡？")) return;
@@ -240,41 +241,43 @@ export default function CardsPage() {
         ) : cards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
             <p>暂无素材卡</p>
-            <p className="text-sm">请在文章列表中选择文章批量生成素材卡</p>
+            <p className="text-sm">请在内容列表中选择内容条目批量生成素材卡</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {cards.map((card) => (
-              <div key={card.id} className="relative">
-                <div
-                  className="absolute top-3 left-3 z-10"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Checkbox
-                    checked={selectedIds.has(card.id)}
-                    onCheckedChange={() => toggleSelect(card.id)}
-                    className="bg-background border-2"
-                  />
+            {cards.map((card) => {
+              const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
+              return (
+                <div key={card.id} className="relative">
+                  <div
+                    className="absolute top-3 left-3 z-10"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selectedIds.has(card.id)}
+                      onCheckedChange={() => toggleSelect(card.id)}
+                      className="bg-background border-2"
+                    />
+                  </div>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/cards/${card.id}`)}
+                  >
+                    <MaterialCardView
+                      id={card.id}
+                      title={card.title}
+                      content={displayContent}
+                      cardType={card.cardType}
+                      confirmed={card.confirmed}
+                      contentItemTitle={card.contentItem.title}
+                      sourceName={card.contentItem.source?.name}
+                      onDelete={handleDelete}
+                      onConfirm={handleConfirm}
+                    />
+                  </div>
                 </div>
-                <div
-                  className="cursor-pointer"
-                  onClick={() => router.push(`/cards/${card.id}`)}
-                >
-                  <MaterialCardView
-                    id={card.id}
-                    title={card.title}
-                    content={card.content}
-                    category={card.category}
-                    tags={card.tags}
-                    confirmed={card.confirmed}
-                    articleTitle={card.article.title}
-                    articleSource={card.article.source}
-                    onDelete={handleDelete}
-                    onConfirm={handleConfirm}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
