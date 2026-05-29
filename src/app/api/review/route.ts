@@ -6,39 +6,46 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get("mode") ?? "random";
-    const category = searchParams.get("category");
+    const cardType = searchParams.get("category");
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "10")));
 
     const where: Record<string, unknown> = {};
-    if (category) where.category = category;
+    if (cardType) where.cardType = cardType;
 
     if (mode === "random") {
-      // Get random cards - fetch more and shuffle
       const cards = await db.materialCard.findMany({
         where,
         include: {
-          article: { select: { id: true, title: true, source: true } },
-          reviewRecords: { orderBy: { reviewedAt: "desc" }, take: 1 },
+          contentItem: {
+            select: {
+              id: true,
+              title: true,
+              source: { select: { name: true } },
+            },
+          },
         },
         take: Math.min(limit * 3, 100),
       });
 
-      // Shuffle and take requested amount
       const shuffled = cards.sort(() => Math.random() - 0.5).slice(0, limit);
 
       return NextResponse.json({ data: shuffled, mode: "random" });
     }
 
     if (mode === "unreviewed") {
-      // Cards that have never been reviewed
       const cards = await db.materialCard.findMany({
         where: {
           ...where,
-          reviewRecords: { none: {} },
+          confirmed: false,
         },
         include: {
-          article: { select: { id: true, title: true, source: true } },
-          reviewRecords: true,
+          contentItem: {
+            select: {
+              id: true,
+              title: true,
+              source: { select: { name: true } },
+            },
+          },
         },
         orderBy: { createdAt: "asc" },
         take: limit,
@@ -48,29 +55,26 @@ export async function GET(request: NextRequest) {
     }
 
     if (mode === "weak") {
-      // Cards with low average review quality
-      const allCards = await db.materialCard.findMany({
-        where,
-        include: {
-          article: { select: { id: true, title: true, source: true } },
-          reviewRecords: true,
+      // Cards that are not confirmed (treated as "weak" / not yet mastered)
+      const cards = await db.materialCard.findMany({
+        where: {
+          ...where,
+          confirmed: false,
         },
+        include: {
+          contentItem: {
+            select: {
+              id: true,
+              title: true,
+              source: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
       });
 
-      // Sort by average quality (ascending), unreviewed first
-      const scored = allCards
-        .map((card) => {
-          const avgQuality =
-            card.reviewRecords.length > 0
-              ? card.reviewRecords.reduce((sum, r) => sum + r.quality, 0) /
-                card.reviewRecords.length
-              : 0;
-          return { ...card, avgQuality };
-        })
-        .sort((a, b) => a.avgQuality - b.avgQuality)
-        .slice(0, limit);
-
-      return NextResponse.json({ data: scored, mode: "weak" });
+      return NextResponse.json({ data: cards, mode: "weak" });
     }
 
     return NextResponse.json(
@@ -83,11 +87,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/review - 记录复习
+// POST /api/review - 记录复习（将素材卡标记为已确认）
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { cardId, quality } = body as { cardId: string; quality?: number };
+    const { cardId } = body as { cardId: string; quality?: number };
 
     if (!cardId) {
       return NextResponse.json({ error: "请提供 cardId" }, { status: 400 });
@@ -98,14 +102,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "素材卡不存在" }, { status: 404 });
     }
 
-    const record = await db.reviewRecord.create({
+    const updated = await db.materialCard.update({
+      where: { id: cardId },
       data: {
-        materialCardId: cardId,
-        quality: quality ?? 3,
+        confirmed: true,
+        confirmedAt: new Date(),
       },
     });
 
-    return NextResponse.json({ success: true, record });
+    return NextResponse.json({ success: true, card: updated });
   } catch (error) {
     console.error("Record review failed:", error);
     return NextResponse.json({ error: "记录复习失败" }, { status: 500 });

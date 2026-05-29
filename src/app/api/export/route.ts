@@ -6,7 +6,7 @@ import type { MaterialCardStructuredContent } from "@/types";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get("category");
+    const cardType = searchParams.get("category");
     const confirmed = searchParams.get("confirmed");
     const ids = searchParams.get("ids");
 
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     if (ids) {
       where.id = { in: ids.split(",").filter(Boolean) };
     } else {
-      if (category) where.category = category;
+      if (cardType) where.cardType = cardType;
       if (confirmed !== null && confirmed !== undefined && confirmed !== "all") {
         where.confirmed = confirmed === "true";
       }
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: { createdAt: "desc" },
       include: {
-        article: { select: { title: true, source: true } },
+        contentItem: { select: { title: true, source: { select: { name: true } } } },
       },
     });
 
@@ -38,18 +38,19 @@ export async function GET(request: NextRequest) {
     markdown += `> 共 ${cards.length} 张素材卡\n\n---\n\n`;
 
     for (const card of cards) {
+      const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
       let structured: MaterialCardStructuredContent | null = null;
       try {
-        structured = JSON.parse(card.content);
+        structured = JSON.parse(displayContent);
       } catch {
         // fallback to raw content
       }
 
       markdown += `## ${card.title}\n\n`;
-      markdown += `- **分类**：${card.category}\n`;
-      if (card.tags) markdown += `- **标签**：${card.tags}\n`;
-      if (card.article) {
-        markdown += `- **来源**：${card.article.source} - ${card.article.title}\n`;
+      markdown += `- **类型**：${card.cardType}\n`;
+      if (card.contentItem) {
+        const sourceName = card.contentItem.source?.name ?? "";
+        if (sourceName) markdown += `- **来源**：${sourceName} - ${card.contentItem.title}\n`;
       }
       markdown += `- **状态**：${card.confirmed ? "已确认" : "未确认"}\n`;
       markdown += `- **创建时间**：${new Date(card.createdAt).toLocaleDateString("zh-CN")}\n\n`;
@@ -88,11 +89,11 @@ export async function GET(request: NextRequest) {
           markdown += `### 仿写练习\n${structured.writingExercise}\n\n`;
         }
       } else {
-        markdown += `${card.content}\n\n`;
+        markdown += `${displayContent}\n\n`;
       }
 
-      if (card.excerpt) {
-        markdown += `> **原文摘录**：${card.excerpt}\n\n`;
+      if (card.originalFacts) {
+        markdown += `> **原始事实**：${card.originalFacts}\n\n`;
       }
 
       markdown += "---\n\n";

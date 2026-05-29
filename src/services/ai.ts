@@ -86,28 +86,42 @@ export async function generateMaterialCard(
   return { structured, rawJson };
 }
 
-export async function generateBatchMaterialCards(
-  articles: Array<{ id: string; title: string; source: string; content: string; category: string }>,
-  concurrency: number = 3
-): Promise<Array<{ articleId: string; success: boolean; data?: { structured: MaterialCardStructuredContent; rawJson: string }; error?: string }>> {
-  const results: Array<{ articleId: string; success: boolean; data?: { structured: MaterialCardStructuredContent; rawJson: string }; error?: string }> = [];
+interface ContentItemForGeneration {
+  id: string;
+  title: string;
+  source: string;
+  content: string;
+  category: string;
+}
 
-  // Process in batches with limited concurrency
-  for (let i = 0; i < articles.length; i += concurrency) {
-    const batch = articles.slice(i, i + concurrency);
+interface GenerationResult {
+  contentItemId: string;
+  success: boolean;
+  data?: { structured: MaterialCardStructuredContent; rawJson: string };
+  error?: string;
+}
+
+export async function generateBatchMaterialCards(
+  items: ContentItemForGeneration[],
+  concurrency: number = 3
+): Promise<GenerationResult[]> {
+  const results: GenerationResult[] = [];
+
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
     const batchResults = await Promise.all(
-      batch.map(async (article) => {
+      batch.map(async (item) => {
         try {
           const data = await generateMaterialCard(
-            article.title,
-            article.source,
-            article.content,
-            article.category
+            item.title,
+            item.source,
+            item.content,
+            item.category
           );
-          return { articleId: article.id, success: true, data };
+          return { contentItemId: item.id, success: true, data };
         } catch (error) {
           return {
-            articleId: article.id,
+            contentItemId: item.id,
             success: false,
             error: error instanceof Error ? error.message : "生成失败",
           };

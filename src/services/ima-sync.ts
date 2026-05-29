@@ -27,8 +27,8 @@ function sleep(ms: number): Promise<void> {
 function formatCardContent(
   title: string,
   content: string,
-  category: string,
-  tags: string
+  cardType: string,
+  topicTags: string
 ): ImaDocument {
   let parsed: MaterialCardStructuredContent | null = null;
   try {
@@ -39,8 +39,8 @@ function formatCardContent(
 
   const sections: string[] = [];
   sections.push(`# ${title}`);
-  sections.push(`分类：${category}`);
-  if (tags) sections.push(`标签：${tags}`);
+  sections.push(`类型：${cardType}`);
+  if (topicTags) sections.push(`标签：${topicTags}`);
   sections.push("");
 
   if (parsed) {
@@ -55,12 +55,12 @@ function formatCardContent(
     sections.push("");
     if (parsed.standardExpressions.length > 0) {
       sections.push("## 规范表达");
-      parsed.standardExpressions.forEach((expr) => sections.push(`- ${expr}`));
+      parsed.standardExpressions.forEach((expr: string) => sections.push(`- ${expr}`));
       sections.push("");
     }
     if (parsed.cases.length > 0) {
       sections.push("## 案例");
-      parsed.cases.forEach((c) => sections.push(`- ${c}`));
+      parsed.cases.forEach((c: string) => sections.push(`- ${c}`));
       sections.push("");
     }
     sections.push("## 省情关联");
@@ -69,7 +69,7 @@ function formatCardContent(
     sections.push("");
     if (parsed.applicableTypes.length > 0) {
       sections.push("## 适用题型");
-      parsed.applicableTypes.forEach((t) => sections.push(`- ${t}`));
+      parsed.applicableTypes.forEach((t: string) => sections.push(`- ${t}`));
       sections.push("");
     }
     sections.push(`## 仿写练习\n${parsed.writingExercise}`);
@@ -80,7 +80,7 @@ function formatCardContent(
   return {
     title,
     content: sections.join("\n"),
-    metadata: { category, tags },
+    metadata: { cardType, topicTags },
   };
 }
 
@@ -153,7 +153,7 @@ export async function syncToIma(
 ): Promise<{ success: boolean; syncRecordId: string; error?: string }> {
   const card = await db.materialCard.findUnique({
     where: { id: cardId },
-    include: { article: { select: { title: true } } },
+    include: { contentItem: { select: { id: true, title: true, topicTags: true } } },
   });
 
   if (!card) {
@@ -163,16 +163,27 @@ export async function syncToIma(
   const syncRecord = await db.syncRecord.create({
     data: {
       materialCardId: cardId,
+      contentItemId: card.contentItemId,
+      documentRole: "material_card",
       status: "pending",
     },
   });
 
   try {
+    const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
+    const topicTags = card.contentItem?.topicTags ?? "[]";
+    let parsedTags: string;
+    try {
+      parsedTags = JSON.parse(topicTags).join(",");
+    } catch {
+      parsedTags = topicTags;
+    }
+
     const doc = formatCardContent(
       card.title,
-      card.content,
-      card.category,
-      card.tags
+      displayContent,
+      card.cardType,
+      parsedTags
     );
 
     const result = await uploadDocumentWithRetry(doc);
@@ -181,8 +192,8 @@ export async function syncToIma(
       where: { id: syncRecord.id },
       data: {
         status: "success",
-        imaKnowledgeBaseId: result.knowledgeBaseId,
-        imaDocumentId: result.documentId,
+        targetRemoteId: result.knowledgeBaseId,
+        remoteDocumentId: result.documentId,
       },
     });
 

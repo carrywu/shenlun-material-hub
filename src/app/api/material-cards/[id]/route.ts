@@ -11,7 +11,15 @@ export async function GET(
     const card = await db.materialCard.findUnique({
       where: { id },
       include: {
-        article: { select: { id: true, title: true, source: true, url: true, category: true } },
+        contentItem: {
+          select: {
+            id: true,
+            title: true,
+            originalUrl: true,
+            contentType: true,
+            source: { select: { name: true } },
+          },
+        },
         syncRecords: { orderBy: { syncedAt: "desc" }, take: 5 },
       },
     });
@@ -35,7 +43,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, content, category, tags, excerpt, notes, confirmed } = body;
+    const { title, content, cardType, userEditedContent, markdownContent, aiSummary, verificationNotes, confirmed } = body;
 
     const existing = await db.materialCard.findUnique({ where: { id } });
     if (!existing) {
@@ -46,12 +54,16 @@ export async function PUT(
       where: { id },
       data: {
         ...(title !== undefined && { title }),
-        ...(content !== undefined && { content }),
-        ...(category !== undefined && { category }),
-        ...(tags !== undefined && { tags: Array.isArray(tags) ? tags.join(",") : tags }),
-        ...(excerpt !== undefined && { excerpt }),
-        ...(notes !== undefined && { notes }),
-        ...(confirmed !== undefined && { confirmed }),
+        ...(cardType !== undefined && { cardType }),
+        ...(content !== undefined && { markdownContent: content }),
+        ...(userEditedContent !== undefined && { userEditedContent }),
+        ...(markdownContent !== undefined && { markdownContent }),
+        ...(aiSummary !== undefined && { aiSummary }),
+        ...(verificationNotes !== undefined && { verificationNotes }),
+        ...(confirmed !== undefined && {
+          confirmed,
+          ...(confirmed ? { confirmedAt: new Date() } : {}),
+        }),
       },
     });
 

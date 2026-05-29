@@ -8,22 +8,22 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
     const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20")));
-    const articleId = searchParams.get("articleId");
-    const category = searchParams.get("category");
+    const contentItemId = searchParams.get("articleId") ?? searchParams.get("contentItemId");
+    const cardType = searchParams.get("category") ?? searchParams.get("cardType");
     const confirmed = searchParams.get("confirmed");
     const search = searchParams.get("search");
 
     const where: Record<string, unknown> = {};
 
-    if (articleId) where.articleId = articleId;
-    if (category) where.category = category;
+    if (contentItemId) where.contentItemId = contentItemId;
+    if (cardType) where.cardType = cardType;
     if (confirmed !== null && confirmed !== undefined && confirmed !== "all") {
       where.confirmed = confirmed === "true";
     }
     if (search) {
       where.OR = [
         { title: { contains: search } },
-        { content: { contains: search } },
+        { aiSummary: { contains: search } },
       ];
     }
 
@@ -34,7 +34,13 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
-          article: { select: { id: true, title: true, source: true } },
+          contentItem: {
+            select: {
+              id: true,
+              title: true,
+              source: { select: { name: true } },
+            },
+          },
         },
       }),
       db.materialCard.count({ where }),
@@ -60,37 +66,56 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { articleIds } = body as { articleIds: string[] };
+    const { articleIds, contentItemIds } = body as {
+      articleIds?: string[];
+      contentItemIds?: string[];
+    };
 
-    if (!articleIds || !Array.isArray(articleIds) || articleIds.length === 0) {
+    const itemIds = contentItemIds ?? articleIds;
+
+    if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
       return NextResponse.json(
-        { error: "请提供至少一个文章 ID" },
+        { error: "请提供至少一个内容条目 ID" },
         { status: 400 }
       );
     }
 
-    if (articleIds.length > 20) {
+    if (itemIds.length > 20) {
       return NextResponse.json(
-        { error: "单次最多批量生成 20 篇文章的素材卡" },
+        { error: "单次最多批量生成 20 个内容条目的素材卡" },
         { status: 400 }
       );
     }
 
-    // Fetch articles
-    const articles = await db.article.findMany({
-      where: { id: { in: articleIds } },
-      select: { id: true, title: true, source: true, content: true, category: true },
+    // Fetch content items
+    const items = await db.contentItem.findMany({
+      where: { id: { in: itemIds } },
+      select: {
+        id: true,
+        title: true,
+        fullText: true,
+        contentType: true,
+        source: { select: { name: true } },
+      },
     });
 
-    if (articles.length === 0) {
+    if (items.length === 0) {
       return NextResponse.json(
-        { error: "未找到指定文章" },
+        { error: "未找到指定内容条目" },
         { status: 404 }
       );
     }
 
     // Generate material cards
-    const results = await generateBatchMaterialCards(articles);
+    const results = await generateBatchMaterialCards(
+      items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        source: item.source?.name ?? "未知来源",
+        content: item.fullText ?? "",
+        category: item.contentType,
+      }))
+    );
 
     // Save successful results to database
     const savedCards = [];
@@ -101,25 +126,25 @@ export async function POST(request: NextRequest) {
         try {
           const card = await db.materialCard.create({
             data: {
-              articleId: result.articleId,
+              contentItemId: result.contentItemId,
+              cardType: "fact_summary",
               title: result.data.structured.mainPoint.slice(0, 100),
-              content: result.data.rawJson,
-              category: articles.find((a) => a.id === result.articleId)?.category ?? "其他",
-              tags: result.data.structured.applicableTypes.join(","),
-              excerpt: result.data.structured.structure.background.slice(0, 200),
-              generationPrompt: "default",
+              aiSummary: result.data.rawJson,
+              markdownContent: result.data.rawJson,
+              sourceSnapshot: result.data.structured.applicableTypes.join(","),
+              originalFacts: result.data.structured.structure.background.slice(0, 200),
             },
           });
           savedCards.push(card);
         } catch (dbError) {
           errors.push({
-            articleId: result.articleId,
+            contentItemId: result.contentItemId,
             error: `保存失败: ${dbError instanceof Error ? dbError.message : "未知错误"}`,
           });
         }
       } else {
         errors.push({
-          articleId: result.articleId,
+          contentItemId: result.contentItemId,
           error: result.error ?? "生成失败",
         });
       }

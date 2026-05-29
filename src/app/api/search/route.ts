@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q") ?? "";
-    const category = searchParams.get("category");
+    const cardType = searchParams.get("category");
     const tags = searchParams.get("tags");
     const confirmed = searchParams.get("confirmed");
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
@@ -20,21 +20,21 @@ export async function GET(request: NextRequest) {
     if (query) {
       where.OR = [
         { title: { contains: query } },
-        { content: { contains: query } },
-        { excerpt: { contains: query } },
-        { tags: { contains: query } },
+        { aiSummary: { contains: query } },
+        { markdownContent: { contains: query } },
+        { originalFacts: { contains: query } },
       ];
     }
 
-    if (category) {
-      where.category = category;
+    if (cardType) {
+      where.cardType = cardType;
     }
 
     if (tags) {
       const tagList = tags.split(",").filter(Boolean);
       if (tagList.length > 0) {
         where.AND = tagList.map((tag) => ({
-          tags: { contains: tag.trim() },
+          sourceSnapshot: { contains: tag.trim() },
         }));
       }
     }
@@ -50,7 +50,13 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
-          article: { select: { id: true, title: true, source: true } },
+          contentItem: {
+            select: {
+              id: true,
+              title: true,
+              source: { select: { name: true } },
+            },
+          },
         },
       }),
       db.materialCard.count({ where }),

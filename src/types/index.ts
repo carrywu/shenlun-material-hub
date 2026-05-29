@@ -244,3 +244,23 @@ export interface ContentCollectForm {
   topicTags?: string[];
   regionScopes?: string[];
 }
+
+// AI 生成的结构化素材内容
+export interface MaterialCardStructuredContent {
+  mainPoint: string;
+  structure: {
+    background: string;
+    problem: string;
+    cause: string;
+    solution: string;
+    sublimation: string;
+  };
+  standardExpressions: string[];
+  cases: string[];
+  provinceRelevance: {
+    guangdong: string;
+    hunan: string;
+  };
+  applicableTypes: string[];
+  writingExercise: string;
+}

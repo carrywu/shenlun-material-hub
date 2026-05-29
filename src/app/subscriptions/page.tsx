@@ -1,0 +1,932 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Plus,
+  Pencil,
+  ShieldCheck,
+  Archive,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Search,
+  Loader2,
+} from "lucide-react";
+import {
+  PLATFORMS,
+  CONTENT_TYPES,
+  TRUST_LEVELS,
+  VERIFICATION_STATUSES,
+  PRIORITIES,
+} from "@/types";
+
+// 平台标签
+const PLATFORM_LABELS: Record<string, string> = {
+  website: "网站",
+  wechat: "微信",
+  bilibili: "B站",
+  xiaohongshu: "小红书",
+};
+
+// 内容类型标签
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+  policy_analysis: "政策解读",
+  social_issue: "社会问题",
+  economic_trend: "经济趋势",
+  cultural_heritage: "文化传承",
+  ecological_protection: "生态保护",
+  legal_regulation: "法治法规",
+  tech_innovation: "科技创新",
+  education_reform: "教育改革",
+  livelihood_welfare: "民生福祉",
+  international_affairs: "国际事务",
+};
+
+// 信任等级标签
+const TRUST_LEVEL_LABELS: Record<string, string> = {
+  official_primary: "官方一手",
+  official_repost: "官方转载",
+  verified_media: "认证媒体",
+  expert_opinion: "专家观点",
+  unverified: "未验证",
+};
+
+// 验证状态标签
+const VERIFICATION_LABELS: Record<string, string> = {
+  unverified: "未核验",
+  verified: "已核验",
+  disputed: "有争议",
+  outdated: "已过时",
+  retracted: "已撤回",
+};
+
+// 验证状态颜色
+const VERIFICATION_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  unverified: "secondary",
+  verified: "default",
+  disputed: "destructive",
+  outdated: "outline",
+  retracted: "destructive",
+};
+
+interface SourceItem {
+  id: string;
+  name: string;
+  externalId: string | null;
+  platform: string;
+  contentType: string;
+  trustLevel: string;
+  regionScopes: string;
+  baseUrl: string | null;
+  profileUrl: string | null;
+  priority: string;
+  collectionMode: string | null;
+  isEnabled: boolean;
+  verificationStatus: string;
+  keywords: string;
+  collectionFrequency: string | null;
+  lastCollectedAt: string | null;
+  lastError: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count: { contentItems: number };
+}
+
+interface SourcesResponse {
+  data: SourceItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+interface SourceForm {
+  name: string;
+  externalId: string;
+  platform: string;
+  contentType: string;
+  trustLevel: string;
+  regionScopes: string;
+  baseUrl: string;
+  profileUrl: string;
+  priority: string;
+  collectionMode: string;
+  isEnabled: boolean;
+  keywords: string;
+  collectionFrequency: string;
+}
+
+const emptyForm: SourceForm = {
+  name: "",
+  externalId: "",
+  platform: "website",
+  contentType: "policy_analysis",
+  trustLevel: "unverified",
+  regionScopes: "",
+  baseUrl: "",
+  profileUrl: "",
+  priority: "P2",
+  collectionMode: "",
+  isEnabled: true,
+  keywords: "",
+  collectionFrequency: "",
+};
+
+function parseJsonArray(str: string): string[] {
+  try {
+    const parsed = JSON.parse(str);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export default function SubscriptionsPage() {
+  const [sources, setSources] = useState<SourceItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [platform, setPlatform] = useState("all");
+  const [contentType, setContentType] = useState("all");
+  const [trustLevel, setTrustLevel] = useState("all");
+  const [isEnabled, setIsEnabled] = useState("all");
+  const [verificationStatus, setVerificationStatus] = useState("all");
+
+  // Dialog state
+  const [showForm, setShowForm] = useState(false);
+  const [editingSource, setEditingSource] = useState<SourceItem | null>(null);
+  const [form, setForm] = useState<SourceForm>(emptyForm);
+  const [saving, setSaving] = useState(false);
+
+  // Verify dialog
+  const [verifySource, setVerifySource] = useState<SourceItem | null>(null);
+  const [verifyStatus, setVerifyStatus] = useState("verified");
+  const [verifyNotes, setVerifyNotes] = useState("");
+  const [verifying, setVerifying] = useState(false);
+
+  const pageSize = 20;
+
+  const fetchSources = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
+      if (search) params.set("search", search);
+      if (platform !== "all") params.set("platform", platform);
+      if (contentType !== "all") params.set("contentType", contentType);
+      if (trustLevel !== "all") params.set("trustLevel", trustLevel);
+      if (isEnabled !== "all") params.set("isEnabled", isEnabled);
+      if (verificationStatus !== "all")
+        params.set("verificationStatus", verificationStatus);
+
+      const res = await fetch(`/api/sources?${params.toString()}`);
+      if (!res.ok) throw new Error("请求失败");
+      const json: SourcesResponse = await res.json();
+      setSources(json.data);
+      setTotal(json.total);
+      setTotalPages(json.totalPages);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, platform, contentType, trustLevel, isEnabled, verificationStatus]);
+
+  useEffect(() => {
+    fetchSources();
+  }, [fetchSources]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, platform, contentType, trustLevel, isEnabled, verificationStatus]);
+
+  function openCreate() {
+    setEditingSource(null);
+    setForm(emptyForm);
+    setShowForm(true);
+  }
+
+  function openEdit(source: SourceItem) {
+    setEditingSource(source);
+    setForm({
+      name: source.name,
+      externalId: source.externalId ?? "",
+      platform: source.platform,
+      contentType: source.contentType,
+      trustLevel: source.trustLevel,
+      regionScopes: parseJsonArray(source.regionScopes).join(", "),
+      baseUrl: source.baseUrl ?? "",
+      profileUrl: source.profileUrl ?? "",
+      priority: source.priority,
+      collectionMode: source.collectionMode ?? "",
+      isEnabled: source.isEnabled,
+      keywords: parseJsonArray(source.keywords).join(", "),
+      collectionFrequency: source.collectionFrequency ?? "",
+    });
+    setShowForm(true);
+  }
+
+  async function handleSave() {
+    if (!form.name.trim()) {
+      alert("请输入来源名称");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        ...form,
+        externalId: form.externalId || null,
+        baseUrl: form.baseUrl || null,
+        profileUrl: form.profileUrl || null,
+        collectionMode: form.collectionMode || null,
+        collectionFrequency: form.collectionFrequency || null,
+        regionScopes: form.regionScopes
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        keywords: form.keywords
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      };
+
+      const url = editingSource
+        ? `/api/sources/${editingSource.id}`
+        : "/api/sources";
+      const method = editingSource ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "保存失败");
+      }
+
+      setShowForm(false);
+      fetchSources();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggleEnabled(source: SourceItem) {
+    try {
+      const res = await fetch(`/api/sources/${source.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isEnabled: !source.isEnabled }),
+      });
+      if (!res.ok) throw new Error("操作失败");
+      fetchSources();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "操作失败");
+    }
+  }
+
+  function openVerify(source: SourceItem) {
+    setVerifySource(source);
+    setVerifyStatus(source.verificationStatus === "verified" ? "unverified" : "verified");
+    setVerifyNotes("");
+  }
+
+  async function handleVerify() {
+    if (!verifySource) return;
+    setVerifying(true);
+    try {
+      const res = await fetch(`/api/sources/${verifySource.id}/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          verificationStatus: verifyStatus,
+          notes: verifyNotes || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "核验失败");
+      }
+      setVerifySource(null);
+      fetchSources();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "核验失败");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  async function handleArchive(source: SourceItem) {
+    if (!confirm(`确定要归档来源「${source.name}」吗？`)) return;
+    try {
+      const res = await fetch(`/api/sources/${source.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("归档失败");
+      fetchSources();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "归档失败");
+    }
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="border-b px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold">来源管理</h1>
+            <p className="text-sm text-muted-foreground">
+              管理内容采集来源，配置平台、信任等级与核验状态
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={fetchSources}>
+              <RefreshCw className="mr-1.5 h-4 w-4" />
+              刷新
+            </Button>
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              新建来源
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="border-b px-6 py-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative w-60">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="搜索来源名称..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-8"
+            />
+          </div>
+
+          <Select value={platform} onValueChange={setPlatform}>
+            <SelectTrigger className="w-28">
+              <SelectValue placeholder="平台" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部平台</SelectItem>
+              {PLATFORMS.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {PLATFORM_LABELS[p] ?? p}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={contentType} onValueChange={setContentType}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="内容类型" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部类型</SelectItem>
+              {CONTENT_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {CONTENT_TYPE_LABELS[t] ?? t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={trustLevel} onValueChange={setTrustLevel}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="信任等级" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部等级</SelectItem>
+              {TRUST_LEVELS.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {TRUST_LEVEL_LABELS[t] ?? t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={isEnabled} onValueChange={setIsEnabled}>
+            <SelectTrigger className="w-28">
+              <SelectValue placeholder="状态" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部状态</SelectItem>
+              <SelectItem value="true">已启用</SelectItem>
+              <SelectItem value="false">已停用</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={verificationStatus}
+            onValueChange={setVerificationStatus}
+          >
+            <SelectTrigger className="w-28">
+              <SelectValue placeholder="核验" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部</SelectItem>
+              {VERIFICATION_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {VERIFICATION_LABELS[s] ?? s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto px-6 py-4">
+        {error ? (
+          <div className="flex items-center justify-center h-48 text-destructive">
+            {error}
+          </div>
+        ) : loading ? (
+          <div className="flex items-center justify-center h-48 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            加载中...
+          </div>
+        ) : sources.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
+            <p>暂无来源</p>
+            <p className="text-sm">点击「新建来源」添加第一个采集来源</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>名称</TableHead>
+                <TableHead className="w-20">平台</TableHead>
+                <TableHead className="w-24">内容类型</TableHead>
+                <TableHead className="w-24">信任等级</TableHead>
+                <TableHead className="w-16">优先级</TableHead>
+                <TableHead className="w-16">启用</TableHead>
+                <TableHead className="w-20">核验</TableHead>
+                <TableHead className="w-16 text-right">条目</TableHead>
+                <TableHead className="w-32 text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sources.map((source) => (
+                <TableRow key={source.id}>
+                  <TableCell className="font-medium max-w-[200px] truncate">
+                    <div>
+                      <span>{source.name}</span>
+                      {source.baseUrl && (
+                        <span className="block text-xs text-muted-foreground truncate">
+                          {source.baseUrl}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {PLATFORM_LABELS[source.platform] ?? source.platform}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs">
+                      {CONTENT_TYPE_LABELS[source.contentType] ??
+                        source.contentType}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {TRUST_LEVEL_LABELS[source.trustLevel] ?? source.trustLevel}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        source.priority === "P0"
+                          ? "destructive"
+                          : source.priority === "P1"
+                            ? "default"
+                            : "secondary"
+                      }
+                      className="text-xs"
+                    >
+                      {source.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Checkbox
+                      checked={source.isEnabled}
+                      onCheckedChange={() => handleToggleEnabled(source)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        VERIFICATION_VARIANT[source.verificationStatus] ??
+                        "secondary"
+                      }
+                      className="text-xs"
+                    >
+                      {VERIFICATION_LABELS[source.verificationStatus] ??
+                        source.verificationStatus}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">
+                    {source._count.contentItems}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => openEdit(source)}
+                        title="编辑"
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => openVerify(source)}
+                        title="核验"
+                      >
+                        <ShieldCheck />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => handleArchive(source)}
+                        title="归档"
+                      >
+                        <Archive />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t px-6 py-3">
+          <span className="text-sm text-muted-foreground">
+            共 {total} 个来源，第 {page} / {totalPages} 页
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              上一页
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              下一页
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Create / Edit Dialog */}
+      <Dialog
+        open={showForm}
+        onOpenChange={(open) => {
+          if (!open) setShowForm(false);
+        }}
+      >
+          <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingSource ? "编辑来源" : "新建来源"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingSource
+                  ? "修改来源的基本信息和配置"
+                  : "添加一个新的内容采集来源"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-2">
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">
+                  名称 <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                  placeholder="来源名称"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-1.5">
+                  <label className="text-sm font-medium">平台</label>
+                  <Select
+                    value={form.platform}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, platform: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PLATFORMS.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {PLATFORM_LABELS[p] ?? p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-1.5">
+                  <label className="text-sm font-medium">优先级</label>
+                  <Select
+                    value={form.priority}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, priority: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITIES.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-1.5">
+                  <label className="text-sm font-medium">内容类型</label>
+                  <Select
+                    value={form.contentType}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, contentType: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONTENT_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {CONTENT_TYPE_LABELS[t] ?? t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-1.5">
+                  <label className="text-sm font-medium">信任等级</label>
+                  <Select
+                    value={form.trustLevel}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, trustLevel: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TRUST_LEVELS.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {TRUST_LEVEL_LABELS[t] ?? t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">外部 ID</label>
+                <Input
+                  value={form.externalId}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, externalId: e.target.value }))
+                  }
+                  placeholder="平台账号/ID（可选）"
+                />
+              </div>
+
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">基础 URL</label>
+                <Input
+                  value={form.baseUrl}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, baseUrl: e.target.value }))
+                  }
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">主页 URL</label>
+                <Input
+                  value={form.profileUrl}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, profileUrl: e.target.value }))
+                  }
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-1.5">
+                  <label className="text-sm font-medium">采集模式</label>
+                  <Input
+                    value={form.collectionMode}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        collectionMode: e.target.value,
+                      }))
+                    }
+                    placeholder="rss / crawl / api"
+                  />
+                </div>
+
+                <div className="grid gap-1.5">
+                  <label className="text-sm font-medium">采集频率</label>
+                  <Input
+                    value={form.collectionFrequency}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        collectionFrequency: e.target.value,
+                      }))
+                    }
+                    placeholder="daily / hourly"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">
+                  关键词（逗号分隔）
+                </label>
+                <Input
+                  value={form.keywords}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, keywords: e.target.value }))
+                  }
+                  placeholder="关键词1, 关键词2, ..."
+                />
+              </div>
+
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">
+                  适用地区（逗号分隔）
+                </label>
+                <Input
+                  value={form.regionScopes}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, regionScopes: e.target.value }))
+                  }
+                  placeholder="全国, 广东, 湖南, ..."
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={form.isEnabled}
+                  onCheckedChange={(checked) =>
+                    setForm((f) => ({ ...f, isEnabled: !!checked }))
+                  }
+                />
+                <label className="text-sm font-medium">启用此来源</label>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowForm(false)}>
+                取消
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                {editingSource ? "保存" : "创建"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+      {/* Verify Dialog */}
+      <Dialog
+        open={!!verifySource}
+        onOpenChange={(open) => {
+          if (!open) setVerifySource(null);
+        }}
+      >
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>核验来源</DialogTitle>
+              <DialogDescription>
+                对「{verifySource?.name}」进行核验状态变更
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-2">
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">核验状态</label>
+                <Select value={verifyStatus} onValueChange={setVerifyStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VERIFICATION_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {VERIFICATION_LABELS[s] ?? s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">备注</label>
+                <Input
+                  value={verifyNotes}
+                  onChange={(e) => setVerifyNotes(e.target.value)}
+                  placeholder="核验备注（可选）"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setVerifySource(null)}
+              >
+                取消
+              </Button>
+              <Button onClick={handleVerify} disabled={verifying}>
+                {verifying && (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                )}
+                确认核验
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+    </div>
+  );
+}
