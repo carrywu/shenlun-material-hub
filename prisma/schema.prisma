@@ -45,12 +45,26 @@ model MaterialCard {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  article      Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  syncRecords  SyncRecord[]
+  article       Article        @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  syncRecords   SyncRecord[]
+  reviewRecords ReviewRecord[]
 
   @@index([articleId])
   @@index([category])
   @@index([createdAt])
+}
+
+// 复习记录
+model ReviewRecord {
+  id              String   @id @default(cuid())
+  materialCardId  String
+  reviewedAt      DateTime @default(now())
+  quality         Int      @default(0) // 复习质量评分 0-5
+
+  materialCard MaterialCard @relation(fields: [materialCardId], references: [id], onDelete: Cascade)
+
+  @@index([materialCardId])
+  @@index([reviewedAt])
 }
 
 // ima 知识库同步记录

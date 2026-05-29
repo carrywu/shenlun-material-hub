@@ -49,6 +49,20 @@ export interface SyncRecord {
   syncedAt: Date;
 }
 
+// 复习记录
+export interface ReviewRecord {
+  id: string;
+  materialCardId: string;
+  reviewedAt: Date;
+  quality: number; // 0-5 复习质量评分
+}
+
+// 带复习记录的素材卡
+export interface MaterialCardWithReview extends MaterialCard {
+  reviewRecords: ReviewRecord[];
+  article?: { id: string; title: string; source: string };
+}
+
 // 带关联数据的文章
 export interface ArticleWithCards extends Article {
   materialCards: MaterialCard[];

@@ -1,0 +1,294 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  RefreshCw,
+  Loader2,
+  BookOpen,
+  BarChart3,
+  CheckCircle2,
+  Clock,
+  Zap,
+} from "lucide-react";
+import { ReviewCard } from "@/components/ReviewCard";
+
+interface ReviewCardData {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  tags: string;
+  confirmed: boolean;
+  excerpt: string | null;
+  createdAt: string;
+  reviewRecords: { id: string; reviewedAt: string; quality: number }[];
+  article?: { id: string; title: string; source: string };
+}
+
+const CATEGORIES = [
+  "政治",
+  "经济",
+  "社会",
+  "文化",
+  "生态",
+  "基层治理",
+  "乡村振兴",
+  "科技创新",
+  "民生保障",
+];
+
+export default function ReviewPage() {
+  const [cards, setCards] = useState<ReviewCardData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState("random");
+  const [category, setCategory] = useState("");
+  const [reviewedInSession, setReviewedInSession] = useState(0);
+  const [totalCards, setTotalCards] = useState(0);
+  const [reviewedCards, setReviewedCards] = useState(0);
+
+  const fetchCards = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("mode", mode);
+      params.set("limit", "10");
+      if (category) params.set("category", category);
+
+      const res = await fetch(`/api/review?${params.toString()}`);
+      const data = await res.json();
+
+      if (res.ok) {
+        setCards(data.data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [mode, category]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const [totalRes, reviewRes] = await Promise.all([
+        fetch("/api/material-cards?pageSize=1"),
+        fetch("/api/review?mode=unreviewed&limit=1"),
+      ]);
+      const totalData = await totalRes.json();
+      const reviewData = await reviewRes.json();
+      if (totalRes.ok) setTotalCards(totalData.total);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCards();
+    fetchStats();
+  }, [fetchCards, fetchStats]);
+
+  const handleMarkReviewed = async (cardId: string, quality: number) => {
+    try {
+      const res = await fetch("/api/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId, quality }),
+      });
+
+      if (res.ok) {
+        setReviewedInSession((prev) => prev + 1);
+        setReviewedCards((prev) => prev + 1);
+
+        // Remove the card from the current list
+        setCards((prev) => prev.filter((c) => c.id !== cardId));
+
+        // If no more cards, fetch new ones
+        if (cards.length <= 1) {
+          fetchCards();
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchCards();
+  };
+
+  const modeLabels: Record<string, string> = {
+    random: "随机复习",
+    unreviewed: "未复习优先",
+    weak: "薄弱环节",
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="border-b px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold">复习模式</h1>
+            <p className="text-sm text-muted-foreground">
+              逐步揭示素材卡内容，检验记忆效果
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-1.5 ${loading ? "animate-spin" : ""}`}
+            />
+            换一批
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto p-6 space-y-4">
+        {/* Stats bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-4 pb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                <BookOpen className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{cards.length}</p>
+                <p className="text-xs text-muted-foreground">当前待复习</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-4 pb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-100 text-green-600">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{reviewedInSession}</p>
+                <p className="text-xs text-muted-foreground">本次已复习</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-4 pb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+                <BarChart3 className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{totalCards}</p>
+                <p className="text-xs text-muted-foreground">素材卡总数</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-4 pb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+                <Zap className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">
+                  {totalCards > 0
+                    ? Math.round((reviewedCards / totalCards) * 100)
+                    : 0}
+                  %
+                </p>
+                <p className="text-xs text-muted-foreground">复习进度</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <Select value={mode} onValueChange={(v) => { if (v) setMode(v); }}>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="random">随机复习</SelectItem>
+              <SelectItem value="unreviewed">未复习优先</SelectItem>
+              <SelectItem value="weak">薄弱环节</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={category}
+            onValueChange={(v) => setCategory(v === "all" || !v ? "" : v)}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="分类" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部分类</SelectItem>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Badge variant="outline" className="text-xs">
+            {modeLabels[mode]}
+          </Badge>
+        </div>
+
+        {/* Review cards */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : cards.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <CheckCircle2 className="h-10 w-10 mb-3 text-green-500 opacity-50" />
+              <p className="text-lg font-medium">太棒了！</p>
+              <p className="text-sm">当前没有需要复习的素材卡</p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={handleRefresh}
+              >
+                <RefreshCw className="h-4 w-4 mr-1.5" />
+                换一批
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {cards.map((card) => (
+              <ReviewCard
+                key={card.id}
+                id={card.id}
+                title={card.title}
+                content={card.content}
+                category={card.category}
+                tags={card.tags}
+                confirmed={card.confirmed}
+                articleTitle={card.article?.title}
+                articleSource={card.article?.source}
+                reviewCount={card.reviewRecords.length}
+                lastReviewed={
+                  card.reviewRecords.length > 0
+                    ? card.reviewRecords[0].reviewedAt
+                    : null
+                }
+                onMarkReviewed={handleMarkReviewed}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
