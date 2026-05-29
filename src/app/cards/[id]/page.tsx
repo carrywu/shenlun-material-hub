@@ -204,6 +204,7 @@ export default function CardDetailPage() {
                 <SyncToIma
                   cardId={cardId}
                   cardTitle={card.title}
+                  confirmed={card.confirmed}
                   onSyncComplete={fetchCard}
                 />
                 <Button

@@ -148,23 +148,55 @@ async function uploadDocumentWithRetry(
   throw lastError ?? new Error("同步失败");
 }
 
+const CARD_TYPE_FOLDER_MAP: Record<string, string> = {
+  fact_summary: "事实摘要",
+  argument_analysis: "论点分析",
+  data_highlight: "数据亮点",
+  policy_compare: "政策对比",
+  case_study: "案例研究",
+};
+
+function deriveFolders(contentItem: { regionScopes: string | null }, cardType: string) {
+  let regionFolder: string | null = null;
+  if (contentItem.regionScopes) {
+    try {
+      const scopes: string[] = JSON.parse(contentItem.regionScopes);
+      if (scopes.length > 0) regionFolder = scopes.join("/");
+    } catch {
+      // ignore parse error
+    }
+  }
+  const typeFolder = CARD_TYPE_FOLDER_MAP[cardType] ?? cardType;
+  return { regionFolder, typeFolder };
+}
+
 export async function syncToIma(
   cardId: string
 ): Promise<{ success: boolean; syncRecordId: string; error?: string }> {
   const card = await db.materialCard.findUnique({
     where: { id: cardId },
-    include: { contentItem: { select: { id: true, title: true, topicTags: true } } },
+    include: {
+      contentItem: { select: { id: true, title: true, topicTags: true, regionScopes: true } },
+    },
   });
 
   if (!card) {
     throw new Error("素材卡不存在");
   }
 
+  if (!card.confirmed) {
+    throw new Error("素材卡尚未确认，请先确认后再同步");
+  }
+
+  const { regionFolder, typeFolder } = deriveFolders(card.contentItem, card.cardType);
+
   const syncRecord = await db.syncRecord.create({
     data: {
       materialCardId: cardId,
       contentItemId: card.contentItemId,
       documentRole: "material_card",
+      regionFolder,
+      typeFolder,
       status: "pending",
     },
   });
@@ -297,4 +329,41 @@ export async function getSyncHistory(
     orderBy: { syncedAt: "desc" },
     take: limit,
   });
+}
+
+export interface SyncRecordsQuery {
+  status?: string;
+  documentRole?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function getSyncRecords(query: SyncRecordsQuery) {
+  const { status, documentRole, dateFrom, dateTo, page = 1, pageSize = 20 } = query;
+
+  const where: Record<string, unknown> = {};
+  if (status) where.status = status;
+  if (documentRole) where.documentRole = documentRole;
+  if (dateFrom || dateTo) {
+    where.syncedAt = {} as Record<string, Date>;
+    if (dateFrom) (where.syncedAt as Record<string, Date>).gte = new Date(dateFrom);
+    if (dateTo) (where.syncedAt as Record<string, Date>).lte = new Date(dateTo);
+  }
+
+  const [data, total] = await Promise.all([
+    db.syncRecord.findMany({
+      where,
+      include: {
+        materialCard: { select: { id: true, title: true, cardType: true, confirmed: true } },
+      },
+      orderBy: { syncedAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    db.syncRecord.count({ where }),
+  ]);
+
+  return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }

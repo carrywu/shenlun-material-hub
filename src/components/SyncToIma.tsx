@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, Loader2, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import { Upload, Loader2, CheckCircle2, XCircle, RefreshCw, AlertTriangle } from "lucide-react";
 
 interface SyncResult {
   success: boolean;
@@ -27,6 +27,7 @@ interface BatchSyncResult {
 interface SyncToImaProps {
   cardId: string;
   cardTitle?: string;
+  confirmed?: boolean;
   onSyncComplete?: () => void;
   variant?: "icon" | "button" | "full";
 }
@@ -34,6 +35,7 @@ interface SyncToImaProps {
 export function SyncToIma({
   cardId,
   cardTitle,
+  confirmed = true,
   onSyncComplete,
   variant = "button",
 }: SyncToImaProps) {
@@ -67,6 +69,27 @@ export function SyncToIma({
     } finally {
       setSyncing(false);
     }
+  }
+
+  if (!confirmed) {
+    if (variant === "icon") {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled
+          title="请先确认素材卡"
+        >
+          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      );
+    }
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <AlertTriangle className="h-3.5 w-3.5" />
+        <span>请先确认后再同步</span>
+      </div>
+    );
   }
 
   if (variant === "icon") {

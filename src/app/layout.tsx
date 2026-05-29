@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import { FileText, Home, Layers, CreditCard, Search, RotateCcw, Rss } from "lucide-react";
+import { FileText, Home, Layers, CreditCard, Search, RotateCcw, Rss, Compass, Sparkles, History } from "lucide-react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,11 +21,14 @@ export const metadata: Metadata = {
 
 const navItems = [
   { href: "/", label: "仪表板", icon: Home },
+  { href: "/discover", label: "今日推荐", icon: Sparkles },
+  { href: "/explore", label: "探索区", icon: Compass },
   { href: "/articles", label: "文章列表", icon: FileText },
   { href: "/cards", label: "素材卡", icon: CreditCard },
   { href: "/subscriptions", label: "来源管理", icon: Rss },
   { href: "/search", label: "检索", icon: Search },
   { href: "/review", label: "复习", icon: RotateCcw },
+  { href: "/sync-records", label: "同步记录", icon: History },
 ];
 
 export default function RootLayout({

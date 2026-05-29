@@ -13,9 +13,15 @@ export async function POST(request: NextRequest) {
 
     // Single card sync
     if (cardId && !cardIds) {
-      const card = await db.materialCard.findUnique({ where: { id: cardId } });
+      const card = await db.materialCard.findUnique({
+        where: { id: cardId },
+        select: { id: true, confirmed: true },
+      });
       if (!card) {
         return NextResponse.json({ error: "素材卡不存在" }, { status: 404 });
+      }
+      if (!card.confirmed) {
+        return NextResponse.json({ error: "素材卡尚未确认，请先确认后再同步" }, { status: 400 });
       }
 
       const result = await syncToIma(cardId);
@@ -33,7 +39,7 @@ export async function POST(request: NextRequest) {
 
       const existingCards = await db.materialCard.findMany({
         where: { id: { in: cardIds } },
-        select: { id: true },
+        select: { id: true, confirmed: true },
       });
 
       const existingIds = new Set(existingCards.map((c) => c.id));
@@ -43,6 +49,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: `以下素材卡不存在: ${invalidIds.join(", ")}` },
           { status: 404 }
+        );
+      }
+
+      const unconfirmedIds = existingCards
+        .filter((c) => !c.confirmed)
+        .map((c) => c.id);
+
+      if (unconfirmedIds.length > 0) {
+        return NextResponse.json(
+          { error: `以下素材卡尚未确认: ${unconfirmedIds.join(", ")}` },
+          { status: 400 }
         );
       }
 
@@ -57,7 +74,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Sync failed:", error);
     return NextResponse.json(
-      { error: "同步失败，请检查 IMA_API_KEY 配置" },
+      { error: error instanceof Error ? error.message : "同步失败，请检查 IMA_API_KEY 配置" },
       { status: 500 }
     );
   }
