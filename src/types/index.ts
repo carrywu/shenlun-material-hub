@@ -32,6 +32,8 @@ export interface MaterialCard {
   tags: string;
   excerpt: string | null;
   notes: string | null;
+  confirmed: boolean;
+  generationPrompt: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -80,6 +82,26 @@ export interface ArticleCollectForm {
   tags?: string[];
 }
 
+// 素材卡结构化内容
+export interface MaterialCardStructuredContent {
+  mainPoint: string;                    // 一句话主旨
+  structure: {
+    background: string;                 // 背景
+    problem: string;                    // 问题
+    cause: string;                      // 原因
+    solution: string;                   // 对策
+    sublimation: string;               // 升华
+  };
+  standardExpressions: string[];        // 规范表达（3-5个）
+  cases: string[];                      // 可用案例
+  provinceRelevance: {
+    guangdong: string;                  // 广东省情关联
+    hunan: string;                      // 湖南省情关联
+  };
+  applicableTypes: string[];            // 适用题型
+  writingExercise: string;             // 仿写练习提示
+}
+
 // 素材卡编辑表单
 export interface MaterialCardForm {
   title: string;
@@ -88,4 +110,5 @@ export interface MaterialCardForm {
   tags: string[];
   excerpt?: string;
   notes?: string;
+  confirmed?: boolean;
 }

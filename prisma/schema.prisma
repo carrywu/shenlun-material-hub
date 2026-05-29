@@ -32,16 +32,18 @@ model Article {
 
 // AI 素材卡
 model MaterialCard {
-  id        String   @id @default(cuid())
-  articleId String
-  title     String
-  content   String                 // 素材卡内容
-  category  String                 // 分类
-  tags      String   @default("")  // 标签，逗号分隔
-  excerpt   String?                // 原文摘录
-  notes     String?                // 用户笔记
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  articleId         String
+  title             String
+  content           String                 // 素材卡内容（JSON 结构化数据）
+  category          String                 // 分类
+  tags              String   @default("")  // 标签，逗号分隔
+  excerpt           String?                // 原文摘录
+  notes             String?                // 用户笔记
+  confirmed         Boolean  @default(false) // 是否已确认
+  generationPrompt  String?                // 生成时使用的 prompt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   article      Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
   syncRecords  SyncRecord[]
