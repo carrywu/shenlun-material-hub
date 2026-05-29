@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { MaterialCardView } from "@/components/MaterialCard";
+import type { CardType } from "@/types";
 import { useRouter } from "next/navigation";
 
 interface SearchCard {
@@ -297,9 +298,10 @@ export default function SearchPage() {
                       <MaterialCardView
                         id={card.id}
                         title={query ? highlightText(card.title, query) as unknown as string : card.title}
-                        content={displayContent}
-                        cardType={card.cardType}
+                        cardType={card.cardType as CardType}
                         confirmed={card.confirmed}
+                        aiSummary={card.aiSummary}
+                        sourceSnapshot={card.markdownContent}
                         contentItemTitle={card.contentItem?.title}
                         sourceName={card.contentItem?.source?.name}
                       />
