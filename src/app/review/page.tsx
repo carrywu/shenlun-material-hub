@@ -17,18 +17,20 @@ import {
   BookOpen,
   BarChart3,
   CheckCircle2,
-  Zap,
 } from "lucide-react";
 import { ReviewCard } from "@/components/ReviewCard";
+import type { CardType } from "@/types";
 
 interface ReviewCardData {
   id: string;
   title: string;
-  aiSummary: string | null;
-  markdownContent: string | null;
-  userEditedContent: string | null;
-  cardType: string;
+  cardType: CardType;
   confirmed: boolean;
+  sourceSnapshot: string | null;
+  originalFacts: string | null;
+  aiSummary: string | null;
+  highlightSuggestions: string | null;
+  transferSuggestions: string | null;
   createdAt: string;
   contentItem?: {
     id: string;
@@ -105,11 +107,8 @@ export default function ReviewPage() {
 
       if (res.ok) {
         setReviewedInSession((prev) => prev + 1);
-
-        // Remove the card from the current list
         setCards((prev) => prev.filter((c) => c.id !== cardId));
 
-        // If no more cards, fetch new ones
         if (cards.length <= 1) {
           fetchCards();
         }
@@ -250,22 +249,23 @@ export default function ReviewPage() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {cards.map((card) => {
-              const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
-              return (
-                <ReviewCard
-                  key={card.id}
-                  id={card.id}
-                  title={card.title}
-                  content={displayContent}
-                  cardType={card.cardType}
-                  confirmed={card.confirmed}
-                  contentItemTitle={card.contentItem?.title}
-                  sourceName={card.contentItem?.source?.name}
-                  onMarkReviewed={handleMarkReviewed}
-                />
-              );
-            })}
+            {cards.map((card) => (
+              <ReviewCard
+                key={card.id}
+                id={card.id}
+                title={card.title}
+                cardType={card.cardType}
+                confirmed={card.confirmed}
+                sourceSnapshot={card.sourceSnapshot}
+                originalFacts={card.originalFacts}
+                aiSummary={card.aiSummary}
+                highlightSuggestions={card.highlightSuggestions}
+                transferSuggestions={card.transferSuggestions}
+                contentItemTitle={card.contentItem?.title}
+                sourceName={card.contentItem?.source?.name}
+                onMarkReviewed={handleMarkReviewed}
+              />
+            ))}
           </div>
         )}
       </div>

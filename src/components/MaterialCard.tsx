@@ -3,15 +3,29 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { CheckCircle2, Edit3, FileText, MapPin, PenTool, Target, Trash2 } from "lucide-react";
-import type { MaterialCardStructuredContent } from "@/types";
+import {
+  CheckCircle2,
+  Edit3,
+  FileText,
+  BarChart3,
+  GitCompare,
+  BookOpen,
+  Lightbulb,
+  Trash2,
+  ArrowRight,
+} from "lucide-react";
+import type { CardType } from "@/types";
 
 interface MaterialCardProps {
   id: string;
   title: string;
-  content: string;
-  cardType: string;
+  cardType: CardType;
   confirmed: boolean;
+  sourceSnapshot?: string | null;
+  originalFacts?: string | null;
+  aiSummary?: string | null;
+  highlightSuggestions?: string | null;
+  transferSuggestions?: string | null;
   contentItemTitle?: string;
   sourceName?: string;
   onEdit?: (id: string) => void;
@@ -19,31 +33,52 @@ interface MaterialCardProps {
   onConfirm?: (id: string) => void;
 }
 
-function parseContent(content: string): MaterialCardStructuredContent | null {
-  try {
-    return JSON.parse(content);
-  } catch {
-    return null;
-  }
+const CARD_TYPE_CONFIG: Record<
+  CardType,
+  { label: string; icon: React.ElementType; color: string }
+> = {
+  fact_summary: { label: "事实摘要", icon: FileText, color: "bg-blue-500" },
+  argument_analysis: { label: "论点分析", icon: BookOpen, color: "bg-purple-500" },
+  data_highlight: { label: "数据亮点", icon: BarChart3, color: "bg-green-500" },
+  policy_compare: { label: "政策对比", icon: GitCompare, color: "bg-orange-500" },
+  case_study: { label: "案例研究", icon: Lightbulb, color: "bg-teal-500" },
+};
+
+function SectionBlock({ label, content }: { label: string; content: string }) {
+  if (!content) return null;
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>
+    </div>
+  );
 }
 
 export function MaterialCardView({
   id,
   title,
-  content,
   cardType,
   confirmed,
+  sourceSnapshot,
+  originalFacts,
+  aiSummary,
+  highlightSuggestions,
+  transferSuggestions,
   contentItemTitle,
   sourceName,
   onEdit,
   onDelete,
   onConfirm,
 }: MaterialCardProps) {
-  const structured = parseContent(content);
+  const config = CARD_TYPE_CONFIG[cardType] ?? CARD_TYPE_CONFIG.fact_summary;
+  const Icon = config.icon;
 
   return (
-    <Card className="relative">
-      <CardHeader className="pb-3">
+    <Card className="relative overflow-hidden">
+      {/* Type indicator bar */}
+      <div className={`absolute top-0 left-0 w-1 h-full ${config.color}`} />
+
+      <CardHeader className="pb-3 pl-5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -63,7 +98,12 @@ export function MaterialCardView({
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {onEdit && (
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onEdit(id)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => onEdit(id)}
+              >
                 <Edit3 className="h-3.5 w-3.5" />
               </Button>
             )}
@@ -74,90 +114,67 @@ export function MaterialCardView({
                 className="h-7 w-7 p-0"
                 onClick={() => onConfirm(id)}
               >
-                <CheckCircle2 className={`h-3.5 w-3.5 ${confirmed ? "text-green-600" : ""}`} />
+                <CheckCircle2
+                  className={`h-3.5 w-3.5 ${confirmed ? "text-green-600" : ""}`}
+                />
               </Button>
             )}
             {onDelete && (
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => onDelete(id)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-destructive"
+                onClick={() => onDelete(id)}
+              >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>
         </div>
         <div className="flex items-center gap-1.5 mt-1">
-          <Badge variant="secondary" className="text-xs">{cardType}</Badge>
+          <Badge variant="secondary" className="text-xs gap-1">
+            <Icon className="h-3 w-3" />
+            {config.label}
+          </Badge>
         </div>
       </CardHeader>
-      {structured && (
-        <CardContent className="pt-0 space-y-3">
-          {/* 主旨 */}
+
+      <CardContent className="pt-0 pl-5 space-y-3">
+        {/* AI Summary */}
+        {aiSummary && (
           <div className="flex items-start gap-2">
-            <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-            <p className="text-sm font-medium">{structured.mainPoint}</p>
+            <div className="text-sm leading-relaxed">{aiSummary}</div>
           </div>
+        )}
 
-          {/* 结构拆解 */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground">结构拆解</span>
-            </div>
-            <div className="grid grid-cols-1 gap-1 pl-5">
-              {Object.entries(structured.structure).map(([key, value]) => (
-                <div key={key} className="text-xs">
-                  <span className="text-muted-foreground">
-                    {key === "background" ? "背景" :
-                     key === "problem" ? "问题" :
-                     key === "cause" ? "原因" :
-                     key === "solution" ? "对策" : "升华"}：
-                  </span>
-                  <span>{value}</span>
-                </div>
-              ))}
-            </div>
+        {/* Source Snapshot */}
+        {sourceSnapshot && (
+          <SectionBlock label="来源快照" content={sourceSnapshot} />
+        )}
+
+        {/* Original Facts */}
+        {originalFacts && (
+          <SectionBlock label="原始事实" content={originalFacts} />
+        )}
+
+        {/* Highlight Suggestions */}
+        {highlightSuggestions && (
+          <SectionBlock label="亮点建议" content={highlightSuggestions} />
+        )}
+
+        {/* Transfer Suggestions */}
+        {transferSuggestions && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <ArrowRight className="h-3 w-3" />
+              迁移建议
+            </p>
+            <p className="text-sm whitespace-pre-wrap leading-relaxed text-muted-foreground">
+              {transferSuggestions}
+            </p>
           </div>
-
-          {/* 规范表达 */}
-          {structured.standardExpressions.length > 0 && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <PenTool className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">规范表达</span>
-              </div>
-              <div className="flex flex-wrap gap-1 pl-5">
-                {structured.standardExpressions.map((expr, i) => (
-                  <Badge key={i} variant="secondary" className="text-xs font-normal">
-                    {expr}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 省情关联 */}
-          <div>
-            <div className="flex items-center gap-1.5 mb-1">
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground">省情关联</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 pl-5">
-              <div className="text-xs">
-                <Badge variant="outline" className="text-[10px] mr-1">粤</Badge>
-                {structured.provinceRelevance.guangdong}
-              </div>
-              <div className="text-xs">
-                <Badge variant="outline" className="text-[10px] mr-1">湘</Badge>
-                {structured.provinceRelevance.hunan}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      )}
-      {!structured && (
-        <CardContent>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{content}</p>
-        </CardContent>
-      )}
+        )}
+      </CardContent>
     </Card>
   );
 }

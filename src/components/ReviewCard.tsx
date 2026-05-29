@@ -11,60 +11,72 @@ import {
   Eye,
   EyeOff,
   FileText,
-  MapPin,
-  PenTool,
-  Target,
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  GitCompare,
+  Lightbulb,
 } from "lucide-react";
-import type { MaterialCardStructuredContent } from "@/types";
+import type { CardType } from "@/types";
 
 interface ReviewCardProps {
   id: string;
   title: string;
-  content: string;
-  cardType: string;
+  cardType: CardType;
   confirmed: boolean;
+  sourceSnapshot?: string | null;
+  originalFacts?: string | null;
+  aiSummary?: string | null;
+  highlightSuggestions?: string | null;
+  transferSuggestions?: string | null;
   contentItemTitle?: string;
   sourceName?: string;
   onMarkReviewed?: (id: string) => void;
 }
 
-function parseContent(c: string): MaterialCardStructuredContent | null {
-  try {
-    return JSON.parse(c);
-  } catch {
-    return null;
-  }
-}
+const CARD_TYPE_CONFIG: Record<
+  CardType,
+  { label: string; icon: React.ElementType }
+> = {
+  fact_summary: { label: "事实摘要", icon: FileText },
+  argument_analysis: { label: "论点分析", icon: BookOpen },
+  data_highlight: { label: "数据亮点", icon: BarChart3 },
+  policy_compare: { label: "政策对比", icon: GitCompare },
+  case_study: { label: "案例研究", icon: Lightbulb },
+};
 
 export function ReviewCard({
   id,
   title,
-  content,
   cardType,
   confirmed,
+  sourceSnapshot,
+  originalFacts,
+  aiSummary,
+  highlightSuggestions,
+  transferSuggestions,
   contentItemTitle,
   sourceName,
   onMarkReviewed,
 }: ReviewCardProps) {
-  const structured = parseContent(content);
+  const config = CARD_TYPE_CONFIG[cardType] ?? CARD_TYPE_CONFIG.fact_summary;
+  const TypeIcon = config.icon;
+
   const [revealedSections, setRevealedSections] = useState<Set<string>>(
-    new Set(["mainPoint"])
+    new Set(["summary"])
   );
   const [showAll, setShowAll] = useState(false);
 
   const toggleSection = (section: string) => {
     if (showAll) {
       setShowAll(false);
-      setRevealedSections(new Set(["mainPoint"]));
+      setRevealedSections(new Set(["summary"]));
       return;
     }
     setRevealedSections((prev) => {
       const next = new Set(prev);
-      if (next.has(section)) {
-        next.delete(section);
-      } else {
-        next.add(section);
-      }
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
       return next;
     });
   };
@@ -72,20 +84,13 @@ export function ReviewCard({
   const revealAll = () => {
     setShowAll(true);
     setRevealedSections(
-      new Set([
-        "mainPoint",
-        "structure",
-        "expressions",
-        "cases",
-        "province",
-        "exercise",
-      ])
+      new Set(["summary", "facts", "highlights", "transfer", "source"])
     );
   };
 
   const hideAll = () => {
     setShowAll(false);
-    setRevealedSections(new Set(["mainPoint"]));
+    setRevealedSections(new Set(["summary"]));
   };
 
   const isRevealed = (section: string) => showAll || revealedSections.has(section);
@@ -99,9 +104,7 @@ export function ReviewCard({
               {confirmed && (
                 <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
               )}
-              <h3 className="font-semibold text-sm leading-tight">
-                {title}
-              </h3>
+              <h3 className="font-semibold text-sm leading-tight">{title}</h3>
             </div>
             {contentItemTitle && (
               <p className="text-xs text-muted-foreground truncate">
@@ -119,263 +122,172 @@ export function ReviewCard({
           </div>
         </div>
         <div className="flex items-center gap-1.5 mt-1">
-          <Badge variant="secondary" className="text-xs">
-            {cardType}
+          <Badge variant="secondary" className="text-xs gap-1">
+            <TypeIcon className="h-3 w-3" />
+            {config.label}
           </Badge>
         </div>
       </CardHeader>
 
-      {structured && (
-        <CardContent className="pt-0 space-y-3">
-          {/* 主旨 - always visible */}
+      <CardContent className="pt-0 space-y-3">
+        {/* AI Summary - always visible */}
+        {aiSummary && (
           <div className="flex items-start gap-2">
-            <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-            <p className="text-sm font-medium">{structured.mainPoint}</p>
+            <p className="text-sm">{aiSummary}</p>
           </div>
+        )}
 
-          {/* 结构拆解 */}
+        {/* Source Snapshot */}
+        {sourceSnapshot && (
           <div>
             <button
-              onClick={() => toggleSection("structure")}
+              onClick={() => toggleSection("source")}
               className="flex items-center gap-1.5 w-full text-left hover:opacity-80 transition-opacity"
             >
               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground">
-                结构拆解
+                来源快照
               </span>
-              {isRevealed("structure") ? (
+              {isRevealed("source") ? (
                 <ChevronUp className="h-3 w-3 text-muted-foreground ml-auto" />
               ) : (
                 <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
               )}
             </button>
-            {isRevealed("structure") ? (
-              <div className="grid grid-cols-1 gap-1 pl-5 mt-1">
-                {Object.entries(structured.structure).map(([key, value]) => (
-                  <div key={key} className="text-xs">
-                    <span className="text-muted-foreground">
-                      {key === "background"
-                        ? "背景"
-                        : key === "problem"
-                          ? "问题"
-                          : key === "cause"
-                            ? "原因"
-                            : key === "solution"
-                              ? "对策"
-                              : "升华"}
-                      ：
-                    </span>
-                    <span>{value as string}</span>
-                  </div>
-                ))}
-              </div>
+            {isRevealed("source") ? (
+              <p className="text-xs pl-5 mt-1 whitespace-pre-wrap">{sourceSnapshot}</p>
             ) : (
               <div className="pl-5 mt-1">
                 <span className="text-xs text-muted-foreground italic">
-                  点击展开查看结构拆解...
+                  点击展开查看来源快照...
                 </span>
               </div>
             )}
           </div>
+        )}
 
-          {/* 规范表达 */}
+        {/* Original Facts */}
+        {originalFacts && (
           <div>
             <button
-              onClick={() => toggleSection("expressions")}
+              onClick={() => toggleSection("facts")}
               className="flex items-center gap-1.5 w-full text-left hover:opacity-80 transition-opacity"
             >
-              <PenTool className="h-3.5 w-3.5 text-muted-foreground" />
+              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground">
-                规范表达
+                原始事实
               </span>
-              {isRevealed("expressions") ? (
+              {isRevealed("facts") ? (
                 <ChevronUp className="h-3 w-3 text-muted-foreground ml-auto" />
               ) : (
                 <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
               )}
             </button>
-            {isRevealed("expressions") ? (
-              <div className="flex flex-wrap gap-1 pl-5 mt-1">
-                {structured.standardExpressions.map((expr: string, i: number) => (
-                  <Badge
-                    key={i}
-                    variant="secondary"
-                    className="text-xs font-normal"
-                  >
-                    {expr}
-                  </Badge>
-                ))}
-              </div>
+            {isRevealed("facts") ? (
+              <p className="text-xs pl-5 mt-1 whitespace-pre-wrap">{originalFacts}</p>
             ) : (
               <div className="pl-5 mt-1">
                 <span className="text-xs text-muted-foreground italic">
-                  点击展开查看规范表达...
+                  点击展开查看原始事实...
                 </span>
               </div>
             )}
           </div>
+        )}
 
-          {/* 案例 */}
-          {structured.cases.length > 0 && (
-            <div>
-              <button
-                onClick={() => toggleSection("cases")}
-                className="flex items-center gap-1.5 w-full text-left hover:opacity-80 transition-opacity"
-              >
-                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">
-                  可用案例
-                </span>
-                {isRevealed("cases") ? (
-                  <ChevronUp className="h-3 w-3 text-muted-foreground ml-auto" />
-                ) : (
-                  <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
-                )}
-              </button>
-              {isRevealed("cases") ? (
-                <ul className="list-disc list-inside pl-5 mt-1 space-y-0.5">
-                  {structured.cases.map((c: string, i: number) => (
-                    <li key={i} className="text-xs">
-                      {c}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="pl-5 mt-1">
-                  <span className="text-xs text-muted-foreground italic">
-                    点击展开查看案例...
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 省情关联 */}
+        {/* Highlight Suggestions */}
+        {highlightSuggestions && (
           <div>
             <button
-              onClick={() => toggleSection("province")}
+              onClick={() => toggleSection("highlights")}
               className="flex items-center gap-1.5 w-full text-left hover:opacity-80 transition-opacity"
             >
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground">
-                省情关联
+                亮点建议
               </span>
-              {isRevealed("province") ? (
+              {isRevealed("highlights") ? (
                 <ChevronUp className="h-3 w-3 text-muted-foreground ml-auto" />
               ) : (
                 <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
               )}
             </button>
-            {isRevealed("province") ? (
-              <div className="grid grid-cols-2 gap-2 pl-5 mt-1">
-                <div className="text-xs">
-                  <Badge variant="outline" className="text-[10px] mr-1">
-                    粤
-                  </Badge>
-                  {structured.provinceRelevance.guangdong}
-                </div>
-                <div className="text-xs">
-                  <Badge variant="outline" className="text-[10px] mr-1">
-                    湘
-                  </Badge>
-                  {structured.provinceRelevance.hunan}
-                </div>
-              </div>
+            {isRevealed("highlights") ? (
+              <p className="text-xs pl-5 mt-1 whitespace-pre-wrap">{highlightSuggestions}</p>
             ) : (
               <div className="pl-5 mt-1">
                 <span className="text-xs text-muted-foreground italic">
-                  点击展开查看省情关联...
+                  点击展开查看亮点建议...
                 </span>
               </div>
             )}
           </div>
+        )}
 
-          {/* 仿写练习 */}
-          {structured.writingExercise && (
-            <div>
-              <button
-                onClick={() => toggleSection("exercise")}
-                className="flex items-center gap-1.5 w-full text-left hover:opacity-80 transition-opacity"
-              >
-                <PenTool className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">
-                  仿写练习
-                </span>
-                {isRevealed("exercise") ? (
-                  <ChevronUp className="h-3 w-3 text-muted-foreground ml-auto" />
-                ) : (
-                  <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
-                )}
-              </button>
-              {isRevealed("exercise") ? (
-                <p className="text-xs pl-5 mt-1">{structured.writingExercise}</p>
+        {/* Transfer Suggestions */}
+        {transferSuggestions && (
+          <div>
+            <button
+              onClick={() => toggleSection("transfer")}
+              className="flex items-center gap-1.5 w-full text-left hover:opacity-80 transition-opacity"
+            >
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">
+                迁移建议
+              </span>
+              {isRevealed("transfer") ? (
+                <ChevronUp className="h-3 w-3 text-muted-foreground ml-auto" />
               ) : (
-                <div className="pl-5 mt-1">
-                  <span className="text-xs text-muted-foreground italic">
-                    点击展开查看仿写练习...
-                  </span>
-                </div>
+                <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
               )}
-            </div>
-          )}
-
-          {/* Action bar */}
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={showAll ? hideAll : revealAll}
-              >
-                {showAll ? (
-                  <>
-                    <EyeOff className="h-3 w-3 mr-1" />
-                    隐藏全部
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-3 w-3 mr-1" />
-                    显示全部
-                  </>
-                )}
-              </Button>
-            </div>
-            {onMarkReviewed && (
-              <Button
-                variant="default"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => onMarkReviewed(id)}
-              >
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                已掌握
-              </Button>
+            </button>
+            {isRevealed("transfer") ? (
+              <p className="text-xs pl-5 mt-1 whitespace-pre-wrap">{transferSuggestions}</p>
+            ) : (
+              <div className="pl-5 mt-1">
+                <span className="text-xs text-muted-foreground italic">
+                  点击展开查看迁移建议...
+                </span>
+              </div>
             )}
           </div>
-        </CardContent>
-      )}
+        )}
 
-      {!structured && (
-        <CardContent>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-            {content}
-          </p>
+        {/* Action bar */}
+        <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={showAll ? hideAll : revealAll}
+            >
+              {showAll ? (
+                <>
+                  <EyeOff className="h-3 w-3 mr-1" />
+                  隐藏全部
+                </>
+              ) : (
+                <>
+                  <Eye className="h-3 w-3 mr-1" />
+                  显示全部
+                </>
+              )}
+            </Button>
+          </div>
           {onMarkReviewed && (
-            <div className="flex items-center justify-end pt-3 border-t mt-3">
-              <Button
-                variant="default"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => onMarkReviewed(id)}
-              >
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                已掌握
-              </Button>
-            </div>
+            <Button
+              variant="default"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => onMarkReviewed(id)}
+            >
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              已掌握
+            </Button>
           )}
-        </CardContent>
-      )}
+        </div>
+      </CardContent>
     </Card>
   );
 }

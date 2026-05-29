@@ -14,16 +14,26 @@ import {
   Edit3,
   ExternalLink,
   Trash2,
+  FileText,
+  BookOpen,
+  BarChart3,
+  GitCompare,
+  Lightbulb,
 } from "lucide-react";
+import type { CardType } from "@/types";
 
 interface CardDetail {
   id: string;
   title: string;
+  cardType: CardType;
+  sourceSnapshot: string | null;
+  originalFacts: string | null;
   aiSummary: string | null;
+  highlightSuggestions: string | null;
+  transferSuggestions: string | null;
+  verificationNotes: string | null;
   markdownContent: string | null;
   userEditedContent: string | null;
-  cardType: string;
-  verificationNotes: string | null;
   confirmed: boolean;
   createdAt: string;
   updatedAt: string;
@@ -32,7 +42,9 @@ interface CardDetail {
     title: string;
     originalUrl: string;
     contentType: string;
-    source: { name: string } | null;
+    platform: string;
+    fullText: string | null;
+    source: { id: string; name: string; platform: string } | null;
   };
   syncRecords: Array<{
     id: string;
@@ -41,6 +53,17 @@ interface CardDetail {
     errorMessage: string | null;
   }>;
 }
+
+const CARD_TYPE_CONFIG: Record<
+  CardType,
+  { label: string; icon: React.ElementType; color: string }
+> = {
+  fact_summary: { label: "事实摘要", icon: FileText, color: "bg-blue-500" },
+  argument_analysis: { label: "论点分析", icon: BookOpen, color: "bg-purple-500" },
+  data_highlight: { label: "数据亮点", icon: BarChart3, color: "bg-green-500" },
+  policy_compare: { label: "政策对比", icon: GitCompare, color: "bg-orange-500" },
+  case_study: { label: "案例研究", icon: Lightbulb, color: "bg-teal-500" },
+};
 
 export default function CardDetailPage() {
   const params = useParams();
@@ -73,8 +96,12 @@ export default function CardDetailPage() {
 
   async function handleSave(data: {
     title: string;
-    content: string;
-    cardType: string;
+    cardType: CardType;
+    sourceSnapshot: string;
+    originalFacts: string;
+    aiSummary: string;
+    highlightSuggestions: string;
+    transferSuggestions: string;
     verificationNotes: string;
     userEditedContent: string;
   }) {
@@ -125,7 +152,8 @@ export default function CardDetailPage() {
     );
   }
 
-  const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
+  const config = CARD_TYPE_CONFIG[card.cardType] ?? CARD_TYPE_CONFIG.fact_summary;
+  const TypeIcon = config.icon;
 
   return (
     <div className="flex flex-col h-full">
@@ -139,8 +167,14 @@ export default function CardDetailPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-semibold">素材卡详情</h1>
+                <Badge variant="secondary" className="text-xs gap-1">
+                  <TypeIcon className="h-3 w-3" />
+                  {config.label}
+                </Badge>
                 {card.confirmed && (
-                  <Badge variant="default" className="text-xs bg-green-600">已确认</Badge>
+                  <Badge variant="default" className="text-xs bg-green-600">
+                    已确认
+                  </Badge>
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
@@ -151,7 +185,11 @@ export default function CardDetailPage() {
           <div className="flex items-center gap-2">
             {!editing && (
               <>
-                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditing(true)}
+                >
                   <Edit3 className="mr-1.5 h-4 w-4" />
                   编辑
                 </Button>
@@ -168,7 +206,12 @@ export default function CardDetailPage() {
                   cardTitle={card.title}
                   onSyncComplete={fetchCard}
                 />
-                <Button variant="ghost" size="sm" className="text-destructive" onClick={handleDelete}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive"
+                  onClick={handleDelete}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </>
@@ -183,8 +226,12 @@ export default function CardDetailPage() {
           <MaterialCardEditor
             initialData={{
               title: card.title,
-              content: displayContent,
               cardType: card.cardType,
+              sourceSnapshot: card.sourceSnapshot,
+              originalFacts: card.originalFacts,
+              aiSummary: card.aiSummary,
+              highlightSuggestions: card.highlightSuggestions,
+              transferSuggestions: card.transferSuggestions,
               verificationNotes: card.verificationNotes,
               userEditedContent: card.userEditedContent,
             }}
@@ -198,19 +245,39 @@ export default function CardDetailPage() {
               <MaterialCardView
                 id={card.id}
                 title={card.title}
-                content={displayContent}
                 cardType={card.cardType}
                 confirmed={card.confirmed}
+                sourceSnapshot={card.sourceSnapshot}
+                originalFacts={card.originalFacts}
+                aiSummary={card.aiSummary}
+                highlightSuggestions={card.highlightSuggestions}
+                transferSuggestions={card.transferSuggestions}
               />
 
-              {/* User notes */}
+              {/* User edited content */}
+              {card.userEditedContent && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">用户编辑内容</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {card.userEditedContent}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Verification notes */}
               {card.verificationNotes && (
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">验证备注</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{card.verificationNotes}</p>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {card.verificationNotes}
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -225,11 +292,18 @@ export default function CardDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <p className="text-sm font-medium">{card.contentItem.title}</p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {card.contentItem.source && (
-                      <Badge variant="outline" className="text-xs">{card.contentItem.source.name}</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {card.contentItem.source.name}
+                      </Badge>
                     )}
-                    <Badge variant="secondary" className="text-xs">{card.contentItem.contentType}</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {card.contentItem.contentType}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {card.contentItem.platform}
+                    </Badge>
                   </div>
                   <a
                     href={card.contentItem.originalUrl}
@@ -262,10 +336,20 @@ export default function CardDetailPage() {
                         <div key={record.id} className="space-y-1">
                           <div className="flex items-center justify-between text-xs">
                             <Badge
-                              variant={record.status === "success" ? "default" : record.status === "failed" ? "destructive" : "secondary"}
+                              variant={
+                                record.status === "success"
+                                  ? "default"
+                                  : record.status === "failed"
+                                    ? "destructive"
+                                    : "secondary"
+                              }
                               className="text-[10px]"
                             >
-                              {record.status === "success" ? "成功" : record.status === "failed" ? "失败" : "待同步"}
+                              {record.status === "success"
+                                ? "成功"
+                                : record.status === "failed"
+                                  ? "失败"
+                                  : "待同步"}
                             </Badge>
                             <span className="text-muted-foreground">
                               {new Date(record.syncedAt).toLocaleString("zh-CN")}
@@ -289,8 +373,14 @@ export default function CardDetailPage() {
                   <CardTitle className="text-sm">元数据</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-1 text-xs text-muted-foreground">
-                  <p>创建时间：{new Date(card.createdAt).toLocaleString("zh-CN")}</p>
-                  <p>更新时间：{new Date(card.updatedAt).toLocaleString("zh-CN")}</p>
+                  <p>
+                    创建时间：
+                    {new Date(card.createdAt).toLocaleString("zh-CN")}
+                  </p>
+                  <p>
+                    更新时间：
+                    {new Date(card.updatedAt).toLocaleString("zh-CN")}
+                  </p>
                   <p>ID：{card.id}</p>
                 </CardContent>
               </Card>

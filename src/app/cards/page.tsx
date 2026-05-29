@@ -6,18 +6,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaterialCardView } from "@/components/MaterialCard";
 import { BatchSyncToIma } from "@/components/SyncToIma";
-import { ChevronLeft, ChevronRight, RefreshCw, Search, Filter, X, Upload } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Search,
+  X,
+  Upload,
+  FileText,
+  BookOpen,
+  BarChart3,
+  GitCompare,
+  Lightbulb,
+} from "lucide-react";
+import type { CardType } from "@/types";
 
 interface CardItem {
   id: string;
   title: string;
-  aiSummary: string | null;
-  markdownContent: string | null;
-  userEditedContent: string | null;
-  cardType: string;
+  cardType: CardType;
   confirmed: boolean;
+  sourceSnapshot: string | null;
+  originalFacts: string | null;
+  aiSummary: string | null;
+  highlightSuggestions: string | null;
+  transferSuggestions: string | null;
   createdAt: string;
   contentItem: {
     id: string;
@@ -34,6 +50,15 @@ interface CardsResponse {
   totalPages: number;
 }
 
+const CARD_TYPE_TABS: { value: CardType | "all"; label: string; icon: React.ElementType }[] = [
+  { value: "all", label: "全部", icon: FileText },
+  { value: "fact_summary", label: "事实摘要", icon: FileText },
+  { value: "argument_analysis", label: "论点分析", icon: BookOpen },
+  { value: "data_highlight", label: "数据亮点", icon: BarChart3 },
+  { value: "policy_compare", label: "政策对比", icon: GitCompare },
+  { value: "case_study", label: "案例研究", icon: Lightbulb },
+];
+
 export default function CardsPage() {
   const router = useRouter();
   const [cards, setCards] = useState<CardItem[]>([]);
@@ -45,8 +70,8 @@ export default function CardsPage() {
 
   // Filters
   const [search, setSearch] = useState("");
+  const [cardTypeFilter, setCardTypeFilter] = useState<CardType | "all">("all");
   const [confirmedFilter, setConfirmedFilter] = useState<string>("all");
-  const [contentItemFilter, setContentItemFilter] = useState<string>("");
 
   // Batch selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -62,8 +87,8 @@ export default function CardsPage() {
       params.set("page", String(page));
       params.set("pageSize", String(pageSize));
       if (search) params.set("search", search);
+      if (cardTypeFilter !== "all") params.set("cardType", cardTypeFilter);
       if (confirmedFilter !== "all") params.set("confirmed", confirmedFilter);
-      if (contentItemFilter) params.set("contentItemId", contentItemFilter);
 
       const res = await fetch(`/api/material-cards?${params.toString()}`);
       if (!res.ok) throw new Error("请求失败");
@@ -76,7 +101,7 @@ export default function CardsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, confirmedFilter, contentItemFilter]);
+  }, [page, search, cardTypeFilter, confirmedFilter]);
 
   useEffect(() => {
     fetchCards();
@@ -84,7 +109,7 @@ export default function CardsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, confirmedFilter, contentItemFilter]);
+  }, [search, cardTypeFilter, confirmedFilter]);
 
   async function handleDelete(id: string) {
     if (!confirm("确定删除此素材卡？")) return;
@@ -162,7 +187,6 @@ export default function CardsPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
             <div className="flex gap-1">
               {[
                 { value: "all", label: "全部" },
@@ -185,6 +209,26 @@ export default function CardsPage() {
             共 {total} 张素材卡
           </Badge>
         </div>
+      </div>
+
+      {/* Card type tabs */}
+      <div className="border-b px-6 py-2">
+        <Tabs
+          value={cardTypeFilter}
+          onValueChange={(v) => setCardTypeFilter(v as CardType | "all")}
+        >
+          <TabsList className="h-8">
+            {CARD_TYPE_TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <TabsTrigger key={tab.value} value={tab.value} className="text-xs gap-1 px-2.5">
+                  <Icon className="h-3 w-3" />
+                  {tab.label}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Batch actions */}
@@ -241,43 +285,44 @@ export default function CardsPage() {
         ) : cards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
             <p>暂无素材卡</p>
-            <p className="text-sm">请在内容列表中选择内容条目批量生成素材卡</p>
+            <p className="text-sm">请在内容列表中选择内容条目生成素材卡</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {cards.map((card) => {
-              const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
-              return (
-                <div key={card.id} className="relative">
-                  <div
-                    className="absolute top-3 left-3 z-10"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Checkbox
-                      checked={selectedIds.has(card.id)}
-                      onCheckedChange={() => toggleSelect(card.id)}
-                      className="bg-background border-2"
-                    />
-                  </div>
-                  <div
-                    className="cursor-pointer"
-                    onClick={() => router.push(`/cards/${card.id}`)}
-                  >
-                    <MaterialCardView
-                      id={card.id}
-                      title={card.title}
-                      content={displayContent}
-                      cardType={card.cardType}
-                      confirmed={card.confirmed}
-                      contentItemTitle={card.contentItem.title}
-                      sourceName={card.contentItem.source?.name}
-                      onDelete={handleDelete}
-                      onConfirm={handleConfirm}
-                    />
-                  </div>
+            {cards.map((card) => (
+              <div key={card.id} className="relative">
+                <div
+                  className="absolute top-3 left-3 z-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Checkbox
+                    checked={selectedIds.has(card.id)}
+                    onCheckedChange={() => toggleSelect(card.id)}
+                    className="bg-background border-2"
+                  />
                 </div>
-              );
-            })}
+                <div
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/cards/${card.id}`)}
+                >
+                  <MaterialCardView
+                    id={card.id}
+                    title={card.title}
+                    cardType={card.cardType}
+                    confirmed={card.confirmed}
+                    sourceSnapshot={card.sourceSnapshot}
+                    originalFacts={card.originalFacts}
+                    aiSummary={card.aiSummary}
+                    highlightSuggestions={card.highlightSuggestions}
+                    transferSuggestions={card.transferSuggestions}
+                    contentItemTitle={card.contentItem.title}
+                    sourceName={card.contentItem.source?.name}
+                    onDelete={handleDelete}
+                    onConfirm={handleConfirm}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

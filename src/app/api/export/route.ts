@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import type { MaterialCardStructuredContent } from "@/types";
+
+const CARD_TYPE_LABELS: Record<string, string> = {
+  fact_summary: "事实摘要",
+  argument_analysis: "论点分析",
+  data_highlight: "数据亮点",
+  policy_compare: "政策对比",
+  case_study: "案例研究",
+};
 
 // GET /api/export - 导出素材卡为 Markdown
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const cardType = searchParams.get("category");
+    const cardType = searchParams.get("category") ?? searchParams.get("cardType");
     const confirmed = searchParams.get("confirmed");
     const ids = searchParams.get("ids");
 
@@ -38,16 +45,10 @@ export async function GET(request: NextRequest) {
     markdown += `> 共 ${cards.length} 张素材卡\n\n---\n\n`;
 
     for (const card of cards) {
-      const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
-      let structured: MaterialCardStructuredContent | null = null;
-      try {
-        structured = JSON.parse(displayContent);
-      } catch {
-        // fallback to raw content
-      }
+      const typeLabel = CARD_TYPE_LABELS[card.cardType] ?? card.cardType;
 
       markdown += `## ${card.title}\n\n`;
-      markdown += `- **类型**：${card.cardType}\n`;
+      markdown += `- **类型**：${typeLabel}\n`;
       if (card.contentItem) {
         const sourceName = card.contentItem.source?.name ?? "";
         if (sourceName) markdown += `- **来源**：${sourceName} - ${card.contentItem.title}\n`;
@@ -55,45 +56,32 @@ export async function GET(request: NextRequest) {
       markdown += `- **状态**：${card.confirmed ? "已确认" : "未确认"}\n`;
       markdown += `- **创建时间**：${new Date(card.createdAt).toLocaleDateString("zh-CN")}\n\n`;
 
-      if (structured) {
-        markdown += `### 主旨\n${structured.mainPoint}\n\n`;
-
-        markdown += `### 结构拆解\n`;
-        markdown += `- **背景**：${structured.structure.background}\n`;
-        markdown += `- **问题**：${structured.structure.problem}\n`;
-        markdown += `- **原因**：${structured.structure.cause}\n`;
-        markdown += `- **对策**：${structured.structure.solution}\n`;
-        markdown += `- **升华**：${structured.structure.sublimation}\n\n`;
-
-        if (structured.standardExpressions.length > 0) {
-          markdown += `### 规范表达\n`;
-          for (const expr of structured.standardExpressions) {
-            markdown += `- ${expr}\n`;
-          }
-          markdown += "\n";
-        }
-
-        if (structured.cases.length > 0) {
-          markdown += `### 可用案例\n`;
-          for (const c of structured.cases) {
-            markdown += `- ${c}\n`;
-          }
-          markdown += "\n";
-        }
-
-        markdown += `### 省情关联\n`;
-        markdown += `- **广东**：${structured.provinceRelevance.guangdong}\n`;
-        markdown += `- **湖南**：${structured.provinceRelevance.hunan}\n\n`;
-
-        if (structured.writingExercise) {
-          markdown += `### 仿写练习\n${structured.writingExercise}\n\n`;
-        }
-      } else {
-        markdown += `${displayContent}\n\n`;
+      if (card.sourceSnapshot) {
+        markdown += `### 来源快照\n${card.sourceSnapshot}\n\n`;
       }
 
       if (card.originalFacts) {
-        markdown += `> **原始事实**：${card.originalFacts}\n\n`;
+        markdown += `### 原始事实\n${card.originalFacts}\n\n`;
+      }
+
+      if (card.aiSummary) {
+        markdown += `### AI 摘要\n${card.aiSummary}\n\n`;
+      }
+
+      if (card.highlightSuggestions) {
+        markdown += `### 亮点建议\n${card.highlightSuggestions}\n\n`;
+      }
+
+      if (card.transferSuggestions) {
+        markdown += `### 迁移建议\n${card.transferSuggestions}\n\n`;
+      }
+
+      if (card.userEditedContent) {
+        markdown += `### 用户编辑内容\n${card.userEditedContent}\n\n`;
+      }
+
+      if (card.verificationNotes) {
+        markdown += `> **验证备注**：${card.verificationNotes}\n\n`;
       }
 
       markdown += "---\n\n";

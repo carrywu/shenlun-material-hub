@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// GET /api/material-cards/[id] - 获取单个素材卡
+// GET /api/material-cards/[id]
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -17,7 +17,9 @@ export async function GET(
             title: true,
             originalUrl: true,
             contentType: true,
-            source: { select: { name: true } },
+            platform: true,
+            fullText: true,
+            source: { select: { id: true, name: true, platform: true } },
           },
         },
         syncRecords: { orderBy: { syncedAt: "desc" }, take: 5 },
@@ -35,7 +37,7 @@ export async function GET(
   }
 }
 
-// PUT /api/material-cards/[id] - 更新素材卡
+// PUT /api/material-cards/[id]
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -43,7 +45,19 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, content, cardType, userEditedContent, markdownContent, aiSummary, verificationNotes, confirmed } = body;
+    const {
+      title,
+      cardType,
+      sourceSnapshot,
+      originalFacts,
+      aiSummary,
+      highlightSuggestions,
+      transferSuggestions,
+      verificationNotes,
+      markdownContent,
+      userEditedContent,
+      confirmed,
+    } = body;
 
     const existing = await db.materialCard.findUnique({ where: { id } });
     if (!existing) {
@@ -55,11 +69,14 @@ export async function PUT(
       data: {
         ...(title !== undefined && { title }),
         ...(cardType !== undefined && { cardType }),
-        ...(content !== undefined && { markdownContent: content }),
-        ...(userEditedContent !== undefined && { userEditedContent }),
-        ...(markdownContent !== undefined && { markdownContent }),
+        ...(sourceSnapshot !== undefined && { sourceSnapshot }),
+        ...(originalFacts !== undefined && { originalFacts }),
         ...(aiSummary !== undefined && { aiSummary }),
+        ...(highlightSuggestions !== undefined && { highlightSuggestions }),
+        ...(transferSuggestions !== undefined && { transferSuggestions }),
         ...(verificationNotes !== undefined && { verificationNotes }),
+        ...(markdownContent !== undefined && { markdownContent }),
+        ...(userEditedContent !== undefined && { userEditedContent }),
         ...(confirmed !== undefined && {
           confirmed,
           ...(confirmed ? { confirmedAt: new Date() } : {}),
@@ -74,7 +91,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/material-cards/[id] - 删除素材卡
+// DELETE /api/material-cards/[id]
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
