@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -19,7 +26,8 @@ import { TopicFilter } from "@/components/filters/TopicFilter";
 import { SourceFilter } from "@/components/filters/SourceFilter";
 import { BatchActions } from "@/components/BatchActions";
 import { ArticleDetail } from "@/components/ArticleDetail";
-import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Search } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
+import { RefreshCw, Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface ContentItemData {
@@ -33,6 +41,11 @@ interface ContentItemData {
   topicTags: string;
   publishedAt: string | null;
   createdAt: string;
+  processingStatus: string;
+  filterReason: string | null;
+  aiScore: number | null;
+  aiScoreDetail: string | null;
+  aiScoredAt: string | null;
   source?: { name: string } | null;
   _count: { materialCards: number };
 }
@@ -62,6 +75,19 @@ export default function ArticlesPage() {
   const [contentType, setContentType] = useState("all");
   const [tags, setTags] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange>({ from: "", to: "" });
+  const [processingStatus, setProcessingStatus] = useState("all");
+  const [sortBy, setSortBy] = useState("createdAt");
+
+  // Scoring state
+  const [scoringId, setScoringId] = useState<string | null>(null);
+
+  const PROCESSING_STATUS_OPTIONS = [
+    { value: "all", label: "全部状态" },
+    { value: "pending", label: "待处理" },
+    { value: "fetched", label: "已抓取" },
+    { value: "card_generated", label: "卡片已生成" },
+    { value: "filtered", label: "已过滤" },
+  ];
 
   // Selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -69,7 +95,7 @@ export default function ArticlesPage() {
   // Detail view
   const [detailItem, setDetailItem] = useState<ContentItemData | null>(null);
 
-  const pageSize = 20;
+  const [pageSize, setPageSize] = useState(20);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -84,6 +110,8 @@ export default function ArticlesPage() {
       if (tags !== "all") params.set("tags", tags);
       if (dateRange.from) params.set("dateFrom", dateRange.from);
       if (dateRange.to) params.set("dateTo", dateRange.to);
+      if (processingStatus !== "all") params.set("processingStatus", processingStatus);
+      if (sortBy !== "createdAt") params.set("sortBy", sortBy);
 
       const res = await fetch(`/api/articles?${params.toString()}`);
       if (!res.ok) throw new Error("请求失败");
@@ -96,7 +124,7 @@ export default function ArticlesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, source, contentType, tags, dateRange]);
+  }, [page, pageSize, search, source, contentType, tags, dateRange, processingStatus, sortBy]);
 
   useEffect(() => {
     fetchItems();
@@ -105,7 +133,7 @@ export default function ArticlesPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, source, contentType, tags, dateRange]);
+  }, [search, source, contentType, tags, dateRange, processingStatus, sortBy, pageSize]);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -164,6 +192,25 @@ export default function ArticlesPage() {
     }
   }
 
+  async function handleScore(id: string) {
+    if (scoringId) return;
+    setScoringId(id);
+    try {
+      const res = await fetch(`/api/content-items/${id}/score`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "评分失败");
+      }
+      fetchItems();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "AI 评分失败");
+    } finally {
+      setScoringId(null);
+    }
+  }
+
   const allSelected = items.length > 0 && items.every((a) => selected.has(a.id));
 
   return (
@@ -199,6 +246,27 @@ export default function ArticlesPage() {
           <SourceFilter value={source} onChange={setSource} />
           <TopicFilter value={contentType} onChange={setContentType} />
           <RegionFilter value={tags} onChange={setTags} />
+          <Select value={processingStatus} onValueChange={(v) => { if (v) setProcessingStatus(v); }}>
+            <SelectTrigger className="w-28 h-8">
+              <SelectValue placeholder="状态" />
+            </SelectTrigger>
+            <SelectContent>
+              {PROCESSING_STATUS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={(v) => { if (v) setSortBy(v); }}>
+            <SelectTrigger className="w-28 h-8">
+              <SelectValue placeholder="排序" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="createdAt">按时间</SelectItem>
+              <SelectItem value="aiScore">按评分</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <DateRangeFilter value={dateRange} onChange={setDateRange} />
       </div>
@@ -253,7 +321,7 @@ export default function ArticlesPage() {
                     <TableHead className="w-24">来源</TableHead>
                     <TableHead className="w-28">发布日期</TableHead>
                     <TableHead className="w-20">类型</TableHead>
-                    <TableHead className="w-24">标签</TableHead>
+                    <TableHead className="w-14">评分</TableHead>
                     <TableHead className="w-16 text-right">素材卡</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -288,25 +356,33 @@ export default function ArticlesPage() {
                           {item.contentType}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-[120px]">
-                        <div className="flex flex-wrap gap-1">
-                          {(() => {
-                            try {
-                              const parsedTags: string[] = JSON.parse(item.topicTags);
-                              return parsedTags.slice(0, 2).map((tag) => (
-                                <Badge
-                                  key={tag}
-                                  variant="outline"
-                                  className="text-[10px] px-1 py-0"
-                                >
-                                  {tag}
-                                </Badge>
-                              ));
-                            } catch {
-                              return null;
-                            }
-                          })()}
-                        </div>
+                      <TableCell>
+                        {item.aiScore !== null ? (
+                          <span
+                            className={`text-sm font-medium ${
+                              item.aiScore >= 7
+                                ? "text-green-600"
+                                : item.aiScore >= 5
+                                  ? "text-amber-600"
+                                  : "text-muted-foreground"
+                            }`}
+                          >
+                            {item.aiScore}
+                          </span>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleScore(item.id);
+                            }}
+                            disabled={scoringId === item.id}
+                            title="AI 评分"
+                          >
+                            <Star className="h-3 w-3" />
+                          </Button>
+                        )}
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
                         {item._count.materialCards}
@@ -319,33 +395,17 @@ export default function ArticlesPage() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t px-6 py-3">
-              <span className="text-sm text-muted-foreground">
-                共 {total} 条，第 {page} / {totalPages} 页
-              </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  上一页
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  下一页
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </div>
 
         {/* Detail panel */}

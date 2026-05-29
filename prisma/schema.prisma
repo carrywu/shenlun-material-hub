@@ -65,6 +65,10 @@ model ContentItem {
   fullText            String?                // 全文
   contentHash         String?                // 内容哈希
   linkedOriginalId    String?                // 关联原始条目 ID
+  filterReason        String?                // 过滤原因
+  aiScore             Float?                 // AI 综合评分
+  aiScoreDetail       String?                // AI 评分详情 JSON
+  aiScoredAt          DateTime?              // AI 评分时间
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -79,6 +83,7 @@ model ContentItem {
   @@index([processingStatus])
   @@index([publishedAt])
   @@index([contentHash])
+  @@index([aiScore])
 }
 
 // AI 素材卡

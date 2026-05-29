@@ -38,6 +38,8 @@ import {
   RefreshCw,
   Search,
   Loader2,
+  Play,
+  AlertCircle,
 } from "lucide-react";
 import {
   PLATFORMS,
@@ -196,6 +198,17 @@ export default function SubscriptionsPage() {
   const [verifyStatus, setVerifyStatus] = useState("verified");
   const [verifyNotes, setVerifyNotes] = useState("");
   const [verifying, setVerifying] = useState(false);
+
+  // Collect state
+  const [collectingSource, setCollectingSource] = useState<string | null>(null);
+
+  // Frequency labels
+  const FREQUENCY_LABELS: Record<string, string> = {
+    daily: "每日",
+    weekly: "每周",
+    manual: "手动",
+    hourly: "每小时",
+  };
 
   const pageSize = 20;
 
@@ -370,6 +383,51 @@ export default function SubscriptionsPage() {
     }
   }
 
+  async function handleCollectNow(source: SourceItem) {
+    if (collectingSource) return;
+    setCollectingSource(source.id);
+
+    try {
+      let apiEndpoint: string;
+      let body: Record<string, string>;
+
+      if (source.platform === "wechat") {
+        apiEndpoint = "/api/collectors/wechat/sync";
+        body = { sourceId: source.id };
+      } else if (
+        source.platform === "bilibili" ||
+        source.platform === "xiaohongshu"
+      ) {
+        apiEndpoint = "/api/collectors/mediacrawler/crawl";
+        body = { platform: source.platform, userId: source.id };
+      } else {
+        apiEndpoint = "/api/collectors/web/collect";
+        body = { sourceId: source.id };
+      }
+
+      const res = await fetch(apiEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "采集失败");
+      }
+
+      alert(
+        `采集完成：发现 ${data.discoveredCount ?? 0} 条，导入 ${data.importedCount ?? 0} 条`
+      );
+      fetchSources();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "采集失败");
+    } finally {
+      setCollectingSource(null);
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -504,10 +562,12 @@ export default function SubscriptionsPage() {
                 <TableHead className="w-24">内容类型</TableHead>
                 <TableHead className="w-24">信任等级</TableHead>
                 <TableHead className="w-16">优先级</TableHead>
+                <TableHead className="w-16">频率</TableHead>
+                <TableHead className="w-24">最近采集</TableHead>
                 <TableHead className="w-16">启用</TableHead>
                 <TableHead className="w-20">核验</TableHead>
                 <TableHead className="w-16 text-right">条目</TableHead>
-                <TableHead className="w-32 text-right">操作</TableHead>
+                <TableHead className="w-40 text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -519,6 +579,12 @@ export default function SubscriptionsPage() {
                       {source.baseUrl && (
                         <span className="block text-xs text-muted-foreground truncate">
                           {source.baseUrl}
+                        </span>
+                      )}
+                      {source.lastError && (
+                        <span className="flex items-center gap-1 text-[10px] text-destructive mt-0.5">
+                          <AlertCircle className="h-3 w-3" />
+                          {source.lastError.slice(0, 50)}
                         </span>
                       )}
                     </div>
@@ -551,6 +617,16 @@ export default function SubscriptionsPage() {
                       {source.priority}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {source.collectionFrequency
+                      ? FREQUENCY_LABELS[source.collectionFrequency] ?? source.collectionFrequency
+                      : "-"}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {source.lastCollectedAt
+                      ? new Date(source.lastCollectedAt).toLocaleDateString("zh-CN")
+                      : "未采集"}
+                  </TableCell>
                   <TableCell>
                     <Checkbox
                       checked={source.isEnabled}
@@ -574,6 +650,19 @@ export default function SubscriptionsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => handleCollectNow(source)}
+                        disabled={collectingSource === source.id || !source.isEnabled}
+                        title="立即采集"
+                      >
+                        {collectingSource === source.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Play />
+                        )}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon-xs"

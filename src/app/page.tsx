@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { CollectButton } from "@/components/CollectButton";
 
 export const dynamic = "force-dynamic";
 
@@ -71,10 +72,13 @@ export default async function DashboardPage() {
               采集官方内容，生成 AI 素材卡，同步至 ima 知识库
             </p>
           </div>
-          <Link href="/articles" className={cn(buttonVariants())}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            浏览内容
-          </Link>
+          <div className="flex items-center gap-2">
+            <CollectButton />
+            <Link href="/articles" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              浏览内容
+            </Link>
+          </div>
         </div>
       </div>
 

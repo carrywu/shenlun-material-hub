@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
+import { runContentFilters } from "@/services/content-filter";
 
 export interface RawArticle {
   title: string;
@@ -77,6 +78,8 @@ export abstract class BaseCollector {
   ): Promise<{
     created: boolean;
     item: { id: string; title: string; originalUrl: string };
+    filtered?: boolean;
+    filterReason?: string;
   }> {
     const existing = await db.contentItem.findUnique({
       where: { originalUrl: raw.url },
@@ -88,6 +91,16 @@ export abstract class BaseCollector {
 
     const fullText = raw.fullText ?? null;
     const excerpt = raw.excerpt ?? fullText?.slice(0, 200) ?? null;
+    const contentHash = fullText ? this.computeContentHash(fullText) : null;
+
+    // Run content filters before creating
+    const filterResult = await runContentFilters(
+      raw.url,
+      raw.title,
+      fullText,
+      excerpt,
+      contentHash
+    );
 
     const item = await db.contentItem.create({
       data: {
@@ -103,15 +116,25 @@ export abstract class BaseCollector {
         excerpt,
         fullText,
         fullTextStored: !!fullText,
-        contentHash: fullText ? this.computeContentHash(fullText) : null,
-        processingStatus: fullText ? "fetched" : "pending",
+        contentHash,
+        processingStatus: filterResult.filtered
+          ? "filtered"
+          : fullText
+            ? "fetched"
+            : "pending",
+        filterReason: filterResult.reason ?? null,
         regionScopes: "[]",
         topicTags: "[]",
         discoveryChannel: "web_collector",
       },
     });
 
-    return { created: true, item };
+    return {
+      created: true,
+      item,
+      filtered: filterResult.filtered,
+      filterReason: filterResult.reason,
+    };
   }
 
   abstract collect(

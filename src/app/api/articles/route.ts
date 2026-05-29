@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
     const search = searchParams.get("search");
+    const processingStatus = searchParams.get("processingStatus");
+    const sortBy = searchParams.get("sortBy") ?? "createdAt";
 
     const where: Record<string, unknown> = {};
 
@@ -19,6 +21,7 @@ export async function GET(request: NextRequest) {
     if (contentType) where.contentType = contentType;
     if (topicTags) where.topicTags = { contains: topicTags };
     if (search) where.title = { contains: search };
+    if (processingStatus) where.processingStatus = processingStatus;
     if (dateFrom || dateTo) {
       const publishedAt: Record<string, Date> = {};
       if (dateFrom) publishedAt.gte = new Date(dateFrom);
@@ -26,10 +29,18 @@ export async function GET(request: NextRequest) {
       where.publishedAt = publishedAt;
     }
 
+    // Determine sort order
+    let orderBy: Record<string, string>;
+    if (sortBy === "aiScore") {
+      orderBy = { aiScore: "desc" };
+    } else {
+      orderBy = { createdAt: "desc" };
+    }
+
     const [data, total] = await Promise.all([
       db.contentItem.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {

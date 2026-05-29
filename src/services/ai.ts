@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { CardType } from "@/types";
+import type { CardType, AIScoreDetail } from "@/types";
 
 let _openai: OpenAI | null = null;
 
@@ -10,6 +10,100 @@ function getOpenAI(): OpenAI {
     });
   }
   return _openai;
+}
+
+// ==================== AI 评分 ====================
+
+export interface AIScoreResult {
+  overall: number;
+  detail: AIScoreDetail;
+}
+
+const SCORING_SYSTEM_PROMPT = `你是一位资深的申论辅导专家，擅长评估官方文章对申论备考的价值。
+请对文章进行以下 5 个维度的评分（每项 1-10 分）：
+
+1. relevance（与申论考试的相关度）：文章主题是否属于申论常考话题（政策、社会、经济、文化、生态等）
+2. quality（内容质量）：数据是否准确、论证是否严密、是否有权威来源
+3. freshness（时效性）：是否为近期热点、是否具有当下讨论价值
+4. uniqueness（独特性/稀缺性）：是否有独到见解、是否为少见的优质素材
+5. usability（可迁移使用程度）：是否可以在多个申论题目中迁移使用
+
+返回 JSON：
+{
+  "relevance": 8,
+  "quality": 7,
+  "freshness": 9,
+  "uniqueness": 6,
+  "usability": 8,
+  "reason": "简短说明评分理由（50字以内）"
+}`;
+
+export async function scoreContentItem(
+  title: string,
+  sourceName: string,
+  content: string,
+  contentType: string
+): Promise<AIScoreResult> {
+  const userPrompt = `请对以下文章进行评分：
+
+【标题】${title}
+【来源】${sourceName}
+【内容类型】${contentType}
+【正文】
+${content.slice(0, 4000)}`;
+
+  const completion = await getOpenAI().chat.completions.create({
+    model: process.env.OPENAI_MODEL || "gpt-4o",
+    messages: [
+      { role: "system", content: SCORING_SYSTEM_PROMPT },
+      { role: "user", content: userPrompt },
+    ],
+    temperature: 0.3,
+    response_format: { type: "json_object" },
+  });
+
+  const rawJson = completion.choices[0]?.message?.content;
+  if (!rawJson) {
+    throw new Error("AI 未返回有效内容");
+  }
+
+  const data = JSON.parse(rawJson);
+
+  // Validate scores
+  const dimensions: (keyof AIScoreDetail)[] = [
+    "relevance",
+    "quality",
+    "freshness",
+    "uniqueness",
+    "usability",
+  ];
+
+  const detail: AIScoreDetail = {} as AIScoreDetail;
+  for (const dim of dimensions) {
+    const score = Number(data[dim]);
+    if (isNaN(score) || score < 1 || score > 10) {
+      detail[dim] = 5; // default
+    } else {
+      detail[dim] = Math.round(score);
+    }
+  }
+
+  // Weighted average (relevance and usability weighted higher)
+  const weights: Record<keyof AIScoreDetail, number> = {
+    relevance: 0.25,
+    quality: 0.25,
+    freshness: 0.15,
+    uniqueness: 0.15,
+    usability: 0.2,
+  };
+
+  let overall = 0;
+  for (const dim of dimensions) {
+    overall += detail[dim] * weights[dim];
+  }
+  overall = Math.round(overall * 10) / 10;
+
+  return { overall, detail };
 }
 
 // Card type specific prompts

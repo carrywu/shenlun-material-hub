@@ -45,7 +45,7 @@ export const VERIFICATION_STATUSES = [
 ] as const;
 export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
 
-// 处理状态（8 种）
+// 处理状态（9 种）
 export const PROCESSING_STATUSES = [
   "pending",              // 待处理
   "fetched",              // 已抓取
@@ -55,6 +55,7 @@ export const PROCESSING_STATUSES = [
   "card_edited",          // 卡片已编辑
   "confirmed",            // 已确认
   "synced",               // 已同步
+  "filtered",             // 已过滤
 ] as const;
 export type ProcessingStatus = (typeof PROCESSING_STATUSES)[number];
 
@@ -130,8 +131,21 @@ export interface ContentItem {
   fullText: string | null;
   contentHash: string | null;
   linkedOriginalId: string | null;
+  filterReason: string | null;
+  aiScore: number | null;
+  aiScoreDetail: string | null;
+  aiScoredAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// AI 评分结果
+export interface AIScoreDetail {
+  relevance: number;    // 与申论考试的相关度
+  quality: number;      // 内容质量
+  freshness: number;    // 时效性
+  uniqueness: number;   // 独特性/稀缺性
+  usability: number;    // 可迁移使用程度
 }
 
 // AI 素材卡
