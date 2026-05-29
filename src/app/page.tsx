@@ -18,53 +18,46 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [totalItems, totalCards, unconfirmedCards, recentItems, confirmedCards] =
-    await Promise.all([
-      db.contentItem.count(),
-      db.materialCard.count(),
-      db.materialCard.count({ where: { confirmed: false } }),
-      db.contentItem.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        include: {
-          source: { select: { name: true } },
-          _count: { select: { materialCards: true } },
-        },
-      }),
-      db.materialCard.count({ where: { confirmed: true } }),
-    ]);
+  const [
+    totalItems,
+    totalCards,
+    unconfirmedCards,
+    confirmedCards,
+    totalSources,
+    verifiedSources,
+    recentItems,
+    cardsByType,
+  ] = await Promise.all([
+    db.contentItem.count(),
+    db.materialCard.count(),
+    db.materialCard.count({ where: { confirmed: false } }),
+    db.materialCard.count({ where: { confirmed: true } }),
+    db.source.count(),
+    db.source.count({ where: { verificationStatus: "verified" } }),
+    db.contentItem.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: {
+        source: { select: { name: true } },
+        _count: { select: { materialCards: true } },
+      },
+    }),
+    db.materialCard.groupBy({
+      by: ["cardType"],
+      _count: { id: true },
+    }),
+  ]);
+
+  const cardTypeCounts = Object.fromEntries(
+    cardsByType.map((r) => [r.cardType, r._count.id])
+  );
 
   const stats = [
-    {
-      label: "总内容条目",
-      value: totalItems,
-      icon: FileText,
-      color: "text-blue-600",
-    },
-    {
-      label: "素材卡总数",
-      value: totalCards,
-      icon: CheckCircle,
-      color: "text-green-600",
-    },
-    {
-      label: "待确认",
-      value: unconfirmedCards,
-      icon: Clock,
-      color: "text-amber-600",
-    },
-    {
-      label: "已确认",
-      value: confirmedCards,
-      icon: CheckCircle,
-      color: "text-emerald-600",
-    },
-    {
-      label: "待复习",
-      value: unconfirmedCards,
-      icon: RotateCcw,
-      color: "text-purple-600",
-    },
+    { label: "内容条目", value: totalItems, icon: FileText, color: "text-blue-600" },
+    { label: "素材卡", value: totalCards, icon: CheckCircle, color: "text-green-600" },
+    { label: "待确认", value: unconfirmedCards, icon: Clock, color: "text-amber-600" },
+    { label: "已确认", value: confirmedCards, icon: CheckCircle, color: "text-emerald-600" },
+    { label: "来源", value: `${verifiedSources}/${totalSources}`, icon: BookOpen, color: "text-purple-600" },
   ];
 
   return (
@@ -155,83 +148,55 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Card type breakdown */}
+        {totalCards > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">素材卡类型分布</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-5 gap-3">
+                {[
+                  { key: "fact_summary", label: "事实摘要", color: "bg-blue-500" },
+                  { key: "argument_analysis", label: "论点分析", color: "bg-purple-500" },
+                  { key: "data_highlight", label: "数据亮点", color: "bg-green-500" },
+                  { key: "policy_compare", label: "政策对比", color: "bg-orange-500" },
+                  { key: "case_study", label: "案例研究", color: "bg-teal-500" },
+                ].map((t) => (
+                  <div key={t.key} className="text-center">
+                    <div className={`h-2 rounded-full ${t.color} mb-2`} />
+                    <p className="text-lg font-bold">{cardTypeCounts[t.key] ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">{t.label}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-            <Link href="/articles">
-              <CardContent className="flex items-center gap-3 pt-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-medium">浏览内容</p>
-                  <p className="text-sm text-muted-foreground">
-                    查看和筛选已采集的内容
-                  </p>
-                </div>
-              </CardContent>
-            </Link>
-          </Card>
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-            <Link href="/subscriptions">
-              <CardContent className="flex items-center gap-3 pt-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600">
-                  <Plus className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-medium">来源管理</p>
-                  <p className="text-sm text-muted-foreground">
-                    管理内容采集来源
-                  </p>
-                </div>
-              </CardContent>
-            </Link>
-          </Card>
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-            <Link href="/cards">
-              <CardContent className="flex items-center gap-3 pt-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
-                  <CheckCircle className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-medium">素材卡管理</p>
-                  <p className="text-sm text-muted-foreground">
-                    编辑和同步素材卡
-                  </p>
-                </div>
-              </CardContent>
-            </Link>
-          </Card>
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-            <Link href="/search">
-              <CardContent className="flex items-center gap-3 pt-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-100 text-cyan-600">
-                  <Search className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-medium">检索素材卡</p>
-                  <p className="text-sm text-muted-foreground">
-                    全文搜索素材卡内容
-                  </p>
-                </div>
-              </CardContent>
-            </Link>
-          </Card>
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-            <Link href="/review">
-              <CardContent className="flex items-center gap-3 pt-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-100 text-rose-600">
-                  <RotateCcw className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-medium">复习模式</p>
-                  <p className="text-sm text-muted-foreground">
-                    逐步揭示内容复习
-                  </p>
-                </div>
-              </CardContent>
-            </Link>
-          </Card>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          {[
+            { href: "/discover", label: "今日推荐", desc: "已核验来源内容", color: "bg-blue-100 text-blue-600", icon: FileText },
+            { href: "/explore", label: "探索区", desc: "待核验内容", color: "bg-cyan-100 text-cyan-600", icon: Search },
+            { href: "/articles", label: "文章库", desc: "精选内容", color: "bg-indigo-100 text-indigo-600", icon: BookOpen },
+            { href: "/cards", label: "素材卡", desc: "编辑同步", color: "bg-purple-100 text-purple-600", icon: CheckCircle },
+            { href: "/subscriptions", label: "来源管理", desc: "采集来源", color: "bg-green-100 text-green-600", icon: Plus },
+            { href: "/sync-records", label: "同步记录", desc: "同步历史", color: "bg-amber-100 text-amber-600", icon: ArrowRight },
+            { href: "/review", label: "复习", desc: "记忆检验", color: "bg-rose-100 text-rose-600", icon: RotateCcw },
+          ].map((item) => (
+            <Card key={item.href} className="hover:border-primary/50 transition-colors cursor-pointer">
+              <Link href={item.href}>
+                <CardContent className="flex flex-col items-center gap-2 pt-5 pb-4">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.color}`}>
+                    <item.icon className="h-4 w-4" />
+                  </div>
+                  <p className="font-medium text-sm">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.desc}</p>
+                </CardContent>
+              </Link>
+            </Card>
+          ))}
         </div>
       </div>
     </div>
