@@ -1,0 +1,69 @@
+// 申论素材采集台 数据库 Schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// 官方文章
+model Article {
+  id          String   @id @default(cuid())
+  title       String
+  url         String   @unique
+  source      String                 // 来源：人民日报、新华社等
+  content     String                 // 正文全文
+  summary     String?                // 摘要
+  category    String                 // 分类：政治、经济、社会、文化、生态
+  tags        String   @default("")  // 标签，逗号分隔
+  publishedAt DateTime?              // 原文发布时间
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  materialCards MaterialCard[]
+
+  @@index([source])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// AI 素材卡
+model MaterialCard {
+  id        String   @id @default(cuid())
+  articleId String
+  title     String
+  content   String                 // 素材卡内容
+  category  String                 // 分类
+  tags      String   @default("")  // 标签，逗号分隔
+  excerpt   String?                // 原文摘录
+  notes     String?                // 用户笔记
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  article      Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  syncRecords  SyncRecord[]
+
+  @@index([articleId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// ima 知识库同步记录
+model SyncRecord {
+  id              String   @id @default(cuid())
+  materialCardId  String
+  status          String                 // pending, success, failed
+  imaKnowledgeBaseId String?             // ima 知识库 ID
+  imaDocumentId   String?                // ima 文档 ID
+  errorMessage    String?                // 错误信息
+  syncedAt        DateTime @default(now())
+
+  materialCard MaterialCard @relation(fields: [materialCardId], references: [id], onDelete: Cascade)
+
+  @@index([materialCardId])
+  @@index([status])
+  @@index([syncedAt])
+}

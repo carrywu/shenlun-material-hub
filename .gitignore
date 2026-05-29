@@ -141,3 +141,13 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Prisma / SQLite
+*.db
+*.db-journal
+
+# Agent orchestrator
+.ao/
+.claude/
+
+/src/generated/prisma
