@@ -1,0 +1,11 @@
+project:
+  name: shenlun-material-hub
+  displayName: 申论素材采集台
+  description: 申论官方文章采集、AI素材卡生成与 ima 知识库同步工作台
+  repo: carrywu/shenlun-material-hub
+  defaultBranch: main
+  localPath: /Users/apple/Downloads/ima-shenglun-creators/shenlun-material-hub
+  sessionPrefix: smh
+  dashboardPort: 3000
+
+sessions: []

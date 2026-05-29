@@ -1,4 +1,4 @@
-// 申论素材采集台 数据库 Schema
+// 申论素材采集台 数据库 Schema v2
 
 generator client {
   provider = "prisma-client"
@@ -9,77 +9,146 @@ datasource db {
   provider = "sqlite"
 }
 
-// 官方文章
-model Article {
-  id          String   @id @default(cuid())
-  title       String
-  url         String   @unique
-  source      String                 // 来源：人民日报、新华社等
-  content     String                 // 正文全文
-  summary     String?                // 摘要
-  category    String                 // 分类：政治、经济、社会、文化、生态
-  tags        String   @default("")  // 标签，逗号分隔
-  publishedAt DateTime?              // 原文发布时间
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// 信息源
+model Source {
+  id                 String   @id @default(cuid())
+  name               String                 // 源名称
+  externalId         String?                // 外部平台 ID
+  platform           String                 // website / wechat / bilibili / xiaohongshu
+  contentType        String                 // 内容类型（10 种）
+  trustLevel         String                 // 信任等级（5 种）
+  regionScopes       String   @default("[]") // JSON 数组：适用地区
+  baseUrl            String?                // 基础 URL
+  profileUrl         String?                // 主页 URL
+  priority           String   @default("P2") // P0 / P1 / P2
+  collectionMode     String?                // 采集模式
+  isEnabled          Boolean  @default(true)
+  verificationStatus String   @default("unverified") // 验证状态
+  keywords           String   @default("[]") // JSON 数组：关键词
+  collectionFrequency String?               // 采集频率
+  lastCollectedAt    DateTime?              // 最近采集时间
+  lastError          String?                // 最近错误信息
+  archivedAt         DateTime?              // 归档时间
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
+  contentItems  ContentItem[]
+  collectorRuns CollectorRun[]
+
+  @@index([platform])
+  @@index([priority])
+  @@index([isEnabled])
+  @@index([contentType])
+}
+
+// 内容条目
+model ContentItem {
+  id                  String   @id @default(cuid())
+  sourceId            String
+  externalContentId   String?                // 外部内容 ID
+  platform            String                 // 来源平台
+  contentType         String                 // 内容类型
+  trustLevel          String                 // 信任等级
+  title               String
+  authorOrAccount     String?                // 作者或账号
+  originalUrl         String   @unique       // 原文 URL
+  publishedAt         DateTime?              // 发布时间
+  section             String?                // 板块
+  regionScopes        String   @default("[]") // JSON 数组：地区
+  topicTags           String   @default("[]") // JSON 数组：主题标签
+  excerpt             String?                // 摘录
+  recommendationReason String?               // 推荐理由
+  verificationStatus  String   @default("unverified")
+  processingStatus    String   @default("pending") // 处理状态（8 种）
+  discoveryChannel    String?                // 发现渠道
+  fullTextStored      Boolean  @default(false)
+  fullText            String?                // 全文
+  contentHash         String?                // 内容哈希
+  linkedOriginalId    String?                // 关联原始条目 ID
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  source        Source         @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   materialCards MaterialCard[]
+  syncRecords   SyncRecord[]
 
-  @@index([source])
-  @@index([category])
-  @@index([createdAt])
+  @@index([sourceId])
+  @@index([platform])
+  @@index([contentType])
+  @@index([trustLevel])
+  @@index([processingStatus])
+  @@index([publishedAt])
+  @@index([contentHash])
 }
 
 // AI 素材卡
 model MaterialCard {
-  id                String   @id @default(cuid())
-  articleId         String
-  title             String
-  content           String                 // 素材卡内容（JSON 结构化数据）
-  category          String                 // 分类
-  tags              String   @default("")  // 标签，逗号分隔
-  excerpt           String?                // 原文摘录
-  notes             String?                // 用户笔记
-  confirmed         Boolean  @default(false) // 是否已确认
-  generationPrompt  String?                // 生成时使用的 prompt
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  contentItemId        String
+  cardType             String                 // 卡片类型（5 种）
+  title                String
+  sourceSnapshot       String?                // 来源快照
+  originalFacts        String?                // 原始事实
+  aiSummary            String?                // AI 摘要
+  highlightSuggestions String?                // 亮点建议
+  transferSuggestions  String?                // 迁移建议
+  verificationNotes    String?                // 验证备注
+  markdownContent      String?                // Markdown 内容
+  userEditedContent    String?                // 用户编辑内容
+  confirmed            Boolean  @default(false)
+  confirmedAt          DateTime?              // 确认时间
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  article       Article        @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  syncRecords   SyncRecord[]
-  reviewRecords ReviewRecord[]
+  contentItem  ContentItem    @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  syncRecords  SyncRecord[]
 
-  @@index([articleId])
-  @@index([category])
+  @@index([contentItemId])
+  @@index([cardType])
+  @@index([confirmed])
   @@index([createdAt])
 }
 
-// 复习记录
-model ReviewRecord {
-  id              String   @id @default(cuid())
-  materialCardId  String
-  reviewedAt      DateTime @default(now())
-  quality         Int      @default(0) // 复习质量评分 0-5
-
-  materialCard MaterialCard @relation(fields: [materialCardId], references: [id], onDelete: Cascade)
-
-  @@index([materialCardId])
-  @@index([reviewedAt])
-}
-
-// ima 知识库同步记录
+// 同步记录
 model SyncRecord {
-  id              String   @id @default(cuid())
-  materialCardId  String
-  status          String                 // pending, success, failed
-  imaKnowledgeBaseId String?             // ima 知识库 ID
-  imaDocumentId   String?                // ima 文档 ID
-  errorMessage    String?                // 错误信息
-  syncedAt        DateTime @default(now())
+  id                String   @id @default(cuid())
+  materialCardId    String
+  contentItemId     String
+  documentRole      String                 // original_archive / material_card
+  regionFolder      String?                // 地区文件夹
+  typeFolder        String?                // 类型文件夹
+  targetRemoteId    String?                // 目标远程 ID
+  remoteDocumentId  String?                // 远程文档 ID
+  status            String   @default("pending") // pending / success / failed
+  errorCode         String?                // 错误码
+  errorMessage      String?                // 错误信息
+  syncedAt          DateTime @default(now())
 
   materialCard MaterialCard @relation(fields: [materialCardId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
 
   @@index([materialCardId])
+  @@index([contentItemId])
   @@index([status])
   @@index([syncedAt])
+}
+
+// 采集运行记录
+model CollectorRun {
+  id              String   @id @default(cuid())
+  sourceId        String
+  collectorType   String                 // 采集器类型
+  startedAt       DateTime @default(now())
+  finishedAt      DateTime?              // 完成时间
+  status          String   @default("running") // running / success / failed
+  discoveredCount Int      @default(0)   // 发现数量
+  importedCount   Int      @default(0)   // 导入数量
+  errorSummary    String?                // 错误摘要
+  evidencePath    String?                // 证据路径
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([status])
+  @@index([startedAt])
 }

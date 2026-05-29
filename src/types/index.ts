@@ -1,39 +1,155 @@
-// 文章来源
-export type ArticleSource = "人民日报" | "新华社" | "光明日报" | "经济日报" | string;
+// 申论素材采集台 类型定义 v2
 
-// 素材分类
-export type MaterialCategory = "政治" | "经济" | "社会" | "文化" | "生态" | string;
+// ==================== 枚举 ====================
+
+// 平台
+export const PLATFORMS = ["website", "wechat", "bilibili", "xiaohongshu"] as const;
+export type Platform = (typeof PLATFORMS)[number];
+
+// 内容类型（10 种）
+export const CONTENT_TYPES = [
+  "policy_analysis",      // 政策解读
+  "social_issue",         // 社会问题
+  "economic_trend",       // 经济趋势
+  "cultural_heritage",    // 文化传承
+  "ecological_protection", // 生态保护
+  "legal_regulation",     // 法治法规
+  "tech_innovation",      // 科技创新
+  "education_reform",     // 教育改革
+  "livelihood_welfare",   // 民生福祉
+  "international_affairs", // 国际事务
+] as const;
+export type ContentType = (typeof CONTENT_TYPES)[number];
+
+// 信任等级（5 种）
+export const TRUST_LEVELS = [
+  "official_primary",     // 官方一手
+  "official_repost",      // 官方转载
+  "verified_media",       // 认证媒体
+  "expert_opinion",       // 专家观点
+  "unverified",           // 未验证
+] as const;
+export type TrustLevel = (typeof TRUST_LEVELS)[number];
+
+// 优先级
+export const PRIORITIES = ["P0", "P1", "P2"] as const;
+export type Priority = (typeof PRIORITIES)[number];
+
+// 验证状态
+export const VERIFICATION_STATUSES = [
+  "unverified",
+  "verified",
+  "disputed",
+  "outdated",
+  "retracted",
+] as const;
+export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
+
+// 处理状态（8 种）
+export const PROCESSING_STATUSES = [
+  "pending",              // 待处理
+  "fetched",              // 已抓取
+  "parsed",               // 已解析
+  "analyzing",            // 分析中
+  "card_generated",       // 卡片已生成
+  "card_edited",          // 卡片已编辑
+  "confirmed",            // 已确认
+  "synced",               // 已同步
+] as const;
+export type ProcessingStatus = (typeof PROCESSING_STATUSES)[number];
+
+// 卡片类型（5 种）
+export const CARD_TYPES = [
+  "fact_summary",         // 事实摘要
+  "argument_analysis",    // 论点分析
+  "data_highlight",       // 数据亮点
+  "policy_compare",       // 政策对比
+  "case_study",           // 案例研究
+] as const;
+export type CardType = (typeof CARD_TYPES)[number];
 
 // 同步状态
-export type SyncStatus = "pending" | "success" | "failed";
+export const SYNC_STATUSES = ["pending", "success", "failed"] as const;
+export type SyncStatus = (typeof SYNC_STATUSES)[number];
 
-// 文章
-export interface Article {
+// 文档角色
+export const DOCUMENT_ROLES = ["original_archive", "material_card"] as const;
+export type DocumentRole = (typeof DOCUMENT_ROLES)[number];
+
+// 采集器状态
+export const COLLECTOR_STATUSES = ["running", "success", "failed"] as const;
+export type CollectorStatus = (typeof COLLECTOR_STATUSES)[number];
+
+// ==================== 接口 ====================
+
+// 信息源
+export interface Source {
   id: string;
-  title: string;
-  url: string;
-  source: string;
-  content: string;
-  summary: string | null;
-  category: string;
-  tags: string;
-  publishedAt: Date | null;
+  name: string;
+  externalId: string | null;
+  platform: Platform;
+  contentType: ContentType;
+  trustLevel: TrustLevel;
+  regionScopes: string[];       // JSON 数组
+  baseUrl: string | null;
+  profileUrl: string | null;
+  priority: Priority;
+  collectionMode: string | null;
+  isEnabled: boolean;
+  verificationStatus: VerificationStatus;
+  keywords: string[];           // JSON 数组
+  collectionFrequency: string | null;
+  lastCollectedAt: Date | null;
+  lastError: string | null;
+  archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// 素材卡
+// 内容条目
+export interface ContentItem {
+  id: string;
+  sourceId: string;
+  externalContentId: string | null;
+  platform: Platform;
+  contentType: ContentType;
+  trustLevel: TrustLevel;
+  title: string;
+  authorOrAccount: string | null;
+  originalUrl: string;
+  publishedAt: Date | null;
+  section: string | null;
+  regionScopes: string[];       // JSON 数组
+  topicTags: string[];          // JSON 数组
+  excerpt: string | null;
+  recommendationReason: string | null;
+  verificationStatus: VerificationStatus;
+  processingStatus: ProcessingStatus;
+  discoveryChannel: string | null;
+  fullTextStored: boolean;
+  fullText: string | null;
+  contentHash: string | null;
+  linkedOriginalId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// AI 素材卡
 export interface MaterialCard {
   id: string;
-  articleId: string;
+  contentItemId: string;
+  cardType: CardType;
   title: string;
-  content: string;
-  category: string;
-  tags: string;
-  excerpt: string | null;
-  notes: string | null;
+  sourceSnapshot: string | null;
+  originalFacts: string | null;
+  aiSummary: string | null;
+  highlightSuggestions: string | null;
+  transferSuggestions: string | null;
+  verificationNotes: string | null;
+  markdownContent: string | null;
+  userEditedContent: string | null;
   confirmed: boolean;
-  generationPrompt: string | null;
+  confirmedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,36 +158,53 @@ export interface MaterialCard {
 export interface SyncRecord {
   id: string;
   materialCardId: string;
+  contentItemId: string;
+  documentRole: DocumentRole;
+  regionFolder: string | null;
+  typeFolder: string | null;
+  targetRemoteId: string | null;
+  remoteDocumentId: string | null;
   status: SyncStatus;
-  imaKnowledgeBaseId: string | null;
-  imaDocumentId: string | null;
+  errorCode: string | null;
   errorMessage: string | null;
   syncedAt: Date;
 }
 
-// 复习记录
-export interface ReviewRecord {
+// 采集运行记录
+export interface CollectorRun {
   id: string;
-  materialCardId: string;
-  reviewedAt: Date;
-  quality: number; // 0-5 复习质量评分
+  sourceId: string;
+  collectorType: string;
+  startedAt: Date;
+  finishedAt: Date | null;
+  status: CollectorStatus;
+  discoveredCount: number;
+  importedCount: number;
+  errorSummary: string | null;
+  evidencePath: string | null;
 }
 
-// 带复习记录的素材卡
-export interface MaterialCardWithReview extends MaterialCard {
-  reviewRecords: ReviewRecord[];
-  article?: { id: string; title: string; source: string };
-}
+// ==================== 扩展接口 ====================
 
-// 带关联数据的文章
-export interface ArticleWithCards extends Article {
+// 带关联数据的内容条目
+export interface ContentItemWithCards extends ContentItem {
   materialCards: MaterialCard[];
+  source?: { id: string; name: string; platform: Platform };
 }
 
 // 带同步记录的素材卡
 export interface MaterialCardWithSync extends MaterialCard {
   syncRecords: SyncRecord[];
+  contentItem?: ContentItem;
 }
+
+// 带采集记录的源
+export interface SourceWithRuns extends Source {
+  collectorRuns: CollectorRun[];
+  _count?: { contentItems: number };
+}
+
+// ==================== 工具类型 ====================
 
 // 分页参数
 export interface PaginationParams {
@@ -88,41 +221,26 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
-// 文章采集表单
-export interface ArticleCollectForm {
-  url: string;
-  source?: string;
-  category?: string;
-  tags?: string[];
-}
-
-// 素材卡结构化内容
-export interface MaterialCardStructuredContent {
-  mainPoint: string;                    // 一句话主旨
-  structure: {
-    background: string;                 // 背景
-    problem: string;                    // 问题
-    cause: string;                      // 原因
-    solution: string;                   // 对策
-    sublimation: string;               // 升华
-  };
-  standardExpressions: string[];        // 规范表达（3-5个）
-  cases: string[];                      // 可用案例
-  provinceRelevance: {
-    guangdong: string;                  // 广东省情关联
-    hunan: string;                      // 湖南省情关联
-  };
-  applicableTypes: string[];            // 适用题型
-  writingExercise: string;             // 仿写练习提示
-}
-
 // 素材卡编辑表单
 export interface MaterialCardForm {
   title: string;
-  content: string;
-  category: string;
-  tags: string[];
-  excerpt?: string;
-  notes?: string;
+  cardType: CardType;
+  originalFacts?: string;
+  aiSummary?: string;
+  highlightSuggestions?: string;
+  transferSuggestions?: string;
+  verificationNotes?: string;
+  markdownContent?: string;
+  userEditedContent?: string;
   confirmed?: boolean;
+}
+
+// 内容采集表单
+export interface ContentCollectForm {
+  url: string;
+  sourceId?: string;
+  contentType?: ContentType;
+  trustLevel?: TrustLevel;
+  topicTags?: string[];
+  regionScopes?: string[];
 }
