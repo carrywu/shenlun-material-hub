@@ -5,11 +5,11 @@ import { WeRssClient } from "@/services/collectors/wechat/weRssClient";
 export async function GET() {
   try {
     const client = new WeRssClient();
-    const sources = await client.listSources();
+    const sources = await client.getSources();
     return NextResponse.json({ sources });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error("WeRSS listSources error:", msg);
+    console.error("WeRSS getSources error:", msg);
     return NextResponse.json(
       { error: `获取 WeRSS 来源失败: ${msg}` },
       { status: 500 }

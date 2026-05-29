@@ -45,8 +45,23 @@ export class WeRssClient {
     };
   }
 
+  /** 测试 WeRSS 连接 */
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      const url = `${this.baseUrl}/api/health`;
+      await axios.get(url, {
+        headers: this.getHeaders(),
+        timeout: 10000,
+      });
+      return { success: true, message: "连接成功" };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { success: false, message: `连接失败: ${msg}` };
+    }
+  }
+
   /** 列出所有可用的微信公众号来源 */
-  async listSources(): Promise<WeRssSource[]> {
+  async getSources(): Promise<WeRssSource[]> {
     const url = `${this.baseUrl}/api/sources`;
     const response = await axios.get<{ data: WeRssSource[] }>(url, {
       headers: this.getHeaders(),

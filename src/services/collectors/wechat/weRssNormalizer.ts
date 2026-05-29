@@ -15,7 +15,7 @@ export interface NormalizeResult {
 
 /**
  * 将 WeRSS 文章转换为 ContentItem 并写入数据库。
- * discoveryChannel = 'subscription'，platform = 'wechat'。
+ * discoveryChannel = 'werss'，platform = 'wechat'。
  */
 export async function normalizeWeRssArticle(
   article: WeRssArticle,
@@ -62,7 +62,7 @@ export async function normalizeWeRssArticle(
       processingStatus: fullText ? "fetched" : "pending",
       regionScopes: "[]",
       topicTags: "[]",
-      discoveryChannel: "subscription",
+      discoveryChannel: "werss",
     },
   });
 
