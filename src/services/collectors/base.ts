@@ -1,5 +1,4 @@
 import * as cheerio from "cheerio";
-import axios from "axios";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 
@@ -42,12 +41,14 @@ export abstract class BaseCollector {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const response = await axios.get(url, {
+        const response = await fetch(url, {
           headers: DEFAULT_HEADERS,
-          timeout: 15000,
-          responseType: "text",
+          signal: AbortSignal.timeout(15000),
         });
-        return response.data as string;
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.text();
       } catch (error) {
         lastError =
           error instanceof Error ? error : new Error(String(error));
