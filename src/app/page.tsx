@@ -1,65 +1,194 @@
-import Image from "next/image";
+import { db } from "@/lib/db";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  FileText,
+  Clock,
+  CheckCircle,
+  ArrowRight,
+  Plus,
+} from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const [totalArticles, totalCards, pendingCards, recentArticles] =
+    await Promise.all([
+      db.article.count(),
+      db.materialCard.count(),
+      db.materialCard.count(),
+      db.article.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: { _count: { select: { materialCards: true } } },
+      }),
+    ]);
+
+  const processedCards = totalCards - pendingCards;
+
+  const stats = [
+    {
+      label: "总文章数",
+      value: totalArticles,
+      icon: FileText,
+      color: "text-blue-600",
+    },
+    {
+      label: "素材卡总数",
+      value: totalCards,
+      icon: CheckCircle,
+      color: "text-green-600",
+    },
+    {
+      label: "待处理",
+      value: pendingCards,
+      icon: Clock,
+      color: "text-amber-600",
+    },
+    {
+      label: "已处理",
+      value: processedCards,
+      icon: CheckCircle,
+      color: "text-emerald-600",
+    },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="border-b px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold">申论素材采集台</h1>
+            <p className="text-sm text-muted-foreground">
+              采集官方文章，生成 AI 素材卡，同步至 ima 知识库
+            </p>
+          </div>
+          <Link href="/articles" className={cn(buttonVariants())}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            采集文章
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      <div className="flex-1 overflow-auto p-6 space-y-6">
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat) => (
+            <Card key={stat.label}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.label}
+                </CardTitle>
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </main>
+
+        {/* Recent articles */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">最近采集的文章</CardTitle>
+            <Link
+              href="/articles"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              查看全部
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {recentArticles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <FileText className="h-8 w-8 mb-2 opacity-50" />
+                <p>暂无文章</p>
+                <p className="text-sm">点击「采集文章」开始</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentArticles.map((article) => (
+                  <div
+                    key={article.id}
+                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{article.title}</p>
+                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                        <Badge variant="outline" className="text-xs">
+                          {article.source}
+                        </Badge>
+                        <span>{article.category}</span>
+                        {article.publishedAt && (
+                          <span>
+                            {new Date(article.publishedAt).toLocaleDateString(
+                              "zh-CN"
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground shrink-0 ml-4">
+                      {article._count.materialCards} 张素材卡
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Quick actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+            <Link href="/articles">
+              <CardContent className="flex items-center gap-3 pt-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-medium">浏览文章</p>
+                  <p className="text-sm text-muted-foreground">
+                    查看和筛选已采集的文章
+                  </p>
+                </div>
+              </CardContent>
+            </Link>
+          </Card>
+          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+            <CardContent className="flex items-center gap-3 pt-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600">
+                <Plus className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-medium">采集新文章</p>
+                <p className="text-sm text-muted-foreground">
+                  从 URL 采集官方文章
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+            <CardContent className="flex items-center gap-3 pt-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+                <CheckCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-medium">素材卡管理</p>
+                <p className="text-sm text-muted-foreground">
+                  编辑和同步素材卡
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
