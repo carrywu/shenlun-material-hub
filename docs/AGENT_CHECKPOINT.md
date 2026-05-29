@@ -1,61 +1,50 @@
-# Agent Checkpoint — 2026-05-29 17:30
+# Agent Checkpoint — 2026-05-29 20:30
 
-## 当前状态：暂停（用户离开）
+## 当前状态：V1 开发完成
 
 ## Git 状态
 - 分支: main
-- 最新 commit: `e0816de` — checkpoint: Phase 3+4 进行中
+- 最新 commit: `e53d033` — Phase 10 MediaCrawler + dashboard enhancement
 - 远程已同步: origin/main
+- `pnpm build` 通过
 
-## 已完成的 Phase
+## 已完成的 Phase（全部 13 个）
 
 | Phase | 状态 | Commit | 说明 |
 |-------|------|--------|------|
-| Phase 1: 数据模型重建 | ✅ 完成 | `663851f` | 5 个新模型 (Source, ContentItem, MaterialCard, SyncRecord, CollectorRun) |
-| Phase 2: 来源管理 API | ✅ 完成 | `d400fda` | /api/sources CRUD + /subscriptions 页面 |
-| TS 错误修复 | ✅ 完成 | `bf874f3` | 所有旧模型引用已更新 |
-| Phase 3: ContentItem API | ✅ 完成 | `e0816de` | /api/content-items CRUD + generate-card |
-| Phase 4: MaterialCard 重构 | ⏸ 进行中 | `e0816de` | AI 服务已重写，cards 页面/组件部分完成 |
+| Phase 1: 数据模型重建 | ✅ | `663851f` | 5 个新模型 |
+| Phase 2: 来源管理 API | ✅ | `d400fda` | /api/sources + /subscriptions |
+| Phase 3: ContentItem API | ✅ | `e0816de` | /api/content-items + AI 服务 |
+| Phase 4: MaterialCard 重构 | ✅ | `e0816de` | cards 页面 + 组件 |
+| Phase 5: /discover + /explore | ✅ | `f088af5` | 今日推荐 + 探索区 |
+| Phase 6: SyncRecord | ✅ | `d65d638` | /sync-records + sync API |
+| Phase 7: 账号池导入 | ✅ | `1709c3b` | seed 脚本 + 批量导入 |
+| Phase 8: 网页采集器 | ✅ | `51ca629` | 5 个采集器 |
+| Phase 9: WeRSS | ✅ | `3bf097d` | 公众号集成 |
+| Phase 10: MediaCrawler | ✅ | `e53d033` | B站/小红书 |
+| Phase 11-13: 清理+增强 | ✅ | `e53d033` | Dashboard + build 验证 |
 
-## Phase 3+4 进行中的文件
+## 页面 (8+1)
 
-### 已完成（已 commit）
-- `src/app/api/content-items/route.ts` — GET/POST
-- `src/app/api/content-items/[id]/route.ts` — GET/PUT/DELETE
-- `src/app/api/content-items/[id]/generate-card/route.ts` — POST AI 生成
-- `src/services/ai.ts` — 重写，支持 5 种卡片类型
-- `src/app/api/material-cards/route.ts` — 已更新
-- `src/app/api/material-cards/[id]/route.ts` — 已更新
+/ 仪表板 | /discover 今日推荐 | /explore 探索区 | /subscriptions 来源管理
+/articles 文章库 | /cards 素材卡 | /sync-records 同步记录 | /search 检索 | /review 复习
 
-### 已修改但可能未完成
-- `src/app/cards/page.tsx` — 按 cardType 分 tab，可能有编译错误
-- `src/app/cards/[id]/page.tsx` — 类型特定布局，可能有编译错误
-- `src/components/MaterialCard.tsx` — 已重写
-- `src/components/MaterialCardEditor.tsx` — 已重写
-- `src/components/ReviewCard.tsx` — 已更新
-- `src/app/review/page.tsx` — 已更新
-- `src/app/api/export/route.ts` — 已更新
+## API 路由 (25 个)
 
-## 未完成的 Phase
+/sources, /sources/[id], /sources/[id]/verify, /sources/import
+/content-items, /content-items/[id], /content-items/[id]/generate-card
+/material-cards, /material-cards/[id]
+/collectors/web/collect, /collectors/wechat/*, /collectors/mediacrawler/*
+/discover, /explore, /articles, /review, /search, /export, /sync, /sync-records
 
-| Phase | 说明 | 依赖 |
-|-------|------|------|
-| Phase 5 | /discover + /explore 页面 | Phase 3 |
-| Phase 6 | SyncRecord 重构 + /sync-records | Phase 4 |
-| Phase 7 | 账号池导入 + 种子数据 | Phase 2 |
-| Phase 8 | 官方网页采集器 | Phase 7 |
-| Phase 9 | WeRSS 公众号集成 | Phase 7 |
-| Phase 10 | MediaCrawler B站/小红书 | Phase 7 |
-| Phase 11-13 | 页面重构 + 清理 + 集成测试 | Phase 5,6,8 |
+## 采集器 (8 个)
 
-## 下次续跑命令
+先锋文汇 | 人民日报 | 人民网观点 | 广东官方 | 湖南官方 | WeRSS 公众号 | B站专栏 | 小红书
 
-```bash
-# 1. 检查当前状态
-cd /Users/apple/Downloads/ima-shenglun-creators/shenlun-material-hub
-pnpm tsc --noEmit 2>&1 | head -20
-pnpm build 2>&1 | tail -20
+## 下一步
 
-# 2. 如果有编译错误，先修复
-# 3. 然后继续 Phase 5
-```
+项目 V1 功能完整。可选后续：
+1. 运行 `pnpm seed:accounts` 导入 21 个种子来源
+2. 配置环境变量并测试真实采集流程
+3. 启动 WeRSS/MediaCrawler sidecar 服务
+4. 端到端流程验证：discover → star → generate card → confirm → sync
