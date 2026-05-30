@@ -1,18 +1,165 @@
 import OpenAI from "openai";
-import type { CardType, AIScoreDetail } from "@/types";
+import { db } from "@/lib/db";
+import { decrypt } from "@/lib/crypto";
+import type { CardType, AIScoreDetail, ContentGenre, AiDecision } from "@/types";
 
 let _openai: OpenAI | null = null;
+let _configLoaded = false;
 
-function getOpenAI(): OpenAI {
+async function getOpenAI(): Promise<OpenAI> {
+  if (_openai && _configLoaded) return _openai;
+
+  // 优先从数据库读取配置
+  try {
+    const config = await db.aiConfig.findFirst({
+      where: { name: "default", isEnabled: true },
+    });
+
+    if (config) {
+      const apiKey = decrypt(config.encryptedKey);
+      _openai = new OpenAI({
+        apiKey,
+        baseURL: config.baseUrl || undefined,
+      });
+      _configLoaded = true;
+      return _openai;
+    }
+  } catch {
+    // 数据库读取失败，降级到环境变量
+  }
+
+  // 降级到环境变量
   if (!_openai) {
     _openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.AI_API_KEY || process.env.OPENAI_API_KEY,
+      baseURL: process.env.AI_BASE_URL || undefined,
     });
   }
+  _configLoaded = true;
   return _openai;
 }
 
-// ==================== AI 评分 ====================
+async function getModel(): Promise<string> {
+  try {
+    const config = await db.aiConfig.findFirst({
+      where: { name: "default", isEnabled: true },
+      select: { model: true },
+    });
+    if (config) return config.model;
+  } catch {
+    // ignore
+  }
+  return process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
+}
+
+async function getTemperature(): Promise<number> {
+  try {
+    const config = await db.aiConfig.findFirst({
+      where: { name: "default", isEnabled: true },
+      select: { temperature: true },
+    });
+    if (config) return config.temperature;
+  } catch {
+    // ignore
+  }
+  return 0.3;
+}
+
+// ==================== P0-6: AI 相关性评估 ====================
+
+const RELEVANCE_SYSTEM_PROMPT = `你是一位资深的申论辅导专家。请判断以下文章是否适合作为申论备考素材。
+
+你需要：
+1. 判断文章体裁（contentGenre）
+2. 决定是否接受（accept/reject）
+3. 给出理由
+
+**接受标准**：
+- 评论文章、政策解读、案例实践 → 通常接受
+- 普通新闻（仅报道事件无分析）、会议新闻、通知公告 → 拒绝
+- 文章必须有实质性分析或观点，不能只是信息罗列
+
+返回 JSON：
+{
+  "decision": "accept 或 reject",
+  "contentGenre": "commentary / policy_interpretation / case_practice / ordinary_news / meeting_news / notice / other",
+  "reason": "50字以内的判定理由",
+  "categories": ["标签1", "标签2"],
+  "usableFor": ["可用场景1", "可用场景2"],
+  "summary": "100字以内的文章摘要（仅 accept 时填写）",
+  "quotes": ["金句1", "金句2"]
+}`;
+
+export interface RelevanceResult {
+  decision: AiDecision;
+  contentGenre: ContentGenre;
+  reason: string;
+  categories: string[];
+  usableFor: string[];
+  summary: string;
+  quotes: string[];
+}
+
+export async function assessRelevance(
+  title: string,
+  sourceName: string,
+  content: string,
+  contentType: string
+): Promise<RelevanceResult> {
+  const openai = await getOpenAI();
+  const model = await getModel();
+  const temperature = await getTemperature();
+
+  const userPrompt = `请评估以下文章是否适合作为申论备考素材：
+
+【标题】${title}
+【来源】${sourceName}
+【内容类型】${contentType}
+【正文】
+${content.slice(0, 4000)}`;
+
+  const completion = await openai.chat.completions.create({
+    model,
+    messages: [
+      { role: "system", content: RELEVANCE_SYSTEM_PROMPT },
+      { role: "user", content: userPrompt },
+    ],
+    temperature,
+    response_format: { type: "json_object" },
+  });
+
+  const rawJson = completion.choices[0]?.message?.content;
+  if (!rawJson) {
+    throw new Error("AI 未返回有效内容");
+  }
+
+  const data = JSON.parse(rawJson);
+
+  return {
+    decision: data.decision === "accept" ? "accept" : "reject",
+    contentGenre: validateContentGenre(data.contentGenre),
+    reason: String(data.reason || "").slice(0, 200),
+    categories: Array.isArray(data.categories) ? data.categories.slice(0, 5) : [],
+    usableFor: Array.isArray(data.usableFor) ? data.usableFor.slice(0, 5) : [],
+    summary: String(data.summary || "").slice(0, 500),
+    quotes: Array.isArray(data.quotes) ? data.quotes.slice(0, 5) : [],
+  };
+}
+
+function validateContentGenre(genre: string): ContentGenre {
+  const valid: ContentGenre[] = [
+    "commentary",
+    "policy_interpretation",
+    "case_practice",
+    "ordinary_news",
+    "meeting_news",
+    "notice",
+    "other",
+  ];
+  return valid.includes(genre as ContentGenre) ? (genre as ContentGenre) : "other";
+}
+
+// ==================== AI 评分（旧版保留兼容）====================
 
 export interface AIScoreResult {
   overall: number;
@@ -44,6 +191,9 @@ export async function scoreContentItem(
   content: string,
   contentType: string
 ): Promise<AIScoreResult> {
+  const openai = await getOpenAI();
+  const model = await getModel();
+
   const userPrompt = `请对以下文章进行评分：
 
 【标题】${title}
@@ -52,8 +202,8 @@ export async function scoreContentItem(
 【正文】
 ${content.slice(0, 4000)}`;
 
-  const completion = await getOpenAI().chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+  const completion = await openai.chat.completions.create({
+    model,
     messages: [
       { role: "system", content: SCORING_SYSTEM_PROMPT },
       { role: "user", content: userPrompt },
@@ -69,7 +219,6 @@ ${content.slice(0, 4000)}`;
 
   const data = JSON.parse(rawJson);
 
-  // Validate scores
   const dimensions: (keyof AIScoreDetail)[] = [
     "relevance",
     "quality",
@@ -82,13 +231,12 @@ ${content.slice(0, 4000)}`;
   for (const dim of dimensions) {
     const score = Number(data[dim]);
     if (isNaN(score) || score < 1 || score > 10) {
-      detail[dim] = 5; // default
+      detail[dim] = 5;
     } else {
       detail[dim] = Math.round(score);
     }
   }
 
-  // Weighted average (relevance and usability weighted higher)
   const weights: Record<keyof AIScoreDetail, number> = {
     relevance: 0.25,
     quality: 0.25,
@@ -106,7 +254,8 @@ ${content.slice(0, 4000)}`;
   return { overall, detail };
 }
 
-// Card type specific prompts
+// ==================== 素材卡生成 ====================
+
 const CARD_TYPE_PROMPTS: Record<CardType, string> = {
   fact_summary: `你是一位资深的申论辅导专家，擅长从官方文章中提炼核心事实。
 请分析文章，提取关键事实和数据，生成事实摘要卡。
@@ -183,6 +332,8 @@ export async function generateCardForContentItem(
   content: string,
   cardType: CardType
 ): Promise<AIGeneratedCardData> {
+  const openai = await getOpenAI();
+  const model = await getModel();
   const systemPrompt = CARD_TYPE_PROMPTS[cardType];
 
   const userPrompt = `请分析以下文章，生成素材卡：
@@ -192,8 +343,8 @@ export async function generateCardForContentItem(
 【正文】
 ${content}`;
 
-  const completion = await getOpenAI().chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+  const completion = await openai.chat.completions.create({
+    model,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
@@ -262,4 +413,28 @@ export async function generateBatchCards(
   }
 
   return results;
+}
+
+/**
+ * 测试 AI 配置是否可用
+ */
+export async function testAiConfig(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const openai = await getOpenAI();
+    const model = await getModel();
+
+    const completion = await openai.chat.completions.create({
+      model,
+      messages: [{ role: "user", content: "回复 OK" }],
+      max_tokens: 10,
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    return { success: !!content };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "测试失败",
+    };
+  }
 }

@@ -1,29 +1,75 @@
 import { BaseCollector, type RawArticle } from "../base";
 
-const BASE_URL = "http://www.gd.gov.cn";
+// 广东省政府网采集器
+// P0-3: 使用栏目配置（CollectionChannel）进行采集
+// 不再默认采集首页，必须配置具体栏目列表页
 
 export class GuangdongOfficialCollector extends BaseCollector {
   readonly collectorType = "guangdong_official";
   readonly sourceName = "广东省政府网";
 
-  async collect(source: {
-    id: string;
-    platform: string;
-    contentType: string;
-    trustLevel: string;
-    baseUrl?: string | null;
-  }): Promise<RawArticle[]> {
-    // 广东省政府网站 - 要闻动态
-    const listHtml = await this.fetchWithRetry(BASE_URL);
-    const $ = this.parseHtml(listHtml);
-    const articles: RawArticle[] = [];
+  /**
+   * 覆盖通用详情页提取，适配广东省政府网结构
+   */
+  protected override async extractArticleDetail(
+    url: string
+  ): Promise<{ fullText: string; publishedAt?: Date; author?: string } | null> {
+    try {
+      const html = await this.fetchWithRetry(url);
+      const $ = this.parseHtml(html);
+
+      const fullText =
+        $(".article-content").text().trim() ||
+        $(".TRS_Editor").text().trim() ||
+        $(".content").text().trim() ||
+        $("#zoom").text().trim() ||
+        $("article").text().trim();
+
+      if (!fullText || fullText.length < 300) {
+        return null;
+      }
+
+      const dateStr =
+        $(".article-date").text().trim() ||
+        $(".info span").first().text().trim() ||
+        $(".pub-date").text().trim();
+      let publishedAt: Date | undefined;
+      const dm = dateStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (dm) {
+        publishedAt = new Date(
+          parseInt(dm[1]),
+          parseInt(dm[2]) - 1,
+          parseInt(dm[3])
+        );
+      }
+
+      const author =
+        $(".source").text().trim() ||
+        $(".article-source").text().trim() ||
+        undefined;
+
+      return { fullText, publishedAt, author };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 覆盖通用链接提取，适配广东省政府网链接格式
+   */
+  protected override extractLinksFromListPage(
+    $: ReturnType<typeof import("cheerio").load>,
+    listUrl: string,
+    urlPattern: string | null
+  ): Array<{ title: string; url: string }> {
+    const links: Array<{ title: string; url: string }> = [];
     const seen = new Set<string>();
 
     // 广东省政府网文章链接含 content/post_ 或 /zwgk/
-    $("a[href*='content/post_'], a[href*='gd.gov.cn']").each((_i, el) => {
+    $("a[href*='content/post_'], a[href*='/zwgk/']").each((_i, el) => {
       const $el = $(el);
       const href = $el.attr("href");
-      if (!href) return;
+      if (!href || href === "#" || href === "/") return;
 
       // 过滤非文章链接
       if (
@@ -31,8 +77,8 @@ export class GuangdongOfficialCollector extends BaseCollector {
         href.includes(".js") ||
         href.includes(".jpg") ||
         href.includes(".png") ||
-        href === "#" ||
-        href === "/"
+        href.includes("/index.") ||
+        href.includes("/list.")
       ) {
         return;
       }
@@ -40,8 +86,8 @@ export class GuangdongOfficialCollector extends BaseCollector {
       const fullUrl = href.startsWith("http")
         ? href
         : href.startsWith("//")
-          ? `http:${href}`
-          : `${BASE_URL}${href.startsWith("/") ? "" : "/"}${href}`;
+          ? `https:${href}`
+          : new URL(href, listUrl).href;
 
       if (seen.has(fullUrl) || !fullUrl.includes(".html")) return;
       seen.add(fullUrl);
@@ -49,61 +95,17 @@ export class GuangdongOfficialCollector extends BaseCollector {
       const title = $el.text().trim();
       if (!title || title.length < 4 || title.length > 100) return;
 
-      articles.push({
-        title,
-        url: fullUrl,
-        section: "广东要闻",
-      });
+      links.push({ title, url: fullUrl });
     });
 
-    // 抓取前几篇文章的详情页
-    const detailed: RawArticle[] = [];
-    for (const article of articles.slice(0, 5)) {
-      try {
-        const detailHtml = await this.fetchWithRetry(article.url);
-        const $d = this.parseHtml(detailHtml);
+    return links;
+  }
 
-        // 广东省政府网文章正文
-        const fullText =
-          $d(".article-content").text().trim() ||
-          $d(".TRS_Editor").text().trim() ||
-          $d(".content").text().trim() ||
-          $d("#zoom").text().trim() ||
-          $d("article").text().trim();
-
-        // 提取日期
-        const dateStr =
-          $d(".article-date").text().trim() ||
-          $d(".info span").first().text().trim() ||
-          $d(".pub-date").text().trim();
-        let publishedAt: Date | undefined;
-        const dm = dateStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-        if (dm) {
-          publishedAt = new Date(
-            parseInt(dm[1]),
-            parseInt(dm[2]) - 1,
-            parseInt(dm[3])
-          );
-        }
-
-        // 提取来源/作者
-        const author =
-          $d(".source").text().trim() ||
-          $d(".article-source").text().trim() ||
-          undefined;
-
-        detailed.push({
-          ...article,
-          fullText: fullText || undefined,
-          excerpt: fullText?.slice(0, 200) || undefined,
-          author,
-          publishedAt,
-        });
-      } catch {
-        detailed.push(article);
-      }
-    }
-
-    return detailed.length > 0 ? detailed : articles.slice(0, 5);
+  /**
+   * 旧版采集方法 — 不再使用，保留兼容
+   * 实际采集通过 collectFromChannel() 进行
+   */
+  async collect(): Promise<RawArticle[]> {
+    return [];
   }
 }

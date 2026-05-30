@@ -1,4 +1,4 @@
-// 申论素材采集台 类型定义 v2
+// 申论素材采集台 类型定义 v3
 
 // ==================== 枚举 ====================
 
@@ -45,7 +45,7 @@ export const VERIFICATION_STATUSES = [
 ] as const;
 export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
 
-// 处理状态（9 种）
+// 处理状态
 export const PROCESSING_STATUSES = [
   "pending",              // 待处理
   "fetched",              // 已抓取
@@ -58,6 +58,35 @@ export const PROCESSING_STATUSES = [
   "filtered",             // 已过滤
 ] as const;
 export type ProcessingStatus = (typeof PROCESSING_STATUSES)[number];
+
+// P0-2: 质量状态
+export const QUALITY_STATUSES = [
+  "pending",              // 待检测
+  "candidate",            // 候选（通过基础过滤）
+  "filtered",             // 已过滤（质量不达标）
+  "accepted",             // 已接受（通过 AI 评估）
+] as const;
+export type QualityStatus = (typeof QUALITY_STATUSES)[number];
+
+// P0-2: AI 决策
+export const AI_DECISIONS = [
+  "pending",              // 待评估
+  "accept",               // 接受
+  "reject",               // 拒绝
+] as const;
+export type AiDecision = (typeof AI_DECISIONS)[number];
+
+// P0-2: 内容体裁
+export const CONTENT_GENRES = [
+  "commentary",           // 评论文章
+  "policy_interpretation", // 政策解读
+  "case_practice",        // 案例实践
+  "ordinary_news",        // 普通新闻
+  "meeting_news",         // 会议新闻
+  "notice",               // 通知公告
+  "other",                // 其他
+] as const;
+export type ContentGenre = (typeof CONTENT_GENRES)[number];
 
 // 卡片类型（5 种）
 export const CARD_TYPES = [
@@ -78,7 +107,7 @@ export const DOCUMENT_ROLES = ["original_archive", "material_card"] as const;
 export type DocumentRole = (typeof DOCUMENT_ROLES)[number];
 
 // 采集器状态
-export const COLLECTOR_STATUSES = ["running", "success", "failed"] as const;
+export const COLLECTOR_STATUSES = ["running", "success", "partial", "failed"] as const;
 export type CollectorStatus = (typeof COLLECTOR_STATUSES)[number];
 
 // ==================== 接口 ====================
@@ -91,14 +120,14 @@ export interface Source {
   platform: Platform;
   contentType: ContentType;
   trustLevel: TrustLevel;
-  regionScopes: string[];       // JSON 数组
+  regionScopes: string[];
   baseUrl: string | null;
   profileUrl: string | null;
   priority: Priority;
   collectionMode: string | null;
   isEnabled: boolean;
   verificationStatus: VerificationStatus;
-  keywords: string[];           // JSON 数组
+  keywords: string[];
   collectionFrequency: string | null;
   lastCollectedAt: Date | null;
   lastError: string | null;
@@ -107,10 +136,27 @@ export interface Source {
   updatedAt: Date;
 }
 
+// P0-2: 采集栏目
+export interface CollectionChannel {
+  id: string;
+  sourceId: string;
+  name: string;
+  listUrl: string;
+  urlPattern: string | null;
+  paginationPattern: string | null;
+  maxPages: number;
+  isEnabled: boolean;
+  lastCollectedAt: Date | null;
+  collectedCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // 内容条目
 export interface ContentItem {
   id: string;
   sourceId: string;
+  channelId: string | null;
   externalContentId: string | null;
   platform: Platform;
   contentType: ContentType;
@@ -120,8 +166,8 @@ export interface ContentItem {
   originalUrl: string;
   publishedAt: Date | null;
   section: string | null;
-  regionScopes: string[];       // JSON 数组
-  topicTags: string[];          // JSON 数组
+  regionScopes: string[];
+  topicTags: string[];
   excerpt: string | null;
   recommendationReason: string | null;
   verificationStatus: VerificationStatus;
@@ -132,7 +178,21 @@ export interface ContentItem {
   contentHash: string | null;
   linkedOriginalId: string | null;
   filterReason: string | null;
+  // P0-2 新增字段
+  qualityStatus: QualityStatus;
+  effectiveTextLength: number;
+  lastCleanedAt: Date | null;
   aiScore: number | null;
+  aiDecision: AiDecision | null;
+  aiReason: string | null;
+  aiCategories: string | null;
+  aiUsableFor: string | null;
+  aiSummary: string | null;
+  aiQuotes: string | null;
+  aiAssessedAt: Date | null;
+  aiAssessmentError: string | null;
+  contentGenre: ContentGenre | null;
+  // 兼容旧字段
   aiScoreDetail: string | null;
   aiScoredAt: Date | null;
   createdAt: Date;
@@ -141,11 +201,11 @@ export interface ContentItem {
 
 // AI 评分结果
 export interface AIScoreDetail {
-  relevance: number;    // 与申论考试的相关度
-  quality: number;      // 内容质量
-  freshness: number;    // 时效性
-  uniqueness: number;   // 独特性/稀缺性
-  usability: number;    // 可迁移使用程度
+  relevance: number;
+  quality: number;
+  freshness: number;
+  uniqueness: number;
+  usability: number;
 }
 
 // AI 素材卡
@@ -198,35 +258,46 @@ export interface CollectorRun {
   evidencePath: string | null;
 }
 
+// P0-2: AI 配置
+export interface AiConfig {
+  id: string;
+  name: string;
+  baseUrl: string;
+  encryptedKey: string;
+  model: string;
+  temperature: number;
+  isEnabled: boolean;
+  lastTestedAt: Date | null;
+  lastTestError: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // ==================== 扩展接口 ====================
 
-// 带关联数据的内容条目
 export interface ContentItemWithCards extends ContentItem {
   materialCards: MaterialCard[];
   source?: { id: string; name: string; platform: Platform };
 }
 
-// 带同步记录的素材卡
 export interface MaterialCardWithSync extends MaterialCard {
   syncRecords: SyncRecord[];
   contentItem?: ContentItem;
 }
 
-// 带采集记录的源
 export interface SourceWithRuns extends Source {
   collectorRuns: CollectorRun[];
+  collectionChannels?: CollectionChannel[];
   _count?: { contentItems: number };
 }
 
 // ==================== 工具类型 ====================
 
-// 分页参数
 export interface PaginationParams {
   page: number;
   pageSize: number;
 }
 
-// 分页结果
 export interface PaginatedResult<T> {
   data: T[];
   total: number;
@@ -235,7 +306,6 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
-// 素材卡编辑表单
 export interface MaterialCardForm {
   title: string;
   cardType: CardType;
@@ -249,7 +319,6 @@ export interface MaterialCardForm {
   confirmed?: boolean;
 }
 
-// 内容采集表单
 export interface ContentCollectForm {
   url: string;
   sourceId?: string;
@@ -259,7 +328,7 @@ export interface ContentCollectForm {
   regionScopes?: string[];
 }
 
-// AI 生成的结构化素材内容
+// AI 生成的结构化素材内容（用于 ima 同步格式化）
 export interface MaterialCardStructuredContent {
   mainPoint: string;
   structure: {

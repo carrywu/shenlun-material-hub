@@ -1,4 +1,4 @@
-// 申论素材采集台 数据库 Schema v2
+// 申论素材采集台 数据库 Schema v3
 
 generator client {
   provider = "prisma-client"
@@ -32,8 +32,9 @@ model Source {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  contentItems  ContentItem[]
-  collectorRuns CollectorRun[]
+  contentItems      ContentItem[]
+  collectorRuns     CollectorRun[]
+  collectionChannels CollectionChannel[]
 
   @@index([platform])
   @@index([priority])
@@ -41,10 +42,32 @@ model Source {
   @@index([contentType])
 }
 
+// P0-2: 采集栏目（Source 下的子栏目配置）
+model CollectionChannel {
+  id                String   @id @default(cuid())
+  sourceId          String
+  name              String                 // 栏目名称
+  listUrl           String                 // 栏目列表页 URL
+  urlPattern        String?                // 文章 URL 正则匹配模式
+  paginationPattern String?                // 分页 URL 模板（{page} 为页码占位符）
+  maxPages          Int      @default(3)   // 最大采集页数
+  isEnabled         Boolean  @default(true)
+  lastCollectedAt   DateTime?
+  collectedCount    Int      @default(0)   // 已采集数量
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([isEnabled])
+}
+
 // 内容条目
 model ContentItem {
   id                  String   @id @default(cuid())
   sourceId            String
+  channelId           String?                // P0-2: 关联采集栏目
   externalContentId   String?                // 外部内容 ID
   platform            String                 // 来源平台
   contentType         String                 // 内容类型
@@ -59,16 +82,35 @@ model ContentItem {
   excerpt             String?                // 摘录
   recommendationReason String?               // 推荐理由
   verificationStatus  String   @default("unverified")
-  processingStatus    String   @default("pending") // 处理状态（8 种）
+  processingStatus    String   @default("pending") // 处理状态
   discoveryChannel    String?                // 发现渠道
   fullTextStored      Boolean  @default(false)
   fullText            String?                // 全文
   contentHash         String?                // 内容哈希
   linkedOriginalId    String?                // 关联原始条目 ID
   filterReason        String?                // 过滤原因
+
+  // P0-2: 质量状态字段
+  qualityStatus       String   @default("pending") // pending/candidate/filtered/accepted
+  effectiveTextLength Int      @default(0)   // 有效正文长度（去除 HTML/空白）
+  lastCleanedAt       DateTime?              // 最近清理时间
+
+  // P0-2: AI 评分字段
   aiScore             Float?                 // AI 综合评分
-  aiScoreDetail       String?                // AI 评分详情 JSON
-  aiScoredAt          DateTime?              // AI 评分时间
+  aiDecision          String?                // accept/reject/pending
+  aiReason            String?                // AI 判定理由
+  aiCategories        String?                // JSON 数组：AI 分类标签
+  aiUsableFor         String?                // JSON 数组：可用场景
+  aiSummary           String?                // AI 摘要
+  aiQuotes            String?                // JSON 数组：AI 提取的金句
+  aiAssessedAt        DateTime?              // AI 评估时间
+  aiAssessmentError   String?                // AI 评估错误信息
+
+  // P0-2: 内容体裁
+  contentGenre        String?                // commentary/policy_interpretation/case_practice/ordinary_news/meeting_news/notice/other
+
+  aiScoreDetail       String?                // AI 评分详情 JSON（旧字段保留兼容）
+  aiScoredAt          DateTime?              // AI 评分时间（旧字段保留兼容）
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -84,6 +126,9 @@ model ContentItem {
   @@index([publishedAt])
   @@index([contentHash])
   @@index([aiScore])
+  @@index([qualityStatus])
+  @@index([aiDecision])
+  @@index([contentGenre])
 }
 
 // AI 素材卡
@@ -145,7 +190,7 @@ model CollectorRun {
   collectorType   String                 // 采集器类型
   startedAt       DateTime @default(now())
   finishedAt      DateTime?              // 完成时间
-  status          String   @default("running") // running / success / failed
+  status          String   @default("running") // running / success / partial / failed
   discoveredCount Int      @default(0)   // 发现数量
   importedCount   Int      @default(0)   // 导入数量
   errorSummary    String?                // 错误摘要
@@ -156,4 +201,22 @@ model CollectorRun {
   @@index([sourceId])
   @@index([status])
   @@index([startedAt])
+}
+
+// P0-2: AI 配置（加密存储 API 密钥）
+model AiConfig {
+  id            String   @id @default(cuid())
+  name          String   @unique           // 配置名称（如 default）
+  baseUrl       String   @default("https://api.openai.com/v1")
+  encryptedKey  String                     // 加密后的 API Key
+  model         String   @default("gpt-4o")
+  temperature   Float    @default(0.3)
+  isEnabled     Boolean  @default(true)
+  lastTestedAt  DateTime?
+  lastTestError String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([name])
+  @@index([isEnabled])
 }

@@ -37,6 +37,10 @@ const TITLE_PREFIX_PATTERNS = [
   /^网站地图$/,
   /^站内导航$/,
   /^栏目列表$/,
+  // P0-5: 政府网站导航页面常见标题
+  /^(走进|走进广东|走进湖南|政务公开|互动交流|便民服务|省情概貌|领导之窗|政府信息公开|政策文件|人事任免)$/,
+  /^(走进|了解|认识|关于).{2,6}$/,
+  /^(首页|主页|欢迎|概况|简介)$/,
 ];
 
 const TITLE_SUFFIX_PATTERNS = [
@@ -48,10 +52,14 @@ const TITLE_SUFFIX_PATTERNS = [
   />>$/,
   /列表$/,
   /大全$/,
+  // P0-5: 政府网站导航页面常见后缀
+  /[-—|]首页$/,
+  /[-—|]门户网站$/,
+  /[-—|]人民政府$/,
 ];
 
 // Minimum content length threshold
-const MIN_CONTENT_LENGTH = 100;
+const MIN_CONTENT_LENGTH = 300;
 
 /**
  * Check if a URL should be filtered out as a non-content page.
@@ -120,6 +128,33 @@ export function checkContentLengthFilter(
 }
 
 /**
+ * P0-5: Check if content looks like a navigation/template page.
+ * Detects pages that are mostly short link texts (e.g., government portal navigation).
+ */
+export function checkNavigationContentFilter(fullText: string | null): FilterResult {
+  if (!fullText) return { filtered: false };
+
+  const lines = fullText
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  // If most lines are very short (< 20 chars), it's likely navigation
+  if (lines.length > 10) {
+    const shortLineCount = lines.filter((l) => l.length < 20).length;
+    const ratio = shortLineCount / lines.length;
+    if (ratio > 0.7) {
+      return {
+        filtered: true,
+        reason: `疑似导航页面（${(ratio * 100).toFixed(0)}% 行为短文本，共 ${lines.length} 行）`,
+      };
+    }
+  }
+
+  return { filtered: false };
+}
+
+/**
  * Compute content hash for deduplication.
  */
 export function computeContentHash(content: string): string {
@@ -180,7 +215,11 @@ export async function runContentFilters(
   const lengthResult = checkContentLengthFilter(fullText, excerpt);
   if (lengthResult.filtered) return lengthResult;
 
-  // 4. Duplicate filter
+  // 4. P0-5: Navigation content filter
+  const navResult = checkNavigationContentFilter(fullText);
+  if (navResult.filtered) return navResult;
+
+  // 5. Duplicate filter
   const dupResult = await checkDuplicateFilter(contentHash, excludeId);
   if (dupResult.filtered) return dupResult;
 

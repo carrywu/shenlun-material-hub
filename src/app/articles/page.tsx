@@ -21,13 +21,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DateRangeFilter, type DateRange } from "@/components/filters/DateRangeFilter";
-import { RegionFilter } from "@/components/filters/RegionFilter";
-import { TopicFilter } from "@/components/filters/TopicFilter";
-import { SourceFilter } from "@/components/filters/SourceFilter";
 import { BatchActions } from "@/components/BatchActions";
 import { ArticleDetail } from "@/components/ArticleDetail";
 import { Pagination } from "@/components/ui/pagination";
-import { RefreshCw, Search, Star } from "lucide-react";
+import { RefreshCw, Search, Play, Brain, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface ContentItemData {
@@ -42,10 +39,16 @@ interface ContentItemData {
   publishedAt: string | null;
   createdAt: string;
   processingStatus: string;
+  qualityStatus: string;
   filterReason: string | null;
   aiScore: number | null;
+  aiDecision: string | null;
+  aiReason: string | null;
+  contentGenre: string | null;
+  aiAssessedAt: string | null;
   aiScoreDetail: string | null;
   aiScoredAt: string | null;
+  effectiveTextLength: number;
   source?: { name: string } | null;
   _count: { materialCards: number };
 }
@@ -57,6 +60,41 @@ interface ContentItemsResponse {
   pageSize: number;
   totalPages: number;
 }
+
+const QUALITY_STATUS_OPTIONS = [
+  { value: "all", label: "全部质量" },
+  { value: "pending", label: "待检测" },
+  { value: "candidate", label: "候选" },
+  { value: "filtered", label: "已过滤" },
+  { value: "accepted", label: "已接受" },
+];
+
+const AI_DECISION_OPTIONS = [
+  { value: "all", label: "全部 AI" },
+  { value: "pending", label: "待评估" },
+  { value: "accept", label: "AI 接受" },
+  { value: "reject", label: "AI 拒绝" },
+];
+
+const CONTENT_GENRE_LABELS: Record<string, string> = {
+  commentary: "评论",
+  policy_interpretation: "政策解读",
+  case_practice: "案例实践",
+  ordinary_news: "普通新闻",
+  meeting_news: "会议新闻",
+  notice: "通知公告",
+  other: "其他",
+};
+
+const GENRE_BADGE_COLORS: Record<string, string> = {
+  commentary: "bg-blue-100 text-blue-700",
+  policy_interpretation: "bg-purple-100 text-purple-700",
+  case_practice: "bg-green-100 text-green-700",
+  ordinary_news: "bg-gray-100 text-gray-500",
+  meeting_news: "bg-gray-100 text-gray-500",
+  notice: "bg-gray-100 text-gray-500",
+  other: "bg-gray-100 text-gray-500",
+};
 
 export default function ArticlesPage() {
   const router = useRouter();
@@ -71,23 +109,18 @@ export default function ArticlesPage() {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [source, setSource] = useState("all");
-  const [contentType, setContentType] = useState("all");
-  const [tags, setTags] = useState("all");
+  const [qualityStatus, setQualityStatus] = useState("all");
+  const [aiDecision, setAiDecision] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange>({ from: "", to: "" });
-  const [processingStatus, setProcessingStatus] = useState("all");
   const [sortBy, setSortBy] = useState("createdAt");
 
-  // Scoring state
-  const [scoringId, setScoringId] = useState<string | null>(null);
+  // Collection state
+  const [collecting, setCollecting] = useState(false);
+  const [collectProgress, setCollectProgress] = useState<string | null>(null);
 
-  const PROCESSING_STATUS_OPTIONS = [
-    { value: "all", label: "全部状态" },
-    { value: "pending", label: "待处理" },
-    { value: "fetched", label: "已抓取" },
-    { value: "card_generated", label: "卡片已生成" },
-    { value: "filtered", label: "已过滤" },
-  ];
+  // AI assessment state
+  const [assessing, setAssessing] = useState(false);
+  const [assessProgress, setAssessProgress] = useState<string | null>(null);
 
   // Selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -105,12 +138,10 @@ export default function ArticlesPage() {
       params.set("page", String(page));
       params.set("pageSize", String(pageSize));
       if (search) params.set("search", search);
-      if (source !== "all") params.set("source", source);
-      if (contentType !== "all") params.set("category", contentType);
-      if (tags !== "all") params.set("tags", tags);
+      if (qualityStatus !== "all") params.set("qualityStatus", qualityStatus);
+      if (aiDecision !== "all") params.set("aiDecision", aiDecision);
       if (dateRange.from) params.set("dateFrom", dateRange.from);
       if (dateRange.to) params.set("dateTo", dateRange.to);
-      if (processingStatus !== "all") params.set("processingStatus", processingStatus);
       if (sortBy !== "createdAt") params.set("sortBy", sortBy);
 
       const res = await fetch(`/api/articles?${params.toString()}`);
@@ -124,16 +155,15 @@ export default function ArticlesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, source, contentType, tags, dateRange, processingStatus, sortBy]);
+  }, [page, pageSize, search, qualityStatus, aiDecision, dateRange, sortBy]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, source, contentType, tags, dateRange, processingStatus, sortBy, pageSize]);
+  }, [search, qualityStatus, aiDecision, dateRange, sortBy, pageSize]);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -150,6 +180,66 @@ export default function ArticlesPage() {
 
   function deselectAll() {
     setSelected(new Set());
+  }
+
+  // 开始采集
+  async function handleCollect() {
+    setCollecting(true);
+    setCollectProgress("正在采集...");
+    try {
+      const res = await fetch("/api/collectors/web/collect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}), // 空 body = 采集所有启用的来源
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCollectProgress(`采集完成：发现 ${data.discoveredCount ?? 0} 篇，导入 ${data.importedCount ?? 0} 篇`);
+        fetchItems();
+      } else {
+        setCollectProgress(`采集失败: ${data.error}`);
+      }
+    } catch {
+      setCollectProgress("采集请求失败");
+    } finally {
+      setCollecting(false);
+      setTimeout(() => setCollectProgress(null), 5000);
+    }
+  }
+
+  // AI 批量评估
+  async function handleAssess() {
+    const idsToAssess = selected.size > 0
+      ? Array.from(selected)
+      : items.filter((i) => i.qualityStatus === "candidate" && !i.aiDecision).map((i) => i.id);
+
+    if (idsToAssess.length === 0) {
+      alert("没有可评估的条目");
+      return;
+    }
+
+    setAssessing(true);
+    setAssessProgress(`正在评估 ${idsToAssess.length} 个条目...`);
+    try {
+      const res = await fetch("/api/content-items/assess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: idsToAssess }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAssessProgress(`评估完成：接受 ${data.accepted} 篇，拒绝 ${data.rejected} 篇`);
+        setSelected(new Set());
+        fetchItems();
+      } else {
+        setAssessProgress(`评估失败: ${data.error}`);
+      }
+    } catch {
+      setAssessProgress("评估请求失败");
+    } finally {
+      setAssessing(false);
+      setTimeout(() => setAssessProgress(null), 5000);
+    }
   }
 
   async function handleGenerate() {
@@ -175,11 +265,9 @@ export default function ArticlesPage() {
         `生成完成：成功 ${result.success} 张，失败 ${result.failed} 张`
       );
 
-      // Clear selection and refresh
       setSelected(new Set());
       fetchItems();
 
-      // Navigate to cards page after a brief delay
       setTimeout(() => {
         setGenerateProgress(null);
         router.push("/cards");
@@ -189,25 +277,6 @@ export default function ArticlesPage() {
       alert(err instanceof Error ? err.message : "生成素材卡失败");
     } finally {
       setGenerating(false);
-    }
-  }
-
-  async function handleScore(id: string) {
-    if (scoringId) return;
-    setScoringId(id);
-    try {
-      const res = await fetch(`/api/content-items/${id}/score`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "评分失败");
-      }
-      fetchItems();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "AI 评分失败");
-    } finally {
-      setScoringId(null);
     }
   }
 
@@ -221,20 +290,55 @@ export default function ArticlesPage() {
           <div>
             <h1 className="text-xl font-semibold">内容列表</h1>
             <p className="text-sm text-muted-foreground">
-              管理采集的内容条目，筛选并生成素材卡
+              管理采集的内容条目，AI 评估后生成素材卡
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchItems}>
-            <RefreshCw className="mr-1.5 h-4 w-4" />
-            刷新
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleCollect}
+              disabled={collecting}
+            >
+              {collecting ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="mr-1.5 h-4 w-4" />
+              )}
+              {collecting ? "采集中..." : "开始采集"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAssess}
+              disabled={assessing}
+            >
+              {assessing ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Brain className="mr-1.5 h-4 w-4" />
+              )}
+              {assessing ? "评估中..." : "AI 评估"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={fetchItems}>
+              <RefreshCw className="mr-1.5 h-4 w-4" />
+              刷新
+            </Button>
+          </div>
         </div>
+        {/* Progress messages */}
+        {(collectProgress || assessProgress) && (
+          <div className="mt-2 text-sm text-muted-foreground">
+            {collectProgress && <p>{collectProgress}</p>}
+            {assessProgress && <p>{assessProgress}</p>}
+          </div>
+        )}
       </div>
 
       {/* Filters */}
-      <div className="border-b px-6 py-3 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+      <div className="border-b px-6 py-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative w-48">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="搜索标题..."
@@ -243,15 +347,24 @@ export default function ArticlesPage() {
               className="pl-8 h-8"
             />
           </div>
-          <SourceFilter value={source} onChange={setSource} />
-          <TopicFilter value={contentType} onChange={setContentType} />
-          <RegionFilter value={tags} onChange={setTags} />
-          <Select value={processingStatus} onValueChange={(v) => { if (v) setProcessingStatus(v); }}>
+          <Select value={qualityStatus} onValueChange={(v) => { if (v) setQualityStatus(v); }}>
             <SelectTrigger className="w-28 h-8">
-              <SelectValue placeholder="状态" />
+              <SelectValue placeholder="质量" />
             </SelectTrigger>
             <SelectContent>
-              {PROCESSING_STATUS_OPTIONS.map((opt) => (
+              {QUALITY_STATUS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={aiDecision} onValueChange={(v) => { if (v) setAiDecision(v); }}>
+            <SelectTrigger className="w-28 h-8">
+              <SelectValue placeholder="AI" />
+            </SelectTrigger>
+            <SelectContent>
+              {AI_DECISION_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>
@@ -265,15 +378,15 @@ export default function ArticlesPage() {
             <SelectContent>
               <SelectItem value="createdAt">按时间</SelectItem>
               <SelectItem value="aiScore">按评分</SelectItem>
+              <SelectItem value="effectiveTextLength">按字数</SelectItem>
             </SelectContent>
           </Select>
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
         </div>
-        <DateRangeFilter value={dateRange} onChange={setDateRange} />
       </div>
 
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Table area */}
         <div className={`flex-1 flex flex-col overflow-hidden ${detailItem ? "w-1/2" : "w-full"}`}>
           {/* Batch actions */}
           <div className="px-6 py-3">
@@ -302,7 +415,7 @@ export default function ArticlesPage() {
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
                 <p>暂无内容</p>
-                <p className="text-sm">请调整筛选条件或采集新内容</p>
+                <p className="text-sm">点击「开始采集」获取内容</p>
               </div>
             ) : (
               <Table>
@@ -318,10 +431,11 @@ export default function ArticlesPage() {
                       />
                     </TableHead>
                     <TableHead>标题</TableHead>
-                    <TableHead className="w-24">来源</TableHead>
-                    <TableHead className="w-28">发布日期</TableHead>
-                    <TableHead className="w-20">类型</TableHead>
-                    <TableHead className="w-14">评分</TableHead>
+                    <TableHead className="w-20">来源</TableHead>
+                    <TableHead className="w-20">体裁</TableHead>
+                    <TableHead className="w-16">质量</TableHead>
+                    <TableHead className="w-16">AI</TableHead>
+                    <TableHead className="w-14">字数</TableHead>
                     <TableHead className="w-16 text-right">素材卡</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -338,7 +452,7 @@ export default function ArticlesPage() {
                           onCheckedChange={() => toggleSelect(item.id)}
                         />
                       </TableCell>
-                      <TableCell className="font-medium max-w-[300px] truncate">
+                      <TableCell className="font-medium max-w-[280px] truncate">
                         {item.title}
                       </TableCell>
                       <TableCell>
@@ -346,43 +460,37 @@ export default function ArticlesPage() {
                           {item.source?.name ?? item.platform}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {item.publishedAt
-                          ? new Date(item.publishedAt).toLocaleDateString("zh-CN")
-                          : "-"}
+                      <TableCell>
+                        {item.contentGenre ? (
+                          <Badge
+                            variant="secondary"
+                            className={`text-xs ${GENRE_BADGE_COLORS[item.contentGenre] ?? ""}`}
+                          >
+                            {CONTENT_GENRE_LABELS[item.contentGenre] ?? item.contentGenre}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="text-xs">
-                          {item.contentType}
+                        <Badge
+                          variant={item.qualityStatus === "accepted" ? "default" : item.qualityStatus === "filtered" ? "destructive" : "secondary"}
+                          className="text-xs"
+                        >
+                          {item.qualityStatus === "accepted" ? "通过" : item.qualityStatus === "filtered" ? "过滤" : item.qualityStatus === "candidate" ? "候选" : "待检"}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {item.aiScore !== null ? (
-                          <span
-                            className={`text-sm font-medium ${
-                              item.aiScore >= 7
-                                ? "text-green-600"
-                                : item.aiScore >= 5
-                                  ? "text-amber-600"
-                                  : "text-muted-foreground"
-                            }`}
-                          >
-                            {item.aiScore}
-                          </span>
+                        {item.aiDecision === "accept" ? (
+                          <Badge variant="default" className="text-xs bg-green-600">接受</Badge>
+                        ) : item.aiDecision === "reject" ? (
+                          <Badge variant="destructive" className="text-xs">拒绝</Badge>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleScore(item.id);
-                            }}
-                            disabled={scoringId === item.id}
-                            title="AI 评分"
-                          >
-                            <Star className="h-3 w-3" />
-                          </Button>
+                          <span className="text-xs text-muted-foreground">-</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {item.effectiveTextLength ?? "-"}
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
                         {item._count.materialCards}

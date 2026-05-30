@@ -7,6 +7,47 @@ export class PeoplesDailyCollector extends BaseCollector {
   readonly collectorType = "peoples_daily";
   readonly sourceName = "人民日报";
 
+  /**
+   * 覆盖通用详情页提取，适配人民日报数字报结构
+   */
+  protected override async extractArticleDetail(
+    url: string
+  ): Promise<{ fullText: string; publishedAt?: Date; author?: string } | null> {
+    try {
+      const html = await this.fetchWithRetry(url);
+      const $ = this.parseHtml(html);
+
+      // 人民日报文章正文通常在 .ozmwen 或 #ozoom 中
+      const fullText =
+        $(".ozmwen").text().trim() ||
+        $("#ozoom").text().trim() ||
+        $(".text_con").text().trim() ||
+        $("td.news_content").text().trim();
+
+      if (!fullText || fullText.length < 300) {
+        return null;
+      }
+
+      // 提取日期
+      const dateStr =
+        $(".fl").text().trim() ||
+        $(".date").text().trim();
+      let publishedAt: Date | undefined;
+      const dm = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+      if (dm) {
+        publishedAt = new Date(
+          parseInt(dm[1]),
+          parseInt(dm[2]) - 1,
+          parseInt(dm[3])
+        );
+      }
+
+      return { fullText, publishedAt };
+    } catch {
+      return null;
+    }
+  }
+
   async collect(source: {
     id: string;
     platform: string;
@@ -68,7 +109,7 @@ export class PeoplesDailyCollector extends BaseCollector {
 
     // 抓取前几个版面的文章
     const detailed: RawArticle[] = [];
-    for (const page of articles.slice(0, 3)) {
+    for (const page of articles.slice(0, 5)) {
       try {
         const pageHtml = await this.fetchWithRetry(page.url);
         const $p = this.parseHtml(pageHtml);
@@ -102,43 +143,18 @@ export class PeoplesDailyCollector extends BaseCollector {
 
     // 抓取前几篇文章的全文
     const result: RawArticle[] = [];
-    for (const art of detailed.slice(0, 5)) {
-      try {
-        const artHtml = await this.fetchWithRetry(art.url);
-        const $a = this.parseHtml(artHtml);
+    for (const art of detailed.slice(0, 10)) {
+      const detail = await this.extractArticleDetail(art.url);
+      if (!detail) continue;
 
-        // 人民日报文章正文通常在 .ozmwen 或 #ozoom 中
-        const fullText =
-          $a(".ozmwen").text().trim() ||
-          $a("#ozoom").text().trim() ||
-          $a(".text_con").text().trim() ||
-          $a("td.news_content").text().trim();
-
-        // 提取日期
-        const dateStr =
-          $a(".fl").text().trim() ||
-          $a(".date").text().trim();
-        let publishedAt: Date | undefined;
-        const dm = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
-        if (dm) {
-          publishedAt = new Date(
-            parseInt(dm[1]),
-            parseInt(dm[2]) - 1,
-            parseInt(dm[3])
-          );
-        }
-
-        result.push({
-          ...art,
-          fullText: fullText || undefined,
-          excerpt: fullText?.slice(0, 200) || undefined,
-          publishedAt,
-        });
-      } catch {
-        result.push(art);
-      }
+      result.push({
+        ...art,
+        fullText: detail.fullText,
+        excerpt: detail.fullText.slice(0, 200),
+        publishedAt: detail.publishedAt,
+      });
     }
 
-    return result.length > 0 ? result : detailed.slice(0, 5);
+    return result;
   }
 }

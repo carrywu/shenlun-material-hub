@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/run-next.mjs dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/run-next.mjs start",
     "lint": "eslint",
-    "seed:accounts": "tsx src/scripts/seed-accounts.ts"
+    "seed:accounts": "tsx src/scripts/seed-accounts.ts",
+    "seed:channels": "tsx src/scripts/seed-channels.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

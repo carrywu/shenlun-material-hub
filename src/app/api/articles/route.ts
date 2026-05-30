@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo");
     const search = searchParams.get("search");
     const processingStatus = searchParams.get("processingStatus");
+    const qualityStatus = searchParams.get("qualityStatus");
+    const aiDecision = searchParams.get("aiDecision");
     const sortBy = searchParams.get("sortBy") ?? "createdAt";
 
     const where: Record<string, unknown> = {};
@@ -22,6 +24,14 @@ export async function GET(request: NextRequest) {
     if (topicTags) where.topicTags = { contains: topicTags };
     if (search) where.title = { contains: search };
     if (processingStatus) where.processingStatus = processingStatus;
+    if (qualityStatus) where.qualityStatus = qualityStatus;
+    if (aiDecision) {
+      if (aiDecision === "pending") {
+        where.aiDecision = null;
+      } else {
+        where.aiDecision = aiDecision;
+      }
+    }
     if (dateFrom || dateTo) {
       const publishedAt: Record<string, Date> = {};
       if (dateFrom) publishedAt.gte = new Date(dateFrom);
@@ -33,6 +43,8 @@ export async function GET(request: NextRequest) {
     let orderBy: Record<string, string>;
     if (sortBy === "aiScore") {
       orderBy = { aiScore: "desc" };
+    } else if (sortBy === "effectiveTextLength") {
+      orderBy = { effectiveTextLength: "desc" };
     } else {
       orderBy = { createdAt: "desc" };
     }

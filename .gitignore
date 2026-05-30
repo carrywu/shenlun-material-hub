@@ -150,4 +150,7 @@ vite.config.ts.timestamp-*
 .ao/
 .claude/
 
+# Local server config override
+config/server.config.local.json
+
 /src/generated/prisma

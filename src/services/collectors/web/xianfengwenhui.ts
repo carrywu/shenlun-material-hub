@@ -7,6 +7,62 @@ export class XianfengwenhuiCollector extends BaseCollector {
   readonly collectorType = "xianfengwenhui";
   readonly sourceName = "先锋文汇";
 
+  /**
+   * 覆盖通用详情页提取，适配 Discuz 论坛结构
+   */
+  protected override async extractArticleDetail(
+    url: string
+  ): Promise<{ fullText: string; publishedAt?: Date; author?: string } | null> {
+    try {
+      const html = await this.fetchWithRetry(url);
+      const $ = this.parseHtml(html);
+
+      // Discuz 帖子正文在 .t_f 或 #postmessage_ 开头的元素中
+      let fullText =
+        $(".t_f").first().text().trim() ||
+        $("[id^='postmessage_']").first().text().trim() ||
+        $(".message").first().text().trim();
+
+      if (!fullText) {
+        fullText =
+          $("#postlist").text().trim() ||
+          $(".forum-content").text().trim();
+      }
+
+      if (!fullText || fullText.length < 300) {
+        return null;
+      }
+
+      // 提取日期
+      const dateText =
+        $(".authorinfo em").first().text().trim() ||
+        $("[id^='postmessage_']")
+          .closest(".plc")
+          .find(".authorinfo em")
+          .text()
+          .trim();
+      let publishedAt: Date | undefined;
+      if (dateText) {
+        const match = dateText.match(
+          /(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})/
+        );
+        if (match) {
+          publishedAt = new Date(
+            parseInt(match[1]),
+            parseInt(match[2]) - 1,
+            parseInt(match[3]),
+            parseInt(match[4]),
+            parseInt(match[5])
+          );
+        }
+      }
+
+      return { fullText, publishedAt };
+    } catch {
+      return null;
+    }
+  }
+
   async collect(source: {
     id: string;
     platform: string;
@@ -46,60 +102,18 @@ export class XianfengwenhuiCollector extends BaseCollector {
 
     // 抓取前几篇文章的详情页获取全文
     const detailed: RawArticle[] = [];
-    for (const article of articles.slice(0, 5)) {
-      try {
-        const detailHtml = await this.fetchWithRetry(article.url);
-        const $d = this.parseHtml(detailHtml);
+    for (const article of articles.slice(0, 10)) {
+      const detail = await this.extractArticleDetail(article.url);
+      if (!detail) continue;
 
-        // Discuz 帖子正文通常在 .t_f 或 #postmessage_ 开头的元素中
-        let fullText =
-          $d(".t_f").first().text().trim() ||
-          $d("[id^='postmessage_']").first().text().trim() ||
-          $d(".message").first().text().trim();
-
-        if (!fullText) {
-          // 降级：取主内容区文本
-          fullText =
-            $d("#postlist").text().trim() ||
-            $d(".forum-content").text().trim();
-        }
-
-        // 提取日期
-        const dateText =
-          $d(".authorinfo em").first().text().trim() ||
-          $d("[id^='postmessage_']")
-            .closest(".plc")
-            .find(".authorinfo em")
-            .text()
-            .trim();
-        let publishedAt: Date | undefined;
-        if (dateText) {
-          const match = dateText.match(
-            /(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})/
-          );
-          if (match) {
-            publishedAt = new Date(
-              parseInt(match[1]),
-              parseInt(match[2]) - 1,
-              parseInt(match[3]),
-              parseInt(match[4]),
-              parseInt(match[5])
-            );
-          }
-        }
-
-        detailed.push({
-          ...article,
-          fullText: fullText || undefined,
-          excerpt: fullText?.slice(0, 200) || undefined,
-          publishedAt,
-        });
-      } catch {
-        // 详情页抓取失败，用列表页信息
-        detailed.push(article);
-      }
+      detailed.push({
+        ...article,
+        fullText: detail.fullText,
+        excerpt: detail.fullText.slice(0, 200),
+        publishedAt: detail.publishedAt,
+      });
     }
 
-    return detailed.length > 0 ? detailed : articles.slice(0, 5);
+    return detailed;
   }
 }

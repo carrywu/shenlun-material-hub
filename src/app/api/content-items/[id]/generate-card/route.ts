@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateCardForContentItem } from "@/services/ai";
-import type { CardType, CARD_TYPES } from "@/types";
+import type { CardType } from "@/types";
 
 // POST /api/content-items/[id]/generate-card
 export async function POST(
@@ -43,6 +43,18 @@ export async function POST(
     if (!item.fullText) {
       return NextResponse.json(
         { error: "该内容条目没有全文，无法生成素材卡" },
+        { status: 400 }
+      );
+    }
+
+    // P0-9: 检查是否已通过 AI 评估
+    if (item.aiDecision !== "accept") {
+      return NextResponse.json(
+        {
+          error: "该内容尚未通过 AI 评估或已被拒绝，请先进行 AI 评估",
+          aiDecision: item.aiDecision,
+          aiReason: item.aiReason,
+        },
         { status: 400 }
       );
     }

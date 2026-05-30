@@ -40,6 +40,9 @@ import {
   Loader2,
   Play,
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Layers,
 } from "lucide-react";
 import {
   PLATFORMS,
@@ -48,6 +51,7 @@ import {
   VERIFICATION_STATUSES,
   PRIORITIES,
 } from "@/types";
+import { ChannelManager } from "@/components/ChannelManager";
 
 // 平台标签
 const PLATFORM_LABELS: Record<string, string> = {
@@ -201,6 +205,9 @@ export default function SubscriptionsPage() {
 
   // Collect state
   const [collectingSource, setCollectingSource] = useState<string | null>(null);
+
+  // Channel expand state
+  const [expandedSource, setExpandedSource] = useState<string | null>(null);
 
   // Frequency labels
   const FREQUENCY_LABELS: Record<string, string> = {
@@ -557,6 +564,7 @@ export default function SubscriptionsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-8"></TableHead>
                 <TableHead>名称</TableHead>
                 <TableHead className="w-20">平台</TableHead>
                 <TableHead className="w-24">内容类型</TableHead>
@@ -572,7 +580,25 @@ export default function SubscriptionsPage() {
             </TableHeader>
             <TableBody>
               {sources.map((source) => (
+                <>
                 <TableRow key={source.id}>
+                  <TableCell>
+                    {source.platform === "website" && (
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="h-6 w-6"
+                        onClick={() => setExpandedSource(expandedSource === source.id ? null : source.id)}
+                        title="展开栏目配置"
+                      >
+                        {expandedSource === source.id ? (
+                          <ChevronUp className="h-3 w-3" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3" />
+                        )}
+                      </Button>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium max-w-[200px] truncate">
                     <div>
                       <span>{source.name}</span>
@@ -690,6 +716,14 @@ export default function SubscriptionsPage() {
                     </div>
                   </TableCell>
                 </TableRow>
+                {expandedSource === source.id && source.platform === "website" && (
+                  <TableRow key={`${source.id}-channels`}>
+                    <TableCell colSpan={12} className="bg-muted/30 px-6 py-3">
+                      <ChannelManager sourceId={source.id} sourceName={source.name} />
+                    </TableCell>
+                  </TableRow>
+                )}
+                </>
               ))}
             </TableBody>
           </Table>
