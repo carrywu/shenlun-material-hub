@@ -32,7 +32,21 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: { createdAt: "desc" },
       include: {
-        contentItem: { select: { title: true, source: { select: { name: true } } } },
+        contentItem: {
+          select: {
+            title: true,
+            source: { select: { name: true } },
+            annotations: {
+              orderBy: { createdAt: "asc" },
+              select: {
+                selectedText: true,
+                comment: true,
+                color: true,
+                cardType: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -82,6 +96,15 @@ export async function GET(request: NextRequest) {
 
       if (card.verificationNotes) {
         markdown += `> **验证备注**：${card.verificationNotes}\n\n`;
+      }
+
+      const annotations = card.contentItem?.annotations ?? [];
+      if (annotations.length > 0) {
+        markdown += `### 文章批注\n\n`;
+        for (const ann of annotations) {
+          markdown += `> **${ann.selectedText}**\n`;
+          markdown += `${ann.comment}\n\n`;
+        }
       }
 
       markdown += "---\n\n";

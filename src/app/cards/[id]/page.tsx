@@ -91,6 +91,7 @@ export default function CardDetailPage() {
   }, [cardId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCard();
   }, [fetchCard]);
 

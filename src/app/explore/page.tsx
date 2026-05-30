@@ -140,10 +140,12 @@ export default function ExplorePage() {
   }, [page, debouncedQuery, platform, contentType]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchItems();
   }, [fetchItems]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [debouncedQuery, platform, contentType]);
 

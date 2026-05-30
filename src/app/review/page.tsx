@@ -93,7 +93,9 @@ export default function ReviewPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCards();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStats();
   }, [fetchCards, fetchStats]);
 

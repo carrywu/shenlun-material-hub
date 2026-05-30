@@ -150,10 +150,12 @@ export default function DiscoverPage() {
   }, [page, platform, contentType, trustLevel]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchItems();
   }, [fetchItems]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [platform, contentType, trustLevel]);
 

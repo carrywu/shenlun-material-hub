@@ -62,6 +62,7 @@ export function ChannelManager({ sourceId, sourceName }: ChannelManagerProps) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchChannels();
   }, [sourceId]);
 

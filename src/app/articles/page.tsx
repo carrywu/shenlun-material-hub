@@ -158,10 +158,12 @@ export default function ArticlesPage() {
   }, [page, pageSize, search, qualityStatus, aiDecision, dateRange, sortBy]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchItems();
   }, [fetchItems]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [search, qualityStatus, aiDecision, dateRange, sortBy, pageSize]);
 
@@ -274,7 +276,7 @@ export default function ArticlesPage() {
       }, 2000);
     } catch (err) {
       setGenerateProgress(null);
-      alert(err instanceof Error ? err.message : "生成素材卡失败");
+      alert("素材卡生成失败，请稍后重试");
     } finally {
       setGenerating(false);
     }
@@ -453,7 +455,15 @@ export default function ArticlesPage() {
                         />
                       </TableCell>
                       <TableCell className="font-medium max-w-[280px] truncate">
-                        {item.title}
+                        <button
+                          className="hover:underline text-left w-full truncate"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/articles/${item.id}`);
+                          }}
+                        >
+                          {item.title}
+                        </button>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">

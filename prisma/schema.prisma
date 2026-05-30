@@ -111,12 +111,19 @@ model ContentItem {
 
   aiScoreDetail       String?                // AI 评分详情 JSON（旧字段保留兼容）
   aiScoredAt          DateTime?              // AI 评分时间（旧字段保留兼容）
+
+  // P2: 阅读状态
+  bookmarked          Boolean  @default(false) // 已收藏
+  read                Boolean  @default(false) // 已阅读
+  ignored             Boolean  @default(false) // 已忽略
+
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   source        Source         @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   materialCards MaterialCard[]
   syncRecords   SyncRecord[]
+  annotations   ArticleAnnotation[]
 
   @@index([sourceId])
   @@index([platform])
@@ -219,4 +226,24 @@ model AiConfig {
 
   @@index([name])
   @@index([isEnabled])
+}
+
+// P1-2: 文章批注
+model ArticleAnnotation {
+  id            String   @id @default(cuid())
+  contentItemId String
+  cardType      String?                // 关联的素材卡类型
+  selectedText  String                 // 选中的原文片段
+  comment       String                 // 批注内容
+  color         String   @default("#facc15") // 高亮颜色
+  startOffset   Int?                   // 选区起始偏移
+  endOffset     Int?                   // 选区结束偏移
+  paragraph     Int?                   // 段落索引
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@index([contentItemId])
+  @@index([createdAt])
 }

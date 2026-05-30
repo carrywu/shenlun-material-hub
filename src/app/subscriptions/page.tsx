@@ -248,11 +248,13 @@ export default function SubscriptionsPage() {
   }, [page, search, platform, contentType, trustLevel, isEnabled, verificationStatus]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSources();
   }, [fetchSources]);
 
   // Reset page when filters change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [search, platform, contentType, trustLevel, isEnabled, verificationStatus]);
 

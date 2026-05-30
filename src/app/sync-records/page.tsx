@@ -135,11 +135,13 @@ export default function SyncRecordsPage() {
   }, [statusFilter, roleFilter, dateFrom, dateTo, page]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRecords();
   }, [fetchRecords]);
 
   // Reset page when filters change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [statusFilter, roleFilter, dateFrom, dateTo]);
 

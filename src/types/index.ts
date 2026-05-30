@@ -195,6 +195,10 @@ export interface ContentItem {
   // 兼容旧字段
   aiScoreDetail: string | null;
   aiScoredAt: Date | null;
+  // P2: 阅读状态
+  bookmarked: boolean;
+  read: boolean;
+  ignored: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

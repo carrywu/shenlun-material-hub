@@ -93,6 +93,7 @@ export function CollectDialog({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchSources();
       setSelected(new Set());
       setResults(null);

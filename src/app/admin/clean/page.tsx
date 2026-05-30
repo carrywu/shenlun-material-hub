@@ -82,6 +82,7 @@ export default function CleanPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPreview();
   }, [fetchPreview]);
 

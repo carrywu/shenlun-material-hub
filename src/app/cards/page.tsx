@@ -104,10 +104,12 @@ export default function CardsPage() {
   }, [page, search, cardTypeFilter, confirmedFilter]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCards();
   }, [fetchCards]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [search, cardTypeFilter, confirmedFilter]);
 

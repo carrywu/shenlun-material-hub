@@ -91,7 +91,7 @@ export async function POST(
   } catch (error) {
     console.error("Failed to generate card:", error);
     return NextResponse.json(
-      { error: `生成素材卡失败: ${error instanceof Error ? error.message : "未知错误"}` },
+      { error: "素材卡生成失败，请检查 AI 配置或稍后重试" },
       { status: 500 }
     );
   }

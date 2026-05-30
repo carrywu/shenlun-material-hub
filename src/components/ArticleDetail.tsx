@@ -93,7 +93,7 @@ export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
       const card = await res.json();
       setGeneratedCard(card);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "生成素材卡失败");
+      alert("素材卡生成失败，请稍后重试");
     } finally {
       setGenerating(false);
     }
