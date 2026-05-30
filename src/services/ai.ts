@@ -426,11 +426,13 @@ export async function testAiConfig(): Promise<{ success: boolean; error?: string
     const completion = await openai.chat.completions.create({
       model,
       messages: [{ role: "user", content: "回复 OK" }],
-      max_tokens: 10,
+      max_tokens: 50,
     });
 
-    const content = completion.choices[0]?.message?.content;
-    return { success: !!content };
+    const message = completion.choices[0]?.message;
+    const content = message?.content;
+    const reasoning = (message as Record<string, unknown>)?.reasoning_content;
+    return { success: !!(content || reasoning) };
   } catch (error) {
     return {
       success: false,
