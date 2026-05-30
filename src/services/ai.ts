@@ -431,7 +431,7 @@ export async function testAiConfig(): Promise<{ success: boolean; error?: string
 
     const message = completion.choices[0]?.message;
     const content = message?.content;
-    const reasoning = (message as Record<string, unknown>)?.reasoning_content;
+    const reasoning = (message as unknown as Record<string, unknown>)?.reasoning_content;
     return { success: !!(content || reasoning) };
   } catch (error) {
     return {
