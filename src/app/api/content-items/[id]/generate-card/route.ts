@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { generateCardForContentItem } from "@/services/ai";
-import type { CardType } from "@/types";
+import { generateCardForContentItem, AiServiceError } from "@/services/ai";
+import type { CardType, ErrorCode } from "@/types";
+
+function errorResponse(error: string, code: ErrorCode, status: number) {
+  return NextResponse.json({ error, code }, { status });
+}
 
 // POST /api/content-items/[id]/generate-card
 export async function POST(
@@ -13,7 +17,6 @@ export async function POST(
     const body = await request.json().catch(() => ({}));
     const cardType = (body.cardType as CardType) ?? "fact_summary";
 
-    // Validate cardType
     const validTypes: CardType[] = [
       "fact_summary",
       "argument_analysis",
@@ -22,13 +25,13 @@ export async function POST(
       "case_study",
     ];
     if (!validTypes.includes(cardType)) {
-      return NextResponse.json(
-        { error: `无效的卡片类型: ${cardType}，支持: ${validTypes.join(", ")}` },
-        { status: 400 }
+      return errorResponse(
+        `无效的卡片类型: ${cardType}，支持: ${validTypes.join(", ")}`,
+        "AI_RESPONSE_INVALID_JSON",
+        400
       );
     }
 
-    // Fetch content item
     const item = await db.contentItem.findUnique({
       where: { id },
       include: {
@@ -37,21 +40,18 @@ export async function POST(
     });
 
     if (!item) {
-      return NextResponse.json({ error: "内容条目不存在" }, { status: 404 });
+      return errorResponse("内容条目不存在", "CONTENT_ITEM_NOT_FOUND", 404);
     }
 
     if (!item.fullText) {
-      return NextResponse.json(
-        { error: "该内容条目没有全文，无法生成素材卡" },
-        { status: 400 }
-      );
+      return errorResponse("该内容条目没有全文，无法生成素材卡", "NO_FULL_TEXT", 400);
     }
 
-    // P0-9: 检查是否已通过 AI 评估
     if (item.aiDecision !== "accept") {
       return NextResponse.json(
         {
           error: "该内容尚未通过 AI 评估或已被拒绝，请先进行 AI 评估",
+          code: "AI_DECISION_NOT_ACCEPT" as ErrorCode,
           aiDecision: item.aiDecision,
           aiReason: item.aiReason,
         },
@@ -59,7 +59,20 @@ export async function POST(
       );
     }
 
-    // Generate card with AI
+    const existingCard = await db.materialCard.findFirst({
+      where: { contentItemId: id, cardType },
+    });
+    if (existingCard) {
+      return NextResponse.json(
+        {
+          error: "该内容已存在同类型素材卡",
+          code: "MATERIAL_CARD_ALREADY_EXISTS" as ErrorCode,
+          existingCardId: existingCard.id,
+        },
+        { status: 409 }
+      );
+    }
+
     const aiData = await generateCardForContentItem(
       item.title,
       item.source?.name ?? "未知来源",
@@ -67,7 +80,6 @@ export async function POST(
       cardType
     );
 
-    // Save card to database
     const card = await db.materialCard.create({
       data: {
         contentItemId: id,
@@ -81,7 +93,6 @@ export async function POST(
       },
     });
 
-    // Update content item processing status
     await db.contentItem.update({
       where: { id },
       data: { processingStatus: "card_generated" },
@@ -90,9 +101,32 @@ export async function POST(
     return NextResponse.json(card, { status: 201 });
   } catch (error) {
     console.error("Failed to generate card:", error);
-    return NextResponse.json(
-      { error: "素材卡生成失败，请检查 AI 配置或稍后重试" },
-      { status: 500 }
+
+    const { id } = await params;
+    const errorMessage = error instanceof Error ? error.message : "素材卡生成失败";
+
+    // Persist failure status to DB
+    try {
+      await db.contentItem.update({
+        where: { id },
+        data: {
+          processingStatus: "failed",
+          aiAssessmentError: errorMessage,
+        },
+      });
+    } catch (dbError) {
+      console.error("Failed to persist error status:", dbError);
+    }
+
+    // Structured error from AiServiceError
+    if (error instanceof AiServiceError) {
+      return errorResponse(error.message, error.code, 500);
+    }
+
+    return errorResponse(
+      errorMessage,
+      "AI_API_CALL_FAILED",
+      500
     );
   }
 }

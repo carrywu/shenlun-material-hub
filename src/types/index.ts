@@ -1,5 +1,18 @@
 // 申论素材采集台 类型定义 v3
 
+// ==================== 错误码 ====================
+
+export type ErrorCode =
+  | 'AI_CONFIG_MISSING'
+  | 'AI_ENCRYPTION_KEY_MISSING'
+  | 'AI_CONFIG_DECRYPT_FAILED'
+  | 'AI_API_CALL_FAILED'
+  | 'AI_RESPONSE_INVALID_JSON'
+  | 'CONTENT_ITEM_NOT_FOUND'
+  | 'NO_FULL_TEXT'
+  | 'AI_DECISION_NOT_ACCEPT'
+  | 'MATERIAL_CARD_ALREADY_EXISTS';
+
 // ==================== 枚举 ====================
 
 // 平台

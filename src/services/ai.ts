@@ -1,13 +1,25 @@
 import OpenAI from "openai";
 import { db } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
-import type { CardType, AIScoreDetail, ContentGenre, AiDecision } from "@/types";
+import type { CardType, AIScoreDetail, ContentGenre, AiDecision, ErrorCode } from "@/types";
+
+export class AiServiceError extends Error {
+  code: ErrorCode;
+  constructor(code: ErrorCode, message: string) {
+    super(message);
+    this.code = code;
+    this.name = "AiServiceError";
+  }
+}
 
 let _openai: OpenAI | null = null;
+let _model: string | null = null;
 let _configLoaded = false;
 
-async function getOpenAI(): Promise<OpenAI> {
-  if (_openai && _configLoaded) return _openai;
+async function getOpenAI(): Promise<{ openai: OpenAI; model: string }> {
+  if (_openai && _configLoaded && _model) {
+    return { openai: _openai, model: _model };
+  }
 
   // 优先从数据库读取配置
   try {
@@ -16,40 +28,50 @@ async function getOpenAI(): Promise<OpenAI> {
     });
 
     if (config) {
-      const apiKey = decrypt(config.encryptedKey);
+      if (!process.env.AI_CONFIG_ENCRYPTION_KEY) {
+        throw new AiServiceError(
+          "AI_ENCRYPTION_KEY_MISSING",
+          "AI_CONFIG_ENCRYPTION_KEY 环境变量未设置，无法解密数据库中的 API Key"
+        );
+      }
+      let apiKey: string;
+      try {
+        apiKey = decrypt(config.encryptedKey);
+      } catch {
+        throw new AiServiceError(
+          "AI_CONFIG_DECRYPT_FAILED",
+          "数据库中的 AI 配置解密失败，可能是密钥不匹配。请删除旧配置后重新保存"
+        );
+      }
       _openai = new OpenAI({
         apiKey,
         baseURL: config.baseUrl || undefined,
       });
+      _model = config.model;
       _configLoaded = true;
-      return _openai;
+      return { openai: _openai, model: _model };
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof AiServiceError) throw e;
     // 数据库读取失败，降级到环境变量
   }
 
   // 降级到环境变量
-  if (!_openai) {
-    _openai = new OpenAI({
-      apiKey: process.env.AI_API_KEY || process.env.OPENAI_API_KEY,
-      baseURL: process.env.AI_BASE_URL || undefined,
-    });
+  const envApiKey = process.env.AI_API_KEY || process.env.OPENAI_API_KEY;
+  if (!envApiKey) {
+    throw new AiServiceError(
+      "AI_CONFIG_MISSING",
+      "未找到 AI 配置：数据库无配置且环境变量 AI_API_KEY 未设置"
+    );
   }
-  _configLoaded = true;
-  return _openai;
-}
 
-async function getModel(): Promise<string> {
-  try {
-    const config = await db.aiConfig.findFirst({
-      where: { name: "default", isEnabled: true },
-      select: { model: true },
-    });
-    if (config) return config.model;
-  } catch {
-    // ignore
-  }
-  return process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
+  _openai = new OpenAI({
+    apiKey: envApiKey,
+    baseURL: process.env.AI_BASE_URL || undefined,
+  });
+  _model = process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
+  _configLoaded = true;
+  return { openai: _openai, model: _model };
 }
 
 async function getTemperature(): Promise<number> {
@@ -106,8 +128,7 @@ export async function assessRelevance(
   content: string,
   contentType: string
 ): Promise<RelevanceResult> {
-  const openai = await getOpenAI();
-  const model = await getModel();
+  const { openai, model } = await getOpenAI();
   const temperature = await getTemperature();
 
   const userPrompt = `请评估以下文章是否适合作为申论备考素材：
@@ -191,8 +212,7 @@ export async function scoreContentItem(
   content: string,
   contentType: string
 ): Promise<AIScoreResult> {
-  const openai = await getOpenAI();
-  const model = await getModel();
+  const { openai, model } = await getOpenAI();
 
   const userPrompt = `请对以下文章进行评分：
 
@@ -332,8 +352,7 @@ export async function generateCardForContentItem(
   content: string,
   cardType: CardType
 ): Promise<AIGeneratedCardData> {
-  const openai = await getOpenAI();
-  const model = await getModel();
+  const { openai, model } = await getOpenAI();
   const systemPrompt = CARD_TYPE_PROMPTS[cardType];
 
   const userPrompt = `请分析以下文章，生成素材卡：
@@ -341,7 +360,7 @@ export async function generateCardForContentItem(
 【标题】${title}
 【来源】${sourceName}
 【正文】
-${content}`;
+${content.slice(0, 4000)}`;
 
   const completion = await openai.chat.completions.create({
     model,
@@ -358,10 +377,25 @@ ${content}`;
     throw new Error("AI 未返回有效内容");
   }
 
-  const data: AIGeneratedCardData = JSON.parse(rawJson);
+  let data: AIGeneratedCardData;
+  try {
+    data = JSON.parse(rawJson);
+  } catch {
+    // Try extracting JSON from markdown code block
+    const jsonMatch = rawJson.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      try {
+        data = JSON.parse(jsonMatch[1].trim());
+      } catch {
+        throw new AiServiceError("AI_RESPONSE_INVALID_JSON", "AI 返回的内容中 JSON 格式无效");
+      }
+    } else {
+      throw new AiServiceError("AI_RESPONSE_INVALID_JSON", "AI 返回的 JSON 格式无效");
+    }
+  }
 
   if (!data.aiSummary) {
-    throw new Error("AI 返回数据结构不完整");
+    throw new AiServiceError("AI_RESPONSE_INVALID_JSON", "AI 返回数据结构不完整，缺少必要字段");
   }
 
   return data;
@@ -420,8 +454,7 @@ export async function generateBatchCards(
  */
 export async function testAiConfig(): Promise<{ success: boolean; error?: string }> {
   try {
-    const openai = await getOpenAI();
-    const model = await getModel();
+    const { openai, model } = await getOpenAI();
 
     const completion = await openai.chat.completions.create({
       model,

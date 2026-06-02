@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,6 +121,7 @@ export default function ArticleDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [cardType, setCardType] = useState<CardType>("fact_summary");
   const [generating, setGenerating] = useState(false);
+  const [errorInfo, setErrorInfo] = useState<{ message: string; code?: string } | null>(null);
 
   // Annotation state
   const [selectedText, setSelectedText] = useState("");
@@ -292,19 +294,21 @@ export default function ArticleDetailPage() {
   async function handleGenerateCard() {
     if (generating || !article) return;
     setGenerating(true);
+    setErrorInfo(null);
     try {
       const res = await fetch(`/api/content-items/${article.id}/generate-card`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cardType }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "生成失败");
+        setErrorInfo({ message: data.error ?? "生成失败", code: data.code });
+        return;
       }
       fetchArticle();
     } catch {
-      alert("素材卡生成失败，请稍后重试");
+      setErrorInfo({ message: "网络错误，请检查连接后重试" });
     } finally {
       setGenerating(false);
     }
@@ -660,6 +664,21 @@ export default function ArticleDetailPage() {
                   <p className="text-xs text-muted-foreground">
                     需先通过 AI 评估才能生成素材卡
                   </p>
+                )}
+                {errorInfo && (
+                  <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm space-y-1">
+                    <p>{errorInfo.message}</p>
+                    {errorInfo.code === "AI_CONFIG_MISSING" && (
+                      <Link href="/settings/ai" className="underline text-xs block">
+                        去配置 AI
+                      </Link>
+                    )}
+                    {errorInfo.code === "AI_CONFIG_DECRYPT_FAILED" && (
+                      <Link href="/settings/ai" className="underline text-xs block">
+                        去重新配置 AI（删除旧配置）
+                      </Link>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>

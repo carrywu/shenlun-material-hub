@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,7 @@ interface ContentItemDetailProps {
     createdAt: string;
     aiScore: number | null;
     aiScoreDetail: string | null;
+    aiDecision: string | null;
     source?: { name: string } | null;
     _count?: { materialCards: number };
   };
@@ -58,6 +60,7 @@ const CARD_TYPE_OPTIONS: { value: CardType; label: string; icon: React.ElementTy
 export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
   const [cardType, setCardType] = useState<CardType>("fact_summary");
   const [generating, setGenerating] = useState(false);
+  const [errorInfo, setErrorInfo] = useState<{ message: string; code?: string } | null>(null);
   const [generatedCard, setGeneratedCard] = useState<{
     id: string;
     cardType: string;
@@ -77,6 +80,7 @@ export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
     if (generating) return;
     setGenerating(true);
     setGeneratedCard(null);
+    setErrorInfo(null);
 
     try {
       const res = await fetch(`/api/content-items/${article.id}/generate-card`, {
@@ -85,15 +89,15 @@ export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
         body: JSON.stringify({ cardType }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "生成失败");
+        setErrorInfo({ message: data.error ?? "生成失败", code: data.code });
+        return;
       }
 
-      const card = await res.json();
-      setGeneratedCard(card);
-    } catch (err) {
-      alert("素材卡生成失败，请稍后重试");
+      setGeneratedCard(data);
+    } catch {
+      setErrorInfo({ message: "网络错误，请检查连接后重试" });
     } finally {
       setGenerating(false);
     }
@@ -223,7 +227,7 @@ export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
             <Button
               size="sm"
               onClick={handleGenerateCard}
-              disabled={generating || !article.fullText}
+              disabled={generating || !article.fullText || article.aiDecision !== "accept"}
             >
               {generating ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -233,6 +237,22 @@ export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
               生成
             </Button>
           </div>
+
+          {errorInfo && (
+            <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm space-y-1">
+              <p>{errorInfo.message}</p>
+              {errorInfo.code === "AI_CONFIG_MISSING" && (
+                <Link href="/settings/ai" className="underline text-xs block">
+                  去配置 AI
+                </Link>
+              )}
+              {errorInfo.code === "AI_CONFIG_DECRYPT_FAILED" && (
+                <Link href="/settings/ai" className="underline text-xs block">
+                  去重新配置 AI（删除旧配置）
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* Generated card preview */}
           {generatedCard && (

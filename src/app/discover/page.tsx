@@ -184,9 +184,13 @@ export default function DiscoverPage() {
       const res = await fetch(`/api/content-items/${item.id}/generate-card`, {
         method: "POST",
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "生成失败");
+        let msg = data.error ?? "生成失败";
+        if (data.code === "AI_CONFIG_MISSING" || data.code === "AI_CONFIG_DECRYPT_FAILED") {
+          msg += "\n请前往 设置 > AI 配置 进行配置";
+        }
+        throw new Error(msg);
       }
       // Update card count locally
       setItems((prev) =>
