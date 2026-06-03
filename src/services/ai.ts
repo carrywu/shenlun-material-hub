@@ -16,7 +16,16 @@ let _openai: OpenAI | null = null;
 let _model: string | null = null;
 let _configLoaded = false;
 
-async function getOpenAI(): Promise<{ openai: OpenAI; model: string }> {
+/**
+ * 清除 AI 配置缓存（配置更新后调用）
+ */
+export function resetAiConfigCache(): void {
+  _openai = null;
+  _model = null;
+  _configLoaded = false;
+}
+
+export async function getOpenAI(): Promise<{ openai: OpenAI; model: string }> {
   if (_openai && _configLoaded && _model) {
     return { openai: _openai, model: _model };
   }
@@ -398,7 +407,28 @@ ${content.slice(0, 4000)}`;
     throw new AiServiceError("AI_RESPONSE_INVALID_JSON", "AI 返回数据结构不完整，缺少必要字段");
   }
 
-  return data;
+  const normalizeField = (fieldVal: unknown): string => {
+    if (typeof fieldVal === "string") return fieldVal;
+    if (Array.isArray(fieldVal)) {
+      return fieldVal.map(item => String(item)).join("\n");
+    }
+    if (fieldVal && typeof fieldVal === "object") {
+      try {
+        return JSON.stringify(fieldVal, null, 2);
+      } catch {
+        return String(fieldVal);
+      }
+    }
+    return String(fieldVal ?? "");
+  };
+
+  return {
+    sourceSnapshot: normalizeField(data.sourceSnapshot),
+    originalFacts: normalizeField(data.originalFacts),
+    aiSummary: normalizeField(data.aiSummary),
+    highlightSuggestions: normalizeField(data.highlightSuggestions),
+    transferSuggestions: normalizeField(data.transferSuggestions),
+  };
 }
 
 interface ContentItemForGeneration {

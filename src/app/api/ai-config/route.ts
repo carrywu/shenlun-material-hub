@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encrypt, decrypt } from "@/lib/crypto";
+import { resetAiConfigCache } from "@/services/ai";
 
 // GET /api/ai-config — 获取 AI 配置
 export async function GET() {
@@ -46,11 +47,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { baseUrl, apiKey, model, temperature } = body;
 
-    if (!apiKey) {
-      return NextResponse.json({ error: "API Key 不能为空" }, { status: 400 });
+    let encryptedKey: string | undefined;
+    if (apiKey) {
+      encryptedKey = encrypt(apiKey);
     }
-
-    const encryptedKey = encrypt(apiKey);
 
     const existing = await db.aiConfig.findFirst({ where: { name: "default" } });
 
@@ -59,23 +59,29 @@ export async function POST(request: NextRequest) {
         where: { id: existing.id },
         data: {
           baseUrl: baseUrl || "https://api.openai.com/v1",
-          encryptedKey,
+          ...(encryptedKey ? { encryptedKey } : {}),
           model: model || "gpt-4o",
           temperature: temperature ?? 0.3,
           lastTestError: null, // 重置测试错误
         },
       });
     } else {
+      if (!apiKey) {
+        return NextResponse.json({ error: "API Key 不能为空" }, { status: 400 });
+      }
       await db.aiConfig.create({
         data: {
           name: "default",
           baseUrl: baseUrl || "https://api.openai.com/v1",
-          encryptedKey,
+          encryptedKey: encrypt(apiKey),
           model: model || "gpt-4o",
           temperature: temperature ?? 0.3,
         },
       });
     }
+
+    // 清除缓存，确保下次调用使用新配置
+    resetAiConfigCache();
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -88,6 +94,8 @@ export async function POST(request: NextRequest) {
 export async function DELETE() {
   try {
     await db.aiConfig.deleteMany({ where: { name: "default" } });
+    // 清除缓存，确保下次调用使用环境变量 fallback
+    resetAiConfigCache();
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("删除 AI 配置失败:", error);
