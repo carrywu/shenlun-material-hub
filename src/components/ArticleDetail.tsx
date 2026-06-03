@@ -27,6 +27,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import type { CardType } from "@/types";
+import { formatApiErrorMessage, type ApiErrorPayload } from "@/lib/api-error";
 
 interface ContentItemDetailProps {
   article: {
@@ -91,11 +92,17 @@ export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorInfo({ message: data.error ?? "生成失败", code: data.code });
+        const errorPayload = data as ApiErrorPayload;
+        setErrorInfo({ message: formatApiErrorMessage(errorPayload), code: errorPayload.code });
         return;
       }
 
-      setGeneratedCard(data);
+      setGeneratedCard(data as {
+        id: string;
+        cardType: string;
+        aiSummary: string | null;
+        originalFacts: string | null;
+      });
     } catch {
       setErrorInfo({ message: "网络错误，请检查连接后重试" });
     } finally {

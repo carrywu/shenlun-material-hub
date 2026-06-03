@@ -1,44 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    aiConfig: {
-      findFirst: vi.fn().mockResolvedValue(null),
-    },
-  },
+const mocks = vi.hoisted(() => ({
+  create: vi.fn(),
 }));
 
-vi.mock("@/lib/crypto", () => ({
-  decrypt: vi.fn((val: string) => val),
+vi.mock("@/services/ai", () => ({
+  getAiRuntime: vi.fn(async () => ({
+    client: { chat: { completions: { create: mocks.create } } },
+    model: "mock-model",
+    source: "env",
+    keySuffix: "****1234",
+    cacheKey: "env:test",
+  })),
 }));
-
-vi.mock("openai", () => {
-  return {
-    default: class MockOpenAI {
-      chat = {
-        completions: {
-          create: vi.fn().mockResolvedValue({
-            choices: [
-              {
-                message: {
-                  content: JSON.stringify({
-                    comment: "这是一个好的论点",
-                    highlight: true,
-                    tags: ["论点", "写作技巧"],
-                  }),
-                },
-              },
-            ],
-          }),
-        },
-      };
-    },
-  };
-});
 
 describe("ai-annotation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.create.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              comment: "这是一个好的论点",
+              highlight: true,
+              tags: ["论点", "写作技巧"],
+            }),
+          },
+        },
+      ],
+    });
   });
 
   it("generateAnnotation returns structured result", async () => {
@@ -58,9 +49,7 @@ describe("ai-annotation", () => {
   });
 
   it("autoAnnotateArticle returns array of annotations", async () => {
-    const { autoAnnotateArticle } = await import("../ai-annotation");
-
-    const mockCreate = vi.fn().mockResolvedValue({
+    mocks.create.mockResolvedValue({
       choices: [
         {
           message: {
@@ -79,10 +68,7 @@ describe("ai-annotation", () => {
       ],
     });
 
-    const openai = await import("openai");
-    const instance = new openai.default();
-    (instance.chat.completions.create as ReturnType<typeof vi.fn>) = mockCreate;
-
+    const { autoAnnotateArticle } = await import("../ai-annotation");
     const result = await autoAnnotateArticle(
       "article-1",
       "测试文章",
@@ -90,10 +76,8 @@ describe("ai-annotation", () => {
     );
 
     expect(Array.isArray(result)).toBe(true);
-    if (result.length > 0) {
-      expect(result[0]).toHaveProperty("selectedText");
-      expect(result[0]).toHaveProperty("comment");
-      expect(result[0]).toHaveProperty("tags");
-    }
+    expect(result[0]).toHaveProperty("selectedText");
+    expect(result[0]).toHaveProperty("comment");
+    expect(result[0]).toHaveProperty("tags");
   });
 });

@@ -35,6 +35,7 @@ import {
   MessageSquarePlus,
 } from "lucide-react";
 import type { CardType } from "@/types";
+import { formatApiErrorMessage, type ApiErrorPayload } from "@/lib/api-error";
 
 interface Annotation {
   id: string;
@@ -301,9 +302,9 @@ export default function ArticleDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cardType }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as ApiErrorPayload;
       if (!res.ok) {
-        setErrorInfo({ message: data.error ?? "生成失败", code: data.code });
+        setErrorInfo({ message: formatApiErrorMessage(data), code: data.code });
         return;
       }
       fetchArticle();

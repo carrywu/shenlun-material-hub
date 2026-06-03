@@ -1,86 +1,188 @@
 import OpenAI from "openai";
+import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
 import type { CardType, AIScoreDetail, ContentGenre, AiDecision, ErrorCode } from "@/types";
 
+export type AiRuntimeSource = "db" | "env";
+
+export interface AiRuntime {
+  client: OpenAI;
+  model: string;
+  source: AiRuntimeSource;
+  baseURL?: string;
+  keySuffix: string;
+  cacheKey: string;
+}
+
+export interface AiErrorDiagnostics {
+  status?: number;
+  source?: AiRuntimeSource;
+  baseURL?: string;
+  model?: string;
+  keySuffix?: string;
+  cacheKey?: string;
+  providerMessage?: string;
+}
+
 export class AiServiceError extends Error {
   code: ErrorCode;
-  constructor(code: ErrorCode, message: string) {
+  status?: number;
+  diagnostics?: AiErrorDiagnostics;
+
+  constructor(
+    code: ErrorCode,
+    message: string,
+    status?: number,
+    diagnostics?: AiErrorDiagnostics
+  ) {
     super(message);
     this.code = code;
+    this.status = status;
+    this.diagnostics = diagnostics;
     this.name = "AiServiceError";
   }
 }
 
-let _openai: OpenAI | null = null;
-let _model: string | null = null;
-let _configLoaded = false;
+let cachedRuntime: AiRuntime | null = null;
 
 /**
- * 清除 AI 配置缓存（配置更新后调用）
+ * 清除 AI 配置缓存（配置更新后调用）。
+ * getAiRuntime 同时使用配置版本 cacheKey 自动换 client；reset 只是让 POST/DELETE 后立即生效。
  */
 export function resetAiConfigCache(): void {
-  _openai = null;
-  _model = null;
-  _configLoaded = false;
+  cachedRuntime = null;
 }
 
-export async function getOpenAI(): Promise<{ openai: OpenAI; model: string }> {
-  if (_openai && _configLoaded && _model) {
-    return { openai: _openai, model: _model };
-  }
+function trimConfigValue(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
 
-  // 优先从数据库读取配置
+function keySuffix(apiKey: string): string {
+  const trimmed = apiKey.trim();
+  const suffix = trimmed.slice(-4).padStart(Math.min(trimmed.length, 4), "*");
+  return `****${suffix}`;
+}
+
+function envHash(apiKey: string, baseURL: string | undefined, model: string): string {
+  return createHash("sha256")
+    .update([apiKey, baseURL ?? "", model].join("\0"))
+    .digest("hex")
+    .slice(0, 16);
+}
+
+async function resolveAiRuntimeConfig(): Promise<{
+  apiKey: string;
+  model: string;
+  source: AiRuntimeSource;
+  baseURL?: string;
+  cacheKey: string;
+}> {
   try {
     const config = await db.aiConfig.findFirst({
       where: { name: "default", isEnabled: true },
+      select: {
+        id: true,
+        encryptedKey: true,
+        baseUrl: true,
+        model: true,
+        updatedAt: true,
+      },
     });
 
     if (config) {
       if (!process.env.AI_CONFIG_ENCRYPTION_KEY) {
         throw new AiServiceError(
           "AI_ENCRYPTION_KEY_MISSING",
-          "AI_CONFIG_ENCRYPTION_KEY 环境变量未设置，无法解密数据库中的 API Key"
+          "AI_CONFIG_ENCRYPTION_KEY 环境变量未设置，无法解密数据库中的 API Key",
+          500,
+          { source: "db" }
         );
       }
+
       let apiKey: string;
       try {
         apiKey = decrypt(config.encryptedKey);
       } catch {
         throw new AiServiceError(
           "AI_CONFIG_DECRYPT_FAILED",
-          "数据库中的 AI 配置解密失败，可能是密钥不匹配。请删除旧配置后重新保存"
+          "数据库中的 AI 配置解密失败，可能是密钥不匹配。请删除旧配置后重新保存",
+          500,
+          { source: "db", baseURL: config.baseUrl, model: config.model }
         );
       }
-      _openai = new OpenAI({
-        apiKey,
-        baseURL: config.baseUrl || undefined,
-      });
-      _model = config.model;
-      _configLoaded = true;
-      return { openai: _openai, model: _model };
+
+      const trimmedApiKey = trimConfigValue(apiKey);
+      if (!trimmedApiKey) {
+        throw new AiServiceError(
+          "AI_CONFIG_MISSING",
+          "数据库 AI 配置中的 API Key 为空，请重新保存配置",
+          500,
+          { source: "db", baseURL: config.baseUrl, model: config.model }
+        );
+      }
+
+      return {
+        apiKey: trimmedApiKey,
+        model: trimConfigValue(config.model) ?? "gpt-4o",
+        source: "db",
+        baseURL: trimConfigValue(config.baseUrl),
+        cacheKey: `db:${config.id}:${config.updatedAt.toISOString()}`,
+      };
     }
-  } catch (e) {
-    if (e instanceof AiServiceError) throw e;
-    // 数据库读取失败，降级到环境变量
+  } catch (error) {
+    if (error instanceof AiServiceError) throw error;
+    // 数据库读取失败时按既有行为降级到环境变量，避免 DB 暂时不可用导致所有 AI 功能不可用。
   }
 
-  // 降级到环境变量
-  const envApiKey = process.env.AI_API_KEY || process.env.OPENAI_API_KEY;
+  const envApiKey = trimConfigValue(process.env.AI_API_KEY) ?? trimConfigValue(process.env.OPENAI_API_KEY);
+  const envBaseURL = trimConfigValue(process.env.AI_BASE_URL);
+  const envModel = trimConfigValue(process.env.AI_MODEL) ?? trimConfigValue(process.env.OPENAI_MODEL) ?? "gpt-4o";
+
   if (!envApiKey) {
     throw new AiServiceError(
       "AI_CONFIG_MISSING",
-      "未找到 AI 配置：数据库无配置且环境变量 AI_API_KEY 未设置"
+      "未找到 AI 配置：数据库无启用配置且环境变量 AI_API_KEY / OPENAI_API_KEY 未设置",
+      500,
+      { source: "env", baseURL: envBaseURL, model: envModel }
     );
   }
 
-  _openai = new OpenAI({
+  return {
     apiKey: envApiKey,
-    baseURL: process.env.AI_BASE_URL || undefined,
-  });
-  _model = process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
-  _configLoaded = true;
-  return { openai: _openai, model: _model };
+    model: envModel,
+    source: "env",
+    baseURL: envBaseURL,
+    cacheKey: `env:${envHash(envApiKey, envBaseURL, envModel)}`,
+  };
+}
+
+export async function getAiRuntime(): Promise<AiRuntime> {
+  const config = await resolveAiRuntimeConfig();
+
+  if (cachedRuntime?.cacheKey === config.cacheKey) {
+    return cachedRuntime;
+  }
+
+  cachedRuntime = {
+    client: new OpenAI({
+      apiKey: config.apiKey,
+      baseURL: config.baseURL,
+    }),
+    model: config.model,
+    source: config.source,
+    baseURL: config.baseURL,
+    keySuffix: keySuffix(config.apiKey),
+    cacheKey: config.cacheKey,
+  };
+
+  return cachedRuntime;
+}
+
+export async function getOpenAI(): Promise<{ openai: OpenAI; model: string }> {
+  const runtime = await getAiRuntime();
+  return { openai: runtime.client, model: runtime.model };
 }
 
 async function getTemperature(): Promise<number> {
@@ -94,6 +196,81 @@ async function getTemperature(): Promise<number> {
     // ignore
   }
   return 0.3;
+}
+
+function safeProviderMessage(error: unknown): string | undefined {
+  if (!(error instanceof Error)) return undefined;
+  return error.message.replace(/(sk-[A-Za-z0-9_-]{8,}|Bearer\s+[A-Za-z0-9._-]+)/g, "[redacted]");
+}
+
+function providerStatus(error: unknown): number | undefined {
+  if (error && typeof error === "object" && "status" in error) {
+    const status = Number((error as { status?: unknown }).status);
+    return Number.isInteger(status) ? status : undefined;
+  }
+  return undefined;
+}
+
+function aiRequestError(error: unknown, runtime: AiRuntime): AiServiceError {
+  const status = providerStatus(error);
+  return new AiServiceError(
+    "AI_API_CALL_FAILED",
+    "AI 请求失败",
+    status ?? 502,
+    {
+      status,
+      source: runtime.source,
+      baseURL: runtime.baseURL,
+      model: runtime.model,
+      keySuffix: runtime.keySuffix,
+      cacheKey: runtime.cacheKey,
+      providerMessage: safeProviderMessage(error),
+    }
+  );
+}
+
+interface ChatCompletionLike {
+  choices: Array<{ message?: { content?: string | null } | null }>;
+}
+
+async function createChatCompletion(
+  runtime: AiRuntime,
+  params: Parameters<OpenAI["chat"]["completions"]["create"]>[0]
+): Promise<ChatCompletionLike> {
+  try {
+    return await runtime.client.chat.completions.create({ ...params, stream: false }) as ChatCompletionLike;
+  } catch (error) {
+    throw aiRequestError(error, runtime);
+  }
+}
+
+function parseAiJson(rawJson: string, context: string): Record<string, unknown> {
+  try {
+    return JSON.parse(rawJson) as Record<string, unknown>;
+  } catch {
+    const jsonMatch = rawJson.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[1].trim()) as Record<string, unknown>;
+      } catch {
+        throw new AiServiceError("AI_RESPONSE_INVALID_JSON", `AI 返回的${context}中 JSON 格式无效`, 502);
+      }
+    }
+    throw new AiServiceError("AI_RESPONSE_INVALID_JSON", `AI 返回的${context}JSON 格式无效`, 502);
+  }
+}
+
+export function normalizeMaterialCardTextField(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 // ==================== P0-6: AI 相关性评估 ====================
@@ -137,7 +314,7 @@ export async function assessRelevance(
   content: string,
   contentType: string
 ): Promise<RelevanceResult> {
-  const { openai, model } = await getOpenAI();
+  const runtime = await getAiRuntime();
   const temperature = await getTemperature();
 
   const userPrompt = `请评估以下文章是否适合作为申论备考素材：
@@ -148,8 +325,8 @@ export async function assessRelevance(
 【正文】
 ${content.slice(0, 4000)}`;
 
-  const completion = await openai.chat.completions.create({
-    model,
+  const completion = await createChatCompletion(runtime, {
+    model: runtime.model,
     messages: [
       { role: "system", content: RELEVANCE_SYSTEM_PROMPT },
       { role: "user", content: userPrompt },
@@ -221,7 +398,7 @@ export async function scoreContentItem(
   content: string,
   contentType: string
 ): Promise<AIScoreResult> {
-  const { openai, model } = await getOpenAI();
+  const runtime = await getAiRuntime();
 
   const userPrompt = `请对以下文章进行评分：
 
@@ -231,8 +408,8 @@ export async function scoreContentItem(
 【正文】
 ${content.slice(0, 4000)}`;
 
-  const completion = await openai.chat.completions.create({
-    model,
+  const completion = await createChatCompletion(runtime, {
+    model: runtime.model,
     messages: [
       { role: "system", content: SCORING_SYSTEM_PROMPT },
       { role: "user", content: userPrompt },
@@ -348,11 +525,11 @@ const CARD_TYPE_PROMPTS: Record<CardType, string> = {
 };
 
 export interface AIGeneratedCardData {
-  sourceSnapshot: string;
-  originalFacts: string;
-  aiSummary: string;
-  highlightSuggestions: string;
-  transferSuggestions: string;
+  sourceSnapshot: string | null;
+  originalFacts: string | null;
+  aiSummary: string | null;
+  highlightSuggestions: string | null;
+  transferSuggestions: string | null;
 }
 
 export async function generateCardForContentItem(
@@ -361,7 +538,7 @@ export async function generateCardForContentItem(
   content: string,
   cardType: CardType
 ): Promise<AIGeneratedCardData> {
-  const { openai, model } = await getOpenAI();
+  const runtime = await getAiRuntime();
   const systemPrompt = CARD_TYPE_PROMPTS[cardType];
 
   const userPrompt = `请分析以下文章，生成素材卡：
@@ -371,8 +548,8 @@ export async function generateCardForContentItem(
 【正文】
 ${content.slice(0, 4000)}`;
 
-  const completion = await openai.chat.completions.create({
-    model,
+  const completion = await createChatCompletion(runtime, {
+    model: runtime.model,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
@@ -386,48 +563,18 @@ ${content.slice(0, 4000)}`;
     throw new Error("AI 未返回有效内容");
   }
 
-  let data: AIGeneratedCardData;
-  try {
-    data = JSON.parse(rawJson);
-  } catch {
-    // Try extracting JSON from markdown code block
-    const jsonMatch = rawJson.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      try {
-        data = JSON.parse(jsonMatch[1].trim());
-      } catch {
-        throw new AiServiceError("AI_RESPONSE_INVALID_JSON", "AI 返回的内容中 JSON 格式无效");
-      }
-    } else {
-      throw new AiServiceError("AI_RESPONSE_INVALID_JSON", "AI 返回的 JSON 格式无效");
-    }
-  }
+  const data = parseAiJson(rawJson, "素材卡");
 
   if (!data.aiSummary) {
-    throw new AiServiceError("AI_RESPONSE_INVALID_JSON", "AI 返回数据结构不完整，缺少必要字段");
+    throw new AiServiceError("AI_RESPONSE_INVALID_JSON", "AI 返回数据结构不完整，缺少必要字段 aiSummary", 502);
   }
 
-  const normalizeField = (fieldVal: unknown): string => {
-    if (typeof fieldVal === "string") return fieldVal;
-    if (Array.isArray(fieldVal)) {
-      return fieldVal.map(item => String(item)).join("\n");
-    }
-    if (fieldVal && typeof fieldVal === "object") {
-      try {
-        return JSON.stringify(fieldVal, null, 2);
-      } catch {
-        return String(fieldVal);
-      }
-    }
-    return String(fieldVal ?? "");
-  };
-
   return {
-    sourceSnapshot: normalizeField(data.sourceSnapshot),
-    originalFacts: normalizeField(data.originalFacts),
-    aiSummary: normalizeField(data.aiSummary),
-    highlightSuggestions: normalizeField(data.highlightSuggestions),
-    transferSuggestions: normalizeField(data.transferSuggestions),
+    sourceSnapshot: normalizeMaterialCardTextField(data.sourceSnapshot),
+    originalFacts: normalizeMaterialCardTextField(data.originalFacts),
+    aiSummary: normalizeMaterialCardTextField(data.aiSummary),
+    highlightSuggestions: normalizeMaterialCardTextField(data.highlightSuggestions),
+    transferSuggestions: normalizeMaterialCardTextField(data.transferSuggestions),
   };
 }
 
@@ -484,10 +631,10 @@ export async function generateBatchCards(
  */
 export async function testAiConfig(): Promise<{ success: boolean; error?: string }> {
   try {
-    const { openai, model } = await getOpenAI();
+    const runtime = await getAiRuntime();
 
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await createChatCompletion(runtime, {
+      model: runtime.model,
       messages: [{ role: "user", content: "回复 OK" }],
       max_tokens: 50,
     });

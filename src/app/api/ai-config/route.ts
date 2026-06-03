@@ -48,8 +48,9 @@ export async function POST(request: NextRequest) {
     const { baseUrl, apiKey, model, temperature } = body;
 
     let encryptedKey: string | undefined;
-    if (apiKey) {
-      encryptedKey = encrypt(apiKey);
+    const trimmedApiKey = typeof apiKey === "string" ? apiKey.trim() : "";
+    if (trimmedApiKey) {
+      encryptedKey = encrypt(trimmedApiKey);
     }
 
     const existing = await db.aiConfig.findFirst({ where: { name: "default" } });
@@ -58,23 +59,23 @@ export async function POST(request: NextRequest) {
       await db.aiConfig.update({
         where: { id: existing.id },
         data: {
-          baseUrl: baseUrl || "https://api.openai.com/v1",
+          baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.openai.com/v1",
           ...(encryptedKey ? { encryptedKey } : {}),
-          model: model || "gpt-4o",
+          model: typeof model === "string" && model.trim() ? model.trim() : "gpt-4o",
           temperature: temperature ?? 0.3,
           lastTestError: null, // 重置测试错误
         },
       });
     } else {
-      if (!apiKey) {
+      if (!trimmedApiKey) {
         return NextResponse.json({ error: "API Key 不能为空" }, { status: 400 });
       }
       await db.aiConfig.create({
         data: {
           name: "default",
-          baseUrl: baseUrl || "https://api.openai.com/v1",
-          encryptedKey: encrypt(apiKey),
-          model: model || "gpt-4o",
+          baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.openai.com/v1",
+          encryptedKey: encrypt(trimmedApiKey),
+          model: typeof model === "string" && model.trim() ? model.trim() : "gpt-4o",
           temperature: temperature ?? 0.3,
         },
       });

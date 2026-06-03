@@ -1,0 +1,70 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+const mocks = vi.hoisted(() => ({
+  findFirst: vi.fn(),
+  update: vi.fn(),
+  create: vi.fn(),
+  deleteMany: vi.fn(),
+  encrypt: vi.fn((value: string) => `encrypted:${value}`),
+  decrypt: vi.fn((value: string) => value),
+  resetAiConfigCache: vi.fn(),
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    aiConfig: {
+      findFirst: mocks.findFirst,
+      update: mocks.update,
+      create: mocks.create,
+      deleteMany: mocks.deleteMany,
+    },
+  },
+}));
+
+vi.mock("@/lib/crypto", () => ({
+  encrypt: mocks.encrypt,
+  decrypt: mocks.decrypt,
+}));
+
+vi.mock("@/services/ai", () => ({
+  resetAiConfigCache: mocks.resetAiConfigCache,
+}));
+
+describe("/api/ai-config route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("resets AI runtime cache after POST saves a config", async () => {
+    mocks.findFirst.mockResolvedValue(null);
+    mocks.create.mockResolvedValue({ id: "cfg" });
+    const { POST } = await import("../route");
+
+    const response = await POST(new NextRequest("http://localhost/api/ai-config", {
+      method: "POST",
+      body: JSON.stringify({ apiKey: " sk-test-1234 ", baseUrl: " https://api.example.com/v1 ", model: " model-a " }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        encryptedKey: "encrypted:sk-test-1234",
+        baseUrl: "https://api.example.com/v1",
+        model: "model-a",
+      }),
+    }));
+    expect(mocks.resetAiConfigCache).toHaveBeenCalledTimes(1);
+  });
+
+  it("resets AI runtime cache after DELETE removes configs", async () => {
+    mocks.deleteMany.mockResolvedValue({ count: 1 });
+    const { DELETE } = await import("../route");
+
+    const response = await DELETE();
+
+    expect(response.status).toBe(200);
+    expect(mocks.deleteMany).toHaveBeenCalledWith({ where: { name: "default" } });
+    expect(mocks.resetAiConfigCache).toHaveBeenCalledTimes(1);
+  });
+});
