@@ -145,6 +145,12 @@ vite.config.ts.timestamp-*
 # Prisma / SQLite
 *.db
 *.db-journal
+*.sqlite
+*.sqlite3
+
+# WeWe RSS local data
+infra/wechat-rss/wewe-rss/data/
+infra/wechat-rss/wewe-rss/.env
 
 # Agent orchestrator
 .ao/

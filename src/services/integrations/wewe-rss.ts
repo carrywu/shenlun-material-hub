@@ -1,7 +1,10 @@
 /**
  * WeWe RSS 集成服务
  * 作为 sidecar 调用本地 WeWe RSS 服务，不合并其源码。
+ * 优先使用 API，SQLite 只读兜底。
  */
+
+import { listFeedsFromSqlite, checkSqliteDb } from "./wewe-rss-sqlite";
 
 export interface WeweRssFeed {
   id: string;        // 如 MP_WXS_2397547378
@@ -11,6 +14,8 @@ export interface WeweRssFeed {
   syncTime?: number; // 最近同步时间戳
   updateTime?: number; // 最近更新时间戳
 }
+
+export type SyncMode = "auto" | "api" | "sqlite" | "manual";
 
 export interface HealthCheckResult {
   reachable: boolean;
@@ -126,4 +131,67 @@ export async function refreshFeed(
     clearTimeout(timeout);
     throw err;
   }
+}
+
+/**
+ * 自动检测并获取订阅列表。
+ * 优先 API，SQLite 只读兜底。
+ */
+export async function listFeedsAuto(
+  baseUrl: string,
+  syncMode: SyncMode = "auto",
+  dbPath?: string
+): Promise<{ feeds: WeweRssFeed[]; source: "api" | "sqlite"; message: string }> {
+  // 显式指定 SQLite
+  if (syncMode === "sqlite") {
+    const feeds = listFeedsFromSqlite(dbPath);
+    return {
+      feeds: feeds.map((f) => ({
+        id: f.id,
+        name: f.name,
+        intro: f.intro,
+        cover: f.cover,
+        syncTime: f.syncTime,
+        updateTime: f.updateTime,
+      })),
+      source: "sqlite",
+      message: `从 SQLite 读取到 ${feeds.length} 个公众号`,
+    };
+  }
+
+  // 显式指定 API 或自动检测
+  if (syncMode === "api" || syncMode === "auto") {
+    try {
+      const feeds = await listFeeds(baseUrl);
+      return {
+        feeds,
+        source: "api",
+        message: `从 API 读取到 ${feeds.length} 个公众号`,
+      };
+    } catch (apiErr) {
+      // API 失败，如果是自动模式则尝试 SQLite
+      if (syncMode === "auto") {
+        const sqliteCheck = checkSqliteDb(dbPath);
+        if (sqliteCheck.readable) {
+          const feeds = listFeedsFromSqlite(dbPath);
+          return {
+            feeds: feeds.map((f) => ({
+              id: f.id,
+              name: f.name,
+              intro: f.intro,
+              cover: f.cover,
+              syncTime: f.syncTime,
+              updateTime: f.updateTime,
+            })),
+            source: "sqlite",
+            message: `API 不可用，从 SQLite 读取到 ${feeds.length} 个公众号`,
+          };
+        }
+      }
+      throw apiErr;
+    }
+  }
+
+  // manual 模式
+  return { feeds: [], source: "api", message: "手动模式，不自动同步" };
 }

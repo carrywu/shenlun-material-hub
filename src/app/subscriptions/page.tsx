@@ -43,6 +43,7 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
+  Trash2,
 } from "lucide-react";
 import {
   PLATFORMS,
@@ -228,6 +229,11 @@ export default function SubscriptionsPage() {
   
   // WeChat Import Dialog state
   const [importWechatSource, setImportWechatSource] = useState<SourceItem | null>(null);
+
+  // WeWe RSS delete confirmation dialog
+  const [weweDeleteDialogOpen, setWeweDeleteDialogOpen] = useState(false);
+  const [pendingDeleteSources, setPendingDeleteSources] = useState<Array<{ id: string; feedId: string; name: string }>>([]);
+  const [deletingSources, setDeletingSources] = useState(false);
 
   // Channel expand state
   const [expandedSource, setExpandedSource] = useState<string | null>(null);
@@ -559,7 +565,12 @@ export default function SubscriptionsPage() {
                 const data = await res.json();
                 if (data.success) {
                   fetchSources();
-                  alert(data.message);
+                  if (data.toDelete && data.toDelete.length > 0) {
+                    setPendingDeleteSources(data.toDelete);
+                    setWeweDeleteDialogOpen(true);
+                  } else {
+                    alert(data.message);
+                  }
                 } else {
                   alert(data.error ?? "同步失败");
                 }
@@ -1245,6 +1256,72 @@ export default function SubscriptionsPage() {
         sourceName={previewSource?.name}
         onConfirm={handlePreviewConfirm}
       />
+
+      {/* WeWe RSS 删除确认弹窗 */}
+      <Dialog open={weweDeleteDialogOpen} onOpenChange={setWeweDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>同步删除来源确认</DialogTitle>
+            <DialogDescription>
+              检测到 WeWe RSS 中已删除以下公众号。是否同步删除申论项目中的对应来源？
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {pendingDeleteSources.map((d) => (
+              <div key={d.id} className="flex items-center gap-2 p-2 rounded border">
+                <Trash2 className="h-4 w-4 text-destructive" />
+                <span className="text-sm">{d.name}</span>
+                <Badge variant="outline" className="text-xs">{d.feedId}</Badge>
+              </div>
+            ))}
+          </div>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>注意：</p>
+            <p>1. 只会删除 WeWe RSS 同步来的来源</p>
+            <p>2. 不会删除你手动添加的来源</p>
+            <p>3. 默认不会删除已入库文章</p>
+            <p>4. 删除后可通过重新同步恢复</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWeweDeleteDialogOpen(false)}>
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                setDeletingSources(true);
+                try {
+                  const res = await fetch("/api/integrations/wewe-rss/delete-missing-sources", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      sourceIds: pendingDeleteSources.map((d) => d.id),
+                      deleteContentItems: false,
+                    }),
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    alert(`已删除 ${data.deleted} 个来源（已入库文章未删除）`);
+                    setPendingDeleteSources([]);
+                    fetchSources();
+                  } else {
+                    alert(data.error ?? "删除失败");
+                  }
+                } catch {
+                  alert("删除失败");
+                } finally {
+                  setDeletingSources(false);
+                  setWeweDeleteDialogOpen(false);
+                }
+              }}
+              disabled={deletingSources}
+            >
+              {deletingSources ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              确认删除（不删文章）
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
