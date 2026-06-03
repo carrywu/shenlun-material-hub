@@ -52,6 +52,11 @@ import {
   PRIORITIES,
 } from "@/types";
 import { ChannelManager } from "@/components/ChannelManager";
+import { WechatImportDialog } from "@/components/WechatImportDialog";
+import {
+  ArticlePreviewDialog,
+  type PreviewArticle,
+} from "@/components/ArticlePreviewDialog";
 
 // 平台标签
 const PLATFORM_LABELS: Record<string, string> = {
@@ -123,6 +128,15 @@ interface SourceItem {
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  provider: string | null;
+  feedId: string | null;
+  lastSyncedAt: string | null;
+  hitRate: number;
+  filterRate: number;
+  effectiveRate: number;
+  avgAiScore: number | null;
+  sourceGrade: string | null;
+  metricsUpdatedAt: string | null;
   _count: { contentItems: number };
 }
 
@@ -205,6 +219,15 @@ export default function SubscriptionsPage() {
 
   // Collect state
   const [collectingSource, setCollectingSource] = useState<string | null>(null);
+
+  // Preview state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewArticles, setPreviewArticles] = useState<PreviewArticle[]>([]);
+  const [previewSource, setPreviewSource] = useState<SourceItem | null>(null);
+  
+  // WeChat Import Dialog state
+  const [importWechatSource, setImportWechatSource] = useState<SourceItem | null>(null);
 
   // Channel expand state
   const [expandedSource, setExpandedSource] = useState<string | null>(null);
@@ -394,16 +417,40 @@ export default function SubscriptionsPage() {
 
   async function handleCollectNow(source: SourceItem) {
     if (collectingSource) return;
+
+    // 微信来源走预览流程
+    if (source.platform === "wechat") {
+      setPreviewSource(source);
+      setPreviewOpen(true);
+      setPreviewLoading(true);
+      setPreviewArticles([]);
+
+      try {
+        const res = await fetch("/api/collectors/wechat/sync/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sourceId: source.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "预览失败");
+        setPreviewArticles(data.articles ?? []);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "预览失败");
+        setPreviewOpen(false);
+      } finally {
+        setPreviewLoading(false);
+      }
+      return;
+    }
+
+    // 其他平台走原有流程
     setCollectingSource(source.id);
 
     try {
       let apiEndpoint: string;
       let body: Record<string, string>;
 
-      if (source.platform === "wechat") {
-        apiEndpoint = "/api/collectors/wechat/sync";
-        body = { sourceId: source.id };
-      } else if (
+      if (
         source.platform === "bilibili" ||
         source.platform === "xiaohongshu"
       ) {
@@ -426,14 +473,47 @@ export default function SubscriptionsPage() {
         throw new Error(data.error ?? "采集失败");
       }
 
+      const skipped = data.skippedCount ?? 0;
       alert(
-        `采集完成：发现 ${data.discoveredCount ?? 0} 条，导入 ${data.importedCount ?? 0} 条`
+        `采集完成：发现 ${data.discoveredCount ?? 0} 条，导入 ${data.importedCount ?? 0} 条` +
+          (skipped > 0 ? `，跳过 ${skipped} 条` : "")
       );
       fetchSources();
     } catch (err) {
       alert(err instanceof Error ? err.message : "采集失败");
     } finally {
       setCollectingSource(null);
+    }
+  }
+
+  async function handlePreviewConfirm(selectedUrls: string[]) {
+    if (!previewSource) return;
+    setPreviewOpen(false);
+    setCollectingSource(previewSource.id);
+
+    try {
+      const res = await fetch("/api/collectors/wechat/sync/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceId: previewSource.id,
+          selectedUrls,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "导入失败");
+
+      const skipped = data.skippedCount ?? 0;
+      alert(
+        `导入完成：发现 ${data.discoveredCount ?? 0} 条，导入 ${data.importedCount ?? 0} 条` +
+          (skipped > 0 ? `，跳过 ${skipped} 条` : "")
+      );
+      fetchSources();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "导入失败");
+    } finally {
+      setCollectingSource(null);
+      setPreviewSource(null);
     }
   }
 
@@ -452,6 +532,41 @@ export default function SubscriptionsPage() {
             <Button variant="outline" size="sm" onClick={fetchSources}>
               <RefreshCw className="mr-1.5 h-4 w-4" />
               刷新
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const res = await fetch("/api/sources/quality", { method: "POST" });
+                const data = await res.json();
+                if (data.success) {
+                  fetchSources();
+                  alert(`已刷新 ${data.refreshed} 个来源的质量指标`);
+                }
+              }}
+            >
+              刷新质量
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const res = await fetch("/api/integrations/wewe-rss/sync-sources", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({}),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  fetchSources();
+                  alert(data.message);
+                } else {
+                  alert(data.error ?? "同步失败");
+                }
+              }}
+            >
+              <RefreshCw className="mr-1.5 h-4 w-4" />
+              同步 WeWe
             </Button>
             <Button size="sm" onClick={openCreate}>
               <Plus className="mr-1.5 h-4 w-4" />
@@ -569,8 +684,10 @@ export default function SubscriptionsPage() {
                 <TableHead className="w-8"></TableHead>
                 <TableHead>名称</TableHead>
                 <TableHead className="w-20">平台</TableHead>
+                <TableHead className="w-24">来源</TableHead>
                 <TableHead className="w-24">内容类型</TableHead>
                 <TableHead className="w-24">信任等级</TableHead>
+                <TableHead className="w-16">质量</TableHead>
                 <TableHead className="w-16">优先级</TableHead>
                 <TableHead className="w-16">频率</TableHead>
                 <TableHead className="w-24">最近采集</TableHead>
@@ -623,6 +740,19 @@ export default function SubscriptionsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    {source.provider === "wewe-rss" ? (
+                      <Badge variant="default" className="text-xs bg-blue-600">
+                        WeWe RSS
+                      </Badge>
+                    ) : source.provider === "werss-external" ? (
+                      <Badge variant="secondary" className="text-xs">
+                        WeRSS
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">手动</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <Badge variant="secondary" className="text-xs">
                       {CONTENT_TYPE_LABELS[source.contentType] ??
                         source.contentType}
@@ -630,6 +760,27 @@ export default function SubscriptionsPage() {
                   </TableCell>
                   <TableCell className="text-sm">
                     {TRUST_LEVEL_LABELS[source.trustLevel] ?? source.trustLevel}
+                  </TableCell>
+                  <TableCell>
+                    {source.sourceGrade ? (
+                      <Badge
+                        variant={
+                          source.sourceGrade === "A"
+                            ? "default"
+                            : source.sourceGrade === "B"
+                              ? "secondary"
+                              : source.sourceGrade === "C"
+                                ? "outline"
+                                : "destructive"
+                        }
+                        className="text-xs"
+                        title={`命中率 ${Math.round(source.hitRate * 100)}%，过滤率 ${Math.round(source.filterRate * 100)}%`}
+                      >
+                        {source.sourceGrade}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -678,12 +829,22 @@ export default function SubscriptionsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {source.platform === "wechat" && (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => setImportWechatSource(source)}
+                          title="导入文章"
+                        >
+                          <Layers />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon-xs"
                         onClick={() => handleCollectNow(source)}
                         disabled={collectingSource === source.id || !source.isEnabled}
-                        title="立即采集"
+                        title={source.provider === "wewe-rss" ? "刷新并采集" : "立即采集"}
                       >
                         {collectingSource === source.id ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -902,6 +1063,12 @@ export default function SubscriptionsPage() {
                   }
                   placeholder="https://..."
                 />
+                {form.platform === "wechat" && (
+                  <p className="text-xs text-muted-foreground">
+                    本地 WeWe RSS / we-mp-rss 用户：填写 RSS 地址（如 http://localhost:4000/feeds/xxx.rss）。
+                    以 http(s):// 开头的地址走标准 RSS 解析，不需要 WERSS_ACCESS_KEY。
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-1.5">
@@ -1051,7 +1218,33 @@ export default function SubscriptionsPage() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+      </Dialog>
+      
+      {importWechatSource && (
+        <WechatImportDialog
+          sourceId={importWechatSource.id}
+          sourceName={importWechatSource.name}
+          open={!!importWechatSource}
+          onOpenChange={(open) => {
+            if (!open) setImportWechatSource(null);
+          }}
+          onSuccess={() => fetchSources()}
+        />
+      )}
+
+      <ArticlePreviewDialog
+        open={previewOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewOpen(false);
+            setPreviewSource(null);
+          }
+        }}
+        articles={previewArticles}
+        loading={previewLoading}
+        sourceName={previewSource?.name}
+        onConfirm={handlePreviewConfirm}
+      />
     </div>
   );
 }

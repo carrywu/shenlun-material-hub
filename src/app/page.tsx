@@ -5,12 +5,16 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   FileText,
   Clock,
-  CheckCircle,
+  CheckCircle2,
   ArrowRight,
   Plus,
   Search,
   RotateCcw,
   BookOpen,
+  TrendingUp,
+  Layers,
+  Upload,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -37,7 +41,7 @@ export default async function DashboardPage() {
     db.source.count({ where: { verificationStatus: "verified" } }),
     db.contentItem.findMany({
       orderBy: { createdAt: "desc" },
-      take: 5,
+      take: 6,
       include: {
         source: { select: { name: true } },
         _count: { select: { materialCards: true } },
@@ -54,153 +58,249 @@ export default async function DashboardPage() {
   );
 
   const stats = [
-    { label: "内容条目", value: totalItems, icon: FileText, color: "text-blue-600" },
-    { label: "素材卡", value: totalCards, icon: CheckCircle, color: "text-green-600" },
-    { label: "待确认", value: unconfirmedCards, icon: Clock, color: "text-amber-600" },
-    { label: "已确认", value: confirmedCards, icon: CheckCircle, color: "text-emerald-600" },
-    { label: "来源", value: `${verifiedSources}/${totalSources}`, icon: BookOpen, color: "text-purple-600" },
+    {
+      label: "内容条目",
+      value: totalItems,
+      icon: FileText,
+      gradient: "from-blue-500 to-blue-600",
+      bg: "bg-blue-50 dark:bg-blue-950/30",
+      text: "text-blue-600 dark:text-blue-400",
+      desc: "已采集内容",
+    },
+    {
+      label: "素材卡",
+      value: totalCards,
+      icon: Layers,
+      gradient: "from-violet-500 to-violet-600",
+      bg: "bg-violet-50 dark:bg-violet-950/30",
+      text: "text-violet-600 dark:text-violet-400",
+      desc: "AI 生成卡片",
+    },
+    {
+      label: "待确认",
+      value: unconfirmedCards,
+      icon: Clock,
+      gradient: "from-amber-500 to-orange-500",
+      bg: "bg-amber-50 dark:bg-amber-950/30",
+      text: "text-amber-600 dark:text-amber-400",
+      desc: "待人工审核",
+    },
+    {
+      label: "已确认",
+      value: confirmedCards,
+      icon: CheckCircle2,
+      gradient: "from-emerald-500 to-green-600",
+      bg: "bg-emerald-50 dark:bg-emerald-950/30",
+      text: "text-emerald-600 dark:text-emerald-400",
+      desc: "可同步至 IMA",
+    },
+    {
+      label: "核验来源",
+      value: `${verifiedSources}/${totalSources}`,
+      icon: TrendingUp,
+      gradient: "from-pink-500 to-rose-500",
+      bg: "bg-pink-50 dark:bg-pink-950/30",
+      text: "text-pink-600 dark:text-pink-400",
+      desc: "已核验来源",
+    },
+  ];
+
+  const cardTypeConfig = [
+    { key: "fact_summary", label: "事实摘要", color: "bg-blue-500", light: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" },
+    { key: "argument_analysis", label: "论点分析", color: "bg-violet-500", light: "bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300" },
+    { key: "data_highlight", label: "数据亮点", color: "bg-emerald-500", light: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" },
+    { key: "policy_compare", label: "政策对比", color: "bg-orange-500", light: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" },
+    { key: "case_study", label: "案例研究", color: "bg-teal-500", light: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300" },
+  ];
+
+  const quickActions = [
+    { href: "/discover", label: "今日推荐", desc: "已核验来源", icon: Sparkles, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-950/60" },
+    { href: "/explore", label: "探索区", desc: "待核验内容", icon: Search, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-950/60" },
+    { href: "/articles", label: "文章库", desc: "精选内容", icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60" },
+    { href: "/cards", label: "素材卡", desc: "编辑同步", icon: Layers, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-950/60" },
+    { href: "/subscriptions", label: "来源管理", desc: "采集来源", icon: Plus, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-950/60" },
+    { href: "/sync-records", label: "同步记录", desc: "同步历史", icon: Upload, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/60" },
+    { href: "/review", label: "复习", desc: "记忆检验", icon: RotateCcw, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/60" },
   ];
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="border-b px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">申论素材采集台</h1>
-            <p className="text-sm text-muted-foreground">
-              采集官方内容，生成 AI 素材卡，同步至 ima 知识库
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <CollectButton />
-            <Link href="/articles" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              浏览内容
-            </Link>
+      {/* Hero Header */}
+      <div className="relative border-b bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.15),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(16,185,129,0.1),transparent_60%)]" />
+        <div className="relative px-6 py-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white/80 backdrop-blur-sm border border-white/10">
+                  <Sparkles className="h-3 w-3 text-amber-400" />
+                  申论备考助手
+                </span>
+              </div>
+              <h1 className="text-2xl font-bold text-white tracking-tight">申论素材采集台</h1>
+              <p className="text-sm text-slate-400 mt-1">
+                采集官方内容 · AI 生成素材卡 · 一键同步至 IMA 知识库
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <CollectButton />
+              <Link
+                href="/articles"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm"
+                )}
+              >
+                <BookOpen className="mr-1.5 h-4 w-4" />
+                浏览内容
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto p-6 space-y-6">
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {stats.map((stat) => (
-            <Card key={stat.label}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.label}
-                </CardTitle>
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-              </CardContent>
-            </Card>
+            <div
+              key={stat.label}
+              className={cn(
+                "rounded-xl p-4 border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5",
+                stat.bg
+              )}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+                <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg", stat.bg)}>
+                  <stat.icon className={cn("h-4 w-4", stat.text)} />
+                </div>
+              </div>
+              <p className={cn("text-2xl font-bold tabular-nums", stat.text)}>{stat.value}</p>
+              <p className="text-xs text-muted-foreground mt-1">{stat.desc}</p>
+            </div>
           ))}
         </div>
 
-        {/* Recent content items */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">最近采集的内容</CardTitle>
-            <Link
-              href="/articles"
-              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-            >
-              查看全部
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {recentItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <FileText className="h-8 w-8 mb-2 opacity-50" />
-                <p>暂无内容</p>
-                <p className="text-sm">点击「浏览内容」开始</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.title}</p>
-                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                        <Badge variant="outline" className="text-xs">
-                          {item.source?.name ?? item.platform}
-                        </Badge>
-                        <span>{item.contentType}</span>
-                        {item.publishedAt && (
-                          <span>
-                            {new Date(item.publishedAt).toLocaleDateString(
-                              "zh-CN"
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent items */}
+          <div className="lg:col-span-2">
+            <Card className="h-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-base font-semibold">最近采集的内容</CardTitle>
+                <Link
+                  href="/articles"
+                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs h-7")}
+                >
+                  查看全部
+                  <ArrowRight className="ml-1 h-3 w-3" />
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {recentItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                      <FileText className="h-6 w-6 opacity-50" />
+                    </div>
+                    <p className="font-medium">暂无内容</p>
+                    <p className="text-sm mt-1">点击「浏览内容」开始采集</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {recentItems.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={`/articles/${item.id}`}
+                        className="flex items-center justify-between rounded-lg border px-3 py-2.5 hover:bg-muted/50 transition-all duration-150 hover:border-primary/20 group"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+                            {item.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 py-0">
+                              {item.source?.name ?? item.platform}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{item.contentType}</span>
+                            {item.publishedAt && (
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(item.publishedAt).toLocaleDateString("zh-CN")}
+                              </span>
                             )}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-sm text-muted-foreground shrink-0 ml-4">
-                      {item._count.materialCards} 张素材卡
-                    </div>
+                          </div>
+                        </div>
+                        <div className="shrink-0 ml-3 flex items-center gap-1.5">
+                          {item._count.materialCards > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              {item._count.materialCards} 卡
+                            </Badge>
+                          )}
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </Link>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Card type breakdown */}
-        {totalCards > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">素材卡类型分布</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-5 gap-3">
-                {[
-                  { key: "fact_summary", label: "事实摘要", color: "bg-blue-500" },
-                  { key: "argument_analysis", label: "论点分析", color: "bg-purple-500" },
-                  { key: "data_highlight", label: "数据亮点", color: "bg-green-500" },
-                  { key: "policy_compare", label: "政策对比", color: "bg-orange-500" },
-                  { key: "case_study", label: "案例研究", color: "bg-teal-500" },
-                ].map((t) => (
-                  <div key={t.key} className="text-center">
-                    <div className={`h-2 rounded-full ${t.color} mb-2`} />
-                    <p className="text-lg font-bold">{cardTypeCounts[t.key] ?? 0}</p>
-                    <p className="text-xs text-muted-foreground">{t.label}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Quick actions */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          {[
-            { href: "/discover", label: "今日推荐", desc: "已核验来源内容", color: "bg-blue-100 text-blue-600", icon: FileText },
-            { href: "/explore", label: "探索区", desc: "待核验内容", color: "bg-cyan-100 text-cyan-600", icon: Search },
-            { href: "/articles", label: "文章库", desc: "精选内容", color: "bg-indigo-100 text-indigo-600", icon: BookOpen },
-            { href: "/cards", label: "素材卡", desc: "编辑同步", color: "bg-purple-100 text-purple-600", icon: CheckCircle },
-            { href: "/subscriptions", label: "来源管理", desc: "采集来源", color: "bg-green-100 text-green-600", icon: Plus },
-            { href: "/sync-records", label: "同步记录", desc: "同步历史", color: "bg-amber-100 text-amber-600", icon: ArrowRight },
-            { href: "/review", label: "复习", desc: "记忆检验", color: "bg-rose-100 text-rose-600", icon: RotateCcw },
-          ].map((item) => (
-            <Card key={item.href} className="hover:border-primary/50 transition-colors cursor-pointer">
-              <Link href={item.href}>
-                <CardContent className="flex flex-col items-center gap-2 pt-5 pb-4">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.color}`}>
-                    <item.icon className="h-4 w-4" />
-                  </div>
-                  <p className="font-medium text-sm">{item.label}</p>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
-                </CardContent>
-              </Link>
+                )}
+              </CardContent>
             </Card>
-          ))}
+          </div>
+
+          {/* Card type breakdown */}
+          <div className="space-y-4">
+            {totalCards > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold">素材卡类型分布</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2.5">
+                  {cardTypeConfig.map((t) => {
+                    const count = cardTypeCounts[t.key] ?? 0;
+                    const pct = totalCards > 0 ? Math.round((count / totalCards) * 100) : 0;
+                    return (
+                      <div key={t.key}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded", t.light)}>
+                            {t.label}
+                          </span>
+                          <span className="text-xs font-bold tabular-nums">{count}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={cn("h-full rounded-full transition-all duration-500", t.color)}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Quick actions */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold">快捷入口</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2">
+                {quickActions.slice(0, 6).map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 rounded-lg p-2.5 transition-all duration-150",
+                      item.bg
+                    )}
+                  >
+                    <item.icon className={cn("h-4 w-4", item.color)} />
+                    <p className="text-xs font-medium">{item.label}</p>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

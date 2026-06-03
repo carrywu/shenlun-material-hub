@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>含 content:encoded 的 Feed</title>
+    <item>
+      <title>带富文本的文章</title>
+      <link>https://mp.weixin.qq.com/s/rich1</link>
+      <guid>rich1</guid>
+      <description>简短摘要</description>
+      <content:encoded><![CDATA[<p>这是通过 <strong>content:encoded</strong> 提供的完整 HTML 正文内容，包含格式化标签。</p><p>第二段内容。</p>]]></content:encoded>
+      <pubDate>Wed, 03 Jan 2024 08:00:00 +0800</pubDate>
+    </item>
+  </channel>
+</rss>

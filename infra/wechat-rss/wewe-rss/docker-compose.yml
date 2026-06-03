@@ -1,0 +1,13 @@
+services:
+  wewe-rss:
+    image: cooderl/wewe-rss-sqlite:v2.6.1
+    container_name: wewe-rss
+    ports:
+      - "${Wewe_RSS_PORT:-4000}:4000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_TYPE=sqlite
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

@@ -366,6 +366,52 @@ function validateContentGenre(genre: string): ContentGenre {
   return valid.includes(genre as ContentGenre) ? (genre as ContentGenre) : "other";
 }
 
+/**
+ * 带重试和超时的评估包装器。
+ * 仅对瞬态错误（速率限制、网络错误、超时）重试，永久错误直接抛出。
+ */
+export async function assessRelevanceWithRetry(
+  title: string,
+  sourceName: string,
+  content: string,
+  contentType: string,
+  options?: { maxRetries?: number; timeoutMs?: number }
+): Promise<RelevanceResult> {
+  const maxRetries = options?.maxRetries ?? 2;
+  const timeoutMs = options?.timeoutMs ?? 30000;
+  const backoffDelays = [1000, 3000];
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await Promise.race([
+        assessRelevance(title, sourceName, content, contentType),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("AI 评估超时")), timeoutMs)
+        ),
+      ]);
+      return result;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      const msg = lastError.message.toLowerCase();
+
+      // 永久错误不重试
+      const isPermanent =
+        msg.includes("api key") ||
+        msg.includes("invalid") ||
+        msg.includes("未配置") ||
+        msg.includes("未返回有效内容");
+      if (isPermanent || attempt === maxRetries) break;
+
+      // 瞬态错误：等待后重试
+      await new Promise((r) => setTimeout(r, backoffDelays[attempt] ?? 3000));
+    }
+  }
+
+  throw lastError ?? new Error("AI 评估失败");
+}
+
 // ==================== AI 评分（旧版保留兼容）====================
 
 export interface AIScoreResult {

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>测试公众号</title>
+    <link>https://mp.weixin.qq.com</link>
+    <description>测试公众号描述</description>
+    <item>
+      <title>第一篇文章</title>
+      <link>https://mp.weixin.qq.com/s/abc123</link>
+      <guid>abc123</guid>
+      <description>这是摘要内容</description>
+      <pubDate>Mon, 01 Jan 2024 00:00:00 +0800</pubDate>
+      <dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">作者名</dc:creator>
+    </item>
+    <item>
+      <title>第二篇文章</title>
+      <link>https://mp.weixin.qq.com/s/def456</link>
+      <guid>def456</guid>
+      <description>第二篇摘要</description>
+      <pubDate>Tue, 02 Jan 2024 12:00:00 +0800</pubDate>
+    </item>
+  </channel>
+</rss>

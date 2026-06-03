@@ -54,6 +54,7 @@ interface CollectResult {
   success: boolean;
   discoveredCount?: number;
   importedCount?: number;
+  skippedCount?: number;
   error?: string;
 }
 
@@ -182,6 +183,7 @@ export function CollectDialog({
           success: data.success ?? res.ok,
           discoveredCount: data.discoveredCount,
           importedCount: data.importedCount,
+          skippedCount: data.skippedCount,
           error: data.error,
         });
       } catch (err) {
@@ -205,6 +207,8 @@ export function CollectDialog({
   const failCount = results?.filter((r) => !r.success).length ?? 0;
   const totalImported =
     results?.reduce((sum, r) => sum + (r.importedCount ?? 0), 0) ?? 0;
+  const totalSkipped =
+    results?.reduce((sum, r) => sum + (r.skippedCount ?? 0), 0) ?? 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -234,6 +238,7 @@ export function CollectDialog({
               )}
               <div className="text-sm text-muted-foreground">
                 共导入 {totalImported} 条
+                {totalSkipped > 0 && `，跳过 ${totalSkipped} 条`}
               </div>
             </div>
 
@@ -253,7 +258,7 @@ export function CollectDialog({
                   </div>
                   <div className="text-muted-foreground text-xs">
                     {r.success
-                      ? `发现 ${r.discoveredCount ?? 0}，导入 ${r.importedCount ?? 0}`
+                      ? `发现 ${r.discoveredCount ?? 0}，导入 ${r.importedCount ?? 0}${(r.skippedCount ?? 0) > 0 ? `，跳过 ${r.skippedCount}` : ""}`
                       : r.error ?? "失败"}
                   </div>
                 </div>

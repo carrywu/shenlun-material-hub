@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { WeRssClient } from "@/services/collectors/wechat/weRssClient";
+import { WeRssClient, fetchStandardRssArticles } from "@/services/collectors/wechat/weRssClient";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
+import { refreshFeed } from "@/services/integrations/wewe-rss";
 
 // POST /api/collectors/wechat/sync — 触发 WeRSS 同步并导入为 ContentItem
 export async function POST(request: NextRequest) {
@@ -32,8 +33,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = new WeRssClient();
-
     // 创建 CollectorRun 记录
     const runRecord = await db.collectorRun.create({
       data: {
@@ -44,13 +43,33 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      // 如果提供了 werssSourceId，先触发 WeRSS 同步
-      if (werssSourceId) {
-        await client.syncArticles(werssSourceId);
+      let articles;
+      
+      const targetUrl = werssSourceId ?? source.baseUrl ?? source.externalId;
+      
+      if (targetUrl && (targetUrl.startsWith('http://') || targetUrl.startsWith('https://'))) {
+        // WeWe RSS 来源：先刷新 feed 再采集
+        if (source.provider === "wewe-rss" && source.feedId) {
+          const weweBaseUrl = process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
+          try {
+            await refreshFeed(weweBaseUrl, source.feedId);
+          } catch (refreshErr) {
+            const refreshMsg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
+            console.warn(`WeWe RSS refresh failed for ${source.feedId}: ${refreshMsg}`);
+            // 刷新失败不阻塞采集
+          }
+        }
+        // Treat as standard RSS feed
+        articles = await fetchStandardRssArticles(targetUrl);
+      } else {
+        // Fallback to internal WeRSS JSON API
+        const client = new WeRssClient();
+        if (werssSourceId) {
+          await client.syncArticles(werssSourceId);
+        }
+        const result = await client.getArticles(werssSourceId ?? source.id);
+        articles = result.articles;
       }
-
-      // 获取文章列表
-      const { articles } = await client.getArticles(werssSourceId ?? sourceId);
 
       // 标准化并导入
       const result = await normalizeWeRssArticles(articles, {
@@ -63,7 +82,7 @@ export async function POST(request: NextRequest) {
       await db.collectorRun.update({
         where: { id: runRecord.id },
         data: {
-          status: "success",
+          status: result.errors.length > 0 ? "partial" : "success",
           finishedAt: new Date(),
           discoveredCount: result.discovered,
           importedCount: result.imported,
@@ -84,6 +103,7 @@ export async function POST(request: NextRequest) {
         success: result.errors.length === 0,
         discoveredCount: result.discovered,
         importedCount: result.imported,
+        skippedCount: result.skipped,
         errors: result.errors.length > 0 ? result.errors : undefined,
       });
     } catch (syncError) {

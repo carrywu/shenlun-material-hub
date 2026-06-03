@@ -1,4 +1,5 @@
 import axios from "axios";
+import { parseRssUrl } from "@/lib/rss";
 
 export interface WeRssSource {
   id: string;
@@ -20,6 +21,20 @@ export interface WeRssArticle {
   accountId?: string;
   accountName?: string;
   cover?: string;
+}
+
+export async function fetchStandardRssArticles(url: string): Promise<WeRssArticle[]> {
+  const feed = await parseRssUrl(url);
+  return feed.items.map((item) => ({
+    id: item.guid ?? item.id ?? item.link ?? "",
+    title: item.title ?? "",
+    url: item.link ?? "",
+    content: item["content:encoded"] ?? item.content ?? item.contentSnippet,
+    summary: item.contentSnippet,
+    author: item.creator ?? feed.title,
+    publishTime: item.pubDate,
+    accountName: feed.title,
+  }));
 }
 
 export class WeRssClient {

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>无发布时间的 Feed</title>
+    <item>
+      <title>没有日期的文章</title>
+      <link>https://mp.weixin.qq.com/s/nodate1</link>
+      <guid>nodate1</guid>
+      <description>这篇文章没有发布时间</description>
+    </item>
+  </channel>
+</rss>

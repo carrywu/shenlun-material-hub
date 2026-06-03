@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { runContentFilters } from "@/services/content-filter";
+import { parseRssUrl } from "@/lib/rss";
 
 export interface RawArticle {
   title: string;
@@ -197,8 +198,40 @@ export abstract class BaseCollector {
 
     for (let page = 1; page <= channel.maxPages; page++) {
       let listUrl = channel.listUrl;
+      
+      // RSS 支持：如果 URL 以 xml 结尾或明确标记为 rss，且只在第一页抓取
+      if ((listUrl.endsWith('.xml') || channel.urlPattern === 'rss')) {
+        if (page > 1) break; // RSS 通常没有标准的分页参数结构，这里只抓取第一页
+        try {
+          const feed = await parseRssUrl(listUrl);
+          for (const item of feed.items) {
+            const url = item.link || item.guid || "";
+            if (!url || seen.has(url)) continue;
+            seen.add(url);
+            
+            const fullText = item["content:encoded"] || item.content || item.contentSnippet || "";
+            const title = item.title || "无标题";
+            const publishedAt = item.pubDate ? new Date(item.pubDate) : undefined;
+            const author = item.creator;
+            
+            articles.push({
+              title,
+              url,
+              fullText,
+              excerpt: fullText.slice(0, 200),
+              author,
+              publishedAt,
+              section: channel.name,
+            });
+          }
+        } catch (error) {
+           console.error(`RSS 采集失败 [${listUrl}]:`, error);
+           throw error; // 向上抛出以记录到 collectorRun
+        }
+        continue;
+      }
 
-      // 处理分页 URL
+      // 处理 HTML 分页 URL
       if (page > 1 && channel.paginationPattern) {
         listUrl = channel.paginationPattern.replace("{page}", String(page));
       } else if (page > 1) {

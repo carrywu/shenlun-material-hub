@@ -32,6 +32,19 @@ model Source {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
+  // WeWe RSS / 外部 WeRSS 集成字段
+  provider           String?                // "wewe-rss" | "werss-external" | null(手动)
+  feedId             String?                // WeWe RSS feed ID (如 MP_WXS_xxx)
+  lastSyncedAt       DateTime?              // 最近同步时间（从 WeWe RSS 同步列表）
+
+  // 来源质量指标（缓存，定期重算）
+  hitRate            Float    @default(0)    // 命中率 = accepted / total
+  filterRate         Float    @default(0)    // 过滤率 = filtered / total
+  effectiveRate      Float    @default(0)    // 有效率 = (accepted + candidate) / total
+  avgAiScore         Float?                  // 平均 AI 评分
+  sourceGrade        String?                 // A / B / C / D / F
+  metricsUpdatedAt   DateTime?               // 指标最近更新时间
+
   contentItems      ContentItem[]
   collectorRuns     CollectorRun[]
   collectionChannels CollectionChannel[]
@@ -40,6 +53,8 @@ model Source {
   @@index([priority])
   @@index([isEnabled])
   @@index([contentType])
+  @@index([provider])
+  @@index([feedId])
 }
 
 // P0-2: 采集栏目（Source 下的子栏目配置）
@@ -80,6 +95,7 @@ model ContentItem {
   regionScopes        String   @default("[]") // JSON 数组：地区
   topicTags           String   @default("[]") // JSON 数组：主题标签
   excerpt             String?                // 摘录
+  coverUrl            String?                // 封面图 URL
   recommendationReason String?               // 推荐理由
   verificationStatus  String   @default("unverified")
   processingStatus    String   @default("pending") // 处理状态
@@ -136,6 +152,7 @@ model ContentItem {
   @@index([qualityStatus])
   @@index([aiDecision])
   @@index([contentGenre])
+  @@index([aiAssessedAt])
 }
 
 // AI 素材卡

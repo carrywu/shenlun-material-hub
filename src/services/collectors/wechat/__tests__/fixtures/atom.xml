@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>测试公众号 Atom</title>
+  <link href="https://mp.weixin.qq.com"/>
+  <entry>
+    <title>Atom 文章一</title>
+    <link href="https://mp.weixin.qq.com/s/atom1"/>
+    <id>atom1</id>
+    <summary>Atom 摘要一</summary>
+    <content type="html">&lt;p&gt;这是 Atom 全文内容&lt;/p&gt;</content>
+    <updated>2024-01-03T10:00:00+08:00</updated>
+    <author><name>Atom 作者</name></author>
+  </entry>
+</feed>
