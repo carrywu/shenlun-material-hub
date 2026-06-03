@@ -3,8 +3,17 @@ import { db } from "@/lib/db";
 import { generateCardForContentItem, AiServiceError } from "@/services/ai";
 import type { CardType, ErrorCode } from "@/types";
 
-function errorResponse(error: string, code: ErrorCode, status: number) {
-  return NextResponse.json({ error, code }, { status });
+function newRequestId(): string {
+  return `gen_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function errorResponse(
+  code: ErrorCode,
+  message: string,
+  status: number,
+  extra?: Record<string, unknown>
+) {
+  return NextResponse.json({ error: code, code, message, status, ...extra }, { status });
 }
 
 // POST /api/content-items/[id]/generate-card
@@ -12,8 +21,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const requestId = newRequestId();
+  let id = "";
+
   try {
-    const { id } = await params;
+    ({ id } = await params);
     const body = await request.json().catch(() => ({}));
     const cardType = (body.cardType as CardType) ?? "fact_summary";
 
@@ -26,9 +38,10 @@ export async function POST(
     ];
     if (!validTypes.includes(cardType)) {
       return errorResponse(
-        `无效的卡片类型: ${cardType}，支持: ${validTypes.join(", ")}`,
         "AI_RESPONSE_INVALID_JSON",
-        400
+        `无效的卡片类型: ${cardType}，支持: ${validTypes.join(", ")}`,
+        400,
+        { requestId }
       );
     }
 
@@ -40,22 +53,19 @@ export async function POST(
     });
 
     if (!item) {
-      return errorResponse("内容条目不存在", "CONTENT_ITEM_NOT_FOUND", 404);
+      return errorResponse("CONTENT_ITEM_NOT_FOUND", "内容条目不存在", 404, { requestId });
     }
 
     if (!item.fullText) {
-      return errorResponse("该内容条目没有全文，无法生成素材卡", "NO_FULL_TEXT", 400);
+      return errorResponse("NO_FULL_TEXT", "该内容条目没有全文，无法生成素材卡", 400, { requestId });
     }
 
     if (item.aiDecision !== "accept") {
-      return NextResponse.json(
-        {
-          error: "该内容尚未通过 AI 评估或已被拒绝，请先进行 AI 评估",
-          code: "AI_DECISION_NOT_ACCEPT" as ErrorCode,
-          aiDecision: item.aiDecision,
-          aiReason: item.aiReason,
-        },
-        { status: 400 }
+      return errorResponse(
+        "AI_DECISION_NOT_ACCEPT",
+        "该内容尚未通过 AI 评估或已被拒绝，请先进行 AI 评估",
+        400,
+        { aiDecision: item.aiDecision, aiReason: item.aiReason, requestId }
       );
     }
 
@@ -63,13 +73,11 @@ export async function POST(
       where: { contentItemId: id, cardType },
     });
     if (existingCard) {
-      return NextResponse.json(
-        {
-          error: "该内容已存在同类型素材卡",
-          code: "MATERIAL_CARD_ALREADY_EXISTS" as ErrorCode,
-          existingCardId: existingCard.id,
-        },
-        { status: 409 }
+      return errorResponse(
+        "MATERIAL_CARD_ALREADY_EXISTS",
+        "该内容已存在同类型素材卡",
+        409,
+        { existingCardId: existingCard.id, requestId }
       );
     }
 
@@ -100,33 +108,48 @@ export async function POST(
 
     return NextResponse.json(card, { status: 201 });
   } catch (error) {
-    console.error("Failed to generate card:", error);
-
-    const { id } = await params;
     const errorMessage = error instanceof Error ? error.message : "素材卡生成失败";
 
-    // Persist failure status to DB
-    try {
-      await db.contentItem.update({
-        where: { id },
-        data: {
-          processingStatus: "failed",
-          aiAssessmentError: errorMessage,
-        },
-      });
-    } catch (dbError) {
-      console.error("Failed to persist error status:", dbError);
-    }
-
-    // Structured error from AiServiceError
     if (error instanceof AiServiceError) {
-      return errorResponse(error.message, error.code, 500);
+      console.error("Failed to generate card", {
+        requestId,
+        code: error.code,
+        status: error.status,
+        source: error.diagnostics?.source,
+        baseURL: error.diagnostics?.baseURL,
+        model: error.diagnostics?.model,
+        keySuffix: error.diagnostics?.keySuffix,
+        providerMessage: error.diagnostics?.providerMessage,
+      });
+    } else {
+      console.error("Failed to generate card", { requestId, error: errorMessage });
     }
 
-    return errorResponse(
-      errorMessage,
-      "AI_API_CALL_FAILED",
-      500
-    );
+    // Persist failure status to DB
+    if (id) {
+      try {
+        await db.contentItem.update({
+          where: { id },
+          data: {
+            processingStatus: "failed",
+            aiAssessmentError: `[${requestId}] ${errorMessage}`,
+          },
+        });
+      } catch (dbError) {
+        console.error("Failed to persist error status", { requestId, error: dbError instanceof Error ? dbError.message : "unknown" });
+      }
+    }
+
+    if (error instanceof AiServiceError) {
+      return errorResponse(error.code, error.message, error.status ?? 500, {
+        requestId,
+        source: error.diagnostics?.source,
+        baseURL: error.diagnostics?.baseURL,
+        model: error.diagnostics?.model,
+        keySuffix: error.diagnostics?.keySuffix,
+      });
+    }
+
+    return errorResponse("AI_API_CALL_FAILED", errorMessage, 500, { requestId });
   }
 }

@@ -1,53 +1,4 @@
-import OpenAI from "openai";
-import { db } from "@/lib/db";
-import { decrypt } from "@/lib/crypto";
-
-let _openai: OpenAI | null = null;
-let _configLoaded = false;
-
-async function getOpenAI(): Promise<OpenAI> {
-  if (_openai && _configLoaded) return _openai;
-
-  try {
-    const config = await db.aiConfig.findFirst({
-      where: { name: "default", isEnabled: true },
-    });
-
-    if (config) {
-      const apiKey = decrypt(config.encryptedKey);
-      _openai = new OpenAI({
-        apiKey,
-        baseURL: config.baseUrl || undefined,
-      });
-      _configLoaded = true;
-      return _openai;
-    }
-  } catch {
-    // 降级到环境变量
-  }
-
-  if (!_openai) {
-    _openai = new OpenAI({
-      apiKey: process.env.AI_API_KEY || process.env.OPENAI_API_KEY,
-      baseURL: process.env.AI_BASE_URL || undefined,
-    });
-  }
-  _configLoaded = true;
-  return _openai;
-}
-
-async function getModel(): Promise<string> {
-  try {
-    const config = await db.aiConfig.findFirst({
-      where: { name: "default", isEnabled: true },
-      select: { model: true },
-    });
-    if (config) return config.model;
-  } catch {
-    // ignore
-  }
-  return process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
-}
+import { getAiRuntime } from "@/services/ai";
 
 // ==================== 文章批注生成 ====================
 
@@ -77,8 +28,7 @@ export async function generateAnnotation(
   selectedText: string,
   cardType?: string
 ): Promise<AnnotationResult> {
-  const openai = await getOpenAI();
-  const model = await getModel();
+  const runtime = await getAiRuntime();
 
   const contextSnippet = articleContent.slice(0, 3000);
 
@@ -93,8 +43,8 @@ ${cardType ? `\n【关联素材卡类型】${cardType}` : ""}
 
 请对选中的文本进行申论备考角度的批注分析。`;
 
-  const completion = await openai.chat.completions.create({
-    model,
+  const completion = await runtime.client.chat.completions.create({
+    model: runtime.model,
     messages: [
       { role: "system", content: ANNOTATION_SYSTEM_PROMPT },
       { role: "user", content: userPrompt },
@@ -125,8 +75,7 @@ export async function autoAnnotateArticle(
   articleTitle: string,
   articleContent: string
 ): Promise<Array<{ paragraph: number; selectedText: string; comment: string; tags: string[] }>> {
-  const openai = await getOpenAI();
-  const model = await getModel();
+  const runtime = await getAiRuntime();
 
   const AUTO_ANNOTATE_PROMPT = `你是一位资深的申论辅导专家。请从文章中选出 3-5 个最值得批注的段落或语句，进行申论备考角度的分析。
 
@@ -150,8 +99,8 @@ export async function autoAnnotateArticle(
 
   const content = articleContent.slice(0, 5000);
 
-  const completion = await openai.chat.completions.create({
-    model,
+  const completion = await runtime.client.chat.completions.create({
+    model: runtime.model,
     messages: [
       { role: "system", content: AUTO_ANNOTATE_PROMPT },
       {
