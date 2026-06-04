@@ -4,8 +4,6 @@
  * 优先使用 API，SQLite 只读兜底。
  */
 
-import { listFeedsFromSqlite, checkSqliteDb } from "./wewe-rss-sqlite";
-
 export interface WeweRssFeed {
   id: string;        // 如 MP_WXS_2397547378
   name: string;      // 公众号名称
@@ -142,9 +140,14 @@ export async function listFeedsAuto(
   syncMode: SyncMode = "auto",
   dbPath?: string
 ): Promise<{ feeds: WeweRssFeed[]; source: "api" | "sqlite"; message: string }> {
+  async function readFeedsFromSqlite() {
+    const { listFeedsFromSqlite } = await import("./wewe-rss-sqlite");
+    return listFeedsFromSqlite(dbPath);
+  }
+
   // 显式指定 SQLite
   if (syncMode === "sqlite") {
-    const feeds = listFeedsFromSqlite(dbPath);
+    const feeds = await readFeedsFromSqlite();
     return {
       feeds: feeds.map((f) => ({
         id: f.id,
@@ -171,9 +174,10 @@ export async function listFeedsAuto(
     } catch (apiErr) {
       // API 失败，如果是自动模式则尝试 SQLite
       if (syncMode === "auto") {
+        const { checkSqliteDb } = await import("./wewe-rss-sqlite");
         const sqliteCheck = checkSqliteDb(dbPath);
         if (sqliteCheck.readable) {
-          const feeds = listFeedsFromSqlite(dbPath);
+          const feeds = await readFeedsFromSqlite();
           return {
             feeds: feeds.map((f) => ({
               id: f.id,

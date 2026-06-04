@@ -112,6 +112,42 @@ const CONTENT_GENRE_LABELS: Record<string, string> = {
   other: "其他",
 };
 
+function cleanHtmlClientSide(html: string): string {
+  try {
+    if (typeof window === "undefined") return html;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const contentEl = doc.getElementById("js_content") ||
+                      doc.querySelector(".rich_media_content") ||
+                      doc.querySelector("article") ||
+                      doc.body;
+
+    contentEl.querySelectorAll("script, style, head, iframe, noscript, svg, link, meta").forEach(el => el.remove());
+
+    const paragraphs: string[] = [];
+    contentEl.querySelectorAll("p, section, h1, h2, h3, h4, h5, h6, li, tr").forEach(el => {
+      const hasBlockChild = el.querySelector("p, section, h1, h2, h3, h4, h5, h6, li, tr") !== null;
+      if (!hasBlockChild) {
+        const txt = el.textContent?.trim();
+        if (txt) paragraphs.push(txt);
+      }
+    });
+
+    let text = paragraphs.join("\n\n");
+    if (!text) {
+      text = contentEl.textContent?.trim() || "";
+    }
+
+    return text.split("\n").map(l => l.trim()).filter(Boolean).join("\n\n");
+  } catch {
+    return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+               .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+               .replace(/<[^>]+>/g, " ")
+               .replace(/\s+/g, " ")
+               .trim();
+  }
+}
+
 export default function ArticleDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -319,7 +355,8 @@ export default function ArticleDetailPage() {
   function renderAnnotatedText() {
     if (!article?.fullText) return "暂无正文，请重新采集或查看原文";
 
-    const text = article.fullText;
+    const isDirtyHtml = !!(article.fullText.startsWith("<!DOCTYPE html") || article.fullText.includes("<html") || article.fullText.includes("<head>"));
+    const text = isDirtyHtml ? cleanHtmlClientSide(article.fullText) : article.fullText;
     const annotations = article.annotations ?? [];
 
     if (annotations.length === 0) return text;
@@ -527,6 +564,15 @@ export default function ArticleDetailPage() {
               <div className="rounded-md bg-muted/50 p-3">
                 <p className="text-sm font-medium mb-1">摘要</p>
                 <p className="text-sm text-muted-foreground">{article.excerpt}</p>
+              </div>
+            )}
+
+            {article.fullText && (article.fullText.startsWith("<!DOCTYPE html") || article.fullText.includes("<html") || article.fullText.includes("<head>")) && (
+              <div className="p-3 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs space-y-1">
+                <p className="font-semibold flex items-center gap-1">
+                  ⚠️ 该文章正文疑似未清洗，建议重新解析或运行修复脚本。
+                </p>
+                <p>前端已做临时清洗以避免页面卡死，但 AI 评估和素材卡生成可能仍不正常。</p>
               </div>
             )}
 

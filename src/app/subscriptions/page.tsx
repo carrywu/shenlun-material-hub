@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -710,8 +710,8 @@ export default function SubscriptionsPage() {
             </TableHeader>
             <TableBody>
               {sources.map((source) => (
-                <>
-                <TableRow key={source.id}>
+                <Fragment key={source.id}>
+                <TableRow>
                   <TableCell>
                     {source.platform === "website" && (
                       <Button
@@ -897,7 +897,7 @@ export default function SubscriptionsPage() {
                     </TableCell>
                   </TableRow>
                 )}
-                </>
+                </Fragment>
               ))}
             </TableBody>
           </Table>

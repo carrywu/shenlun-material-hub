@@ -102,6 +102,7 @@ model ContentItem {
   discoveryChannel    String?                // 发现渠道
   fullTextStored      Boolean  @default(false)
   fullText            String?                // 全文
+  rawHtml             String?                // 原始 HTML
   contentHash         String?                // 内容哈希
   linkedOriginalId    String?                // 关联原始条目 ID
   filterReason        String?                // 过滤原因

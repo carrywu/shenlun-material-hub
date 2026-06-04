@@ -25,7 +25,7 @@ vi.mock("@/services/content-filter", () => ({
   runContentFilters: mockRunContentFilters,
 }));
 
-import { normalizeWeRssArticle, normalizeWeRssArticles } from "../weRssNormalizer";
+import { normalizeWeRssArticle, normalizeWeRssArticles, cleanWechatHtml } from "../weRssNormalizer";
 
 const BASE_OPTIONS = {
   sourceId: "source-001",
@@ -220,7 +220,6 @@ describe("normalizeWeRssArticle", () => {
     expect(createCall.data.coverUrl).toBeNull();
   });
 });
-
 describe("normalizeWeRssArticles", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -345,5 +344,43 @@ describe("normalizeWeRssArticles", () => {
     expect(result.discovered).toBe(1);
     expect(result.imported).toBe(0);
     expect(result.skipped).toBe(1); // 空正文 → filtered → skipped
+  });
+});
+
+describe("cleanWechatHtml", () => {
+  it("应该正确清洗包含 scripts/styles/head/meta 的完整微信 HTML 网页并提取正文", () => {
+    const rawHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script>console.log("bad");</script>
+  <style>body { color: red; }</style>
+</head>
+<body>
+  <div id="js_content">
+    <section>
+      <p>这是第一段内容。</p>
+      <p>这是第二段内容。</p>
+    </section>
+  </div>
+</body>
+</html>`;
+
+    const { fullText, rawHtml: extractedHtml } = cleanWechatHtml(rawHtml);
+
+    expect(fullText).toContain("这是第一段内容。");
+    expect(fullText).toContain("这是第二段内容。");
+    expect(fullText).not.toContain("bad");
+    expect(fullText).not.toContain("color: red");
+    expect(extractedHtml).toContain("这是第一段内容。");
+    expect(extractedHtml).not.toContain("<head>");
+  });
+
+  it("当输入不是 HTML 时应该直接返回原文本", () => {
+    const text = "这是一段普通的纯文本内容。";
+    const { fullText, rawHtml } = cleanWechatHtml(text);
+
+    expect(fullText).toBe(text);
+    expect(rawHtml).toBe(text);
   });
 });
