@@ -27,19 +27,23 @@ export async function POST(
   try {
     ({ id } = await params);
     const body = await request.json().catch(() => ({}));
-    const cardType = (body.cardType as CardType) ?? "fact_summary";
+    const cardType = (body.cardType as CardType) ?? "golden_sentence";
 
     const validTypes: CardType[] = [
-      "fact_summary",
-      "argument_analysis",
-      "data_highlight",
-      "policy_compare",
-      "case_study",
+      "golden_sentence",
+      "standard_expression",
+      "case_material",
+      "countermeasure",
+      "problem_statement",
+      "reason_analysis",
+      "policy_expression",
+      "person_story",
+      "article_structure",
     ];
     if (!validTypes.includes(cardType)) {
       return errorResponse(
         "AI_RESPONSE_INVALID_JSON",
-        `无效的卡片类型: ${cardType}，支持: ${validTypes.join(", ")}`,
+        `无效的卡片类型，请在页面提供的中文素材类型中选择`,
         400,
         { requestId }
       );

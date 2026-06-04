@@ -602,7 +602,9 @@ export default function SubscriptionsPage() {
 
           <Select value={platform} onValueChange={(v) => { if (v) setPlatform(v); }}>
             <SelectTrigger className="w-28">
-              <SelectValue placeholder="平台" />
+              <SelectValue>
+                {platform === "all" ? "全部平台" : (PLATFORM_LABELS[platform] ?? platform)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部平台</SelectItem>
@@ -616,7 +618,9 @@ export default function SubscriptionsPage() {
 
           <Select value={contentType} onValueChange={(v) => { if (v) setContentType(v); }}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="内容类型" />
+              <SelectValue>
+                {contentType === "all" ? "全部类型" : (CONTENT_TYPE_LABELS[contentType] ?? contentType)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
@@ -630,7 +634,9 @@ export default function SubscriptionsPage() {
 
           <Select value={trustLevel} onValueChange={(v) => { if (v) setTrustLevel(v); }}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="信任等级" />
+              <SelectValue>
+                {trustLevel === "all" ? "全部等级" : (TRUST_LEVEL_LABELS[trustLevel] ?? trustLevel)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部等级</SelectItem>
@@ -644,7 +650,9 @@ export default function SubscriptionsPage() {
 
           <Select value={isEnabled} onValueChange={(v) => { if (v) setIsEnabled(v); }}>
             <SelectTrigger className="w-28">
-              <SelectValue placeholder="状态" />
+              <SelectValue>
+                {isEnabled === "all" ? "全部状态" : isEnabled === "true" ? "已启用" : "已停用"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部状态</SelectItem>
@@ -658,7 +666,9 @@ export default function SubscriptionsPage() {
             onValueChange={(v) => { if (v) setVerificationStatus(v); }}
           >
             <SelectTrigger className="w-28">
-              <SelectValue placeholder="核验" />
+              <SelectValue>
+                {verificationStatus === "all" ? "全部" : (VERIFICATION_LABELS[verificationStatus] ?? verificationStatus)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部</SelectItem>
@@ -976,7 +986,9 @@ export default function SubscriptionsPage() {
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>
+                        {PLATFORM_LABELS[form.platform] ?? form.platform}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {PLATFORMS.map((p) => (
@@ -997,7 +1009,9 @@ export default function SubscriptionsPage() {
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>
+                        {form.priority}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {PRIORITIES.map((p) => (
@@ -1020,7 +1034,9 @@ export default function SubscriptionsPage() {
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>
+                        {CONTENT_TYPE_LABELS[form.contentType] ?? form.contentType}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {CONTENT_TYPES.map((t) => (
@@ -1041,7 +1057,9 @@ export default function SubscriptionsPage() {
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>
+                        {TRUST_LEVEL_LABELS[form.trustLevel] ?? form.trustLevel}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {TRUST_LEVELS.map((t) => (
@@ -1192,7 +1210,9 @@ export default function SubscriptionsPage() {
                 <label className="text-sm font-medium">核验状态</label>
                 <Select value={verifyStatus} onValueChange={(v) => { if (v) setVerifyStatus(v); }}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {VERIFICATION_LABELS[verifyStatus] ?? verifyStatus}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {VERIFICATION_STATUSES.map((s) => (

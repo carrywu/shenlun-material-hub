@@ -249,7 +249,9 @@ export default function DiscoverPage() {
         <div className="flex items-center gap-3">
           <Select value={platform} onValueChange={(v) => { if (v) setPlatform(v); }}>
             <SelectTrigger className="w-32 h-8">
-              <SelectValue placeholder="平台" />
+              <SelectValue>
+                {platform === "all" ? "全部平台" : (PLATFORM_LABELS[platform] ?? platform)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部平台</SelectItem>
@@ -263,7 +265,9 @@ export default function DiscoverPage() {
 
           <Select value={contentType} onValueChange={(v) => { if (v) setContentType(v); }}>
             <SelectTrigger className="w-36 h-8">
-              <SelectValue placeholder="内容类型" />
+              <SelectValue>
+                {contentType === "all" ? "全部类型" : (CONTENT_TYPE_LABELS[contentType] ?? contentType)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
@@ -277,7 +281,9 @@ export default function DiscoverPage() {
 
           <Select value={trustLevel} onValueChange={(v) => { if (v) setTrustLevel(v); }}>
             <SelectTrigger className="w-36 h-8">
-              <SelectValue placeholder="信任等级" />
+              <SelectValue>
+                {trustLevel === "all" ? "全部等级" : (TRUST_LEVEL_CONFIG[trustLevel]?.label ?? trustLevel)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部等级</SelectItem>

@@ -63,7 +63,7 @@ describe("POST /api/content-items/[id]/generate-card", () => {
 
     const response = await POST(new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
       method: "POST",
-      body: JSON.stringify({ cardType: "fact_summary" }),
+      body: JSON.stringify({ cardType: "golden_sentence" }),
     }), { params: Promise.resolve({ id: "article-1" }) });
     const payload = await response.json();
 
@@ -94,11 +94,26 @@ describe("POST /api/content-items/[id]/generate-card", () => {
 
     const response = await POST(new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
       method: "POST",
-      body: JSON.stringify({ cardType: "fact_summary" }),
+      body: JSON.stringify({ cardType: "golden_sentence" }),
     }), { params: Promise.resolve({ id: "article-1" }) });
     const payload = await response.json();
 
     expect(response.status).toBe(400);
     expect(payload).toMatchObject({ error: "NO_FULL_TEXT", message: "该内容条目没有全文，无法生成素材卡" });
+  });
+
+  it("rejects data_fact as a new material card type", async () => {
+    const { POST } = await import("../route");
+
+    const response = await POST(new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
+      method: "POST",
+      body: JSON.stringify({ cardType: "data_fact" }),
+    }), { params: Promise.resolve({ id: "article-1" }) });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.message).toContain("无效的卡片类型");
+    expect(payload.message).not.toContain("data_fact");
+    expect(mocks.generateCardForContentItem).not.toHaveBeenCalled();
   });
 });

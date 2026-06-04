@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save, TestTube, Trash2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface AiConfigData {
   configured: boolean;
@@ -19,12 +21,24 @@ interface AiConfigData {
   lastTestError?: string;
 }
 
+interface PromptTemplate {
+  key: string;
+  name: string;
+  description: string;
+  content: string;
+  defaultContent: string;
+  customized: boolean;
+}
+
 export default function AiConfigPage() {
   const [config, setConfig] = useState<AiConfigData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [showKey, setShowKey] = useState(false);
+  const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
+  const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({});
+  const [promptSavingKey, setPromptSavingKey] = useState<string | null>(null);
 
   // 表单状态
   const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
@@ -35,6 +49,7 @@ export default function AiConfigPage() {
 
   useEffect(() => {
     fetchConfig();
+    fetchPromptTemplates();
   }, []);
 
   async function fetchConfig() {
@@ -54,9 +69,22 @@ export default function AiConfigPage() {
     }
   }
 
+  async function fetchPromptTemplates() {
+    try {
+      const res = await fetch("/api/ai-config/prompts");
+      const data = await res.json();
+      const templates = Array.isArray(data.templates) ? data.templates : [];
+      setPromptTemplates(templates);
+      setPromptDrafts(Object.fromEntries(templates.map((template: PromptTemplate) => [template.key, template.content])));
+    } catch (err) {
+      console.error("加载提示词配置失败:", err);
+      toast.error("加载提示词配置失败");
+    }
+  }
+
   async function handleSave() {
     if (!apiKey && !config?.configured) {
-      alert("请输入 API Key");
+      toast.warning("请输入 API Key");
       return;
     }
 
@@ -76,13 +104,13 @@ export default function AiConfigPage() {
       if (res.ok) {
         setApiKey("");
         await fetchConfig();
-        alert("配置已保存");
+        toast.success("配置已保存");
       } else {
         const data = await res.json();
-        alert(`保存失败: ${data.error}`);
+        toast.error("保存失败", { description: data.error });
       }
-    } catch (err) {
-      alert("保存失败");
+    } catch {
+      toast.error("保存失败");
     } finally {
       setSaving(false);
     }
@@ -96,7 +124,7 @@ export default function AiConfigPage() {
       const data = await res.json();
       setTestResult(data);
       await fetchConfig(); // 刷新 lastTestedAt
-    } catch (err) {
+    } catch {
       setTestResult({ success: false, error: "请求失败" });
     } finally {
       setTesting(false);
@@ -112,8 +140,57 @@ export default function AiConfigPage() {
       setBaseUrl("https://api.openai.com/v1");
       setModel("gpt-4o");
       setTemperature(0.3);
+      toast.success("AI 配置已删除");
     } catch {
-      alert("删除失败");
+      toast.error("删除失败");
+    }
+  }
+
+  async function handleSavePrompt(key: string) {
+    const content = promptDrafts[key]?.trim() ?? "";
+    if (!content) {
+      toast.warning("提示词内容不能为空");
+      return;
+    }
+
+    setPromptSavingKey(key);
+    try {
+      const res = await fetch("/api/ai-config/prompts", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, content }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "保存提示词失败");
+      }
+      await fetchPromptTemplates();
+      toast.success("提示词已保存");
+    } catch (err) {
+      toast.error("保存提示词失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+    } finally {
+      setPromptSavingKey(null);
+    }
+  }
+
+  async function handleRestorePrompt(key: string) {
+    setPromptSavingKey(key);
+    try {
+      const res = await fetch("/api/ai-config/prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "恢复默认失败");
+      }
+      await fetchPromptTemplates();
+      toast.success("已恢复默认提示词");
+    } catch (err) {
+      toast.error("恢复默认失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+    } finally {
+      setPromptSavingKey(null);
     }
   }
 
@@ -266,6 +343,80 @@ export default function AiConfigPage() {
                 </Button>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">提示词配置</CardTitle>
+            <CardDescription>
+              自定义内容会优先生效；留空不会保存，运行异常时自动回退默认提示词。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground mb-2">可用变量</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
+                <span><code>{"{{title}}"}</code>：文章标题</span>
+                <span><code>{"{{sourceName}}"}</code>：来源名称</span>
+                <span><code>{"{{contentType}}"}</code>：内容类型</span>
+                <span><code>{"{{content}}"}</code>：文章正文</span>
+                <span><code>{"{{excerpt}}"}</code>：文章摘要</span>
+                <span><code>{"{{aiSummary}}"}</code>：已有 AI 摘要</span>
+                <span><code>{"{{aiCategories}}"}</code>：已有 AI 分类</span>
+                <span><code>{"{{aiQuotes}}"}</code>：已有 AI 金句</span>
+              </div>
+            </div>
+
+            {promptTemplates.length === 0 ? (
+              <p className="text-sm text-muted-foreground">暂无提示词模板</p>
+            ) : (
+              <div className="space-y-4">
+                {promptTemplates.map((template) => (
+                  <div key={template.key} className="rounded-md border p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{template.name}</p>
+                          {template.customized ? (
+                            <Badge variant="default" className="text-[10px]">已自定义</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px]">默认</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{template.description}</p>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRestorePrompt(template.key)}
+                          disabled={promptSavingKey === template.key}
+                        >
+                          恢复默认
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleSavePrompt(template.key)}
+                          disabled={promptSavingKey === template.key}
+                        >
+                          {promptSavingKey === template.key ? "保存中..." : "保存"}
+                        </Button>
+                      </div>
+                    </div>
+                    <Textarea
+                      value={promptDrafts[template.key] ?? ""}
+                      onChange={(event) => setPromptDrafts((prev) => ({
+                        ...prev,
+                        [template.key]: event.target.value,
+                      }))}
+                      rows={8}
+                      className="font-mono text-xs leading-relaxed"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

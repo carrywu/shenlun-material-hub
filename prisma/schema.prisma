@@ -246,6 +246,22 @@ model AiConfig {
   @@index([isEnabled])
 }
 
+model AiPromptTemplate {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  name           String
+  description    String?
+  content        String
+  defaultContent String?
+  enabled        Boolean  @default(true)
+  version        Int      @default(1)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@index([key])
+  @@index([enabled])
+}
+
 // P1-2: 文章批注
 model ArticleAnnotation {
   id            String   @id @default(cuid())

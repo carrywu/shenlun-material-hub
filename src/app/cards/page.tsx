@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaterialCardView } from "@/components/MaterialCard";
 import { BatchSyncToIma } from "@/components/SyncToIma";
+import { toast } from "sonner";
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,8 +20,8 @@ import {
   FileText,
   BookOpen,
   BarChart3,
-  GitCompare,
   Lightbulb,
+  Sparkles,
 } from "lucide-react";
 import type { CardType } from "@/types";
 
@@ -52,11 +53,15 @@ interface CardsResponse {
 
 const CARD_TYPE_TABS: { value: CardType | "all"; label: string; icon: React.ElementType }[] = [
   { value: "all", label: "全部", icon: FileText },
-  { value: "fact_summary", label: "事实摘要", icon: FileText },
-  { value: "argument_analysis", label: "论点分析", icon: BookOpen },
-  { value: "data_highlight", label: "数据亮点", icon: BarChart3 },
-  { value: "policy_compare", label: "政策对比", icon: GitCompare },
-  { value: "case_study", label: "案例研究", icon: Lightbulb },
+  { value: "golden_sentence", label: "申论金句", icon: Sparkles },
+  { value: "standard_expression", label: "规范词", icon: FileText },
+  { value: "case_material", label: "案例素材", icon: Lightbulb },
+  { value: "countermeasure", label: "对策表达", icon: BookOpen },
+  { value: "problem_statement", label: "问题表述", icon: BarChart3 },
+  { value: "reason_analysis", label: "原因分析", icon: BookOpen },
+  { value: "policy_expression", label: "政策表述", icon: FileText },
+  { value: "person_story", label: "人物事迹", icon: Lightbulb },
+  { value: "article_structure", label: "文章框架", icon: BookOpen },
 ];
 
 export default function CardsPage() {
@@ -118,9 +123,10 @@ export default function CardsPage() {
     try {
       const res = await fetch(`/api/material-cards/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("删除失败");
+      toast.success("素材卡已删除");
       fetchCards();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "删除失败");
+      toast.error("删除失败", { description: err instanceof Error ? err.message : "请稍后重试" });
     }
   }
 
@@ -134,9 +140,10 @@ export default function CardsPage() {
         body: JSON.stringify({ confirmed: !card.confirmed }),
       });
       if (!res.ok) throw new Error("操作失败");
+      toast.success(card.confirmed ? "已取消确认" : "已确认");
       fetchCards();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "操作失败");
+      toast.error("操作失败", { description: err instanceof Error ? err.message : "请稍后重试" });
     }
   }
 

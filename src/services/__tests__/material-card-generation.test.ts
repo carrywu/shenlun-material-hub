@@ -45,7 +45,7 @@ describe("material card generation normalization", () => {
     });
 
     const { generateCardForContentItem } = await importAi();
-    const card = await generateCardForContentItem("标题", "来源", "正文", "fact_summary");
+    const card = await generateCardForContentItem("标题", "来源", "正文", "golden_sentence");
 
     expect(card.originalFacts).toBe("事实");
     expect(card.originalFacts).not.toBe('"事实"');
@@ -57,7 +57,7 @@ describe("material card generation normalization", () => {
     });
 
     const { generateCardForContentItem } = await importAi();
-    const card = await generateCardForContentItem("标题", "来源", "正文", "fact_summary");
+    const card = await generateCardForContentItem("标题", "来源", "正文", "golden_sentence");
 
     expect(card.originalFacts).toContain('"facts"');
     expect(JSON.parse(card.originalFacts ?? "{}")).toEqual({ facts: ["A"] });
@@ -69,7 +69,7 @@ describe("material card generation normalization", () => {
     });
 
     const { generateCardForContentItem } = await importAi();
-    const card = await generateCardForContentItem("标题", "来源", "正文", "fact_summary");
+    const card = await generateCardForContentItem("标题", "来源", "正文", "golden_sentence");
 
     expect(JSON.parse(card.originalFacts ?? "[]")).toEqual(["事实1", "事实2"]);
   });
@@ -80,7 +80,7 @@ describe("material card generation normalization", () => {
     });
 
     const { generateCardForContentItem } = await importAi();
-    const card = await generateCardForContentItem("标题", "来源", "正文", "fact_summary");
+    const card = await generateCardForContentItem("标题", "来源", "正文", "golden_sentence");
 
     expect(card.sourceSnapshot).toBeNull();
     expect(card.originalFacts).toBeNull();
@@ -95,17 +95,29 @@ describe("material card generation normalization", () => {
 
     const { generateCardForContentItem, AiServiceError } = await importAi();
 
-    await expect(generateCardForContentItem("标题", "来源", "正文", "fact_summary")).rejects.toMatchObject({
+    await expect(generateCardForContentItem("标题", "来源", "正文", "golden_sentence")).rejects.toMatchObject({
       code: "AI_API_CALL_FAILED",
       status: 401,
       diagnostics: expect.objectContaining({ source: "env", keySuffix: "****1234", status: 401 }),
     });
 
     try {
-      await generateCardForContentItem("标题", "来源", "正文", "fact_summary");
+      await generateCardForContentItem("标题", "来源", "正文", "golden_sentence");
     } catch (err) {
       expect(err).toBeInstanceOf(AiServiceError);
       expect(JSON.stringify((err as Error & { diagnostics?: unknown }).diagnostics)).not.toContain("sk-test-secret");
     }
+  });
+
+  it("builds long AI content from the head and tail instead of only the head", async () => {
+    const { buildAiContent } = await importAi();
+    const content = `${"A".repeat(3000)}${"M".repeat(3000)}TAIL-END`;
+
+    const result = buildAiContent(content, 4000);
+
+    expect(result.length).toBeLessThanOrEqual(4020);
+    expect(result).toContain("A".repeat(100));
+    expect(result).toContain("TAIL-END");
+    expect(result).toContain("中间内容已省略");
   });
 });

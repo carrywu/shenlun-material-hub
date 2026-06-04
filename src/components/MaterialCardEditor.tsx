@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save } from "lucide-react";
-import type { CardType, CARD_TYPES } from "@/types";
+import type { CardType } from "@/types";
 
 interface MaterialCardEditorProps {
   initialData: {
@@ -36,11 +36,15 @@ interface MaterialCardEditorProps {
 }
 
 const CARD_TYPE_OPTIONS: { value: CardType; label: string }[] = [
-  { value: "fact_summary", label: "事实摘要" },
-  { value: "argument_analysis", label: "论点分析" },
-  { value: "data_highlight", label: "数据亮点" },
-  { value: "policy_compare", label: "政策对比" },
-  { value: "case_study", label: "案例研究" },
+  { value: "golden_sentence", label: "申论金句" },
+  { value: "standard_expression", label: "规范词" },
+  { value: "case_material", label: "案例素材" },
+  { value: "countermeasure", label: "对策表达" },
+  { value: "problem_statement", label: "问题表述" },
+  { value: "reason_analysis", label: "原因分析" },
+  { value: "policy_expression", label: "政策表述" },
+  { value: "person_story", label: "人物事迹" },
+  { value: "article_structure", label: "文章框架" },
 ];
 
 export function MaterialCardEditor({

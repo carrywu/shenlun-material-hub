@@ -26,7 +26,9 @@ export function RegionFilter({ value, onChange }: RegionFilterProps) {
       <span className="text-sm font-medium text-muted-foreground">地区:</span>
       <Select value={value} onValueChange={(v) => onChange(v ?? "all")}>
         <SelectTrigger className="h-8 w-[140px]">
-          <SelectValue />
+          <SelectValue>
+            {regions.find(r => r.value === value)?.label ?? value}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {regions.map((region) => (

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -87,6 +89,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function ExplorePage() {
+  const router = useRouter();
   const [items, setItems] = useState<ExploreItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -245,7 +248,9 @@ export default function ExplorePage() {
 
           <Select value={platform} onValueChange={(v) => { if (v) setPlatform(v); }}>
             <SelectTrigger className="w-32 h-8">
-              <SelectValue placeholder="平台" />
+              <SelectValue>
+                {platform === "all" ? "全部平台" : (PLATFORM_LABELS[platform] ?? platform)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部平台</SelectItem>
@@ -259,7 +264,9 @@ export default function ExplorePage() {
 
           <Select value={contentType} onValueChange={(v) => { if (v) setContentType(v); }}>
             <SelectTrigger className="w-36 h-8">
-              <SelectValue placeholder="内容类型" />
+              <SelectValue>
+                {contentType === "all" ? "全部类型" : (CONTENT_TYPE_LABELS[contentType] ?? contentType)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
@@ -301,7 +308,8 @@ export default function ExplorePage() {
               return (
                 <div
                   key={item.id}
-                  className={`border rounded-lg p-4 transition-colors ${
+                  onClick={() => router.push(`/articles/${item.id}`)}
+                  className={`border rounded-lg p-4 transition-colors cursor-pointer ${
                     isIgnored
                       ? "bg-muted/30 opacity-50"
                       : "bg-card hover:bg-accent/50"
@@ -310,15 +318,13 @@ export default function ExplorePage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <a
-                          href={item.originalUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium text-sm hover:underline flex items-center gap-1"
+                        <Link
+                          href={`/articles/${item.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium text-sm hover:underline text-slate-800"
                         >
                           {item.title}
-                          <ExternalLink className="h-3 w-3 shrink-0" />
-                        </a>
+                        </Link>
                       </div>
 
                       {item.excerpt && (
@@ -328,12 +334,13 @@ export default function ExplorePage() {
                       )}
 
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="text-[10px]" onClick={(e) => e.stopPropagation()}>
                           {item.source.name}
                         </Badge>
                         <Badge
                           variant="secondary"
                           className="text-[10px]"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           {CONTENT_TYPE_LABELS[item.contentType] ??
                             item.contentType}
@@ -349,6 +356,7 @@ export default function ExplorePage() {
                               ? "bg-yellow-100 text-yellow-800"
                               : ""
                           }`}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           {item.source.verificationStatus === "unverified"
                             ? "待核验"
@@ -356,12 +364,12 @@ export default function ExplorePage() {
                               ? "有争议"
                               : item.source.verificationStatus}
                         </Badge>
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="text-[10px]" onClick={(e) => e.stopPropagation()}>
                           {STATUS_LABELS[item.processingStatus] ??
                             item.processingStatus}
                         </Badge>
                         {item.publishedAt && (
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-[10px] text-muted-foreground" onClick={(e) => e.stopPropagation()}>
                             {new Date(item.publishedAt).toLocaleDateString(
                               "zh-CN"
                             )}
@@ -371,15 +379,28 @@ export default function ExplorePage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={item.originalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 border rounded bg-background hover:bg-muted/50 transition-colors h-7"
+                        onClick={(e) => e.stopPropagation()}
+                        title="查看外部原文"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        查看原文
+                      </a>
+
                       {!isSourceVerified && (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 px-2 text-xs"
-                          onClick={() =>
-                            handleVerifySource(item.source.id)
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleVerifySource(item.source.id);
+                          }}
                           title="核验来源"
                         >
                           <Check className="h-3.5 w-3.5 mr-1" />
@@ -389,7 +410,8 @@ export default function ExplorePage() {
                       {isSourceVerified && (
                         <Badge
                           variant="default"
-                          className="text-[10px] bg-green-600"
+                          className="text-[10px] bg-green-600 h-7 flex items-center"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           已核验
                         </Badge>
@@ -398,7 +420,10 @@ export default function ExplorePage() {
                         variant={isIgnored ? "default" : "ghost"}
                         size="sm"
                         className="h-7 w-7 p-0"
-                        onClick={() => toggleIgnore(item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleIgnore(item.id);
+                        }}
                         title="忽略"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -407,7 +432,10 @@ export default function ExplorePage() {
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0"
-                        onClick={() => handleGenerateCard(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGenerateCard(item);
+                        }}
                         disabled={generating === item.id}
                         title="生成素材卡"
                       >

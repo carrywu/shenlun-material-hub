@@ -55,11 +55,22 @@ const DOC_ROLE_LABELS: Record<string, string> = {
 };
 
 const CARD_TYPE_LABELS: Record<string, string> = {
-  fact_summary: "事实摘要",
-  argument_analysis: "论点分析",
-  data_highlight: "数据亮点",
-  policy_compare: "政策对比",
-  case_study: "案例研究",
+  golden_sentence: "申论金句",
+  standard_expression: "规范词",
+  case_material: "案例素材",
+  countermeasure: "对策表达",
+  problem_statement: "问题表述",
+  reason_analysis: "原因分析",
+  policy_expression: "政策表述",
+  data_fact: "案例素材",
+  person_story: "人物事迹",
+  article_structure: "文章框架",
+  // Legacy fallback
+  fact_summary: "案例素材",
+  argument_analysis: "原因分析",
+  data_highlight: "案例素材",
+  policy_compare: "政策表述",
+  case_study: "案例素材",
 };
 
 interface SyncRecordItem {
@@ -189,7 +200,9 @@ export default function SyncRecordsPage() {
             <label className="text-xs text-muted-foreground">状态</label>
             <Select value={statusFilter} onValueChange={(v) => { if (v) setStatusFilter(v); }}>
               <SelectTrigger className="w-32">
-                <SelectValue />
+                <SelectValue>
+                  {statusFilter === "all" ? "全部" : (STATUS_LABELS[statusFilter] ?? statusFilter)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部</SelectItem>
@@ -205,7 +218,9 @@ export default function SyncRecordsPage() {
             <label className="text-xs text-muted-foreground">文档角色</label>
             <Select value={roleFilter} onValueChange={(v) => { if (v) setRoleFilter(v); }}>
               <SelectTrigger className="w-32">
-                <SelectValue />
+                <SelectValue>
+                  {roleFilter === "all" ? "全部" : (DOC_ROLE_LABELS[roleFilter] ?? roleFilter)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部</SelectItem>

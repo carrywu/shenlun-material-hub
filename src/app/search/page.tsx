@@ -43,19 +43,34 @@ interface SearchCard {
 }
 
 const CARD_TYPES = [
-  "fact_summary",
-  "argument_analysis",
-  "data_highlight",
-  "policy_compare",
-  "case_study",
+  "golden_sentence",
+  "standard_expression",
+  "case_material",
+  "countermeasure",
+  "problem_statement",
+  "reason_analysis",
+  "policy_expression",
+  "person_story",
+  "article_structure",
 ];
 
 const CARD_TYPE_LABELS: Record<string, string> = {
-  fact_summary: "事实摘要",
-  argument_analysis: "论点分析",
-  data_highlight: "数据亮点",
-  policy_compare: "政策对比",
-  case_study: "案例研究",
+  golden_sentence: "申论金句",
+  standard_expression: "规范词",
+  case_material: "案例素材",
+  countermeasure: "对策表达",
+  problem_statement: "问题表述",
+  reason_analysis: "原因分析",
+  policy_expression: "政策表述",
+  data_fact: "案例素材",
+  person_story: "人物事迹",
+  article_structure: "文章框架",
+  // Legacy fallback
+  fact_summary: "案例素材",
+  argument_analysis: "原因分析",
+  data_highlight: "案例素材",
+  policy_compare: "政策表述",
+  case_study: "案例素材",
 };
 
 export default function SearchPage() {
@@ -201,7 +216,9 @@ export default function SearchPage() {
             onValueChange={(v) => setCardType(v === "all" || !v ? "" : v)}
           >
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="类型" />
+              <SelectValue>
+                {cardType === "" ? "全部类型" : (CARD_TYPE_LABELS[cardType] ?? cardType)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
@@ -222,7 +239,9 @@ export default function SearchPage() {
 
           <Select value={confirmed} onValueChange={(v) => { if (v) setConfirmed(v); }}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="状态" />
+              <SelectValue>
+                {confirmed === "all" ? "全部状态" : (confirmed === "true" ? "已确认" : "未确认")}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部状态</SelectItem>

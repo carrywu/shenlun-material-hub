@@ -106,11 +106,15 @@ export default async function DashboardPage() {
   ];
 
   const cardTypeConfig = [
-    { key: "fact_summary", label: "事实摘要", color: "bg-blue-500", light: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" },
-    { key: "argument_analysis", label: "论点分析", color: "bg-violet-500", light: "bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300" },
-    { key: "data_highlight", label: "数据亮点", color: "bg-emerald-500", light: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" },
-    { key: "policy_compare", label: "政策对比", color: "bg-orange-500", light: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" },
-    { key: "case_study", label: "案例研究", color: "bg-teal-500", light: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300" },
+    { key: "golden_sentence", label: "申论金句", color: "bg-yellow-500", light: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300" },
+    { key: "standard_expression", label: "规范词", color: "bg-blue-500", light: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" },
+    { key: "case_material", label: "案例素材", color: "bg-teal-500", light: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300" },
+    { key: "countermeasure", label: "对策表达", color: "bg-green-500", light: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" },
+    { key: "problem_statement", label: "问题表述", color: "bg-red-500", light: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300" },
+    { key: "reason_analysis", label: "原因分析", color: "bg-violet-500", light: "bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300" },
+    { key: "policy_expression", label: "政策表述", color: "bg-orange-500", light: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" },
+    { key: "person_story", label: "人物事迹", color: "bg-pink-500", light: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300" },
+    { key: "article_structure", label: "文章框架", color: "bg-indigo-500", light: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300" },
   ];
 
   const quickActions = [

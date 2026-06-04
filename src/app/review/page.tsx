@@ -40,19 +40,34 @@ interface ReviewCardData {
 }
 
 const CARD_TYPES = [
-  "fact_summary",
-  "argument_analysis",
-  "data_highlight",
-  "policy_compare",
-  "case_study",
+  "golden_sentence",
+  "standard_expression",
+  "case_material",
+  "countermeasure",
+  "problem_statement",
+  "reason_analysis",
+  "policy_expression",
+  "person_story",
+  "article_structure",
 ];
 
 const CARD_TYPE_LABELS: Record<string, string> = {
-  fact_summary: "事实摘要",
-  argument_analysis: "论点分析",
-  data_highlight: "数据亮点",
-  policy_compare: "政策对比",
-  case_study: "案例研究",
+  golden_sentence: "申论金句",
+  standard_expression: "规范词",
+  case_material: "案例素材",
+  countermeasure: "对策表达",
+  problem_statement: "问题表述",
+  reason_analysis: "原因分析",
+  policy_expression: "政策表述",
+  data_fact: "案例素材",
+  person_story: "人物事迹",
+  article_structure: "文章框架",
+  // Legacy fallback
+  fact_summary: "案例素材",
+  argument_analysis: "原因分析",
+  data_highlight: "案例素材",
+  policy_compare: "政策表述",
+  case_study: "案例素材",
 };
 
 export default function ReviewPage() {
@@ -197,7 +212,9 @@ export default function ReviewPage() {
         <div className="flex flex-wrap gap-2 items-center">
           <Select value={mode} onValueChange={(v) => { if (v) setMode(v); }}>
             <SelectTrigger className="w-36">
-              <SelectValue />
+              <SelectValue>
+                {modeLabels[mode] ?? mode}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="random">随机复习</SelectItem>
@@ -211,7 +228,9 @@ export default function ReviewPage() {
             onValueChange={(v) => setCardType(v === "all" || !v ? "" : v)}
           >
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="类型" />
+              <SelectValue>
+                {cardType === "" ? "全部类型" : (CARD_TYPE_LABELS[cardType] ?? cardType)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>

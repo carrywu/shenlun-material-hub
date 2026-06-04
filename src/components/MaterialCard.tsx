@@ -8,11 +8,10 @@ import {
   Edit3,
   FileText,
   BarChart3,
-  GitCompare,
   BookOpen,
   Lightbulb,
   Trash2,
-  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import type { CardType } from "@/types";
 
@@ -34,22 +33,110 @@ interface MaterialCardProps {
 }
 
 const CARD_TYPE_CONFIG: Record<
-  CardType,
+  string,
   { label: string; icon: React.ElementType; color: string }
 > = {
-  fact_summary: { label: "事实摘要", icon: FileText, color: "bg-blue-500" },
-  argument_analysis: { label: "论点分析", icon: BookOpen, color: "bg-purple-500" },
-  data_highlight: { label: "数据亮点", icon: BarChart3, color: "bg-green-500" },
-  policy_compare: { label: "政策对比", icon: GitCompare, color: "bg-orange-500" },
-  case_study: { label: "案例研究", icon: Lightbulb, color: "bg-teal-500" },
+  golden_sentence: { label: "申论金句", icon: Sparkles, color: "bg-yellow-500" },
+  standard_expression: { label: "规范词", icon: FileText, color: "bg-blue-500" },
+  case_material: { label: "案例素材", icon: Lightbulb, color: "bg-teal-500" },
+  countermeasure: { label: "对策表达", icon: BookOpen, color: "bg-green-500" },
+  problem_statement: { label: "问题表述", icon: BarChart3, color: "bg-red-500" },
+  reason_analysis: { label: "原因分析", icon: BookOpen, color: "bg-purple-500" },
+  policy_expression: { label: "政策表述", icon: FileText, color: "bg-orange-500" },
+  data_fact: { label: "案例素材", icon: Lightbulb, color: "bg-teal-500" },
+  person_story: { label: "人物事迹", icon: Lightbulb, color: "bg-pink-500" },
+  article_structure: { label: "文章框架", icon: BookOpen, color: "bg-indigo-500" },
+  // Legacy fallback
+  fact_summary: { label: "案例素材", icon: Lightbulb, color: "bg-teal-500" },
+  argument_analysis: { label: "原因分析", icon: BookOpen, color: "bg-purple-500" },
+  data_highlight: { label: "案例素材", icon: Lightbulb, color: "bg-teal-500" },
+  policy_compare: { label: "政策表述", icon: FileText, color: "bg-orange-500" },
+  case_study: { label: "案例素材", icon: Lightbulb, color: "bg-teal-500" },
+};
+
+import { AI_FIELD_LABELS } from "@/lib/display-labels";
+
+function formatAiValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value, null, 2);
+}
+
+function renderObjectEntries(item: Record<string, unknown>) {
+  const knownEntries = Object.entries(item).filter(([key]) => AI_FIELD_LABELS[key]);
+  const unknownEntries = Object.entries(item).filter(([key]) => !AI_FIELD_LABELS[key]);
+  const entries = [
+    ...knownEntries,
+    ...(unknownEntries.length > 0 ? [["otherInfo", unknownEntries.map(([, value]) => formatAiValue(value)).filter(Boolean).join("\n")]] as [string, unknown][] : []),
+  ];
+
+  return entries.map(([k, v]) => (
+    <div key={k} className="grid grid-cols-[80px_1fr] gap-2 border-b border-muted last:border-b-0 pb-1.5 last:pb-0">
+      <span className="font-semibold text-muted-foreground">{k === "otherInfo" ? "其他信息" : AI_FIELD_LABELS[k]}：</span>
+      <span className="text-foreground whitespace-pre-wrap">{formatAiValue(v)}</span>
+    </div>
+  ));
+}
+
+function renderContent(content: string) {
+  if (!content) return null;
+  const trimmed = content.trim();
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return (
+          <div className="space-y-3 mt-1.5">
+            {parsed.map((item, idx) => (
+              <div key={idx} className="p-2.5 rounded-md bg-white dark:bg-muted/20 border border-border/60 text-xs space-y-1.5 shadow-sm">
+                {typeof item === "object" && item !== null ? (
+                  renderObjectEntries(item as Record<string, unknown>)
+                ) : (
+                  <span className="text-foreground whitespace-pre-wrap">{String(item)}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      } else if (typeof parsed === "object" && parsed !== null) {
+        return (
+          <div className="p-2.5 rounded-md bg-white dark:bg-muted/20 border border-border/60 text-xs space-y-1.5 mt-1.5 shadow-sm">
+            {renderObjectEntries(parsed as Record<string, unknown>)}
+          </div>
+        );
+      }
+    } catch {
+      // Fallback
+    }
+  }
+  return <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>;
+}
+
+const COLOR_THEMES: Record<string, { border: string; bg: string; text: string; bar: string }> = {
+  "来源快照": { border: "border-blue-100 dark:border-blue-900/40", bg: "bg-blue-50/40 dark:bg-blue-950/10", text: "text-blue-900 dark:text-blue-200", bar: "bg-blue-500" },
+  "原始事实": { border: "border-slate-200 dark:border-slate-800", bg: "bg-slate-50/50 dark:bg-slate-900/10", text: "text-slate-900 dark:text-slate-200", bar: "bg-slate-500" },
+  "亮点建议": { border: "border-amber-100 dark:border-amber-900/40", bg: "bg-amber-50/40 dark:bg-amber-950/10", text: "text-amber-900 dark:text-amber-200", bar: "bg-amber-505 bg-amber-500" },
+  "迁移建议": { border: "border-purple-100 dark:border-purple-900/40", bg: "bg-purple-50/40 dark:bg-purple-950/10", text: "text-purple-900 dark:text-purple-200", bar: "bg-purple-500" },
+  "默认": { border: "border-gray-200 dark:border-gray-800", bg: "bg-gray-50/40 dark:bg-gray-900/10", text: "text-gray-900 dark:text-gray-200", bar: "bg-gray-500" },
 };
 
 function SectionBlock({ label, content }: { label: string; content: string }) {
   if (!content) return null;
+  const theme = COLOR_THEMES[label] ?? COLOR_THEMES["默认"];
+  
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>
+    <div className={`p-3 rounded-lg border ${theme.border} ${theme.bg} space-y-2`}>
+      <div className="flex items-center gap-2">
+        <span className={`w-1 h-3.5 rounded-full ${theme.bar}`} />
+        <h4 className={`text-xs font-semibold tracking-wide ${theme.text}`}>{label}</h4>
+      </div>
+      <div className="pl-3">
+        {renderContent(content)}
+      </div>
     </div>
   );
 }
@@ -70,7 +157,7 @@ export function MaterialCardView({
   onDelete,
   onConfirm,
 }: MaterialCardProps) {
-  const config = CARD_TYPE_CONFIG[cardType] ?? CARD_TYPE_CONFIG.fact_summary;
+  const config = CARD_TYPE_CONFIG[cardType] ?? CARD_TYPE_CONFIG.golden_sentence;
   const Icon = config.icon;
 
   return (
@@ -164,15 +251,7 @@ export function MaterialCardView({
 
         {/* Transfer Suggestions */}
         {transferSuggestions && (
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <ArrowRight className="h-3 w-3" />
-              迁移建议
-            </p>
-            <p className="text-sm whitespace-pre-wrap leading-relaxed text-muted-foreground">
-              {transferSuggestions}
-            </p>
-          </div>
+          <SectionBlock label="迁移建议" content={transferSuggestions} />
         )}
       </CardContent>
     </Card>

@@ -17,10 +17,11 @@ import {
   FileText,
   BookOpen,
   BarChart3,
-  GitCompare,
   Lightbulb,
+  Sparkles,
 } from "lucide-react";
 import type { CardType } from "@/types";
+import { CONTENT_TYPE_LABELS, PLATFORM_LABELS } from "@/lib/display-labels";
 
 interface CardDetail {
   id: string;
@@ -55,14 +56,25 @@ interface CardDetail {
 }
 
 const CARD_TYPE_CONFIG: Record<
-  CardType,
+  string,
   { label: string; icon: React.ElementType; color: string }
 > = {
-  fact_summary: { label: "事实摘要", icon: FileText, color: "bg-blue-500" },
-  argument_analysis: { label: "论点分析", icon: BookOpen, color: "bg-purple-500" },
-  data_highlight: { label: "数据亮点", icon: BarChart3, color: "bg-green-500" },
-  policy_compare: { label: "政策对比", icon: GitCompare, color: "bg-orange-500" },
-  case_study: { label: "案例研究", icon: Lightbulb, color: "bg-teal-500" },
+  golden_sentence: { label: "申论金句", icon: Sparkles, color: "bg-yellow-500" },
+  standard_expression: { label: "规范词", icon: FileText, color: "bg-blue-500" },
+  case_material: { label: "案例素材", icon: Lightbulb, color: "bg-teal-500" },
+  countermeasure: { label: "对策表达", icon: BookOpen, color: "bg-green-500" },
+  problem_statement: { label: "问题表述", icon: BarChart3, color: "bg-red-500" },
+  reason_analysis: { label: "原因分析", icon: BookOpen, color: "bg-purple-500" },
+  policy_expression: { label: "政策表述", icon: FileText, color: "bg-orange-500" },
+  data_fact: { label: "案例素材", icon: Lightbulb, color: "bg-teal-500" },
+  person_story: { label: "人物事迹", icon: Lightbulb, color: "bg-pink-500" },
+  article_structure: { label: "文章框架", icon: BookOpen, color: "bg-indigo-500" },
+  // Legacy fallback
+  fact_summary: { label: "案例素材", icon: Lightbulb, color: "bg-teal-500" },
+  argument_analysis: { label: "原因分析", icon: BookOpen, color: "bg-purple-500" },
+  data_highlight: { label: "案例素材", icon: Lightbulb, color: "bg-teal-500" },
+  policy_compare: { label: "政策表述", icon: FileText, color: "bg-orange-500" },
+  case_study: { label: "案例素材", icon: Lightbulb, color: "bg-teal-500" },
 };
 
 export default function CardDetailPage() {
@@ -153,7 +165,7 @@ export default function CardDetailPage() {
     );
   }
 
-  const config = CARD_TYPE_CONFIG[card.cardType] ?? CARD_TYPE_CONFIG.fact_summary;
+  const config = CARD_TYPE_CONFIG[card.cardType] ?? CARD_TYPE_CONFIG.golden_sentence;
   const TypeIcon = config.icon;
 
   return (
@@ -301,10 +313,10 @@ export default function CardDetailPage() {
                       </Badge>
                     )}
                     <Badge variant="secondary" className="text-xs">
-                      {card.contentItem.contentType}
+                      {CONTENT_TYPE_LABELS[card.contentItem.contentType] ?? card.contentItem.contentType}
                     </Badge>
                     <Badge variant="secondary" className="text-xs">
-                      {card.contentItem.platform}
+                      {PLATFORM_LABELS[card.contentItem.platform] ?? card.contentItem.platform}
                     </Badge>
                   </div>
                   <a

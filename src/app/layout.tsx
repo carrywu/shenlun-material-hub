@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { FileText, Home, Layers, CreditCard, Search, RotateCcw, Rss, Compass, Sparkles, History, Trash2, Settings } from "lucide-react";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "申论素材采集台",
@@ -30,6 +31,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
+        <Toaster position="top-right" richColors />
         {/* Top navigation */}
         <header className="border-b bg-card">
           <div className="flex h-12 items-center px-6 gap-6">

@@ -31,7 +31,9 @@ export function TopicFilter({ value, onChange }: TopicFilterProps) {
       <span className="text-sm font-medium text-muted-foreground">主题:</span>
       <Select value={value} onValueChange={(v) => onChange(v ?? "all")}>
         <SelectTrigger className="h-8 w-[140px]">
-          <SelectValue />
+          <SelectValue>
+            {topics.find(t => t.value === value)?.label ?? value}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {topics.map((topic) => (

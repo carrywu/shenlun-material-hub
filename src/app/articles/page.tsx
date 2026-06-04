@@ -26,6 +26,7 @@ import { ArticleDetail } from "@/components/ArticleDetail";
 import { Pagination } from "@/components/ui/pagination";
 import { RefreshCw, Search, Play, Brain, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface ContentItemData {
   id: string;
@@ -216,7 +217,7 @@ export default function ArticlesPage() {
       : items.filter((i) => i.qualityStatus === "candidate" && !i.aiDecision).map((i) => i.id);
 
     if (idsToAssess.length === 0) {
-      alert("没有可评估的条目");
+      toast.warning("没有可评估的条目", { description: "请先选择或确保有候选条目" });
       return;
     }
 
@@ -248,35 +249,71 @@ export default function ArticlesPage() {
     if (selected.size === 0) return;
 
     setGenerating(true);
-    setGenerateProgress(`正在为 ${selected.size} 个内容条目生成素材卡...`);
+    const selectedItems = items.filter((item) => selected.has(item.id));
+    const acceptedItems = selectedItems.filter((item) => item.aiDecision === "accept");
+    const skippedCount = selectedItems.length - acceptedItems.length;
+    let successCount = 0;
+    let existedCount = 0;
+    let failedCount = 0;
+
+    setGenerateProgress(`正在为 ${acceptedItems.length} 篇已通过评估的文章生成素材卡...`);
 
     try {
-      const res = await fetch("/api/material-cards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentItemIds: Array.from(selected) }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "生成失败");
+      if (acceptedItems.length === 0) {
+        setGenerateProgress(`已跳过 ${skippedCount} 篇：需先通过 AI 评估`);
+        toast.warning("没有可生成的文章", { description: "请先选择已通过 AI 评估的文章" });
+        return;
       }
 
-      const result = await res.json();
+      for (const [index, item] of acceptedItems.entries()) {
+        setGenerateProgress(`正在生成 ${index + 1} / ${acceptedItems.length}：${item.title}`);
+        const res = await fetch(`/api/content-items/${item.id}/generate-card`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cardType: "golden_sentence" }),
+        });
+
+        if (res.status === 409) {
+          existedCount += 1;
+          continue;
+        }
+
+        if (!res.ok) {
+          failedCount += 1;
+          continue;
+        }
+
+        successCount += 1;
+      }
+
       setGenerateProgress(
-        `生成完成：成功 ${result.success} 张，失败 ${result.failed} 张`
+        `生成完成：成功 ${successCount} 张，已存在 ${existedCount} 张，跳过 ${skippedCount} 篇，失败 ${failedCount} 篇`
       );
 
       setSelected(new Set());
       fetchItems();
 
+      if (successCount > 0) {
+        toast.success("批量生成完成", {
+          description: `成功 ${successCount} 张，已存在 ${existedCount} 张，跳过 ${skippedCount} 篇，失败 ${failedCount} 篇`,
+        });
+      } else if (failedCount > 0) {
+        toast.error("批量生成未完成", {
+          description: `已存在 ${existedCount} 张，跳过 ${skippedCount} 篇，失败 ${failedCount} 篇`,
+        });
+      } else {
+        toast.info("没有新生成的素材卡", {
+          description: `已存在 ${existedCount} 张，跳过 ${skippedCount} 篇`,
+        });
+      }
+
       setTimeout(() => {
         setGenerateProgress(null);
-        router.push("/cards");
+        if (successCount > 0) router.push("/cards");
       }, 2000);
     } catch (err) {
       setGenerateProgress(null);
-      alert("素材卡生成失败，请稍后重试");
+      toast.error("素材卡生成失败", { description: err instanceof Error ? err.message : "请稍后重试" });
     } finally {
       setGenerating(false);
     }
@@ -290,7 +327,7 @@ export default function ArticlesPage() {
       <div className="border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">内容列表</h1>
+            <h1 className="text-xl font-semibold">文章列表</h1>
             <p className="text-sm text-muted-foreground">
               管理采集的内容条目，AI 评估后生成素材卡
             </p>
@@ -351,7 +388,9 @@ export default function ArticlesPage() {
           </div>
           <Select value={qualityStatus} onValueChange={(v) => { if (v) setQualityStatus(v); }}>
             <SelectTrigger className="w-28 h-8">
-              <SelectValue placeholder="质量" />
+              <SelectValue>
+                {QUALITY_STATUS_OPTIONS.find(o => o.value === qualityStatus)?.label ?? "质量"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {QUALITY_STATUS_OPTIONS.map((opt) => (
@@ -363,7 +402,9 @@ export default function ArticlesPage() {
           </Select>
           <Select value={aiDecision} onValueChange={(v) => { if (v) setAiDecision(v); }}>
             <SelectTrigger className="w-28 h-8">
-              <SelectValue placeholder="AI" />
+              <SelectValue>
+                {AI_DECISION_OPTIONS.find(o => o.value === aiDecision)?.label ?? "AI"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {AI_DECISION_OPTIONS.map((opt) => (
@@ -375,7 +416,9 @@ export default function ArticlesPage() {
           </Select>
           <Select value={sortBy} onValueChange={(v) => { if (v) setSortBy(v); }}>
             <SelectTrigger className="w-28 h-8">
-              <SelectValue placeholder="排序" />
+              <SelectValue>
+                {sortBy === "createdAt" ? "按时间" : sortBy === "aiScore" ? "按评分" : sortBy === "effectiveTextLength" ? "按字数" : "排序"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="createdAt">按时间</SelectItem>

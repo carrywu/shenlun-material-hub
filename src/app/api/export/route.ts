@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
 const CARD_TYPE_LABELS: Record<string, string> = {
-  fact_summary: "事实摘要",
+  fact_summary: "案例素材",
   argument_analysis: "论点分析",
-  data_highlight: "数据亮点",
+  data_highlight: "案例素材",
   policy_compare: "政策对比",
   case_study: "案例研究",
 };

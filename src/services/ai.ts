@@ -46,6 +46,21 @@ export class AiServiceError extends Error {
 
 let cachedRuntime: AiRuntime | null = null;
 
+export function buildAiContent(content: string, maxLength = 4000): string {
+  if (content.length <= maxLength) return content;
+
+  const omission = "\n\n……中间内容已省略……\n\n";
+  const availableLength = Math.max(0, maxLength - omission.length);
+  const headLength = Math.floor(availableLength * 0.7);
+  const tailLength = availableLength - headLength;
+
+  return [
+    content.slice(0, headLength),
+    omission,
+    content.slice(-tailLength),
+  ].join("");
+}
+
 /**
  * 清除 AI 配置缓存（配置更新后调用）。
  * getAiRuntime 同时使用配置版本 cacheKey 自动换 client；reset 只是让 POST/DELETE 后立即生效。
@@ -316,6 +331,12 @@ export async function assessRelevance(
 ): Promise<RelevanceResult> {
   const runtime = await getAiRuntime();
   const temperature = await getTemperature();
+  const systemPrompt = renderPromptTemplate(await getPromptTemplate("article_evaluation"), {
+    title,
+    sourceName,
+    contentType,
+    content: buildAiContent(content),
+  });
 
   const userPrompt = `请评估以下文章是否适合作为申论备考素材：
 
@@ -323,12 +344,12 @@ export async function assessRelevance(
 【来源】${sourceName}
 【内容类型】${contentType}
 【正文】
-${content.slice(0, 4000)}`;
+${buildAiContent(content)}`;
 
   const completion = await createChatCompletion(runtime, {
     model: runtime.model,
     messages: [
-      { role: "system", content: RELEVANCE_SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
     temperature,
@@ -452,7 +473,7 @@ export async function scoreContentItem(
 【来源】${sourceName}
 【内容类型】${contentType}
 【正文】
-${content.slice(0, 4000)}`;
+${buildAiContent(content)}`;
 
   const completion = await createChatCompletion(runtime, {
     model: runtime.model,
@@ -509,66 +530,219 @@ ${content.slice(0, 4000)}`;
 // ==================== 素材卡生成 ====================
 
 const CARD_TYPE_PROMPTS: Record<CardType, string> = {
-  fact_summary: `你是一位资深的申论辅导专家，擅长从官方文章中提炼核心事实。
-请分析文章，提取关键事实和数据，生成事实摘要卡。
+  golden_sentence: `你是一位资深的申论辅导专家，擅长提炼申论写作金句。
+请从文章中提取可用于申论写作开头、结尾、分论点升华的金句和精彩表达。
 
 返回 JSON：
 {
   "sourceSnapshot": "来源信息摘要（标题+来源+时间）",
-  "originalFacts": "从文章中提取的原始关键事实，分条列出，保留具体数据",
-  "aiSummary": "AI 对核心事实的精炼概括，200字以内",
-  "highlightSuggestions": "值得高亮的关键数据点和事实要点",
-  "transferSuggestions": "这些事实可迁移使用的申论话题和场景"
+  "originalFacts": "文章中的原始金句，逐条列出，标注出处段落",
+  "aiSummary": "这些金句的修辞特点和表达技巧分析",
+  "highlightSuggestions": "最值得背诵的金句及其适用场景（开头/结尾/分论点）",
+  "transferSuggestions": "这些金句可迁移使用的申论话题和写作场景"
 }`,
 
-  argument_analysis: `你是一位资深的申论辅导专家，擅长分析论证逻辑。
-请分析文章的论证结构，提取论点、论据和论证方法。
+  standard_expression: `你是一位资深的申论辅导专家，擅长提炼政府材料规范表达。
+请从文章中提取政府材料中的规范表达、固定搭配和常用句式。
 
 返回 JSON：
 {
   "sourceSnapshot": "来源信息摘要",
-  "originalFacts": "文章的核心论点和支撑论据",
-  "aiSummary": "论证逻辑的结构化分析",
-  "highlightSuggestions": "值得重点关注的论证手法和修辞技巧",
-  "transferSuggestions": "可迁移的论证模式和适用于哪些申论题型"
+  "originalFacts": "规范表达逐条列出，标注原文语境",
+  "aiSummary": "这些规范表达的使用场景和语体特点",
+  "highlightSuggestions": "最常用、最值得掌握的规范表达",
+  "transferSuggestions": "这些规范表达可替换的口语化表述，及适用的申论题型"
 }`,
 
-  data_highlight: `你是一位资深的申论辅导专家，擅长提炼数据亮点。
-请从文章中提取所有数据、统计、比例等量化信息。
+  case_material: `你是一位资深的申论辅导专家，擅长提炼治理案例素材。
+请从文章中提取可引用的治理案例、地方实践和典型做法。
 
 返回 JSON：
 {
   "sourceSnapshot": "来源信息摘要",
-  "originalFacts": "文章中的所有数据点，标注出处和含义",
-  "aiSummary": "数据背后反映的趋势和问题",
-  "highlightSuggestions": "最具说服力的数据亮点及其使用场景",
-  "transferSuggestions": "这些数据可支撑的论点和适用的申论话题"
-}`,
-
-  policy_compare: `你是一位资深的申论辅导专家，擅长政策对比分析。
-请分析文章涉及的政策内容，提炼政策要点并进行对比分析。
-
-返回 JSON：
-{
-  "sourceSnapshot": "来源信息摘要",
-  "originalFacts": "涉及的政策名称、核心内容、实施范围",
-  "aiSummary": "政策的创新点和与既有政策的对比",
-  "highlightSuggestions": "政策亮点和值得关注的实施细则",
-  "transferSuggestions": "可迁移到其他政策话题的分析框架"
-}`,
-
-  case_study: `你是一位资深的申论辅导专家，擅长提炼案例素材。
-请从文章中提取具体案例，分析其要素和可迁移价值。
-
-返回 JSON：
-{
-  "sourceSnapshot": "来源信息摘要",
-  "originalFacts": "案例的核心要素：主体、行为、结果、影响",
-  "aiSummary": "案例的典型意义和启示",
+  "originalFacts": "案例核心要素：地区/主体、具体做法、成效数据、创新点",
+  "aiSummary": "案例的典型意义和治理启示",
   "highlightSuggestions": "案例中值得引用的具体细节和数据",
-  "transferSuggestions": "该案例可应用于哪些申论主题和题型"
+  "transferSuggestions": "该案例可应用于哪些申论主题（如基层治理、乡村振兴、数字政府等）"
+}`,
+
+  countermeasure: `你是一位资深的申论辅导专家，擅长提炼对策表达。
+请从文章中提取对策、措施、做法相关的表达，适用于对策题和议论文对策段。
+
+返回 JSON：
+{
+  "sourceSnapshot": "来源信息摘要",
+  "originalFacts": "对策逐条列出，保留原文规范表述",
+  "aiSummary": "对策的逻辑层次（制度/技术/宣传/监督等）",
+  "highlightSuggestions": "最具操作性的对策表达",
+  "transferSuggestions": "这些对策可迁移的话题和申论题型"
+}`,
+
+  problem_statement: `你是一位资深的申论辅导专家，擅长提炼问题表述。
+请从文章中提取社会问题、治理难点的标准化表述。
+
+返回 JSON：
+{
+  "sourceSnapshot": "来源信息摘要",
+  "originalFacts": "问题表述逐条列出，保留原文用语",
+  "aiSummary": "问题的本质、影响范围和严重程度分析",
+  "highlightSuggestions": "最精准、最有概括力的问题表述",
+  "transferSuggestions": "这些问题表述可应用于哪些申论主题和写作场景"
+}`,
+
+  reason_analysis: `你是一位资深的申论辅导专家，擅长提炼原因分析表达。
+请从文章中提取问题原因分析的相关表达。
+
+返回 JSON：
+{
+  "sourceSnapshot": "来源信息摘要",
+  "originalFacts": "原因分析逐条列出（主观/客观、直接/根本等层次）",
+  "aiSummary": "原因分析的逻辑框架和层次结构",
+  "highlightSuggestions": "最值得学习的原因分析表达方式",
+  "transferSuggestions": "这些原因分析可迁移的话题和申论题型"
+}`,
+
+  policy_expression: `你是一位资深的申论辅导专家，擅长提炼政策表述。
+请从文章中提取政策、会议、文件中的规范说法和权威表述。
+
+返回 JSON：
+{
+  "sourceSnapshot": "来源信息摘要",
+  "originalFacts": "政策表述逐条列出，标注政策名称和出处",
+  "aiSummary": "政策的核心要义和关键变化",
+  "highlightSuggestions": "最权威、最值得引用的政策表述",
+  "transferSuggestions": "这些政策表述可应用于哪些申论话题"
+}`,
+
+  person_story: `你是一位资深的申论辅导专家，擅长提炼人物事迹素材。
+请从文章中提取先进人物、基层干部、群众故事等人物素材。
+
+返回 JSON：
+{
+  "sourceSnapshot": "来源信息摘要",
+  "originalFacts": "人物事迹核心要素：人物身份、具体事迹、精神品质、社会影响",
+  "aiSummary": "人物事迹的时代意义和精神价值",
+  "highlightSuggestions": "最感人、最有代表性的事迹细节",
+  "transferSuggestions": "这些人物素材可应用于哪些申论主题（如奉献、担当、创新等）"
+}`,
+
+  article_structure: `你是一位资深的申论辅导专家，擅长分析文章框架结构。
+请分析文章的整体结构，提炼可复用的文章框架、标题和分论点组织方式。
+
+返回 JSON：
+{
+  "sourceSnapshot": "来源信息摘要",
+  "originalFacts": "文章结构拆解：标题、开头方式、分论点数量和逻辑、结尾方式",
+  "aiSummary": "文章结构的特点和写作技巧",
+  "highlightSuggestions": "最值得借鉴的结构模式和标题句式",
+  "transferSuggestions": "该框架可应用于哪些申论题型和话题"
 }`,
 };
+
+export type PromptTemplateKey =
+  | "article_evaluation"
+  | "card_golden_sentence"
+  | "card_standard_expression"
+  | "card_case_material"
+  | "card_countermeasure"
+  | "card_problem_statement"
+  | "card_reason_analysis"
+  | "card_policy_expression"
+  | "card_person_story"
+  | "card_article_structure";
+
+export const CARD_TYPE_PROMPT_KEYS: Record<CardType, PromptTemplateKey> = {
+  golden_sentence: "card_golden_sentence",
+  standard_expression: "card_standard_expression",
+  case_material: "card_case_material",
+  countermeasure: "card_countermeasure",
+  problem_statement: "card_problem_statement",
+  reason_analysis: "card_reason_analysis",
+  policy_expression: "card_policy_expression",
+  person_story: "card_person_story",
+  article_structure: "card_article_structure",
+};
+
+export const DEFAULT_PROMPT_TEMPLATES: Record<PromptTemplateKey, string> = {
+  article_evaluation: RELEVANCE_SYSTEM_PROMPT,
+  card_golden_sentence: CARD_TYPE_PROMPTS.golden_sentence,
+  card_standard_expression: CARD_TYPE_PROMPTS.standard_expression,
+  card_case_material: CARD_TYPE_PROMPTS.case_material,
+  card_countermeasure: CARD_TYPE_PROMPTS.countermeasure,
+  card_problem_statement: CARD_TYPE_PROMPTS.problem_statement,
+  card_reason_analysis: CARD_TYPE_PROMPTS.reason_analysis,
+  card_policy_expression: CARD_TYPE_PROMPTS.policy_expression,
+  card_person_story: CARD_TYPE_PROMPTS.person_story,
+  card_article_structure: CARD_TYPE_PROMPTS.article_structure,
+};
+
+export const PROMPT_TEMPLATE_DEFINITIONS: Array<{
+  key: PromptTemplateKey;
+  name: string;
+  description: string;
+}> = [
+  { key: "article_evaluation", name: "文章评估提示词", description: "判断文章是否适合作为申论素材" },
+  { key: "card_golden_sentence", name: "申论金句提示词", description: "提炼可背诵和迁移的申论金句" },
+  { key: "card_standard_expression", name: "规范词提示词", description: "提炼政府材料规范表达" },
+  { key: "card_case_material", name: "案例素材提示词", description: "提炼治理案例、地方实践和典型做法" },
+  { key: "card_countermeasure", name: "对策表达提示词", description: "提炼措施、做法和对策表达" },
+  { key: "card_problem_statement", name: "问题表述提示词", description: "提炼治理难点和问题表述" },
+  { key: "card_reason_analysis", name: "原因分析提示词", description: "提炼原因分析表达和逻辑框架" },
+  { key: "card_policy_expression", name: "政策表述提示词", description: "提炼政策、会议、文件权威表述" },
+  { key: "card_person_story", name: "人物事迹提示词", description: "提炼先进人物和基层故事素材" },
+  { key: "card_article_structure", name: "文章框架提示词", description: "提炼文章结构、标题和分论点组织方式" },
+];
+
+function isPromptTemplateKey(key: string): key is PromptTemplateKey {
+  return Object.prototype.hasOwnProperty.call(DEFAULT_PROMPT_TEMPLATES, key);
+}
+
+export function assertPromptTemplateKey(key: string): PromptTemplateKey {
+  if (!isPromptTemplateKey(key)) {
+    throw new Error("无效的提示词类型");
+  }
+  return key;
+}
+
+export async function getPromptTemplate(key: PromptTemplateKey): Promise<string> {
+  const fallback = DEFAULT_PROMPT_TEMPLATES[key];
+  const promptClient = (db as unknown as {
+    aiPromptTemplate?: {
+      findUnique: (args: {
+        where: { key: string };
+        select: { content: true; enabled: true };
+      }) => Promise<{ content: string; enabled: boolean } | null>;
+    };
+  }).aiPromptTemplate;
+
+  if (!promptClient) return fallback;
+
+  try {
+    const custom = await promptClient.findUnique({
+      where: { key },
+      select: { content: true, enabled: true },
+    });
+    const content = custom?.enabled ? custom.content.trim() : "";
+    return content || fallback;
+  } catch (error) {
+    console.error("读取 AI 提示词失败，已回退默认提示词", {
+      key,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return fallback;
+  }
+}
+
+export function renderPromptTemplate(
+  template: string,
+  variables: Record<string, string | string[] | null | undefined>
+): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
+    const value = variables[key];
+    if (Array.isArray(value)) return value.join("、");
+    return value ?? "";
+  });
+}
 
 export interface AIGeneratedCardData {
   sourceSnapshot: string | null;
@@ -585,14 +759,19 @@ export async function generateCardForContentItem(
   cardType: CardType
 ): Promise<AIGeneratedCardData> {
   const runtime = await getAiRuntime();
-  const systemPrompt = CARD_TYPE_PROMPTS[cardType];
+  const aiContent = buildAiContent(content);
+  const systemPrompt = renderPromptTemplate(await getPromptTemplate(CARD_TYPE_PROMPT_KEYS[cardType]), {
+    title,
+    sourceName,
+    content: aiContent,
+  });
 
   const userPrompt = `请分析以下文章，生成素材卡：
 
 【标题】${title}
 【来源】${sourceName}
 【正文】
-${content.slice(0, 4000)}`;
+${aiContent}`;
 
   const completion = await createChatCompletion(runtime, {
     model: runtime.model,

@@ -23,8 +23,8 @@ import {
   FileText,
   BookOpen,
   BarChart3,
-  GitCompare,
   Lightbulb,
+  Sparkles,
 } from "lucide-react";
 import type { CardType } from "@/types";
 import { formatApiErrorMessage, type ApiErrorPayload } from "@/lib/api-error";
@@ -51,15 +51,19 @@ interface ContentItemDetailProps {
 }
 
 const CARD_TYPE_OPTIONS: { value: CardType; label: string; icon: React.ElementType }[] = [
-  { value: "fact_summary", label: "事实摘要", icon: FileText },
-  { value: "argument_analysis", label: "论点分析", icon: BookOpen },
-  { value: "data_highlight", label: "数据亮点", icon: BarChart3 },
-  { value: "policy_compare", label: "政策对比", icon: GitCompare },
-  { value: "case_study", label: "案例研究", icon: Lightbulb },
+  { value: "golden_sentence", label: "申论金句", icon: Sparkles },
+  { value: "standard_expression", label: "规范词", icon: FileText },
+  { value: "case_material", label: "案例素材", icon: Lightbulb },
+  { value: "countermeasure", label: "对策表达", icon: BookOpen },
+  { value: "problem_statement", label: "问题表述", icon: BarChart3 },
+  { value: "reason_analysis", label: "原因分析", icon: BookOpen },
+  { value: "policy_expression", label: "政策表述", icon: FileText },
+  { value: "person_story", label: "人物事迹", icon: Lightbulb },
+  { value: "article_structure", label: "文章框架", icon: BookOpen },
 ];
 
 export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
-  const [cardType, setCardType] = useState<CardType>("fact_summary");
+  const [cardType, setCardType] = useState<CardType>("golden_sentence");
   const [generating, setGenerating] = useState(false);
   const [errorInfo, setErrorInfo] = useState<{ message: string; code?: string } | null>(null);
   const [generatedCard, setGeneratedCard] = useState<{
@@ -215,7 +219,9 @@ export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
               }}
             >
               <SelectTrigger className="flex-1 h-8">
-                <SelectValue />
+                <SelectValue>
+                  {CARD_TYPE_OPTIONS.find((o) => o.value === cardType)?.label ?? cardType}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {CARD_TYPE_OPTIONS.map((opt) => {

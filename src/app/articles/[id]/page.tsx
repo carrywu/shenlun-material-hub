@@ -33,9 +33,12 @@ import {
   Trash2,
   Highlighter,
   MessageSquarePlus,
+  X,
 } from "lucide-react";
 import type { CardType } from "@/types";
 import { formatApiErrorMessage, type ApiErrorPayload } from "@/lib/api-error";
+import { toast } from "sonner";
+import DOMPurify from "dompurify";
 
 interface Annotation {
   id: string;
@@ -56,6 +59,7 @@ interface ArticleDetail {
   originalUrl: string;
   platform: string;
   fullText: string | null;
+  rawHtml: string | null;
   excerpt: string | null;
   contentType: string;
   topicTags: string;
@@ -66,6 +70,10 @@ interface ArticleDetail {
   aiScore: number | null;
   aiDecision: string | null;
   aiReason: string | null;
+  aiCategories: string | null;
+  aiUsableFor: string | null;
+  aiSummary: string | null;
+  aiQuotes: string | null;
   contentGenre: string | null;
   aiAssessedAt: string | null;
   aiScoreDetail: string | null;
@@ -87,19 +95,34 @@ interface ArticleDetail {
 }
 
 const CARD_TYPE_OPTIONS: { value: CardType; label: string; icon: React.ElementType }[] = [
-  { value: "fact_summary", label: "事实摘要", icon: FileText },
-  { value: "argument_analysis", label: "论点分析", icon: BookOpen },
-  { value: "data_highlight", label: "数据亮点", icon: BarChart3 },
-  { value: "policy_compare", label: "政策对比", icon: GitCompare },
-  { value: "case_study", label: "案例研究", icon: Lightbulb },
+  { value: "golden_sentence", label: "申论金句", icon: Sparkles },
+  { value: "standard_expression", label: "规范词", icon: FileText },
+  { value: "case_material", label: "案例素材", icon: Lightbulb },
+  { value: "countermeasure", label: "对策表达", icon: BookOpen },
+  { value: "problem_statement", label: "问题表述", icon: BarChart3 },
+  { value: "reason_analysis", label: "原因分析", icon: GitCompare },
+  { value: "policy_expression", label: "政策表述", icon: FileText },
+  { value: "person_story", label: "人物事迹", icon: Lightbulb },
+  { value: "article_structure", label: "文章框架", icon: BookOpen },
 ];
 
 const CARD_TYPE_CONFIG: Record<string, { label: string }> = {
-  fact_summary: { label: "事实摘要" },
-  argument_analysis: { label: "论点分析" },
-  data_highlight: { label: "数据亮点" },
-  policy_compare: { label: "政策对比" },
-  case_study: { label: "案例研究" },
+  golden_sentence: { label: "申论金句" },
+  standard_expression: { label: "规范词" },
+  case_material: { label: "案例素材" },
+  countermeasure: { label: "对策表达" },
+  problem_statement: { label: "问题表述" },
+  reason_analysis: { label: "原因分析" },
+  policy_expression: { label: "政策表述" },
+  data_fact: { label: "案例素材" },
+  person_story: { label: "人物事迹" },
+  article_structure: { label: "文章框架" },
+  // Legacy types fallback
+  fact_summary: { label: "案例素材" },
+  argument_analysis: { label: "原因分析" },
+  data_highlight: { label: "案例素材" },
+  policy_compare: { label: "政策表述" },
+  case_study: { label: "案例素材" },
 };
 
 const CONTENT_GENRE_LABELS: Record<string, string> = {
@@ -148,6 +171,158 @@ function cleanHtmlClientSide(html: string): string {
   }
 }
 
+function parseStringList(value: string | null): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item)).filter(Boolean);
+    }
+  } catch {
+    return value
+      .split(/[\n,，]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function AiEvaluationPanel({ article }: { article: ArticleDetail }) {
+  const categories = parseStringList(article.aiCategories);
+  const usableFor = parseStringList(article.aiUsableFor);
+  const quotes = parseStringList(article.aiQuotes);
+  const decisionLabel = article.aiDecision === "accept"
+    ? "已接受"
+    : article.aiDecision === "reject"
+      ? "已拒绝"
+      : "待评估";
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-sm">AI 评估结果</CardTitle>
+          <Badge
+            variant={article.aiDecision === "accept" ? "default" : article.aiDecision === "reject" ? "destructive" : "secondary"}
+            className="text-xs"
+          >
+            {decisionLabel}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-1">AI 摘要</p>
+          <p className="leading-relaxed whitespace-pre-wrap">{article.aiSummary || "暂无 AI 摘要"}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-1">判定理由</p>
+          <p className="leading-relaxed whitespace-pre-wrap">{article.aiReason || "暂无判定理由"}</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">主题分类</p>
+            {categories.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {categories.map((item) => <Badge key={item} variant="secondary" className="text-xs">{item}</Badge>)}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">暂无主题分类</p>
+            )}
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">可用场景</p>
+            {usableFor.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {usableFor.map((item) => <Badge key={item} variant="outline" className="text-xs">{item}</Badge>)}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">暂无可用场景</p>
+            )}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-1">金句预览</p>
+          {quotes.length > 0 ? (
+            <div className="space-y-1.5">
+              {quotes.map((quote, index) => (
+                <p key={`${quote}-${index}`} className="rounded-md border bg-muted/30 px-3 py-2 text-sm leading-relaxed">
+                  {quote}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">暂无金句预览</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * 清洗微信文章 HTML，保留图片并通过代理加载
+ */
+function sanitizeWechatHtml(rawHtml: string): string {
+  const clean = DOMPurify.sanitize(rawHtml, {
+    ALLOWED_TAGS: [
+      "p", "img", "strong", "em", "b", "i", "u", "s",
+      "h1", "h2", "h3", "h4", "h5", "h6",
+      "ul", "ol", "li", "blockquote", "br", "hr",
+      "table", "thead", "tbody", "tr", "th", "td",
+      "a", "span", "div", "section",
+    ],
+    ALLOWED_ATTR: [
+      "src", "alt", "class", "style", "href", "target", "rel",
+      "width", "height", "data-src",
+    ],
+    FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"],
+  });
+
+  if (typeof window === "undefined") return clean;
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(clean, "text/html");
+    const imgs = doc.querySelectorAll("img");
+
+    imgs.forEach((img) => {
+      const srcVal = img.getAttribute("src") || "";
+      const dataSrcVal = img.getAttribute("data-src") || "";
+
+      let targetUrl = "";
+      if (
+        dataSrcVal.includes("mmbiz.qpic.cn") ||
+        dataSrcVal.includes("wx.qpic.cn") ||
+        dataSrcVal.includes("mmbiz.qlogo.cn")
+      ) {
+        targetUrl = dataSrcVal;
+      } else if (
+        srcVal.includes("mmbiz.qpic.cn") ||
+        srcVal.includes("wx.qpic.cn") ||
+        srcVal.includes("mmbiz.qlogo.cn")
+      ) {
+        targetUrl = srcVal;
+      }
+
+      if (targetUrl) {
+        img.setAttribute("src", `/api/proxy/image?url=${encodeURIComponent(targetUrl)}`);
+        img.removeAttribute("data-src");
+      }
+
+      img.style.maxWidth = "100%";
+      img.style.height = "auto";
+      img.style.display = "block";
+      img.style.margin = "1rem auto";
+      img.style.borderRadius = "0.375rem";
+    });
+
+    return doc.body.innerHTML;
+  } catch {
+    return clean;
+  }
+}
+
 export default function ArticleDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -156,7 +331,7 @@ export default function ArticleDetailPage() {
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cardType, setCardType] = useState<CardType>("fact_summary");
+  const [cardType, setCardType] = useState<CardType>("golden_sentence");
   const [generating, setGenerating] = useState(false);
   const [errorInfo, setErrorInfo] = useState<{ message: string; code?: string } | null>(null);
 
@@ -187,10 +362,40 @@ export default function ArticleDetailPage() {
     }
   }, [articleId]);
 
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchArticle();
   }, [fetchArticle]);
+
+  // Image load error capture
+  useEffect(() => {
+    const container = textRef.current;
+    if (!container) return;
+
+    const handleError = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "IMG") {
+        const img = target as HTMLImageElement;
+        if (img.dataset.failed) return;
+        img.dataset.failed = "true";
+        
+        const parent = img.parentNode;
+        if (parent) {
+          const placeholder = document.createElement("div");
+          placeholder.className = "flex items-center justify-center p-4 bg-muted border rounded-md text-xs text-muted-foreground my-4";
+          placeholder.innerText = "🖼️ 图片加载失败";
+          parent.replaceChild(placeholder, img);
+        }
+      }
+    };
+
+    container.addEventListener("error", handleError, true);
+    return () => {
+      container.removeEventListener("error", handleError, true);
+    };
+  }, [article?.rawHtml]);
 
   // Handle text selection for annotation
   function handleTextSelection() {
@@ -221,7 +426,7 @@ export default function ArticleDetailPage() {
       setShowAnnotationForm(false);
       fetchArticle();
     } catch {
-      alert("创建批注失败，请稍后重试");
+      toast.error("创建批注失败", { description: "请稍后重试" });
     } finally {
       setAnnotating(false);
     }
@@ -241,7 +446,7 @@ export default function ArticleDetailPage() {
       }
       fetchArticle();
     } catch {
-      alert("自动批注失败，请检查 AI 配置或稍后重试");
+      toast.error("自动批注失败", { description: "请检查 AI 配置或稍后重试" });
     } finally {
       setAutoAnnotating(false);
     }
@@ -265,7 +470,7 @@ export default function ArticleDetailPage() {
       setShowAnnotationForm(false);
       fetchArticle();
     } catch {
-      alert("AI 批注失败，请稍后重试");
+      toast.error("AI 批注失败", { description: "请稍后重试" });
     } finally {
       setAnnotating(false);
     }
@@ -280,7 +485,7 @@ export default function ArticleDetailPage() {
       if (!res.ok) throw new Error("删除批注失败");
       fetchArticle();
     } catch {
-      alert("删除批注失败");
+      toast.error("删除批注失败");
     } finally {
       setDeletingAnnotationId(null);
     }
@@ -299,7 +504,7 @@ export default function ArticleDetailPage() {
       setEditComment("");
       fetchArticle();
     } catch {
-      alert("更新批注失败");
+      toast.error("更新批注失败");
     }
   }
 
@@ -340,15 +545,75 @@ export default function ArticleDetailPage() {
       });
       const data = (await res.json()) as ApiErrorPayload;
       if (!res.ok) {
-        setErrorInfo({ message: formatApiErrorMessage(data), code: data.code });
+        const msg = formatApiErrorMessage(data);
+        if (res.status === 409) {
+          toast.warning("素材卡已存在", { description: msg });
+        } else {
+          toast.error("生成失败", { description: msg });
+        }
+        setErrorInfo({ message: msg, code: data.code });
         return;
       }
+      const cardLabel = CARD_TYPE_OPTIONS.find(o => o.value === cardType)?.label ?? cardType;
+      toast.success("素材卡生成成功", { description: `已生成 1 张「${cardLabel}」` });
       fetchArticle();
     } catch {
-      setErrorInfo({ message: "网络错误，请检查连接后重试" });
+      const msg = "网络错误，请检查连接后重试";
+      toast.error("生成失败", { description: msg });
+      setErrorInfo({ message: msg });
     } finally {
       setGenerating(false);
     }
+  }
+
+  // Unified: AI assess then generate card
+  const [assessing, setAssessing] = useState(false);
+
+  async function handleAssessAndGenerate() {
+    if (assessing || generating || !article) return;
+
+    // Step 1: Assess if not yet assessed
+    if (article.aiDecision !== "accept") {
+      setAssessing(true);
+      try {
+        toast.info("正在 AI 评估...", { description: "请稍候" });
+        const res = await fetch("/api/content-items/assess", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: [article.id] }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          toast.error("AI 评估失败", { description: data.error ?? "请检查 AI 配置" });
+          return;
+        }
+        await res.json();
+        // Refresh article to get updated aiDecision
+        await fetchArticle();
+        // Re-read the article state after refresh
+        const freshRes = await fetch(`/api/content-items/${article.id}`);
+        if (freshRes.ok) {
+          const freshArticle = await freshRes.json();
+          if (freshArticle.aiDecision !== "accept") {
+            toast.warning("文章不适合作为素材", {
+              description: freshArticle.aiReason ?? "AI 已拒绝该文章",
+            });
+            return;
+          }
+        } else {
+          toast.error("刷新文章状态失败");
+          return;
+        }
+      } catch {
+        toast.error("AI 评估失败", { description: "网络错误，请稍后重试" });
+        return;
+      } finally {
+        setAssessing(false);
+      }
+    }
+
+    // Step 2: Generate card
+    await handleGenerateCard();
   }
 
   // Render text with annotation highlights
@@ -450,9 +715,10 @@ export default function ArticleDetailPage() {
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <Button variant="ghost" size="sm" onClick={() => router.push("/articles")}>
               <ArrowLeft className="h-4 w-4" />
+              <span className="ml-1">返回列表</span>
             </Button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-semibold truncate">{article.title}</h1>
+              <h1 className="text-lg font-semibold break-words leading-snug">{article.title}</h1>
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <span>{article.source?.name ?? article.platform}</span>
                 {article.publishedAt && (
@@ -576,6 +842,8 @@ export default function ArticleDetailPage() {
               </div>
             )}
 
+            <AiEvaluationPanel article={article} />
+
             {/* Full text with annotations */}
             <Card>
               <CardHeader className="pb-2">
@@ -591,13 +859,34 @@ export default function ArticleDetailPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div
-                  ref={textRef}
-                  className="text-sm leading-relaxed whitespace-pre-wrap select-text"
-                  onMouseUp={handleTextSelection}
-                >
-                  {renderAnnotatedText()}
-                </div>
+                {/* WeChat articles: render HTML with images */}
+                {article.platform === "wechat" && article.rawHtml ? (
+                  <div
+                    ref={textRef}
+                    className="text-sm leading-relaxed select-text article-content prose prose-sm max-w-none cursor-pointer"
+                    onMouseUp={handleTextSelection}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.tagName === "IMG") {
+                        const src = target.getAttribute("src");
+                        if (src) {
+                          setPreviewImageUrl(src);
+                        }
+                      }
+                    }}
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeWechatHtml(article.rawHtml),
+                    }}
+                  />
+                ) : (
+                  <div
+                    ref={textRef}
+                    className="text-sm leading-relaxed whitespace-pre-wrap select-text"
+                    onMouseUp={handleTextSelection}
+                  >
+                    {renderAnnotatedText()}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -670,15 +959,42 @@ export default function ArticleDetailPage() {
             {/* Generate card */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">生成素材卡</CardTitle>
+                <CardTitle className="text-sm">素材卡操作</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* Unified assess + generate button */}
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={handleAssessAndGenerate}
+                  disabled={assessing || generating || !article.fullText}
+                >
+                  {assessing || generating ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1.5 h-4 w-4" />
+                  )}
+                  {assessing ? "正在 AI 评估..." : generating ? "正在生成素材卡..." : "AI 评估并生成素材卡"}
+                </Button>
+
+                {article.aiDecision !== "accept" && !assessing && (
+                  <p className="text-xs text-muted-foreground">
+                    点击上方按钮将自动完成评估和生成
+                  </p>
+                )}
+
+                <Separator />
+
+                {/* Manual single-type generation */}
+                <p className="text-xs font-medium text-muted-foreground">单独生成指定类型：</p>
                 <Select
                   value={cardType}
                   onValueChange={(v) => { if (v) setCardType(v as CardType); }}
                 >
                   <SelectTrigger className="h-8">
-                    <SelectValue />
+                    <SelectValue>
+                      {CARD_TYPE_OPTIONS.find((o) => o.value === cardType)?.label ?? cardType}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {CARD_TYPE_OPTIONS.map((opt) => {
@@ -696,9 +1012,10 @@ export default function ArticleDetailPage() {
                 </Select>
                 <Button
                   size="sm"
+                  variant="outline"
                   className="w-full"
                   onClick={handleGenerateCard}
-                  disabled={generating || !article.fullText || article.aiDecision !== "accept"}
+                  disabled={generating || assessing || !article.fullText || article.aiDecision !== "accept"}
                 >
                   {generating ? (
                     <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -707,9 +1024,9 @@ export default function ArticleDetailPage() {
                   )}
                   生成素材卡
                 </Button>
-                {article.aiDecision !== "accept" && (
+                {article.aiDecision !== "accept" && !assessing && (
                   <p className="text-xs text-muted-foreground">
-                    需先通过 AI 评估才能生成素材卡
+                    需先通过 AI 评估才能单独生成素材卡
                   </p>
                 )}
                 {errorInfo && (
@@ -900,6 +1217,27 @@ export default function ArticleDetailPage() {
           </div>
         </div>
       </div>
+
+      {previewImageUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
+          onClick={() => setPreviewImageUrl(null)}
+        >
+          <div className="relative max-w-[95vw] max-h-[95vh] flex flex-col items-center justify-center">
+            <button
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 text-sm flex items-center gap-1 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md transition-colors"
+              onClick={() => setPreviewImageUrl(null)}
+            >
+              <X className="h-4 w-4" /> 关闭
+            </button>
+            <img
+              src={previewImageUrl}
+              alt="微信正文图片预览"
+              className="max-w-full max-h-[85vh] object-contain rounded-md shadow-2xl border border-white/10 select-none cursor-zoom-out"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

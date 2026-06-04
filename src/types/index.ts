@@ -101,13 +101,17 @@ export const CONTENT_GENRES = [
 ] as const;
 export type ContentGenre = (typeof CONTENT_GENRES)[number];
 
-// 卡片类型（5 种）
+// 卡片类型（10 种，贴合申论学习场景）
 export const CARD_TYPES = [
-  "fact_summary",         // 事实摘要
-  "argument_analysis",    // 论点分析
-  "data_highlight",       // 数据亮点
-  "policy_compare",       // 政策对比
-  "case_study",           // 案例研究
+  "golden_sentence",      // 申论金句
+  "standard_expression",  // 规范词
+  "case_material",        // 案例素材
+  "countermeasure",       // 对策表达
+  "problem_statement",    // 问题表述
+  "reason_analysis",      // 原因分析
+  "policy_expression",    // 政策表述
+  "person_story",         // 人物事迹
+  "article_structure",    // 文章框架
 ] as const;
 export type CardType = (typeof CARD_TYPES)[number];
 
