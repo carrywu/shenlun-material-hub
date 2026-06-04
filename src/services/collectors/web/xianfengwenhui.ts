@@ -63,7 +63,7 @@ export class XianfengwenhuiCollector extends BaseCollector {
     }
   }
 
-  async collect(source: {
+  async collect(_source: {
     id: string;
     platform: string;
     contentType: string;

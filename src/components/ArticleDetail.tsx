@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/select";
 import {
   ExternalLink,
-  Pencil,
   X,
   CreditCard,
   Loader2,
@@ -148,17 +147,22 @@ export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Link
+            href={`/articles/${article.id}`}
+            className={cn(buttonVariants({ variant: "ghost", size: "icon-xs" }))}
+            title="进入详情页面"
+          >
+            <FileText className="h-4 w-4" />
+          </Link>
           <a
             href={article.originalUrl}
             target="_blank"
             rel="noopener noreferrer"
             className={cn(buttonVariants({ variant: "ghost", size: "icon-xs" }))}
+            title="查看外部原文"
           >
             <ExternalLink className="h-4 w-4" />
           </a>
-          <Button variant="ghost" size="icon-xs">
-            <Pencil className="h-4 w-4" />
-          </Button>
           <Button variant="ghost" size="icon-xs" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>

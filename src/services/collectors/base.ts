@@ -191,7 +191,7 @@ export abstract class BaseCollector {
    */
   async collectFromChannel(
     channel: ChannelConfig,
-    source: { id: string; platform: string; contentType: string; trustLevel: string }
+    _source: { id: string; platform: string; contentType: string; trustLevel: string }
   ): Promise<RawArticle[]> {
     const articles: RawArticle[] = [];
     const seen = new Set<string>();

@@ -15,6 +15,20 @@ const eslintConfig = defineConfig([
     // Exclude .claude skills/config (CJS files, not project code)
     ".claude/**",
   ]),
+  {
+    rules: {
+      // Allow variables and args prefixed with underscore to be unused (common convention)
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          varsIgnorePattern: "^_",
+          argsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

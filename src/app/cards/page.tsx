@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -294,7 +295,13 @@ export default function CardsPage() {
         ) : cards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
             <p>暂无素材卡</p>
-            <p className="text-sm">请在内容列表中选择内容条目生成素材卡</p>
+            <p className="text-sm">请先在文章库中对文章进行 AI 评估，然后生成素材卡</p>
+            <Link
+              href="/articles"
+              className="mt-1 text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              前往文章库生成素材卡 →
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

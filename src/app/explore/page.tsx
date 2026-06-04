@@ -215,8 +215,9 @@ export default function ExplorePage() {
           <div>
             <h1 className="text-xl font-semibold">探索区</h1>
             <p className="text-sm text-muted-foreground">
-              待核验内容与关键词搜索，共 {total} 条
+              来自<strong>待核验来源</strong>的内容，可自行筛选后决定是否使用，与今日推荐（已核验来源）互为补充
             </p>
+            <p className="text-xs text-muted-foreground mt-0.5">共 {total} 条</p>
           </div>
           <Button variant="outline" size="sm" onClick={fetchItems}>
             <RefreshCw className="mr-1.5 h-4 w-4" />

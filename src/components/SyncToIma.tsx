@@ -34,7 +34,7 @@ interface SyncToImaProps {
 
 export function SyncToIma({
   cardId,
-  cardTitle,
+  cardTitle: _cardTitle,
   confirmed = true,
   onSyncComplete,
   variant = "button",

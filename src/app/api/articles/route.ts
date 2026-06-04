@@ -6,45 +6,97 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
     const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20")));
-    const source = searchParams.get("source");
-    const contentType = searchParams.get("category");
-    const topicTags = searchParams.get("tags");
-    const dateFrom = searchParams.get("dateFrom");
-    const dateTo = searchParams.get("dateTo");
-    const search = searchParams.get("search");
-    const processingStatus = searchParams.get("processingStatus");
+
+    // 筛选参数
+    const keyword = searchParams.get("keyword") ?? searchParams.get("search");
+    const sourceType = searchParams.get("sourceType");
+    const sourceId = searchParams.get("sourceId");
+    const sourceName = searchParams.get("sourceName");
+    const section = searchParams.get("section") ?? searchParams.get("categoryName");
     const qualityStatus = searchParams.get("qualityStatus");
     const aiDecision = searchParams.get("aiDecision");
     const sortBy = searchParams.get("sortBy") ?? "createdAt";
 
-    const where: Record<string, unknown> = {};
+    // 时间范围筛选
+    const publishedStart = searchParams.get("publishedStart");
+    const publishedEnd = searchParams.get("publishedEnd");
+    const collectedStart = searchParams.get("collectedStart");
+    const collectedEnd = searchParams.get("collectedEnd");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
 
-    if (source) where.platform = source;
-    if (contentType) where.contentType = contentType;
-    if (topicTags) where.topicTags = { contains: topicTags };
-    if (search) where.title = { contains: search };
-    if (processingStatus) where.processingStatus = processingStatus;
-    if (qualityStatus) where.qualityStatus = qualityStatus;
-    if (aiDecision) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+
+    // 关键词搜索：标题 + 摘要
+    if (keyword) {
+      where.OR = [
+        { title: { contains: keyword } },
+        { excerpt: { contains: keyword } },
+      ];
+    }
+
+    // 来源筛选
+    if (sourceId) {
+      where.sourceId = sourceId;
+    } else if (sourceName) {
+      where.source = { name: { contains: sourceName } };
+    }
+
+    // 来源类型筛选
+    if (sourceType && sourceType !== "all") {
+      if (sourceType === "website") {
+        where.platform = "website";
+      } else if (sourceType === "wechat") {
+        where.platform = "wechat";
+      } else if (sourceType === "unknown") {
+        where.platform = { notIn: ["website", "wechat"] };
+      }
+    }
+
+    // 栏目筛选
+    if (section) {
+      where.section = { contains: section };
+    }
+
+    // 质量状态
+    if (qualityStatus && qualityStatus !== "all") {
+      where.qualityStatus = qualityStatus;
+    }
+
+    // AI 评估状态
+    if (aiDecision && aiDecision !== "all") {
       if (aiDecision === "pending") {
         where.aiDecision = null;
       } else {
         where.aiDecision = aiDecision;
       }
     }
-    if (dateFrom || dateTo) {
-      const publishedAt: Record<string, Date> = {};
-      if (dateFrom) publishedAt.gte = new Date(dateFrom);
-      if (dateTo) publishedAt.lte = new Date(dateTo);
-      where.publishedAt = publishedAt;
+
+    // 文章发布时间范围
+    if (publishedStart || publishedEnd || dateFrom || dateTo) {
+      where.publishedAt = {};
+      if (publishedStart) where.publishedAt.gte = new Date(publishedStart);
+      if (publishedEnd) where.publishedAt.lte = new Date(publishedEnd + "T23:59:59");
+      if (dateFrom) where.publishedAt.gte = new Date(dateFrom);
+      if (dateTo) where.publishedAt.lte = new Date(dateTo + "T23:59:59");
     }
 
-    // Determine sort order
+    // 采集时间范围（使用 createdAt 作为采集时间）
+    if (collectedStart || collectedEnd) {
+      where.createdAt = {};
+      if (collectedStart) where.createdAt.gte = new Date(collectedStart);
+      if (collectedEnd) where.createdAt.lte = new Date(collectedEnd + "T23:59:59");
+    }
+
+    // 排序
     let orderBy: Record<string, string>;
     if (sortBy === "aiScore") {
       orderBy = { aiScore: "desc" };
     } else if (sortBy === "effectiveTextLength") {
       orderBy = { effectiveTextLength: "desc" };
+    } else if (sortBy === "publishedAt") {
+      orderBy = { publishedAt: "desc" };
     } else {
       orderBy = { createdAt: "desc" };
     }
@@ -71,9 +123,9 @@ export async function GET(request: NextRequest) {
       totalPages: Math.ceil(total / pageSize),
     });
   } catch (error) {
-    console.error("Failed to fetch content items:", error);
+    console.error("Failed to fetch articles:", error);
     return NextResponse.json(
-      { error: "获取内容列表失败" },
+      { error: "获取文章列表失败" },
       { status: 500 }
     );
   }

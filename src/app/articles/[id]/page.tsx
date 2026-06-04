@@ -1230,6 +1230,7 @@ export default function ArticleDetailPage() {
             >
               <X className="h-4 w-4" /> 关闭
             </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewImageUrl}
               alt="微信正文图片预览"

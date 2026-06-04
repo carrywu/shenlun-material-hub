@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   RefreshCw,
   Loader2,
@@ -110,7 +110,6 @@ export default function ReviewPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCards();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStats();
   }, [fetchCards, fetchStats]);
 

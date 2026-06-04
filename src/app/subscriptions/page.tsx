@@ -991,11 +991,19 @@ export default function SubscriptionsPage() {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {PLATFORMS.map((p) => (
+                      {PLATFORMS.filter(
+                        (p) => p !== "bilibili" && p !== "xiaohongshu"
+                      ).map((p) => (
                         <SelectItem key={p} value={p}>
                           {PLATFORM_LABELS[p] ?? p}
                         </SelectItem>
                       ))}
+                      <SelectItem value="bilibili" disabled>
+                        B站（需要 MediaCrawler 服务）
+                      </SelectItem>
+                      <SelectItem value="xiaohongshu" disabled>
+                        小红书（需要 MediaCrawler 服务）
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

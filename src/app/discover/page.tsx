@@ -234,8 +234,9 @@ export default function DiscoverPage() {
           <div>
             <h1 className="text-xl font-semibold">今日推荐</h1>
             <p className="text-sm text-muted-foreground">
-              已核验来源的最新内容，共 {total} 条
+              来自<strong>已核验来源</strong>的高质量内容，质量更有保障，适合直接评估与生成素材卡
             </p>
+            <p className="text-xs text-muted-foreground mt-0.5">共 {total} 条</p>
           </div>
           <Button variant="outline" size="sm" onClick={fetchItems}>
             <RefreshCw className="mr-1.5 h-4 w-4" />

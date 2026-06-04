@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -27,9 +26,9 @@ import {
   Clock,
   AlertTriangle,
   RotateCw,
+  Calendar,
 } from "lucide-react";
 import { SYNC_STATUSES, DOCUMENT_ROLES } from "@/types";
-import type { SyncStatus, DocumentRole } from "@/types";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "待同步",
@@ -234,21 +233,39 @@ export default function SyncRecordsPage() {
           </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">起始日期</label>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-40"
-            />
+            <div className="relative w-40 h-8 group">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                onClick={(e) => { try { e.currentTarget.showPicker(); } catch {} }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+              <div className="absolute inset-0 flex items-center justify-between px-2.5 py-1 rounded-lg border border-input bg-transparent text-sm pointer-events-none group-focus-within:border-ring group-focus-within:ring-3 group-focus-within:ring-ring/50 transition-colors">
+                <span className={dateFrom ? "text-foreground" : "text-muted-foreground"}>
+                  {dateFrom || "年/月/日"}
+                </span>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
           </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">结束日期</label>
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-40"
-            />
+            <div className="relative w-40 h-8 group">
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                onClick={(e) => { try { e.currentTarget.showPicker(); } catch {} }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+              <div className="absolute inset-0 flex items-center justify-between px-2.5 py-1 rounded-lg border border-input bg-transparent text-sm pointer-events-none group-focus-within:border-ring group-focus-within:ring-3 group-focus-within:ring-ring/50 transition-colors">
+                <span className={dateTo ? "text-foreground" : "text-muted-foreground"}>
+                  {dateTo || "年/月/日"}
+                </span>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
           </div>
         </div>
 

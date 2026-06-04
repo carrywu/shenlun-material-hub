@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const syncMode = body.syncMode ?? "auto";
 
     // 1. 从 WeWe RSS 获取订阅列表（API 优先，SQLite 兜底）
-    const { feeds, source: syncSource, message } = await listFeedsAuto(baseUrl, syncMode, dbPath);
+    const { feeds, source: syncSource, message: _message } = await listFeedsAuto(baseUrl, syncMode, dbPath);
 
     if (feeds.length === 0) {
       return NextResponse.json({

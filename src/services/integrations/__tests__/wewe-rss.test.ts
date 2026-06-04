@@ -61,7 +61,7 @@ describe("WeweRssService", () => {
 
     it("uses & when URL already has query params", () => {
       // This case shouldn't happen with buildFeedUrl, but test the logic
-      const urlWithQuery = "http://localhost:4000/feeds/MP_WXS_123.rss?foo=bar";
+      const _urlWithQuery = "http://localhost:4000/feeds/MP_WXS_123.rss?foo=bar";
       expect(buildRefreshUrl("http://localhost:4000", "MP_WXS_123")).toContain("?update=true");
     });
   });

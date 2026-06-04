@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
-import { FileText, Home, Layers, CreditCard, Search, RotateCcw, Rss, Compass, Sparkles, History, Trash2, Settings } from "lucide-react";
+import { FileText, Home, Layers, CreditCard, Search, RotateCcw, Rss, Compass, Sparkles, History, Settings } from "lucide-react";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
@@ -16,10 +16,10 @@ const navItems = [
   { href: "/articles", label: "文章列表", icon: FileText },
   { href: "/cards", label: "素材卡", icon: CreditCard },
   { href: "/subscriptions", label: "来源管理", icon: Rss },
+  { href: "/integrations/wewe-rss", label: "微信集成", icon: Rss },
   { href: "/search", label: "检索", icon: Search },
   { href: "/review", label: "复习", icon: RotateCcw },
   { href: "/sync-records", label: "同步记录", icon: History },
-  { href: "/admin/clean", label: "数据清洗", icon: Trash2 },
   { href: "/settings/ai", label: "AI 配置", icon: Settings },
 ];
 

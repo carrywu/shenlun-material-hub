@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -134,10 +135,22 @@ export function CollectDialog({
   async function handleCollect() {
     if (selected.size === 0) return;
 
+    const selectedSources = sources.filter((s) => selected.has(s.id));
+    const mediaCrawlerSources = selectedSources.filter(
+      (s) => s.platform === "bilibili" || s.platform === "xiaohongshu"
+    );
+
+    if (mediaCrawlerSources.length > 0) {
+      toast.warning("B站/小红书 采集前置提示", {
+        description:
+          `${mediaCrawlerSources.map((s) => s.name).join("、")} 依赖 MediaCrawler 外部服务（默认端口 8002），请确认服务已运行，否则采集将直接失败。`,
+        duration: 6000,
+      });
+    }
+
     setCollecting(true);
     setResults(null);
     setIntermediateResults([]);
-    const selectedSources = sources.filter((s) => selected.has(s.id));
     setTotalCount(selectedSources.length);
     setCurrentIndex(0);
 

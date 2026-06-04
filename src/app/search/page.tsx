@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -307,7 +307,6 @@ export default function SearchPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {results.map((card) => {
-                  const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
                   return (
                     <div
                       key={card.id}

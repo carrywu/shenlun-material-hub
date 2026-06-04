@@ -1,20 +1,6 @@
-import { getAiRuntime } from "@/services/ai";
+import { getAiRuntime, getPromptTemplate } from "@/services/ai";
 
 // ==================== 文章批注生成 ====================
-
-const ANNOTATION_SYSTEM_PROMPT = `你是一位资深的申论辅导专家。请对以下文章选段进行批注分析。
-
-你的批注需要：
-1. 分析选段在文章中的作用和意义
-2. 指出值得学习的写作技巧或论证方法
-3. 提供可迁移使用的建议
-
-返回 JSON：
-{
-  "comment": "对选段的详细分析和批注（150字以内）",
-  "highlight": true,
-  "tags": ["标签1", "标签2"]
-}`;
 
 export interface AnnotationResult {
   comment: string;
@@ -29,6 +15,7 @@ export async function generateAnnotation(
   cardType?: string
 ): Promise<AnnotationResult> {
   const runtime = await getAiRuntime();
+  const systemPrompt = await getPromptTemplate("annotation_selected");
 
   const contextSnippet = articleContent.slice(0, 3000);
 
@@ -46,7 +33,7 @@ ${cardType ? `\n【关联素材卡类型】${cardType}` : ""}
   const completion = await runtime.client.chat.completions.create({
     model: runtime.model,
     messages: [
-      { role: "system", content: ANNOTATION_SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
     temperature: 0.5,
@@ -76,33 +63,14 @@ export async function autoAnnotateArticle(
   articleContent: string
 ): Promise<Array<{ paragraph: number; selectedText: string; comment: string; tags: string[] }>> {
   const runtime = await getAiRuntime();
-
-  const AUTO_ANNOTATE_PROMPT = `你是一位资深的申论辅导专家。请从文章中选出 3-5 个最值得批注的段落或语句，进行申论备考角度的分析。
-
-选择标准：
-1. 包含关键论点或论据的段落
-2. 有数据支撑的论述
-3. 可迁移使用的经典表达
-4. 有代表性的案例或政策引用
-
-返回 JSON：
-{
-  "annotations": [
-    {
-      "selectedText": "选中的原文片段",
-      "paragraph": 0,
-      "comment": "批注分析（100字以内）",
-      "tags": ["标签"]
-    }
-  ]
-}`;
+  const systemPrompt = await getPromptTemplate("annotation_auto");
 
   const content = articleContent.slice(0, 5000);
 
   const completion = await runtime.client.chat.completions.create({
     model: runtime.model,
     messages: [
-      { role: "system", content: AUTO_ANNOTATE_PROMPT },
+      { role: "system", content: systemPrompt },
       {
         role: "user",
         content: `【文章标题】${articleTitle}\n\n【正文】\n${content}`,

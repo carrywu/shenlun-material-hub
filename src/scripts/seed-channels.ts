@@ -41,23 +41,38 @@ const CHANNEL_SEEDS: ChannelSeed[] = [
     maxPages: 3,
   },
 
-  // ─── 广东省政府网 ───
+  // ─── 广东省政府网（用户指定 3 个栏目）───
   {
     sourceName: "广东省政府网",
-    name: "政策解读",
-    listUrl: "https://www.gd.gov.cn/zwgk/zcjd/index.html",
+    name: "部门动态",
+    listUrl: "https://www.gd.gov.cn/gdywdt/bmdt/index.html",
     urlPattern: "content/post_\\d+\\.html",
     maxPages: 3,
   },
   {
     sourceName: "广东省政府网",
-    name: "政务专题",
-    listUrl: "https://www.gd.gov.cn/gdywdt/zwzt/index.html",
+    name: "地市动态",
+    listUrl: "https://www.gd.gov.cn/gdywdt/dsdt/index.html",
     urlPattern: "content/post_\\d+\\.html",
-    maxPages: 2,
+    maxPages: 3,
+  },
+  {
+    sourceName: "广东省政府网",
+    name: "执法监管",
+    listUrl: "https://www.gd.gov.cn/gdywdt/zfjg/index.html",
+    urlPattern: "content/post_\\d+\\.html",
+    maxPages: 3,
   },
 
   // ─── 湖南省政府网 ───
+  {
+    sourceName: "湖南省政府网",
+    name: "三湘时评",
+    listUrl: "http://www.hunan.gov.cn/hnszf/hnyw/sxsp/index.html",
+    urlPattern: "t\\d{8}_\\d+\\.html",
+    paginationPattern: "http://www.hunan.gov.cn/hnszf/hnyw/sxsp/index_{page}.html",
+    maxPages: 3,
+  },
   {
     sourceName: "湖南省政府网",
     name: "三湘解读",
@@ -74,8 +89,31 @@ const CHANNEL_SEEDS: ChannelSeed[] = [
   },
 ];
 
+// 旧栏目清理：将不再使用的广东栏目设为停用
+const DEPRECATED_GUANGDONG_CHANNELS = ["政策解读", "政务专题"];
+
 async function main() {
   console.log(`开始导入 ${CHANNEL_SEEDS.length} 条栏目配置...`);
+
+  // 清理旧广东栏目
+  const guangdongSource = await db.source.findFirst({
+    where: { name: "广东省政府网", platform: "website" },
+  });
+  if (guangdongSource) {
+    for (const oldName of DEPRECATED_GUANGDONG_CHANNELS) {
+      const updated = await db.collectionChannel.updateMany({
+        where: {
+          sourceId: guangdongSource.id,
+          name: oldName,
+          isEnabled: true,
+        },
+        data: { isEnabled: false },
+      });
+      if (updated.count > 0) {
+        console.log(`  停用旧栏目: 广东省 / ${oldName} (${updated.count} 条)`);
+      }
+    }
+  }
 
   let created = 0;
   let skipped = 0;

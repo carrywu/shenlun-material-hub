@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -20,13 +20,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DateRangeFilter, type DateRange } from "@/components/filters/DateRangeFilter";
 import { BatchActions } from "@/components/BatchActions";
 import { ArticleDetail } from "@/components/ArticleDetail";
 import { Pagination } from "@/components/ui/pagination";
-import { RefreshCw, Search, Play, Brain, Loader2 } from "lucide-react";
+import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface ContentItemData {
   id: string;
@@ -39,6 +39,7 @@ interface ContentItemData {
   topicTags: string;
   publishedAt: string | null;
   createdAt: string;
+  updatedAt: string;
   processingStatus: string;
   qualityStatus: string;
   filterReason: string | null;
@@ -50,6 +51,7 @@ interface ContentItemData {
   aiScoreDetail: string | null;
   aiScoredAt: string | null;
   effectiveTextLength: number;
+  section: string | null;
   source?: { name: string } | null;
   _count: { materialCards: number };
 }
@@ -62,8 +64,14 @@ interface ContentItemsResponse {
   totalPages: number;
 }
 
+interface SourceOption {
+  id: string;
+  name: string;
+  platform?: string;
+}
+
 const QUALITY_STATUS_OPTIONS = [
-  { value: "all", label: "全部质量" },
+  { value: "all", label: "全部状态" },
   { value: "pending", label: "待检测" },
   { value: "candidate", label: "候选" },
   { value: "filtered", label: "已过滤" },
@@ -71,10 +79,10 @@ const QUALITY_STATUS_OPTIONS = [
 ];
 
 const AI_DECISION_OPTIONS = [
-  { value: "all", label: "全部 AI" },
-  { value: "pending", label: "待评估" },
-  { value: "accept", label: "AI 接受" },
-  { value: "reject", label: "AI 拒绝" },
+  { value: "all", label: "全部" },
+  { value: "pending", label: "未评估" },
+  { value: "accept", label: "已通过" },
+  { value: "reject", label: "已拒绝" },
 ];
 
 const CONTENT_GENRE_LABELS: Record<string, string> = {
@@ -97,8 +105,34 @@ const GENRE_BADGE_COLORS: Record<string, string> = {
   other: "bg-gray-100 text-gray-500",
 };
 
+function formatDateTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "未获取";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "未获取";
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const h = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return `${y}-${m}-${day} ${h}:${min}`;
+  } catch {
+    return "未获取";
+  }
+}
+
 export default function ArticlesPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-96 text-muted-foreground">加载中...</div>}>
+      <ArticlesPageInner />
+    </Suspense>
+  );
+}
+
+function ArticlesPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [items, setItems] = useState<ContentItemData[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -108,12 +142,23 @@ export default function ArticlesPage() {
   const [generating, setGenerating] = useState(false);
   const [generateProgress, setGenerateProgress] = useState<string | null>(null);
 
-  // Filters
-  const [search, setSearch] = useState("");
-  const [qualityStatus, setQualityStatus] = useState("all");
-  const [aiDecision, setAiDecision] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange>({ from: "", to: "" });
-  const [sortBy, setSortBy] = useState("createdAt");
+  // 筛选条件（表单状态，点击搜索后生效）
+  const [keyword, setKeyword] = useState(searchParams.get("keyword") ?? "");
+  const [sourceType, setSourceType] = useState(searchParams.get("sourceType") ?? "all");
+  const [sourceName, setSourceName] = useState(searchParams.get("sourceName") ?? "all");
+  const [section, setSection] = useState(searchParams.get("section") ?? "all");
+  const [qualityStatus, setQualityStatus] = useState(searchParams.get("qualityStatus") ?? "all");
+  const [aiDecision, setAiDecision] = useState(searchParams.get("aiDecision") ?? "all");
+  const [publishedStart, setPublishedStart] = useState(searchParams.get("publishedStart") ?? "");
+  const [publishedEnd, setPublishedEnd] = useState(searchParams.get("publishedEnd") ?? "");
+  const [collectedStart, setCollectedStart] = useState(searchParams.get("collectedStart") ?? "");
+  const [collectedEnd, setCollectedEnd] = useState(searchParams.get("collectedEnd") ?? "");
+  const [sortBy, setSortBy] = useState(searchParams.get("sortBy") ?? "createdAt");
+  const [pageSize, setPageSize] = useState(20);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // 来源选项
+  const [allSources, setAllSources] = useState<SourceOption[]>([]);
 
   // Collection state
   const [collecting, setCollecting] = useState(false);
@@ -129,7 +174,32 @@ export default function ArticlesPage() {
   // Detail view
   const [detailItem, setDetailItem] = useState<ContentItemData | null>(null);
 
-  const [pageSize, setPageSize] = useState(20);
+  // 加载来源列表
+  useEffect(() => {
+    fetch("/api/sources?pageSize=500")
+      .then((r) => r.json())
+      .then((data) => {
+        const items = data.data ?? data;
+        setAllSources(items);
+      })
+      .catch(() => {});
+  }, []);
+
+  const filteredSourceOptions = allSources.filter((s) => {
+    if (sourceType === "all") return true;
+    return s.platform === sourceType;
+  });
+
+  const handleSourceTypeChange = (val: string | null) => {
+    if (!val) return;
+    setSourceType(val);
+    if (sourceName !== "all") {
+      const selectedSource = allSources.find((s) => s.name === sourceName);
+      if (selectedSource && val !== "all" && selectedSource.platform !== val) {
+        setSourceName("all");
+      }
+    }
+  };
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -138,11 +208,16 @@ export default function ArticlesPage() {
       const params = new URLSearchParams();
       params.set("page", String(page));
       params.set("pageSize", String(pageSize));
-      if (search) params.set("search", search);
+      if (keyword) params.set("keyword", keyword);
+      if (sourceType && sourceType !== "all") params.set("sourceType", sourceType);
+      if (sourceName && sourceName !== "all") params.set("sourceName", sourceName);
+      if (section && section !== "all") params.set("section", section);
       if (qualityStatus !== "all") params.set("qualityStatus", qualityStatus);
       if (aiDecision !== "all") params.set("aiDecision", aiDecision);
-      if (dateRange.from) params.set("dateFrom", dateRange.from);
-      if (dateRange.to) params.set("dateTo", dateRange.to);
+      if (publishedStart) params.set("publishedStart", publishedStart);
+      if (publishedEnd) params.set("publishedEnd", publishedEnd);
+      if (collectedStart) params.set("collectedStart", collectedStart);
+      if (collectedEnd) params.set("collectedEnd", collectedEnd);
       if (sortBy !== "createdAt") params.set("sortBy", sortBy);
 
       const res = await fetch(`/api/articles?${params.toString()}`);
@@ -156,17 +231,59 @@ export default function ArticlesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, qualityStatus, aiDecision, dateRange, sortBy]);
+  }, [page, pageSize, keyword, sourceType, sourceName, section, qualityStatus, aiDecision, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy]);
+
+  // 同步筛选条件到 URL
+  const syncUrl = useCallback(() => {
+    const params = new URLSearchParams();
+    if (keyword) params.set("keyword", keyword);
+    if (sourceType && sourceType !== "all") params.set("sourceType", sourceType);
+    if (sourceName && sourceName !== "all") params.set("sourceName", sourceName);
+    if (section && section !== "all") params.set("section", section);
+    if (qualityStatus !== "all") params.set("qualityStatus", qualityStatus);
+    if (aiDecision !== "all") params.set("aiDecision", aiDecision);
+    if (publishedStart) params.set("publishedStart", publishedStart);
+    if (publishedEnd) params.set("publishedEnd", publishedEnd);
+    if (collectedStart) params.set("collectedStart", collectedStart);
+    if (collectedEnd) params.set("collectedEnd", collectedEnd);
+    if (sortBy !== "createdAt") params.set("sortBy", sortBy);
+    const qs = params.toString();
+    router.replace(`/articles${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [keyword, sourceType, sourceName, section, qualityStatus, aiDecision, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy, router]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchItems();
   }, [fetchItems]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  // 点击搜索按钮
+  function handleSearch() {
     setPage(1);
-  }, [search, qualityStatus, aiDecision, dateRange, sortBy, pageSize]);
+    syncUrl();
+    fetchItems();
+  }
+
+  // 重置筛选
+  function handleReset() {
+    setKeyword("");
+    setSourceType("all");
+    setSourceName("all");
+    setSection("all");
+    setQualityStatus("all");
+    setAiDecision("all");
+    setPublishedStart("");
+    setPublishedEnd("");
+    setCollectedStart("");
+    setCollectedEnd("");
+    setSortBy("createdAt");
+    setPage(1);
+    router.replace("/articles", { scroll: false });
+  }
+
+  // Enter 键触发搜索
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") handleSearch();
+  }
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -193,7 +310,7 @@ export default function ArticlesPage() {
       const res = await fetch("/api/collectors/web/collect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}), // 空 body = 采集所有启用的来源
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (res.ok) {
@@ -297,14 +414,6 @@ export default function ArticlesPage() {
         toast.success("批量生成完成", {
           description: `成功 ${successCount} 张，已存在 ${existedCount} 张，跳过 ${skippedCount} 篇，失败 ${failedCount} 篇`,
         });
-      } else if (failedCount > 0) {
-        toast.error("批量生成未完成", {
-          description: `已存在 ${existedCount} 张，跳过 ${skippedCount} 篇，失败 ${failedCount} 篇`,
-        });
-      } else {
-        toast.info("没有新生成的素材卡", {
-          description: `已存在 ${existedCount} 张，跳过 ${skippedCount} 篇`,
-        });
       }
 
       setTimeout(() => {
@@ -324,39 +433,26 @@ export default function ArticlesPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="border-b px-6 py-4">
+      <div className="border-b px-6 py-3.5 bg-card">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">文章列表</h1>
-            <p className="text-sm text-muted-foreground">
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-xl font-semibold">文章列表</h1>
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
+                共 {total} 篇
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
               管理采集的内容条目，AI 评估后生成素材卡
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleCollect}
-              disabled={collecting}
-            >
-              {collecting ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="mr-1.5 h-4 w-4" />
-              )}
+            <Button variant="default" size="sm" onClick={handleCollect} disabled={collecting}>
+              {collecting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Play className="mr-1.5 h-4 w-4" />}
               {collecting ? "采集中..." : "开始采集"}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAssess}
-              disabled={assessing}
-            >
-              {assessing ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              ) : (
-                <Brain className="mr-1.5 h-4 w-4" />
-              )}
+            <Button variant="outline" size="sm" onClick={handleAssess} disabled={assessing}>
+              {assessing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Brain className="mr-1.5 h-4 w-4" />}
               {assessing ? "评估中..." : "AI 评估"}
             </Button>
             <Button variant="outline" size="sm" onClick={fetchItems}>
@@ -365,7 +461,6 @@ export default function ArticlesPage() {
             </Button>
           </div>
         </div>
-        {/* Progress messages */}
         {(collectProgress || assessProgress) && (
           <div className="mt-2 text-sm text-muted-foreground">
             {collectProgress && <p>{collectProgress}</p>}
@@ -373,94 +468,255 @@ export default function ArticlesPage() {
           </div>
         )}
       </div>
-
-      {/* Filters */}
-      <div className="border-b px-6 py-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative w-48">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="border-b px-6 py-3 bg-muted/20">
+        <div className="flex flex-wrap items-end gap-3">
+          {/* 关键词 */}
+          <div className="flex-1 min-w-[240px]">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">关键词</label>
             <Input
-              placeholder="搜索标题..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-8"
+              placeholder="搜索标题、正文、来源"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="h-8"
             />
           </div>
-          <Select value={qualityStatus} onValueChange={(v) => { if (v) setQualityStatus(v); }}>
-            <SelectTrigger className="w-28 h-8">
-              <SelectValue>
-                {QUALITY_STATUS_OPTIONS.find(o => o.value === qualityStatus)?.label ?? "质量"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {QUALITY_STATUS_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={aiDecision} onValueChange={(v) => { if (v) setAiDecision(v); }}>
-            <SelectTrigger className="w-28 h-8">
-              <SelectValue>
-                {AI_DECISION_OPTIONS.find(o => o.value === aiDecision)?.label ?? "AI"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {AI_DECISION_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={(v) => { if (v) setSortBy(v); }}>
-            <SelectTrigger className="w-28 h-8">
-              <SelectValue>
-                {sortBy === "createdAt" ? "按时间" : sortBy === "aiScore" ? "按评分" : sortBy === "effectiveTextLength" ? "按字数" : "排序"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="createdAt">按时间</SelectItem>
-              <SelectItem value="aiScore">按评分</SelectItem>
-              <SelectItem value="effectiveTextLength">按字数</SelectItem>
-            </SelectContent>
-          </Select>
-          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+
+          {/* 来源类型 */}
+          <div className="w-32">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">来源类型</label>
+            <Select value={sourceType} onValueChange={handleSourceTypeChange}>
+              <SelectTrigger className="h-8" data-testid="source-type-select">
+                <SelectValue>
+                  {sourceType === "all" ? "全部" : sourceType === "website" ? "网站" : "公众号"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部</SelectItem>
+                <SelectItem value="website">网站</SelectItem>
+                <SelectItem value="wechat">公众号</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 来源 */}
+          <div className="w-48">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">文章来源</label>
+            <Select value={sourceName} onValueChange={(v) => { if (v) setSourceName(v); }}>
+              <SelectTrigger className="h-8" data-testid="source-name-select">
+                <SelectValue>
+                  {sourceName === "all" ? "全部来源" : sourceName}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部来源</SelectItem>
+                {filteredSourceOptions.map((s) => (
+                  <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* AI 评估状态 */}
+          <div className="w-40">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">AI 评估状态</label>
+            <Select value={aiDecision} onValueChange={(v) => { if (v) setAiDecision(v); }}>
+              <SelectTrigger className="h-8">
+                <SelectValue>
+                  {AI_DECISION_OPTIONS.find(o => o.value === aiDecision)?.label ?? "全部"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {AI_DECISION_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 操作按钮 */}
+          <div className="flex items-center gap-2 h-8">
+            <Button size="sm" onClick={handleSearch} className="h-8 px-4">
+              <Search className="mr-1.5 h-3.5 w-3.5" />
+              搜索
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleReset} className="h-8 px-3" title="重置筛选">
+              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+              重置
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="h-8 text-xs px-2.5 text-muted-foreground hover:text-foreground flex items-center gap-1 select-none font-medium"
+            >
+              {showAdvancedFilters ? "收起筛选" : "高级筛选"}
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", showAdvancedFilters && "rotate-180")} />
+            </Button>
+          </div>
         </div>
+
+        {/* 高级筛选展开项 */}
+        {showAdvancedFilters && (
+          <div className="mt-3 pt-3 border-t border-dashed border-border/60 grid grid-cols-4 gap-3 tw-animate-css fade-in">
+            {/* 栏目 */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">栏目</label>
+              <Input
+                placeholder="全部栏目"
+                value={section === "all" ? "" : section}
+                onChange={(e) => setSection(e.target.value || "all")}
+                onKeyDown={handleKeyDown}
+                className="h-8"
+              />
+            </div>
+
+            {/* 素材价值 */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">素材价值</label>
+              <Select value={qualityStatus} onValueChange={(v) => { if (v) setQualityStatus(v); }}>
+                <SelectTrigger className="h-8">
+                  <SelectValue>
+                    {QUALITY_STATUS_OPTIONS.find(o => o.value === qualityStatus)?.label ?? "全部"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {QUALITY_STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 排序方式 */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">排序方式</label>
+              <Select value={sortBy} onValueChange={(v) => { if (v) setSortBy(v); }}>
+                <SelectTrigger className="h-8">
+                  <SelectValue>
+                    {sortBy === "createdAt" ? "按采集时间" : sortBy === "publishedAt" ? "按发布时间" : sortBy === "aiScore" ? "按评分" : "按字数"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="createdAt">按采集时间</SelectItem>
+                  <SelectItem value="publishedAt">按发布时间</SelectItem>
+                  <SelectItem value="aiScore">按评分</SelectItem>
+                  <SelectItem value="effectiveTextLength">按字数</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="col-span-4 grid grid-cols-4 gap-3 mt-1">
+              {/* 文章发布时间 */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">文章发布时间（起）</label>
+                <div className="relative w-full h-8 group">
+                  <input
+                    type="date"
+                    value={publishedStart}
+                    onChange={(e) => setPublishedStart(e.target.value)}
+                    onClick={(e) => { try { e.currentTarget.showPicker(); } catch {} }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-between px-2.5 py-1 rounded-lg border border-input bg-transparent text-sm pointer-events-none group-focus-within:border-ring group-focus-within:ring-3 group-focus-within:ring-ring/50 transition-colors">
+                    <span className={publishedStart ? "text-foreground" : "text-muted-foreground"}>
+                      {publishedStart || "年/月/日"}
+                    </span>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">文章发布时间（止）</label>
+                <div className="relative w-full h-8 group">
+                  <input
+                    type="date"
+                    value={publishedEnd}
+                    onChange={(e) => setPublishedEnd(e.target.value)}
+                    onClick={(e) => { try { e.currentTarget.showPicker(); } catch {} }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-between px-2.5 py-1 rounded-lg border border-input bg-transparent text-sm pointer-events-none group-focus-within:border-ring group-focus-within:ring-3 group-focus-within:ring-ring/50 transition-colors">
+                    <span className={publishedEnd ? "text-foreground" : "text-muted-foreground"}>
+                      {publishedEnd || "年/月/日"}
+                    </span>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+              </div>
+
+              {/* 采集时间 */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">采集时间（起）</label>
+                <div className="relative w-full h-8 group">
+                  <input
+                    type="date"
+                    value={collectedStart}
+                    onChange={(e) => setCollectedStart(e.target.value)}
+                    onClick={(e) => { try { e.currentTarget.showPicker(); } catch {} }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-between px-2.5 py-1 rounded-lg border border-input bg-transparent text-sm pointer-events-none group-focus-within:border-ring group-focus-within:ring-3 group-focus-within:ring-ring/50 transition-colors">
+                    <span className={collectedStart ? "text-foreground" : "text-muted-foreground"}>
+                      {collectedStart || "年/月/日"}
+                    </span>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">采集时间（止）</label>
+                <div className="relative w-full h-8 group">
+                  <input
+                    type="date"
+                    value={collectedEnd}
+                    onChange={(e) => setCollectedEnd(e.target.value)}
+                    onClick={(e) => { try { e.currentTarget.showPicker(); } catch {} }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-between px-2.5 py-1 rounded-lg border border-input bg-transparent text-sm pointer-events-none group-focus-within:border-ring group-focus-within:ring-3 group-focus-within:ring-ring/50 transition-colors">
+                    <span className={collectedEnd ? "text-foreground" : "text-muted-foreground"}>
+                      {collectedEnd || "年/月/日"}
+                    </span>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
 
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
         <div className={`flex-1 flex flex-col overflow-hidden ${detailItem ? "w-1/2" : "w-full"}`}>
-          {/* Batch actions */}
-          <div className="px-6 py-3">
-            <BatchActions
-              selectedCount={selected.size}
-              totalCount={total}
-              allSelected={allSelected}
-              generating={generating}
-              progress={generateProgress}
-              onSelectAll={selectAll}
-              onDeselectAll={deselectAll}
-              onGenerate={handleGenerate}
-            />
-          </div>
+          {/* Batch actions (only show when items are selected) */}
+          {selected.size > 0 && (
+            <div className="px-6 py-2.5 border-b bg-muted/10 tw-animate-css slide-in-down">
+              <BatchActions
+                selectedCount={selected.size}
+                totalCount={total}
+                allSelected={allSelected}
+                generating={generating}
+                progress={generateProgress}
+                onSelectAll={selectAll}
+                onDeselectAll={deselectAll}
+                onGenerate={handleGenerate}
+              />
+            </div>
+          )}
 
           {/* Table */}
           <div className="flex-1 overflow-auto px-6">
             {error ? (
-              <div className="flex items-center justify-center h-48 text-destructive">
-                {error}
-              </div>
+              <div className="flex items-center justify-center h-48 text-destructive">{error}</div>
             ) : loading ? (
-              <div className="flex items-center justify-center h-48 text-muted-foreground">
-                加载中...
-              </div>
+              <div className="flex items-center justify-center h-48 text-muted-foreground">加载中...</div>
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-                <p>暂无内容</p>
-                <p className="text-sm">点击「开始采集」获取内容</p>
+                <p>暂无符合条件的文章</p>
+                <p className="text-sm">尝试调整筛选条件或点击「开始采集」获取内容</p>
               </div>
             ) : (
               <Table>
@@ -476,12 +732,11 @@ export default function ArticlesPage() {
                       />
                     </TableHead>
                     <TableHead>标题</TableHead>
-                    <TableHead className="w-20">来源</TableHead>
-                    <TableHead className="w-20">体裁</TableHead>
-                    <TableHead className="w-16">质量</TableHead>
+                    <TableHead className="w-24">来源</TableHead>
+                    <TableHead className="w-32">文章发布时间</TableHead>
+                    <TableHead className="w-32">采集时间</TableHead>
                     <TableHead className="w-16">AI</TableHead>
                     <TableHead className="w-14">字数</TableHead>
-                    <TableHead className="w-16 text-right">素材卡</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -499,10 +754,10 @@ export default function ArticlesPage() {
                       </TableCell>
                       <TableCell className="font-medium max-w-[280px] truncate">
                         <button
-                          className="hover:underline text-left w-full truncate"
+                          className="hover:underline text-left w-full truncate font-semibold text-foreground/85 hover:text-primary transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            router.push(`/articles/${item.id}`);
+                            setDetailItem(item);
                           }}
                         >
                           {item.title}
@@ -510,43 +765,36 @@ export default function ArticlesPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
-                          {item.source?.name ?? item.platform}
+                          {item.source?.name ?? item.platform ?? "未知来源"}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        {item.contentGenre ? (
-                          <Badge
-                            variant="secondary"
-                            className={`text-xs ${GENRE_BADGE_COLORS[item.contentGenre] ?? ""}`}
-                          >
-                            {CONTENT_GENRE_LABELS[item.contentGenre] ?? item.contentGenre}
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">-</span>
-                        )}
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDateTime(item.publishedAt)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDateTime(item.createdAt)}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={item.qualityStatus === "accepted" ? "default" : item.qualityStatus === "filtered" ? "destructive" : "secondary"}
-                          className="text-xs"
-                        >
-                          {item.qualityStatus === "accepted" ? "通过" : item.qualityStatus === "filtered" ? "过滤" : item.qualityStatus === "candidate" ? "候选" : "待检"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {item.aiDecision === "accept" ? (
-                          <Badge variant="default" className="text-xs bg-green-600">接受</Badge>
-                        ) : item.aiDecision === "reject" ? (
-                          <Badge variant="destructive" className="text-xs">拒绝</Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">-</span>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {item.aiDecision === "accept" ? (
+                            <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-600">通过</Badge>
+                          ) : item.aiDecision === "reject" ? (
+                            <Badge variant="destructive" className="text-xs">拒绝</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-500 hover:bg-slate-100/80 dark:bg-slate-800 dark:text-slate-400">未评估</Badge>
+                          )}
+                          {item.contentGenre && (
+                            <Badge
+                              variant="secondary"
+                              className={`text-[10px] ${GENRE_BADGE_COLORS[item.contentGenre] ?? "bg-gray-100 text-gray-500"}`}
+                            >
+                              {CONTENT_GENRE_LABELS[item.contentGenre] ?? item.contentGenre}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {item.effectiveTextLength ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-right text-sm text-muted-foreground">
-                        {item._count.materialCards}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -572,10 +820,7 @@ export default function ArticlesPage() {
         {/* Detail panel */}
         {detailItem && (
           <div className="w-1/2 border-l overflow-hidden">
-            <ArticleDetail
-              article={detailItem}
-              onClose={() => setDetailItem(null)}
-            />
+            <ArticleDetail article={detailItem} onClose={() => setDetailItem(null)} />
           </div>
         )}
       </div>

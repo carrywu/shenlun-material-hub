@@ -12,6 +12,7 @@ vi.mock("@/services/ai", () => ({
     keySuffix: "****1234",
     cacheKey: "env:test",
   })),
+  getPromptTemplate: vi.fn(async () => "mock system prompt"),
 }));
 
 describe("ai-annotation", () => {
