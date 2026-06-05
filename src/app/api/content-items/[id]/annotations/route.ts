@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateAnnotation, autoAnnotateArticle } from "@/services/ai-annotation";
-import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireAdmin, requireAuth, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { canAccessResource } from "@/lib/data-isolation";
 
 // GET /api/content-items/[id]/annotations — 获取文章的所有批注
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const { id } = await params;
 
@@ -16,8 +19,18 @@ export async function GET(
       return NextResponse.json({ error: "内容条目不存在" }, { status: 404 });
     }
 
+    // Check access to parent content item
+    if (!canAccessResource(user, item.ownerUserId, item.visibility)) {
+      return forbiddenResponse("无权访问该内容");
+    }
+
+    // Filter annotations: ADMIN sees all; regular users see own + legacy
+    const annotationWhere = user.role === "ADMIN"
+      ? { contentItemId: id }
+      : { contentItemId: id, OR: [{ userId: user.id }, { userId: null }] };
+
     const annotations = await db.articleAnnotation.findMany({
-      where: { contentItemId: id },
+      where: annotationWhere,
       orderBy: { createdAt: "desc" },
     });
 

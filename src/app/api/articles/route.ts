@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getUserFromRequest } from "@/lib/auth";
+import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    let where: any = {};
 
     // 关键词搜索：标题 + 摘要
     if (keyword) {
@@ -99,6 +101,14 @@ export async function GET(request: NextRequest) {
       orderBy = { publishedAt: "desc" };
     } else {
       orderBy = { createdAt: "desc" };
+    }
+
+    // Visibility: authenticated users see public+own+legacy; anonymous see public only
+    const user = await getUserFromRequest(request);
+    if (user) {
+      where = mergeWhere(where, contentVisibilityWhere(user));
+    } else {
+      where.visibility = "public";
     }
 
     const [data, total] = await Promise.all([

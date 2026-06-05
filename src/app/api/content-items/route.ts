@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
-import { contentVisibilityWhere } from "@/lib/data-isolation";
+import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
 
 // GET /api/content-items — 分页 + 筛选
 export async function GET(request: NextRequest) {
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Merge visibility filter into where clause
-    const mergedWhere = { ...where, ...visibilityFilter };
+    const mergedWhere = mergeWhere(where, visibilityFilter);
 
     const [data, total] = await Promise.all([
       db.contentItem.findMany({

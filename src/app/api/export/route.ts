@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
-import { ownerScopeWhere } from "@/lib/data-isolation";
+import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
 
 const CARD_TYPE_LABELS: Record<string, string> = {
   fact_summary: "案例素材",
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Multi-user data isolation: restrict to owned material cards
     const ownerFilter = ownerScopeWhere(user, "ownerUserId");
-    const mergedWhere = { ...where, ...ownerFilter };
+    const mergedWhere = mergeWhere(where, ownerFilter);
 
     const cards = await db.materialCard.findMany({
       where: mergedWhere,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
-import { ownerScopeWhere } from "@/lib/data-isolation";
+import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
 
 export async function GET(request: NextRequest) {
   const user = await requireAdmin(request);
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Multi-user data isolation: for non-ADMIN users, filter by userId
     // (Currently only admins can access this route, but added for future-proofing)
     const ownerFilter = ownerScopeWhere(user, "userId");
-    const mergedWhere = { ...where, ...ownerFilter };
+    const mergedWhere = mergeWhere(where, ownerFilter);
 
     const [data, total] = await Promise.all([
       db.asyncTask.findMany({

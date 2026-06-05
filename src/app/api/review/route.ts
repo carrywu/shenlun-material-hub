@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
-import { ownerScopeWhere } from "@/lib/data-isolation";
+import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
 
 // GET /api/review - 获取复习用的素材卡
 export async function GET(request: NextRequest) {
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     if (mode === "random") {
       const cards = await db.materialCard.findMany({
-        where: { ...where, ...ownerFilter },
+        where: mergeWhere(where, ownerFilter),
         include: {
           contentItem: {
             select: {
@@ -42,8 +42,7 @@ export async function GET(request: NextRequest) {
     if (mode === "unreviewed") {
       const cards = await db.materialCard.findMany({
         where: {
-          ...where,
-          ...ownerFilter,
+          ...mergeWhere(where, ownerFilter),
           confirmed: false,
         },
         include: {
@@ -66,8 +65,7 @@ export async function GET(request: NextRequest) {
       // Cards that are not confirmed (treated as "weak" / not yet mastered)
       const cards = await db.materialCard.findMany({
         where: {
-          ...where,
-          ...ownerFilter,
+          ...mergeWhere(where, ownerFilter),
           confirmed: false,
         },
         include: {

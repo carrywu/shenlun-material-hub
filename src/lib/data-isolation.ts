@@ -68,3 +68,34 @@ export function canModifyResource(
   if (resourceOwnerId === user.id) return true;
   return false;
 }
+
+/**
+ * Safely merge two Prisma where clauses, avoiding OR key collisions.
+ * When both sides have OR, wraps them in AND to preserve both conditions.
+ */
+export function mergeWhere(
+  base: Record<string, unknown>,
+  filter: Record<string, unknown>
+): Record<string, unknown> {
+  if (!Object.keys(filter).length) return base;
+  if (!Object.keys(base).length) return filter;
+
+  const baseOR = base.OR;
+  const filterOR = filter.OR;
+
+  if (baseOR && filterOR) {
+    // Both have OR — wrap with AND to avoid collision
+    const { OR: _b, ...baseRest } = base;
+    const { OR: _f, ...filterRest } = filter;
+    const merged: Record<string, unknown> = { ...baseRest, ...filterRest };
+    const andParts: unknown[] = [];
+    if (baseRest.AND) andParts.push(baseRest.AND);
+    andParts.push({ OR: baseOR });
+    andParts.push({ OR: filterOR });
+    if (filterRest.AND) andParts.push(filterRest.AND);
+    merged.AND = andParts.flat();
+    return merged;
+  }
+
+  return { ...base, ...filter };
+}

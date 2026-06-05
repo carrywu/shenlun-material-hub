@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
-import { ownerScopeWhere } from "@/lib/data-isolation";
+import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
 
 // GET /api/material-cards — 分页 + 筛选
 export async function GET(request: NextRequest) {
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Merge owner filter into where clause
-    const mergedWhere = { ...where, ...ownerFilter };
+    const mergedWhere = mergeWhere(where, ownerFilter);
 
     const [data, total] = await Promise.all([
       db.materialCard.findMany({

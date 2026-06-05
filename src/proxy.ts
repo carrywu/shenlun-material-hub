@@ -4,12 +4,17 @@ import { validateSession } from "./lib/auth";
 
 const PUBLIC_LOGIN_PAGE = "/admin/login";
 
-// Paths that never require authentication
+// Paths that never require authentication (login pages, auth endpoints)
 const ALWAYS_PUBLIC = [
   "/admin/login",
   "/api/auth/login",
   "/api/auth/check",
   "/api/auth/logout",
+];
+
+// Page routes that allow anonymous access (non-API, browser-visible pages)
+const PUBLIC_PAGES = [
+  "/articles",
 ];
 
 export async function proxy(req: NextRequest) {
@@ -69,6 +74,11 @@ export async function proxy(req: NextRequest) {
       return NextResponse.json({ error: "未登录或会话已过期" }, { status: 401 });
     }
 
+    return NextResponse.next();
+  }
+
+  // ── Public pages: allow anonymous access ──────────────────────────────────
+  if (PUBLIC_PAGES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return NextResponse.next();
   }
 
