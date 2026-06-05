@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth, requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { canAccessResource, canModifyResource } from "@/lib/data-isolation";
 
 // GET /api/material-cards/[id]
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const { id } = await params;
     const card = await db.materialCard.findUnique({
@@ -30,6 +34,10 @@ export async function GET(
       return NextResponse.json({ error: "素材卡不存在" }, { status: 404 });
     }
 
+    if (!canAccessResource(user, card.ownerUserId)) {
+      return NextResponse.json({ error: "无权访问该素材卡" }, { status: 403 });
+    }
+
     return NextResponse.json(card);
   } catch (error) {
     console.error("Failed to fetch material card:", error);
@@ -42,6 +50,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const { id } = await params;
     const body = await request.json();
@@ -62,6 +78,10 @@ export async function PUT(
     const existing = await db.materialCard.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "素材卡不存在" }, { status: 404 });
+    }
+
+    if (!canModifyResource(user, existing.ownerUserId)) {
+      return NextResponse.json({ error: "无权修改该素材卡" }, { status: 403 });
     }
 
     const updated = await db.materialCard.update({
@@ -93,15 +113,27 @@ export async function PUT(
 
 // DELETE /api/material-cards/[id]
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const { id } = await params;
 
     const existing = await db.materialCard.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "素材卡不存在" }, { status: 404 });
+    }
+
+    if (!canModifyResource(user, existing.ownerUserId)) {
+      return NextResponse.json({ error: "无权修改该素材卡" }, { status: 403 });
     }
 
     await db.materialCard.delete({ where: { id } });

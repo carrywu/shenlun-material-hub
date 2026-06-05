@@ -78,8 +78,8 @@ export default function AdminBackupPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-white">数据备份</h2>
-        <p className="text-xs text-[#a1a1aa] mt-1">导出当前 SQLite 数据与上传文件，并支持 dry-run 恢复预览</p>
+        <h2 className="text-lg font-semibold text-foreground">数据备份</h2>
+        <p className="text-xs text-muted-foreground mt-1">导出当前 SQLite 数据与上传文件，并支持 dry-run 恢复预览</p>
       </div>
 
       <Card>

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth, unauthorizedResponse } from "@/lib/auth";
 
 // PATCH /api/annotations/[id] — 更新批注
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const { id } = await params;
     const body = await request.json();
@@ -34,9 +37,11 @@ export async function PATCH(
 
 // DELETE /api/annotations/[id] — 删除批注
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const { id } = await params;
 

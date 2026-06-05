@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 import { checkHealth } from "@/services/integrations/wewe-rss-api";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // GET /api/integrations/wewe-rss/status — 检查 WeWe RSS 连接状态
-export async function GET() {
+export async function GET(request: Request) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const baseUrl = process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
     const result = await checkHealth(baseUrl);

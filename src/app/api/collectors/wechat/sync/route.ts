@@ -4,6 +4,7 @@ import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 import { WeRssClient, fetchStandardRssArticles } from "@/services/collectors/wechat/weRssClient";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
 import { refreshFeed } from "@/services/integrations/wewe-rss-api";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 interface WechatSyncTaskParams {
   sourceId: string;
@@ -107,6 +108,14 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
 
 // POST /api/collectors/wechat/sync — 触发 WeRSS 同步并导入为 ContentItem
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const { sourceId, werssSourceId } = body;

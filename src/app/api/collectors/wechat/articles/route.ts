@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { WeRssClient } from "@/services/collectors/wechat/weRssClient";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // GET /api/collectors/wechat/articles — 获取 WeRSS 文章
 export async function GET(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const { searchParams } = new URL(request.url);
     const sourceId = searchParams.get("sourceId");

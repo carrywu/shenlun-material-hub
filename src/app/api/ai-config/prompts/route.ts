@@ -5,6 +5,7 @@ import {
   DEFAULT_PROMPT_TEMPLATES,
   PROMPT_TEMPLATE_DEFINITIONS,
 } from "@/services/ai";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 type PromptRecord = {
   key: string;
@@ -28,7 +29,15 @@ function promptClient() {
   }).aiPromptTemplate;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const definitions = PROMPT_TEMPLATE_DEFINITIONS;
     const records = await promptClient().findMany({
@@ -58,6 +67,14 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const key = assertPromptTemplateKey(String(body.key ?? ""));
@@ -99,6 +116,14 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const key = assertPromptTemplateKey(String(body.key ?? ""));

@@ -1,122 +1,175 @@
-// Web Crypto API based JWT and hashing utilities for Node.js & Edge Runtime compatibility
+// Auth utilities: bcrypt passwords, DB sessions, JWT (legacy compat), role-based middleware
 
-const encoder = new TextEncoder();
-const DEFAULT_USERNAME = "admin";
-// SHA-256 hash for "admin123"
-const DEFAULT_PASSWORD_HASH =
-  "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
-const DEFAULT_JWT_SECRET = "shenlun-material-hub-super-secret-jwt-key";
+import bcrypt from "bcryptjs";
+import { db } from "./db";
+import { logger } from "./logger";
 
-export interface AuthConfig {
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export type UserRole = "ADMIN" | "VERIFIED_USER" | "USER";
+export type UserStatus = "ACTIVE" | "DISABLED";
+
+export interface AuthUser {
+  id: string;
   username: string;
-  passwordHash: string;
-  jwtSecret: string;
-  usingDefaults: boolean;
+  role: UserRole;
+  status: UserStatus;
 }
 
-export function getAuthConfig(
-  env: NodeJS.ProcessEnv = process.env
-): { ok: true; config: AuthConfig } | { ok: false; message: string } {
-  const isProduction = env.NODE_ENV === "production";
-  const missing: string[] = [];
+// ─── Password utilities ──────────────────────────────────────────────────────
 
-  if (!env.ADMIN_USERNAME) missing.push("ADMIN_USERNAME");
-  if (!env.ADMIN_PASSWORD_HASH) missing.push("ADMIN_PASSWORD_HASH");
-  if (!env.JWT_SECRET) missing.push("JWT_SECRET");
+const BCRYPT_ROUNDS = 12;
 
-  if (isProduction && missing.length > 0) {
-    return {
-      ok: false,
-      message: `生产环境缺少鉴权配置: ${missing.join(", ")}`,
-    };
+/** Hash a password with bcrypt */
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+/**
+ * Verify a password against a stored hash.
+ * Supports both bcrypt hashes (starting with $2a$/$2b$) and legacy SHA-256 hashes.
+ * If a legacy SHA-256 hash is verified, returns { valid: true, needsUpgrade: true, plainPassword }.
+ */
+export async function verifyPassword(
+  password: string,
+  storedHash: string
+): Promise<{ valid: boolean; needsUpgrade?: boolean }> {
+  // bcrypt hash format: $2a$... or $2b$...
+  if (storedHash.startsWith("$2a$") || storedHash.startsWith("$2b$")) {
+    const valid = await bcrypt.compare(password, storedHash);
+    return { valid };
+  }
+
+  // Legacy SHA-256 fallback (old auth system)
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
+  const inputHash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  // Timing-safe comparison
+  if (inputHash.length !== storedHash.length) return { valid: false };
+  let result = 0;
+  for (let i = 0; i < inputHash.length; i++) {
+    result |= inputHash.charCodeAt(i) ^ storedHash.charCodeAt(i);
+  }
+  if (result === 0) {
+    return { valid: true, needsUpgrade: true };
+  }
+  return { valid: false };
+}
+
+// ─── Session utilities ────────────────────────────────────────────────────────
+
+const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** Generate a cryptographically secure random token */
+function generateSessionToken(): string {
+  const bytes = new Uint8Array(48);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/** Create a new DB session for a user. Returns the plain token. */
+export async function createSession(userId: string): Promise<string> {
+  const token = generateSessionToken();
+  const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS);
+
+  await db.session.create({
+    data: { userId, token, expiresAt },
+  });
+
+  return token;
+}
+
+/** Validate a session token. Returns the user or null. */
+export async function validateSession(token: string): Promise<AuthUser | null> {
+  const session = await db.session.findUnique({
+    where: { token },
+    include: { user: true },
+  });
+
+  if (!session) return null;
+  if (new Date() > session.expiresAt) {
+    // Expired — clean up
+    await db.session.delete({ where: { id: session.id } }).catch(() => {});
+    return null;
+  }
+  if (session.user.status !== "ACTIVE") {
+    return null;
   }
 
   return {
-    ok: true,
-    config: {
-      username: env.ADMIN_USERNAME || DEFAULT_USERNAME,
-      passwordHash: env.ADMIN_PASSWORD_HASH || DEFAULT_PASSWORD_HASH,
-      jwtSecret: env.JWT_SECRET || DEFAULT_JWT_SECRET,
-      usingDefaults: missing.length > 0,
-    },
+    id: session.user.id,
+    username: session.user.username,
+    role: session.user.role as UserRole,
+    status: session.user.status as UserStatus,
   };
 }
 
-// Base64Url encoding helpers
-function base64UrlEncode(str: string): string {
-  const binary = String.fromCharCode(...encoder.encode(str));
-  return btoa(binary)
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
+/** Delete a session by token */
+export async function revokeSession(token: string): Promise<void> {
+  await db.session.deleteMany({ where: { token } }).catch(() => {});
 }
 
-function base64UrlEncodeBuffer(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary)
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
+/** Revoke all sessions for a user */
+export async function revokeAllUserSessions(userId: string): Promise<number> {
+  const result = await db.session.deleteMany({ where: { userId } });
+  return result.count;
 }
 
-function base64UrlDecode(str: string): string {
-  let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
-  while (base64.length % 4) {
-    base64 += "=";
-  }
-  return new TextDecoder().decode(
-    Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
-  );
+/** Clean up expired sessions (call periodically) */
+export async function cleanExpiredSessions(): Promise<number> {
+  const result = await db.session.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
+  return result.count;
 }
 
-// Convert a secret string to a CryptoKey
+// ─── Cookie helpers ──────────────────────────────────────────────────────────
+
+export const AUTH_COOKIE_NAME = "auth_token";
+
+export function buildCookieHeader(token: string, maxAge = 86400): string {
+  const isProd = process.env.NODE_ENV === "production";
+  return `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; ${isProd ? "Secure;" : ""} SameSite=Strict; Max-Age=${maxAge}`;
+}
+
+export function buildClearCookieHeader(): string {
+  const isProd = process.env.NODE_ENV === "production";
+  return `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; ${isProd ? "Secure;" : ""} SameSite=Strict; Max-Age=0`;
+}
+
+// ─── Legacy JWT support (for migration period) ──────────────────────────────
+
+const DEFAULT_JWT_SECRET = "shenlun-material-hub-super-secret-jwt-key";
+
+function getLegacyJwtSecret(): string {
+  return process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
+}
+
+const encoder = new TextEncoder();
+
 async function getCryptoKey(secret: string): Promise<CryptoKey> {
-  const keyData = encoder.encode(secret);
   return crypto.subtle.importKey(
     "raw",
-    keyData,
+    encoder.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"]
   );
 }
 
-export async function signJWT(
-  payload: Record<string, unknown>,
-  secret: string,
-  expiresInSeconds = 86400
-): Promise<string> {
-  const header = { alg: "HS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const fullPayload = {
-    ...payload,
-    iat: now,
-    exp: now + expiresInSeconds,
-  };
-
-  const encodedHeader = base64UrlEncode(JSON.stringify(header));
-  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
-  const dataToSign = `${encodedHeader}.${encodedPayload}`;
-
-  const key = await getCryptoKey(secret);
-  const signatureBuffer = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    encoder.encode(dataToSign)
-  );
-
-  const encodedSignature = base64UrlEncodeBuffer(signatureBuffer);
-  return `${dataToSign}.${encodedSignature}`;
+function base64UrlDecode(str: string): string {
+  let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
+  while (base64.length % 4) base64 += "=";
+  return new TextDecoder().decode(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)));
 }
 
-export async function verifyJWT(
-  token: string,
-  secret: string
-): Promise<Record<string, unknown> | null> {
+/** Verify a legacy JWT token and extract the username */
+async function verifyLegacyJWT(token: string): Promise<string | null> {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
@@ -124,58 +177,175 @@ export async function verifyJWT(
     const [encodedHeader, encodedPayload, encodedSignature] = parts;
     const dataToVerify = `${encodedHeader}.${encodedPayload}`;
 
-    const key = await getCryptoKey(secret);
-    
-    // Base64Url decode signature to binary buffer
+    const key = await getCryptoKey(getLegacyJwtSecret());
+
     let base64 = encodedSignature.replace(/-/g, "+").replace(/_/g, "/");
-    while (base64.length % 4) {
-      base64 += "=";
-    }
+    while (base64.length % 4) base64 += "=";
     const sigBinary = atob(base64);
     const sigBuffer = new Uint8Array(sigBinary.length);
-    for (let i = 0; i < sigBinary.length; i++) {
-      sigBuffer[i] = sigBinary.charCodeAt(i);
-    }
+    for (let i = 0; i < sigBinary.length; i++) sigBuffer[i] = sigBinary.charCodeAt(i);
 
-    const isValid = await crypto.subtle.verify(
-      "HMAC",
-      key,
-      sigBuffer,
-      encoder.encode(dataToVerify)
-    );
-
+    const isValid = await crypto.subtle.verify("HMAC", key, sigBuffer, encoder.encode(dataToVerify));
     if (!isValid) return null;
 
     const payload = JSON.parse(base64UrlDecode(encodedPayload));
-    
-    // Check expiration
     const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && now > payload.exp) {
-      return null; // Token expired
-    }
+    if (payload.exp && now > payload.exp) return null;
 
-    return payload;
-  } catch (_error) {
+    return typeof payload.username === "string" ? payload.username : null;
+  } catch {
     return null;
   }
 }
 
-// SHA-256 hashing for password storage
-export async function hashPassword(password: string): Promise<string> {
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+// ─── Auth middleware for API routes ──────────────────────────────────────────
+
+export interface AuthenticatedRequest {
+  user: AuthUser;
 }
 
-export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
-  const inputHash = await hashPassword(password);
-  
-  // Timing safe equal check to prevent timing attacks
-  if (inputHash.length !== storedHash.length) return false;
-  let result = 0;
-  for (let i = 0; i < inputHash.length; i++) {
-    result |= inputHash.charCodeAt(i) ^ storedHash.charCodeAt(i);
+/**
+ * Extract and validate the user from the request.
+ * Supports both new DB sessions and legacy JWT tokens.
+ * Returns null if unauthenticated.
+ */
+export async function getUserFromRequest(
+  request: Request
+): Promise<AuthUser | null> {
+  // 1. Try DB session token from cookie
+  const cookieHeader = request.headers.get("cookie") || "";
+  const tokenMatch = cookieHeader.match(/(?:^|;\s*)auth_token=([^;]+)/);
+  if (tokenMatch) {
+    const token = tokenMatch[1];
+    const user = await validateSession(token);
+    if (user) return user;
   }
-  return result === 0;
+
+  // 2. Try legacy JWT token from cookie (migration support)
+  if (tokenMatch) {
+    const token = tokenMatch[1];
+    const legacyUsername = await verifyLegacyJWT(token);
+    if (legacyUsername) {
+      // Find or create user from legacy JWT
+      const user = await db.user.findFirst({
+        where: {
+          username: legacyUsername,
+          status: "ACTIVE",
+        },
+      });
+      if (user) {
+        return {
+          id: user.id,
+          username: user.username,
+          role: user.role as UserRole,
+          status: user.status as UserStatus,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Require authentication. Returns user or null.
+ * Usage: const user = await requireAuth(request); if (!user) return unauthorized();
+ */
+export async function requireAuth(request: Request): Promise<AuthUser | null> {
+  return getUserFromRequest(request);
+}
+
+/**
+ * Require ADMIN role. Returns user or null.
+ */
+export async function requireAdmin(request: Request): Promise<AuthUser | null> {
+  const user = await getUserFromRequest(request);
+  if (!user) return null;
+  if (user.role !== "ADMIN") return null;
+  return user;
+}
+
+/**
+ * Require at least VERIFIED_USER role. Returns user or null.
+ */
+export async function requireVerifiedUser(
+  request: Request
+): Promise<AuthUser | null> {
+  const user = await getUserFromRequest(request);
+  if (!user) return null;
+  if (user.role !== "ADMIN" && user.role !== "VERIFIED_USER") return null;
+  return user;
+}
+
+// ─── Unauthorized response helpers ──────────────────────────────────────────
+
+export function unauthorizedResponse(message = "未登录或会话已过期") {
+  return Response.json({ error: message }, { status: 401 });
+}
+
+export function forbiddenResponse(message = "权限不足") {
+  return Response.json({ error: message }, { status: 403 });
+}
+
+// ─── User management utilities ──────────────────────────────────────────────
+
+/** Ensure at least one admin exists. Idempotent — safe to call multiple times. */
+export async function ensureInitialAdmin(): Promise<void> {
+  const adminCount = await db.user.count({ where: { role: "ADMIN" } });
+  if (adminCount > 0) return;
+
+  const username = process.env.ADMIN_USERNAME || "admin";
+  const existingUser = await db.user.findUnique({ where: { username } });
+
+  if (existingUser) {
+    // Ensure this user is admin
+    if (existingUser.role !== "ADMIN") {
+      await db.user.update({
+        where: { id: existingUser.id },
+        data: { role: "ADMIN", status: "ACTIVE" },
+      });
+    }
+    return;
+  }
+
+  // Create admin from env vars
+  const envHash = process.env.ADMIN_PASSWORD_HASH;
+  let passwordHash: string;
+
+  if (envHash && (envHash.startsWith("$2a$") || envHash.startsWith("$2b$"))) {
+    // Already a bcrypt hash
+    passwordHash = envHash;
+  } else if (envHash) {
+    // Legacy SHA-256 hash — we'll create with a default password that must be changed
+    // For now, hash "admin123" as default (matches the legacy default)
+    passwordHash = await hashPassword("admin123");
+    await logger.warn(
+      `Admin password initialized with default (env hash was SHA-256 legacy). Please change immediately.`,
+      "AUTH"
+    );
+  } else {
+    // No env var at all — use default password
+    passwordHash = await hashPassword("admin123");
+    await logger.warn(
+      "Admin password initialized with default (admin123). Please change immediately.",
+      "AUTH"
+    );
+  }
+
+  await db.user.create({
+    data: {
+      username,
+      displayName: "管理员",
+      passwordHash,
+      role: "ADMIN",
+      status: "ACTIVE",
+    },
+  });
+
+  await logger.info(`Initial admin user "${username}" created.`, "AUTH");
+}
+
+/** Count active admins — used to prevent disabling the last admin */
+export async function countActiveAdmins(): Promise<number> {
+  return db.user.count({ where: { role: "ADMIN", status: "ACTIVE" } });
 }

@@ -1,57 +1,123 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthConfig, verifyPassword, signJWT } from "@/lib/auth";
+import {
+  requireAuth,
+  verifyPassword,
+  hashPassword,
+  createSession,
+  buildCookieHeader,
+  ensureInitialAdmin,
+} from "@/lib/auth";
+import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
+    // Ensure at least one admin exists (idempotent)
+    await ensureInitialAdmin();
+
     const { username, password } = await req.json();
 
-    const authConfigResult = getAuthConfig();
-    if (!authConfigResult.ok) {
-      await logger.error(authConfigResult.message, "AUTH");
-      return NextResponse.json({ error: authConfigResult.message }, { status: 500 });
+    if (!username || !password) {
+      return NextResponse.json(
+        { error: "请输入用户名和密码" },
+        { status: 400 }
+      );
     }
 
-    const { username: expectedUsername, passwordHash, jwtSecret, usingDefaults } =
-      authConfigResult.config;
+    // Find user in database
+    const user = await db.user.findUnique({ where: { username } });
 
-    if (usingDefaults) {
+    if (!user) {
       await logger.warn(
-        "Admin auth is using development fallback credentials. Do not use this setup in production.",
+        `Failed login attempt: Unknown user "${username}"`,
+        "AUTH"
+      );
+      return NextResponse.json(
+        { error: "用户名或密码错误" },
+        { status: 401 }
+      );
+    }
+
+    if (user.status !== "ACTIVE") {
+      await logger.warn(
+        `Failed login attempt: Disabled user "${username}"`,
+        "AUTH"
+      );
+      return NextResponse.json(
+        { error: "账号已被禁用，请联系管理员" },
+        { status: 403 }
+      );
+    }
+
+    // Verify password (supports both bcrypt and legacy SHA-256)
+    const result = await verifyPassword(password, user.passwordHash);
+
+    if (!result.valid) {
+      await logger.warn(
+        `Failed login attempt: Incorrect password for user "${username}"`,
+        "AUTH"
+      );
+      return NextResponse.json(
+        { error: "用户名或密码错误" },
+        { status: 401 }
+      );
+    }
+
+    // If legacy hash was used, upgrade to bcrypt
+    if (result.needsUpgrade) {
+      const newHash = await hashPassword(password);
+      await db.user.update({
+        where: { id: user.id },
+        data: { passwordHash: newHash },
+      });
+      await logger.info(
+        `Password upgraded to bcrypt for user "${username}"`,
         "AUTH"
       );
     }
 
-    if (username !== expectedUsername) {
-      await logger.warn(`Failed login attempt: Invalid username "${username}"`, "AUTH");
-      return NextResponse.json({ error: "用户名或密码错误" }, { status: 401 });
-    }
+    // Create DB session
+    const token = await createSession(user.id);
 
-    const isPasswordCorrect = await verifyPassword(password, passwordHash);
-    if (!isPasswordCorrect) {
-      await logger.warn(`Failed login attempt: Incorrect password for user "${username}"`, "AUTH");
-      return NextResponse.json({ error: "用户名或密码错误" }, { status: 401 });
-    }
+    // Set token in cookie
+    const response = NextResponse.json({
+      success: true,
+      message: "登录成功",
+      user: {
+        username: user.username,
+        role: user.role,
+        displayName: user.displayName || user.username,
+      },
+    });
 
-    // Generate JWT token
-    const token = await signJWT({ username }, jwtSecret);
+    response.headers.append("Set-Cookie", buildCookieHeader(token));
 
-    // Set token in Cookie
-    const response = NextResponse.json({ success: true, message: "登录成功" });
-    
-    // Cookie details
-    const isProd = process.env.NODE_ENV === "production";
-    response.headers.append(
-      "Set-Cookie",
-      `auth_token=${token}; Path=/; HttpOnly; ${isProd ? "Secure;" : ""} SameSite=Strict; Max-Age=86400`
-    );
-
-    await logger.info(`Admin user "${username}" logged in successfully.`, "AUTH");
+    await logger.info(`User "${username}" (role: ${user.role}) logged in.`, "AUTH");
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "未知错误";
     const detail = error instanceof Error ? error.stack : undefined;
-    await logger.error(`Error during login processing: ${message}`, "AUTH", detail);
+    await logger.error(`Login error: ${message}`, "AUTH", detail);
     return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
+  }
+}
+
+/** GET /api/auth/check — validate current session */
+export async function GET(req: NextRequest) {
+  try {
+    const user = await requireAuth(req);
+
+    if (!user) {
+      return NextResponse.json({ authenticated: false }, { status: 401 });
+    }
+
+    return NextResponse.json({
+      authenticated: true,
+      username: user.username,
+      role: user.role,
+      displayName: user.username,
+    });
+  } catch (_error) {
+    return NextResponse.json({ authenticated: false }, { status: 500 });
   }
 }

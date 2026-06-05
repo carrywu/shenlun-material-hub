@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revokeSession, buildClearCookieHeader } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const response = NextResponse.json({ success: true, message: "注销成功" });
-    const isProd = process.env.NODE_ENV === "production";
-    
-    // Clear the auth_token cookie
-    response.headers.append(
-      "Set-Cookie",
-      `auth_token=; Path=/; HttpOnly; ${isProd ? "Secure;" : ""} SameSite=Strict; Max-Age=0`
-    );
+    // Extract token from cookie and revoke the DB session
+    const cookieHeader = req.headers.get("cookie") || "";
+    const tokenMatch = cookieHeader.match(/(?:^|;\s*)auth_token=([^;]+)/);
+    if (tokenMatch) {
+      await revokeSession(tokenMatch[1]);
+    }
 
-    await logger.info("Admin user logged out.", "AUTH");
+    const response = NextResponse.json({ success: true, message: "注销成功" });
+    response.headers.append("Set-Cookie", buildClearCookieHeader());
+
+    await logger.info("User logged out.", "AUTH");
     return response;
   } catch (_error) {
     return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });

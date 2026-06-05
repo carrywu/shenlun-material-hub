@@ -31,6 +31,12 @@ vi.mock("@/services/ai", () => ({
   resetAiConfigCache: mocks.resetAiConfigCache,
 }));
 
+vi.mock("@/lib/auth", () => ({
+  requireAdmin: vi.fn().mockResolvedValue({ id: "admin-1", username: "admin", role: "ADMIN", status: "ACTIVE" }),
+  unauthorizedResponse: vi.fn(() => new Response(JSON.stringify({ error: "未登录" }), { status: 401 })),
+  forbiddenResponse: vi.fn(() => new Response(JSON.stringify({ error: "权限不足" }), { status: 403 })),
+}));
+
 describe("/api/ai-config route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,7 +67,7 @@ describe("/api/ai-config route", () => {
     mocks.deleteMany.mockResolvedValue({ count: 1 });
     const { DELETE } = await import("../route");
 
-    const response = await DELETE();
+    const response = await DELETE(new NextRequest("http://localhost/api/ai-config", { method: "DELETE" }));
 
     expect(response.status).toBe(200);
     expect(mocks.deleteMany).toHaveBeenCalledWith({ where: { name: "default" } });

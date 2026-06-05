@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  FileText, 
-  Globe, 
-  ListTodo, 
-  AlertOctagon, 
-  RefreshCw, 
-  HardDrive, 
-  Cpu, 
+import {
+  FileText,
+  Globe,
+  ListTodo,
+  AlertOctagon,
+  RefreshCw,
+  HardDrive,
+  Cpu,
   Layers,
   ChevronRight,
   Clock
@@ -101,15 +101,15 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-10 w-48 bg-[#18181b] rounded-lg" />
+        <div className="h-10 w-48 bg-muted rounded-lg" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 bg-[#18181b] rounded-xl border border-[#27272a]/60" />
+            <div key={i} className="h-28 bg-card rounded-xl border border-border" />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 h-64 bg-[#18181b] rounded-xl border border-[#27272a]/60" />
-          <div className="h-64 bg-[#18181b] rounded-xl border border-[#27272a]/60" />
+          <div className="lg:col-span-2 h-64 bg-card rounded-xl border border-border" />
+          <div className="h-64 bg-card rounded-xl border border-border" />
         </div>
       </div>
     );
@@ -117,13 +117,13 @@ export default function AdminDashboardPage() {
 
   if (!data) {
     return (
-      <div className="text-center py-12 border border-[#27272a] rounded-xl bg-[#18181b]/30">
+      <div className="text-center py-12 border border-border rounded-xl bg-card">
         <AlertOctagon className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-base font-semibold text-white">无法加载系统数据</h3>
-        <p className="text-xs text-[#a1a1aa] mt-1">请检查后台服务或刷新重试</p>
-        <button 
+        <h3 className="text-base font-semibold text-foreground">无法加载系统数据</h3>
+        <p className="text-xs text-muted-foreground mt-1">请检查后台服务或刷新重试</p>
+        <button
           onClick={fetchMetrics}
-          className="mt-4 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-xs font-medium transition cursor-pointer"
+          className="mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-medium transition cursor-pointer"
         >
           重新尝试
         </button>
@@ -139,7 +139,7 @@ export default function AdminDashboardPage() {
       value: dbStats.totalArticles,
       desc: `数据库占用 ${dbStats.dbSizeMb} MB`,
       icon: FileText,
-      color: "from-blue-600 to-indigo-600",
+      color: "from-blue-500 to-indigo-500",
       link: "/admin/articles"
     },
     {
@@ -147,7 +147,7 @@ export default function AdminDashboardPage() {
       value: dbStats.totalSources,
       desc: "涵盖网站与微信公众号",
       icon: Globe,
-      color: "from-emerald-600 to-teal-600",
+      color: "from-emerald-500 to-teal-500",
       link: "/admin/sources"
     },
     {
@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
       value: dbStats.activeTasks,
       desc: "后台同步/爬取任务数",
       icon: ListTodo,
-      color: "from-amber-600 to-orange-600",
+      color: "from-amber-500 to-orange-500",
       link: "/admin/tasks"
     },
     {
@@ -163,8 +163,8 @@ export default function AdminDashboardPage() {
       value: dbStats.errorLogs24h,
       desc: "近 24 小时系统报错次数",
       icon: AlertOctagon,
-      color: "from-rose-600 to-red-600",
-      textColor: dbStats.errorLogs24h > 0 ? "text-rose-400" : "text-[#f4f4f5]",
+      color: "from-rose-500 to-red-500",
+      textColor: dbStats.errorLogs24h > 0 ? "text-red-600" : "text-foreground",
       link: "/admin/logs"
     }
   ];
@@ -174,15 +174,15 @@ export default function AdminDashboardPage() {
       {/* Title & Refresh */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white tracking-tight">控制台概览</h2>
-          <p className="text-xs text-[#a1a1aa] mt-1">运行状态监控与模块配置中心</p>
+          <h2 className="text-lg font-bold text-foreground tracking-tight">控制台概览</h2>
+          <p className="text-xs text-muted-foreground mt-1">运行状态监控与模块配置中心</p>
         </div>
         <button
           onClick={fetchMetrics}
           disabled={refreshing}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#27272a] bg-[#18181b]/40 hover:bg-[#18181b]/90 text-xs font-medium transition cursor-pointer disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-medium text-foreground transition cursor-pointer disabled:opacity-50"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-violet-400" : ""}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-primary" : ""}`} />
           <span>{refreshing ? "刷新中" : "手动刷新"}</span>
         </button>
       </div>
@@ -192,17 +192,17 @@ export default function AdminDashboardPage() {
         {cardStats.map((card, idx) => {
           const Icon = card.icon;
           return (
-            <Link 
-              key={idx} 
+            <Link
+              key={idx}
               href={card.link}
-              className="p-6 bg-[#18181b]/30 hover:bg-[#18181b]/60 border border-[#27272a]/60 hover:border-violet-500/20 rounded-xl transition-all duration-300 group flex items-start justify-between cursor-pointer"
+              className="p-6 bg-card hover:bg-muted border border-border hover:border-primary/20 rounded-xl transition-all duration-300 group flex items-start justify-between cursor-pointer"
             >
               <div className="space-y-2">
-                <span className="text-xs text-[#a1a1aa] font-medium">{card.title}</span>
-                <div className={`text-2xl font-bold tracking-tight ${card.textColor || "text-white"}`}>
+                <span className="text-xs text-muted-foreground font-medium">{card.title}</span>
+                <div className={`text-2xl font-bold tracking-tight ${card.textColor || "text-foreground"}`}>
                   {card.value}
                 </div>
-                <p className="text-[10px] text-[#71717a]">{card.desc}</p>
+                <p className="text-[10px] text-muted-foreground">{card.desc}</p>
               </div>
               <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.color} flex items-center justify-center text-white opacity-90 shadow-md group-hover:scale-105 transition-transform duration-300`}>
                 <Icon className="w-5 h-5" />
@@ -214,28 +214,28 @@ export default function AdminDashboardPage() {
 
       {/* System Resource Metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Hardware Status */}
-        <div className="p-6 bg-[#18181b]/30 border border-[#27272a]/60 rounded-xl space-y-6">
+        <div className="p-6 bg-card border border-border rounded-xl space-y-6">
           <div>
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-violet-400" />
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-primary" />
               <span>硬件运行环境</span>
             </h3>
-            <p className="text-[10px] text-[#71717a] mt-1">当前机器性能指标</p>
+            <p className="text-[10px] text-muted-foreground mt-1">当前机器性能指标</p>
           </div>
 
           <div className="space-y-4">
             {/* CPU */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#a1a1aa]">处理器负载</span>
-                <span className="text-white font-medium">{systemStats.cpu.percent}% ({systemStats.cpu.cores}核)</span>
+                <span className="text-muted-foreground">处理器负载</span>
+                <span className="text-foreground font-medium">{systemStats.cpu.percent}% ({systemStats.cpu.cores}核)</span>
               </div>
-              <div className="h-1.5 w-full bg-[#27272a] rounded-full overflow-hidden">
-                <div 
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div
                   className={`h-full rounded-full transition-all duration-500 ${
-                    systemStats.cpu.percent > 80 ? "bg-red-500" : systemStats.cpu.percent > 50 ? "bg-amber-500" : "bg-violet-500"
+                    systemStats.cpu.percent > 80 ? "bg-red-500" : systemStats.cpu.percent > 50 ? "bg-amber-500" : "bg-primary"
                   }`}
                   style={{ width: `${Math.min(systemStats.cpu.percent, 100)}%` }}
                 />
@@ -245,11 +245,11 @@ export default function AdminDashboardPage() {
             {/* Memory */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#a1a1aa]">内存占用</span>
-                <span className="text-white font-medium">{systemStats.memory.used} / {systemStats.memory.total} MB ({systemStats.memory.percent}%)</span>
+                <span className="text-muted-foreground">内存占用</span>
+                <span className="text-foreground font-medium">{systemStats.memory.used} / {systemStats.memory.total} MB ({systemStats.memory.percent}%)</span>
               </div>
-              <div className="h-1.5 w-full bg-[#27272a] rounded-full overflow-hidden">
-                <div 
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div
                   className="h-full bg-indigo-500 rounded-full transition-all duration-500"
                   style={{ width: `${systemStats.memory.percent}%` }}
                 />
@@ -259,11 +259,11 @@ export default function AdminDashboardPage() {
             {/* Disk */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#a1a1aa]">磁盘剩余空间</span>
-                <span className="text-white font-medium">剩余 {systemStats.disk.freeGb.toFixed(1)} GB ({100 - systemStats.disk.percent}%)</span>
+                <span className="text-muted-foreground">磁盘剩余空间</span>
+                <span className="text-foreground font-medium">剩余 {systemStats.disk.freeGb.toFixed(1)} GB ({100 - systemStats.disk.percent}%)</span>
               </div>
-              <div className="h-1.5 w-full bg-[#27272a] rounded-full overflow-hidden">
-                <div 
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div
                   className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                   style={{ width: `${systemStats.disk.percent}%` }}
                 />
@@ -271,58 +271,58 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[#27272a]/60 text-[10px] text-[#71717a] flex items-center gap-1.5">
-            <HardDrive className="w-3.5 h-3.5 text-[#71717a]" />
+          <div className="pt-4 border-t border-border text-[10px] text-muted-foreground flex items-center gap-1.5">
+            <HardDrive className="w-3.5 h-3.5 text-muted-foreground" />
             <span className="truncate" title={systemStats.os}>{systemStats.os}</span>
           </div>
         </div>
 
         {/* Recent Tasks */}
-        <div className="p-6 bg-[#18181b]/30 border border-[#27272a]/60 rounded-xl space-y-4 lg:col-span-2">
+        <div className="p-6 bg-card border border-border rounded-xl space-y-4 lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Layers className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Layers className="w-4 h-4 text-emerald-500" />
               <span>最近执行任务</span>
             </h3>
-            <Link href="/admin" className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-0.5 transition cursor-pointer">
+            <Link href="/admin/tasks" className="text-xs text-primary hover:text-primary/80 flex items-center gap-0.5 transition cursor-pointer">
               <span>全部任务</span>
               <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
 
           {recentTasks.length === 0 ? (
-            <div className="text-center py-8 text-xs text-[#71717a]">
+            <div className="text-center py-8 text-xs text-muted-foreground">
               当前没有执行过的异步任务
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
                 <thead>
-                  <tr className="border-b border-[#27272a] text-[#71717a]">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="py-2 font-medium">任务类型</th>
                     <th className="py-2 font-medium">触发时间</th>
                     <th className="py-2 font-medium">状态</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#27272a]/40 text-[#d4d4d8]">
+                <tbody className="divide-y divide-border text-foreground">
                   {recentTasks.map((task) => (
-                    <tr key={task.id} className="hover:bg-[#18181b]/20">
-                      <td className="py-3 font-mono font-medium text-xs text-violet-300">
+                    <tr key={task.id} className="hover:bg-muted/50">
+                      <td className="py-3 font-mono font-medium text-xs text-primary">
                         {task.type}
                       </td>
-                      <td className="py-3 text-[#a1a1aa] flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-[#71717a]" />
+                      <td className="py-3 text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                         <span>{new Date(task.createdAt).toLocaleString("zh-CN")}</span>
                       </td>
                       <td className="py-3">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                          task.status === "COMPLETED" 
-                            ? "bg-emerald-950/40 text-emerald-400 border border-emerald-900/50" 
-                            : task.status === "FAILED" 
-                            ? "bg-rose-950/40 text-rose-400 border border-rose-900/50" 
+                          task.status === "COMPLETED"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : task.status === "FAILED"
+                            ? "bg-red-50 text-red-700 border border-red-200"
                             : task.status === "RUNNING"
-                            ? "bg-amber-950/40 text-amber-400 border border-amber-900/50 animate-pulse"
-                            : "bg-[#27272a] text-[#a1a1aa]"
+                            ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
+                            : "bg-muted text-muted-foreground border border-border"
                         }`}>
                           {task.status === "COMPLETED" ? "成功" : task.status === "FAILED" ? "失败" : task.status === "RUNNING" ? "运行中" : "排队中"}
                         </span>
@@ -338,38 +338,38 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Recent System Errors */}
-      <div className="p-6 bg-[#18181b]/30 border border-[#27272a]/60 rounded-xl space-y-4">
+      <div className="p-6 bg-card border border-border rounded-xl space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-            <AlertOctagon className="w-4 h-4 text-rose-400" />
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <AlertOctagon className="w-4 h-4 text-red-500" />
             <span>最近系统异常</span>
           </h3>
-          <Link href="/admin" className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-0.5 transition cursor-pointer">
+          <Link href="/admin/logs" className="text-xs text-primary hover:text-primary/80 flex items-center gap-0.5 transition cursor-pointer">
             <span>日志中心</span>
             <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
 
         {recentErrors.length === 0 ? (
-          <div className="text-center py-8 text-xs text-[#71717a] border border-dashed border-[#27272a] rounded-lg">
+          <div className="text-center py-8 text-xs text-muted-foreground border border-dashed border-border rounded-lg">
             系统运行平稳，最近无报错日志 🎉
           </div>
         ) : (
           <div className="space-y-3">
             {recentErrors.map((log) => (
-              <div 
-                key={log.id} 
-                className="p-3 bg-rose-950/10 border border-rose-900/30 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-2 hover:border-rose-900/50 transition-all duration-200"
+              <div
+                key={log.id}
+                className="p-3 bg-red-50/50 border border-red-100 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-2 hover:border-red-200 transition-all duration-200"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 bg-rose-900/40 text-rose-400 text-[9px] font-bold rounded uppercase">
+                    <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded uppercase">
                       {log.category}
                     </span>
-                    <span className="text-xs font-medium text-white">{log.message}</span>
+                    <span className="text-xs font-medium text-foreground">{log.message}</span>
                   </div>
                 </div>
-                <div className="text-[10px] text-[#71717a] font-mono whitespace-nowrap">
+                <div className="text-[10px] text-muted-foreground font-mono whitespace-nowrap">
                   {new Date(log.createdAt).toLocaleString("zh-CN")}
                 </div>
               </div>

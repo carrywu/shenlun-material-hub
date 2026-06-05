@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -26,7 +27,16 @@ function readDiskStats(): { percent: number; freeGb: number } {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
+
   try {
     // 1. 获取数据库统计数据
     const totalArticles = await db.contentItem.count();

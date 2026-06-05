@@ -2,8 +2,18 @@ import { NextResponse } from "next/server";
 import { createBackupArchive, resolveDatabaseFilePath } from "@/lib/backup";
 import { resolveUploadsDirectoryPath } from "@/lib/backup";
 import { logger } from "@/lib/logger";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
+
   try {
     const dbPath = resolveDatabaseFilePath();
     const uploadsDir = resolveUploadsDirectoryPath();

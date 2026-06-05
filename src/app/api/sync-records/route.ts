@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSyncRecords } from "@/services/ima-sync";
+import { requireAuth, unauthorizedResponse } from "@/lib/auth";
+import { ownerScopeWhere } from "@/lib/data-isolation";
 
 // GET /api/sync-records - 同步历史查询（支持筛选）
 export async function GET(request: NextRequest) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const { searchParams } = new URL(request.url);
 
@@ -13,7 +17,10 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
     const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20")));
 
-    const result = await getSyncRecords({ status, documentRole, dateFrom, dateTo, page, pageSize });
+    // Multi-user data isolation: restrict to own sync records
+    const ownerFilter = ownerScopeWhere(user, "userId");
+
+    const result = await getSyncRecords({ status, documentRole, dateFrom, dateTo, page, pageSize, extraWhere: ownerFilter });
     return NextResponse.json(result);
   } catch (error) {
     console.error("Query sync records failed:", error);

@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth, requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { canAccessResource, canModifyResource } from "@/lib/data-isolation";
 
 // GET /api/content-items/[id]
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const { id } = await params;
     const item = await db.contentItem.findUnique({
@@ -21,6 +25,10 @@ export async function GET(
       return NextResponse.json({ error: "内容条目不存在" }, { status: 404 });
     }
 
+    if (!canAccessResource(user, item.ownerUserId, item.visibility)) {
+      return NextResponse.json({ error: "无权访问该内容" }, { status: 403 });
+    }
+
     return NextResponse.json(item);
   } catch (error) {
     console.error("Failed to fetch content item:", error);
@@ -33,6 +41,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const { id } = await params;
     const body = await request.json();
@@ -41,6 +57,10 @@ export async function PUT(
     const existing = await db.contentItem.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "内容条目不存在" }, { status: 404 });
+    }
+
+    if (!canModifyResource(user, existing.ownerUserId)) {
+      return NextResponse.json({ error: "无权修改该内容" }, { status: 403 });
     }
 
     const updated = await db.contentItem.update({
@@ -69,15 +89,27 @@ export async function PUT(
 
 // DELETE /api/content-items/[id]
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const { id } = await params;
 
     const existing = await db.contentItem.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "内容条目不存在" }, { status: 404 });
+    }
+
+    if (!canModifyResource(user, existing.ownerUserId)) {
+      return NextResponse.json({ error: "无权修改该内容" }, { status: 403 });
     }
 
     await db.contentItem.delete({ where: { id } });

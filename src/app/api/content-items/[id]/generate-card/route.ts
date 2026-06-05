@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateCardForContentItem, AiServiceError } from "@/services/ai";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import type { CardType, ErrorCode } from "@/types";
 
 function newRequestId(): string {
@@ -97,6 +98,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   const requestId = newRequestId();
 
   try {

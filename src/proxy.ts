@@ -1,73 +1,88 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getAuthConfig, verifyJWT } from "./lib/auth";
+import { validateSession } from "./lib/auth";
 
-const PROTECTED_PAGE_PREFIX = "/admin";
 const PUBLIC_LOGIN_PAGE = "/admin/login";
+
+// Paths that never require authentication
+const ALWAYS_PUBLIC = [
+  "/admin/login",
+  "/api/auth/login",
+  "/api/auth/check",
+  "/api/auth/logout",
+];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const method = req.method;
 
+  // Skip Next.js internals and static assets
   if (
     pathname.startsWith("/_next") ||
+    pathname.startsWith("/_static") ||
     pathname.startsWith("/static") ||
-    pathname.includes(".") ||
-    pathname.startsWith("/api/auth")
+    pathname.includes("/_error") ||
+    pathname.startsWith("/favicon") ||
+    pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot|css|js)$/)
   ) {
     return NextResponse.next();
   }
 
-  const authConfigResult = getAuthConfig();
-  const isAiTaskApi =
-    pathname === "/api/content-items/assess" ||
-    /^\/api\/content-items\/[^/]+\/generate-card$/.test(pathname);
-  const isProtectedApi =
-    pathname.startsWith("/api/admin") ||
-    pathname.startsWith("/api/collectors") ||
-    pathname.startsWith("/api/ai-config") ||
-    pathname.startsWith("/api/integrations") ||
-    isAiTaskApi ||
-    (pathname.startsWith("/api/sources") && method !== "GET");
-
-  if (!authConfigResult.ok) {
-    if (pathname.startsWith(PROTECTED_PAGE_PREFIX) || isProtectedApi) {
-      if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ error: authConfigResult.message }, { status: 503 });
+  // Skip always-public paths
+  if (ALWAYS_PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    // Already logged in? Redirect login page to homepage
+    if (pathname === "/admin/login") {
+      const token = req.cookies.get("auth_token")?.value;
+      if (token) {
+        const user = await validateSession(token);
+        if (user) {
+          return NextResponse.redirect(new URL("/", req.url));
+        }
       }
-      return new NextResponse(authConfigResult.message, { status: 503 });
     }
     return NextResponse.next();
   }
 
+  // ── Validate session ──────────────────────────────────────────────────────
   const token = req.cookies.get("auth_token")?.value;
-  let decodedToken = null;
+  let authenticatedUser = null;
   if (token) {
-    decodedToken = await verifyJWT(token, authConfigResult.config.jwtSecret);
+    authenticatedUser = await validateSession(token);
   }
 
-  if (pathname.startsWith(PROTECTED_PAGE_PREFIX)) {
-    if (pathname === PUBLIC_LOGIN_PAGE) {
-      if (decodedToken) {
-        return NextResponse.redirect(new URL("/admin", req.url));
-      }
-      return NextResponse.next();
-    }
+  // ── API routes: return 401 JSON for protected endpoints ───────────────────
+  if (pathname.startsWith("/api/")) {
+    const isAiTaskApi =
+      pathname === "/api/content-items/assess" ||
+      pathname === "/api/content-items/reassess" ||
+      /^\/api\/content-items\/[^/]+\/generate-card$/.test(pathname) ||
+      /^\/api\/content-items\/[^/]+\/score$/.test(pathname);
+    const isProtectedApi =
+      pathname.startsWith("/api/admin") ||
+      pathname.startsWith("/api/collectors") ||
+      pathname.startsWith("/api/ai-config") ||
+      pathname.startsWith("/api/integrations") ||
+      isAiTaskApi ||
+      (pathname.startsWith("/api/sources") && method !== "GET");
 
-    if (!decodedToken) {
-      return NextResponse.redirect(new URL(PUBLIC_LOGIN_PAGE, req.url));
+    if (isProtectedApi && !authenticatedUser) {
+      return NextResponse.json({ error: "未登录或会话已过期" }, { status: 401 });
     }
 
     return NextResponse.next();
   }
 
-  if (isProtectedApi && !decodedToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // ── All page routes: redirect to login if unauthenticated ─────────────────
+  if (!authenticatedUser) {
+    const loginUrl = new URL(PUBLIC_LOGIN_PAGE, req.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/:path*"],
+  // Match all paths except _next/static, _next/image, favicon.ico
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico).*)"],
 };

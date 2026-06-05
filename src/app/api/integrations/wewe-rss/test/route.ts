@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkHealth, listFeeds } from "@/services/integrations/wewe-rss-api";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // POST /api/integrations/wewe-rss/test — 测试 WeWe RSS 连接
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const { baseUrl } = body;

@@ -6,9 +6,18 @@ import {
 } from "@/services/collectors/wechat/weRssClient";
 import { computeArticlePreview } from "@/services/collectors/wechat/weRssNormalizer";
 import { refreshFeed } from "@/services/integrations/wewe-rss-api";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // POST /api/collectors/wechat/sync/preview — 预览采集结果（不写库）
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const { sourceId, werssSourceId } = body;

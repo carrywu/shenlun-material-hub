@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth, unauthorizedResponse } from "@/lib/auth";
+import { contentVisibilityWhere } from "@/lib/data-isolation";
 
 // GET /api/content-items — 分页 + 筛选
 export async function GET(request: NextRequest) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
@@ -19,6 +23,10 @@ export async function GET(request: NextRequest) {
     if (platform) where.platform = platform;
     if (processingStatus) where.processingStatus = processingStatus;
     if (contentType) where.contentType = contentType;
+
+    // Multi-user data isolation: restrict to visible content
+    const visibilityFilter = contentVisibilityWhere(user);
+
     if (search) {
       where.OR = [
         { title: { contains: search } },
@@ -26,9 +34,12 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Merge visibility filter into where clause
+    const mergedWhere = { ...where, ...visibilityFilter };
+
     const [data, total] = await Promise.all([
       db.contentItem.findMany({
-        where,
+        where: mergedWhere,
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -37,7 +48,7 @@ export async function GET(request: NextRequest) {
           _count: { select: { materialCards: true } },
         },
       }),
-      db.contentItem.count({ where }),
+      db.contentItem.count({ where: mergedWhere }),
     ]);
 
     return NextResponse.json({
@@ -58,6 +69,8 @@ export async function GET(request: NextRequest) {
 
 // POST /api/content-items — 手动导入
 export async function POST(request: NextRequest) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const body = await request.json();
     const {

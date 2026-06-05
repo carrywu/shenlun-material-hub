@@ -338,10 +338,11 @@ export interface SyncRecordsQuery {
   dateTo?: string;
   page?: number;
   pageSize?: number;
+  extraWhere?: Record<string, unknown>;
 }
 
 export async function getSyncRecords(query: SyncRecordsQuery) {
-  const { status, documentRole, dateFrom, dateTo, page = 1, pageSize = 20 } = query;
+  const { status, documentRole, dateFrom, dateTo, page = 1, pageSize = 20, extraWhere } = query;
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
@@ -352,9 +353,12 @@ export async function getSyncRecords(query: SyncRecordsQuery) {
     if (dateTo) (where.syncedAt as Record<string, Date>).lte = new Date(dateTo);
   }
 
+  // Merge any additional where conditions (e.g. data isolation filters)
+  const mergedWhere = { ...where, ...extraWhere };
+
   const [data, total] = await Promise.all([
     db.syncRecord.findMany({
-      where,
+      where: mergedWhere,
       include: {
         materialCard: { select: { id: true, title: true, cardType: true, confirmed: true } },
       },
@@ -362,7 +366,7 @@ export async function getSyncRecords(query: SyncRecordsQuery) {
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-    db.syncRecord.count({ where }),
+    db.syncRecord.count({ where: mergedWhere }),
   ]);
 
   return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };

@@ -17,6 +17,12 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+vi.mock("@/lib/auth", () => ({
+  requireAdmin: vi.fn().mockResolvedValue({ id: "admin-1", username: "admin", role: "ADMIN", status: "ACTIVE" }),
+  unauthorizedResponse: vi.fn(() => new Response(JSON.stringify({ error: "未登录" }), { status: 401 })),
+  forbiddenResponse: vi.fn(() => new Response(JSON.stringify({ error: "权限不足" }), { status: 403 })),
+}));
+
 describe("/api/ai-config/prompts route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -26,7 +32,7 @@ describe("/api/ai-config/prompts route", () => {
   it("lists prompt templates without data_fact", async () => {
     const { GET } = await import("../route");
 
-    const response = await GET();
+    const response = await GET(new NextRequest("http://localhost/api/ai-config/prompts"));
     const payload = await response.json();
 
     expect(response.status).toBe(200);

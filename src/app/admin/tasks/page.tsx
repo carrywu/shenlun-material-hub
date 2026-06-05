@@ -104,8 +104,8 @@ export default function AdminTasksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">异步任务</h2>
-          <p className="text-xs text-[#a1a1aa] mt-1">查看采集、评估和素材卡任务执行状态</p>
+          <h2 className="text-lg font-semibold text-foreground">异步任务</h2>
+          <p className="text-xs text-muted-foreground mt-1">查看采集、评估和素材卡任务执行状态</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void fetchTasks({ status, type })}>
           <RefreshCw className="mr-1.5 h-4 w-4" />

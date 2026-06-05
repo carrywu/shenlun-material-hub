@@ -3,6 +3,8 @@ import "./globals.css";
 import Link from "next/link";
 import { FileText, Home, Layers, CreditCard, Search, RotateCcw, Compass, Sparkles } from "lucide-react";
 import { Toaster } from "sonner";
+import { cookies } from "next/headers";
+import { validateSession, type AuthUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "申论素材采集台",
@@ -19,11 +21,23 @@ const navItems = [
   { href: "/review", label: "复习", icon: RotateCcw },
 ];
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read current user from session cookie
+  let currentUser: AuthUser | null = null;
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    if (token) {
+      currentUser = await validateSession(token);
+    }
+  } catch {
+    // cookies() may throw in edge cases; treat as unauthenticated
+  }
+
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
@@ -35,7 +49,7 @@ export default function RootLayout({
               <Layers className="h-5 w-5 text-primary" />
               申论素材采集台
             </Link>
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center gap-1 flex-1">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -47,6 +61,31 @@ export default function RootLayout({
                 </Link>
               ))}
             </nav>
+            {/* User status area */}
+            <div className="flex items-center gap-3">
+              {currentUser ? (
+                <>
+                  <span className="text-xs text-muted-foreground">
+                    {currentUser.username}
+                  </span>
+                  <form action="/api/auth/logout" method="POST">
+                    <button
+                      type="submit"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      退出
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <Link
+                  href="/admin/login"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  登录
+                </Link>
+              )}
+            </div>
           </div>
         </header>
         <main className="flex-1 flex flex-col overflow-hidden">{children}</main>

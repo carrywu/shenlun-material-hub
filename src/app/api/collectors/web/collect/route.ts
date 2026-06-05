@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 import { listCollectors, getCollector } from "@/services/collectors/registry";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 interface WebCollectTaskParams {
   scope: "all-enabled-website-sources" | "single-source";
@@ -127,6 +128,14 @@ async function runWebCollectTask(params: WebCollectTaskParams) {
 
 // POST /api/collectors/web/collect — 触发网页采集
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json().catch(() => ({}));
     const { sourceId, sourceName, collectorType } = body;

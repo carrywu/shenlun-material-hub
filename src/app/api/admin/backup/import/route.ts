@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAuthConfig, verifyPassword } from "@/lib/auth";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse, verifyPassword } from "@/lib/auth";
 import {
   inspectBackupDatabase,
   parseBackupArchive,
@@ -12,6 +12,15 @@ import {
 import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get("file");
@@ -42,17 +51,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, preview, dryRun: true });
     }
 
-    const authConfigResult = getAuthConfig();
-    if (!authConfigResult.ok) {
-      return NextResponse.json({ error: authConfigResult.message }, { status: 500 });
-    }
-
     if (!confirmPassword) {
       return NextResponse.json({ error: "恢复前必须输入管理员密码" }, { status: 400 });
     }
 
-    const passwordOk = await verifyPassword(confirmPassword, authConfigResult.config.passwordHash);
-    if (!passwordOk) {
+    // Verify the admin's password from DB
+    const dbUser = await db.user.findUnique({ where: { id: user.id } });
+    if (!dbUser) {
+      return NextResponse.json({ error: "用户不存在" }, { status: 401 });
+    }
+
+    const passwordResult = await verifyPassword(confirmPassword, dbUser.passwordHash);
+    if (!passwordResult.valid) {
       await logger.warn("Backup restore rejected due to invalid password confirmation", "BACKUP");
       return NextResponse.json({ error: "管理员密码校验失败" }, { status: 401 });
     }

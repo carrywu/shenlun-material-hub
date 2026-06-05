@@ -99,12 +99,13 @@ async function drainTaskQueue() {
   }
 }
 
-export async function createAsyncTask(type: AsyncTaskType, params?: unknown) {
+export async function createAsyncTask(type: AsyncTaskType, params?: unknown, userId?: string) {
   return db.asyncTask.create({
     data: {
       type,
       status: "PENDING",
       params: serialize(params),
+      ...(userId ? { userId } : {}),
     },
   });
 }
