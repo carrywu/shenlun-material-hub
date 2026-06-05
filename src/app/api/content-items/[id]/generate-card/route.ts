@@ -18,7 +18,7 @@ function errorResponse(
   return NextResponse.json({ error: code, code, message, status, ...extra }, { status });
 }
 
-async function runGenerateCardTask(id: string, cardType: CardType, requestId: string) {
+async function runGenerateCardTask(id: string, cardType: CardType, requestId: string, ownerUserId: string) {
   const item = await db.contentItem.findUnique({
     where: { id },
     include: {
@@ -60,6 +60,7 @@ async function runGenerateCardTask(id: string, cardType: CardType, requestId: st
         aiSummary: aiData.aiSummary,
         highlightSuggestions: aiData.highlightSuggestions,
         transferSuggestions: aiData.transferSuggestions,
+        ownerUserId,
       },
     });
 
@@ -175,7 +176,7 @@ export async function POST(
       requestId,
     });
 
-    enqueueAsyncTask(task, () => runGenerateCardTask(id, cardType, requestId));
+    enqueueAsyncTask(task, () => runGenerateCardTask(id, cardType, requestId, user.id));
 
     return NextResponse.json(
       {

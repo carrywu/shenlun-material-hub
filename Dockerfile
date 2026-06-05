@@ -27,6 +27,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 RUN mkdir -p /app/prisma /app/public/uploads
 RUN chown -R nextjs:nodejs /app
@@ -34,4 +36,5 @@ RUN chown -R nextjs:nodejs /app
 USER nextjs
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+# Run migrations before starting the server
+CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]

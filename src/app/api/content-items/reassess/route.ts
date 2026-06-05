@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assessRelevanceWithRetry } from "@/services/ai";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 
 // POST /api/content-items/reassess — 重新评估单个条目
 export async function POST(request: NextRequest) {
@@ -38,6 +39,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create async task bound to the initiating user
+    const task = await createAsyncTask("AI_ASSESS", { contentItemId: id }, user.id);
+
+    // Run assessment and update inline (keeping existing synchronous behavior)
     const result = await assessRelevanceWithRetry(
       item.title,
       item.source?.name ?? "未知来源",
@@ -65,10 +70,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Complete the async task
+    const { completeAsyncTask } = await import("@/lib/async-task");
+    await completeAsyncTask(task.id, {
+      decision: result.decision,
+      contentItemId: updated.id,
+    });
+
     return NextResponse.json({
       success: true,
       decision: result.decision,
       reason: result.reason,
+      taskId: task.id,
       item: {
         id: updated.id,
         title: updated.title,

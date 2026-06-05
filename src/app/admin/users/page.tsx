@@ -163,7 +163,16 @@ export default function UsersPage() {
         toast.error(data.error || "更新失败");
         return;
       }
-      toast.success("更新成功");
+      // Contextual success messages
+      if (field === "status") {
+        if (value === "DISABLED") {
+          toast.success("用户已禁用，该用户的所有会话已被撤销");
+        } else {
+          toast.success("用户已启用");
+        }
+      } else {
+        toast.success("更新成功");
+      }
       void fetchUsers();
     } catch {
       toast.error("更新失败");

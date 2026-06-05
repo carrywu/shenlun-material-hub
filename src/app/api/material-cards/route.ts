@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth, unauthorizedResponse } from "@/lib/auth";
-import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
+import { requireAuth, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { ownerScopeWhere, mergeWhere, canAccessResource } from "@/lib/data-isolation";
 
 // GET /api/material-cards — 分页 + 筛选
 export async function GET(request: NextRequest) {
@@ -96,12 +96,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify content item exists
+    // Verify content item exists and user can access it
     const item = await db.contentItem.findUnique({
       where: { id: contentItemId },
     });
     if (!item) {
       return NextResponse.json({ error: "内容条目不存在" }, { status: 404 });
+    }
+
+    // Check content item access — user must be able to read it to create a card from it
+    if (!canAccessResource(user, item.ownerUserId, item.visibility)) {
+      return forbiddenResponse("无法基于不可访问的内容创建素材卡");
     }
 
     const card = await db.materialCard.create({

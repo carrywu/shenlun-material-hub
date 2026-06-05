@@ -7,10 +7,10 @@
 ## 统计
 
 - 总任务数：80
-- 已完成数量：8
-- 未完成数量：72
-- P0数量：2
-- P1数量：28
+- 已完成数量：38
+- 未完成数量：42
+- P0数量：0（全部完成）
+- P1数量：0（全部完成）
 - P2数量：34
 - P3数量：8
 
@@ -24,8 +24,8 @@
 6. ✅ P0｜RBAC｜修复 ContentItem 搜索条件和隔离条件合并
 7. ✅ P0｜RBAC｜修复 MaterialCard 搜索条件和隔离条件合并
 8. ✅ P0｜测试｜新增 RBAC A/B 用户隔离测试夹具
-9. P0｜部署｜建立空库迁移与首启验收脚本
-10. P0｜安全｜生产禁用默认管理员密码路径
+9. ✅ P0｜部署｜建立空库迁移与首启验收脚本
+10. ✅ P0｜安全｜生产禁用默认管理员密码路径
 
 ## P0阻断项
 
@@ -93,80 +93,80 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P0｜部署｜建立空库迁移与首启验收脚本
+- [x] P0｜部署｜建立空库迁移与首启验收脚本
   - 涉及文件：`package.json`，`prisma.config.ts`，`DEPLOY.md`
   - 当前问题：构建可过，但空库部署是否可迁移到当前 schema 未被验证。
   - 验收标准：一条命令可在临时 DB 完成 migrate、seed admin、health check。
   - 推荐测试：CI 或本地临时 SQLite 验收
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — scripts/setup-fresh-db.ts, package.json db:setup, Dockerfile migrate
+  - 证据：代码审计
 
-- [ ] P0｜安全｜生产禁用默认管理员密码路径
+- [x] P0｜安全｜生产禁用默认管理员密码路径
   - 涉及文件：`src/lib/auth.ts`，`src/scripts/seed-admin.ts`，`.env.example`
   - 当前问题：代码存在默认 `admin123` 初始化路径，生产环境需要强约束。
   - 验收标准：生产缺少显式安全密码配置时启动或 seed 失败。
   - 推荐测试：环境变量矩阵测试
-  - 状态：TODO
+  - 状态：DONE — auth.ts production guard, seed-admin production guard, auth-production.test.ts
   - 证据：代码审计
 
 ## RBAC与权限
 
-- [ ] P1｜RBAC｜定义 `ownerUserId=null` legacy 数据访问策略
+- [x] P1｜RBAC｜定义 `ownerUserId=null` legacy 数据访问策略
   - 涉及文件：`src/lib/data-isolation.ts`，`src/scripts/migrate-owner-userid.ts`
   - 当前问题：普通用户可见 null-owner legacy 数据。
   - 验收标准：策略写入文档并用测试固定。
   - 推荐测试：null-owner 数据访问单测
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P1｜RBAC｜明确 `VERIFIED_USER` 能力矩阵
+- [x] P1｜RBAC｜明确 `VERIFIED_USER` 能力矩阵
   - 涉及文件：`src/lib/auth.ts`，`src/lib/auth-context.tsx`
   - 当前问题：角色存在但能力边界未落到 API 矩阵。
   - 验收标准：每类 API 明确 ADMIN/VERIFIED_USER/USER 权限。
   - 推荐测试：能力矩阵相关 route test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
-- [ ] P1｜RBAC｜补齐 MaterialCard 创建时 ContentItem 访问校验
+- [x] P1｜RBAC｜补齐 MaterialCard 创建时 ContentItem 访问校验
   - 涉及文件：`src/app/api/material-cards/route.ts`
   - 当前问题：创建卡片前需校验内容是否可被当前用户访问。
   - 验收标准：不可访问 contentItem 不能生成卡片。
   - 推荐测试：用户 A 用用户 B 私有 contentItem 创建卡片返回 403
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P1｜RBAC｜补齐 Review API 隔离回归测试
+- [x] P1｜RBAC｜补齐 Review API 隔离回归测试
   - 涉及文件：`src/app/api/review/route.ts`
   - 当前问题：有隔离代码但缺少证明。
   - 验收标准：用户 A 无法 review 用户 B 卡片。
   - 推荐测试：GET/POST route tests
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P1｜RBAC｜补齐 SyncRecord 隔离回归测试
+- [x] P1｜RBAC｜补齐 SyncRecord 隔离回归测试
   - 涉及文件：`src/app/api/sync-records/route.ts`
   - 当前问题：缺少跨用户同步记录隔离测试。
   - 验收标准：用户 A 不看到用户 B sync records。
   - 推荐测试：Vitest route test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P1｜RBAC｜明确 AsyncTask 非管理员访问策略
+- [x] P1｜RBAC｜明确 AsyncTask 非管理员访问策略
   - 涉及文件：`src/app/api/admin/tasks/route.ts`，`src/app/api/admin/tasks/[id]/route.ts`
   - 当前问题：列表代码有 owner filter 注释，但接口是 admin-only。
   - 验收标准：确认只 admin 或新增用户任务接口。
   - 推荐测试：普通用户访问 admin tasks 返回 403
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
 ## 前端页面
 
-- [ ] P1｜前端页面｜文章详情页按角色隐藏批注编辑入口
+- [x] P1｜前端页面｜文章详情页按角色隐藏批注编辑入口
   - 涉及文件：`src/app/articles/[id]/page.tsx`
   - 当前问题：页面有 admin-only 注释区，需要和后端权限保持一致。
   - 验收标准：普通用户看不到不能使用的批注编辑控件。
   - 推荐测试：Playwright 普通用户访问文章详情
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
 - [ ] P2｜前端页面｜文章列表增加 owner/visibility 调试列的开发态开关
@@ -195,12 +195,12 @@
 
 ## 管理后台
 
-- [ ] P1｜管理后台｜用户管理页增加禁用用户的会话撤销提示
+- [x] P1｜管理后台｜用户管理页增加禁用用户的会话撤销提示
   - 涉及文件：`src/app/admin/users/page.tsx`，`src/app/api/admin/users/[id]/route.ts`
   - 当前问题：禁用用户和 session revoke 的 UX/反馈需要明确。
   - 验收标准：禁用用户后提示已撤销会话或说明未撤销。
   - 推荐测试：用户管理 route + Playwright
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
 - [ ] P2｜管理后台｜侧边栏支持折叠
@@ -229,12 +229,12 @@
 
 ## 网站采集
 
-- [ ] P1｜网站采集｜采集任务写入 AsyncTask.userId
+- [x] P1｜网站采集｜采集任务写入 AsyncTask.userId
   - 涉及文件：`src/app/api/collectors/web/collect/route.ts`，`src/lib/async-task.ts`
   - 当前问题：Schema 有任务 userId，但采集任务链路需审计写入一致性。
   - 验收标准：手动触发采集的任务记录包含发起用户。
   - 推荐测试：route test 断言 createAsyncTask 参数
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
 - [ ] P2｜网站采集｜广东省政府采集增加异常日志
@@ -255,12 +255,12 @@
 
 ## 微信公众号
 
-- [ ] P1｜微信公众号｜导入文章绑定发起用户或明确公共导入策略
+- [x] P1｜微信公众号｜导入文章绑定发起用户或明确公共导入策略
   - 涉及文件：`src/app/api/collectors/wechat/import/route.ts`
   - 当前问题：微信导入是 admin-only，但导入内容 owner/visibility 策略需明确。
   - 验收标准：导入后的 ContentItem owner/visibility 符合策略并有测试。
   - 推荐测试：微信导入 route test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
 - [ ] P2｜微信公众号｜修复脏 HTML 脚本加入验收记录
@@ -281,12 +281,12 @@
 
 ## WeWe RSS
 
-- [ ] P1｜WeWe RSS｜确认 sidecar SQLite fallback 只读约束
+- [x] P1｜WeWe RSS｜确认 sidecar SQLite fallback 只读约束
   - 涉及文件：`src/services/integrations/wewe-rss-sqlite.ts`
   - 当前问题：项目规则禁止写 WeWe RSS DB，需要用测试固定只读行为。
   - 验收标准：fallback 只执行只读查询，不修改 sidecar DB。
   - 推荐测试：sqlite integration test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
 - [ ] P2｜WeWe RSS｜删除缺失来源流程增加二次确认 E2E
@@ -307,20 +307,20 @@
 
 ## AI评估
 
-- [ ] P1｜AI评估｜AI 配置页增加保存成功提示
+- [x] P1｜AI评估｜AI 配置页增加保存成功提示
   - 涉及文件：`src/components/ai/AiConfigPage.tsx`
   - 当前问题：配置保存后需要明确反馈，避免重复提交。
   - 验收标准：保存成功显示 toast，失败显示安全错误信息。
   - 推荐测试：组件测试或 Playwright
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
-- [ ] P1｜AI评估｜AI reassess 任务绑定发起用户
+- [x] P1｜AI评估｜AI reassess 任务绑定发起用户
   - 涉及文件：`src/app/api/content-items/reassess/route.ts`，`src/lib/async-task.ts`
   - 当前问题：异步任务有 `userId` 字段，需要确认 AI 任务写入。
   - 验收标准：任务记录含发起 admin/user id。
   - 推荐测试：route test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
 - [ ] P2｜AI评估｜AI 评分错误进入 SystemLog
@@ -333,12 +333,12 @@
 
 ## 素材卡生成
 
-- [ ] P1｜素材卡生成｜生成卡片时继承 ContentItem owner
+- [x] P1｜素材卡生成｜生成卡片时继承 ContentItem owner
   - 涉及文件：`src/app/api/content-items/[id]/generate-card/route.ts`
   - 当前问题：生成接口 admin-only，但 owner 继承策略需要固定。
   - 验收标准：生成的 MaterialCard owner 与策略一致。
   - 推荐测试：generate-card route test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
 - [ ] P2｜素材卡生成｜素材卡支持重新生成按钮
@@ -359,12 +359,12 @@
 
 ## IMA同步
 
-- [ ] P1｜IMA同步｜同步前校验 MaterialCard owner
+- [x] P1｜IMA同步｜同步前校验 MaterialCard owner
   - 涉及文件：`src/app/api/sync/route.ts`，`src/services/ima-sync.ts`
   - 当前问题：sync 是 admin-only，但同步记录和卡片 owner 关系需固定。
   - 验收标准：不能同步无权访问的卡片；SyncRecord 写入 userId。
   - 推荐测试：route test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
 - [ ] P2｜IMA同步｜失败重试策略文档化
@@ -385,20 +385,20 @@
 
 ## 数据库
 
-- [ ] P1｜数据库｜为 owner 字段补齐索引
+- [x] P1｜数据库｜为 owner 字段补齐索引
   - 涉及文件：`prisma/schema.prisma`
   - 当前问题：部分 owner/user 字段已建索引，但 `ContentItem.ownerUserId` 未见 index。
   - 验收标准：常用隔离字段均有索引。
   - 推荐测试：Prisma migration diff review
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P1｜数据库｜历史 owner 迁移脚本增加审计输出文件
+- [x] P1｜数据库｜历史 owner 迁移脚本增加审计输出文件
   - 涉及文件：`src/scripts/migrate-owner-userid.ts`
   - 当前问题：脚本 dry-run 输出在终端，缺少可归档报告。
   - 验收标准：dry-run 可输出 JSON/Markdown 审计文件。
   - 推荐测试：脚本 dry-run
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
 - [ ] P2｜数据库｜备份恢复流程加入 RBAC 表校验
@@ -411,12 +411,12 @@
 
 ## 异步任务
 
-- [ ] P1｜异步任务｜createAsyncTask 支持必填 userId 参数
+- [x] P1｜异步任务｜createAsyncTask 支持必填 userId 参数
   - 涉及文件：`src/lib/async-task.ts`
   - 当前问题：Schema 有 userId，但 helper test 只断言 type/status/params。
   - 验收标准：需要用户上下文的任务必须传入 userId。
   - 推荐测试：async-task unit test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
 - [ ] P2｜异步任务｜任务详情增加 result JSON 安全解析
@@ -437,20 +437,20 @@
 
 ## API
 
-- [ ] P1｜API｜为所有 admin route 增加 401/403 route tests
+- [x] P1｜API｜为所有 admin route 增加 401/403 route tests
   - 涉及文件：`src/app/api/admin/**/__tests__`
   - 当前问题：大量 admin route 无测试。
   - 验收标准：未登录 401，普通用户 403。
   - 推荐测试：Vitest table-driven route tests
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P1｜API｜明确公开 GET API 清单
+- [x] P1｜API｜明确公开 GET API 清单
   - 涉及文件：`src/proxy.ts`，`docs/handover/RBAC_API_AUDIT.md`
   - 当前问题：proxy 和 route guard 对公开 GET 的策略不完全显式。
   - 验收标准：公开 API 清单、返回字段、数据范围写入文档并测试。
   - 推荐测试：public API snapshot tests
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
 - [ ] P2｜API｜统一 401/403 判断逻辑
@@ -463,20 +463,20 @@
 
 ## 测试体系
 
-- [ ] P1｜测试体系｜新增权限矩阵测试文档
+- [x] P1｜测试体系｜新增权限矩阵测试文档
   - 涉及文件：`docs/testing/**`，`docs/handover/RBAC_MASTER_TODO.md`
   - 当前问题：缺少系统化 RBAC 测试矩阵。
   - 验收标准：列出每个角色对关键 API 的预期状态码。
   - 推荐测试：文档驱动 route tests
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
-- [ ] P1｜测试体系｜将 route guard mock 测试补充为真实 guard 测试
+- [x] P1｜测试体系｜将 route guard mock 测试补充为真实 guard 测试
   - 涉及文件：`src/app/api/**/__tests__/route.test.ts`
   - 当前问题：mock guard 不证明 cookie/session 提取链路。
   - 验收标准：关键接口至少有真实 session cookie 测试。
   - 推荐测试：Vitest + test DB
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
 - [ ] P2｜测试体系｜测试命令加入 CI 文档
@@ -489,20 +489,20 @@
 
 ## Playwright
 
-- [ ] P1｜Playwright｜覆盖普通用户访问管理员页面
+- [x] P1｜Playwright｜覆盖普通用户访问管理员页面
   - 涉及文件：`e2e/admin-auth.spec.ts`
   - 当前问题：只覆盖未登录和管理员登录。
   - 验收标准：普通用户访问 `/admin` 被拒绝或重定向。
   - 推荐测试：Playwright
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P1｜Playwright｜覆盖素材卡生成流程
+- [x] P1｜Playwright｜覆盖素材卡生成流程
   - 涉及文件：`e2e/**`
   - 当前问题：缺少端到端素材卡生成验收。
   - 验收标准：从文章触发生成，到卡片列表/详情可见。
   - 推荐测试：Playwright mock AI 或测试配置
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
 - [ ] P2｜Playwright｜覆盖 WeWe RSS 删除缺失来源确认
@@ -515,12 +515,12 @@
 
 ## 部署
 
-- [ ] P1｜部署｜补齐生产环境变量检查
+- [x] P1｜部署｜补齐生产环境变量检查
   - 涉及文件：`.env.example`，`src/lib/crypto.ts`，`src/services/ai.ts`
   - 当前问题：AI、加密、数据库、管理员凭据需要启动前校验。
   - 验收标准：缺少必需 env 时给出明确错误。
   - 推荐测试：env validation unit test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
 - [ ] P2｜部署｜部署文档增加迁移回滚步骤
@@ -569,20 +569,20 @@
 
 ## 安全
 
-- [ ] P1｜安全｜图片代理 SSRF 测试
+- [x] P1｜安全｜图片代理 SSRF 测试
   - 涉及文件：`src/app/api/proxy/image/route.ts`
   - 当前问题：有 allowlist，但缺少回归测试。
   - 验收标准：拒绝 http、localhost、私网、非白名单域名。
   - 推荐测试：Vitest route test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P1｜安全｜AI key 脱敏日志审计
+- [x] P1｜安全｜AI key 脱敏日志审计
   - 涉及文件：`src/services/ai.ts`，`src/lib/logger.ts`
   - 当前问题：已有部分安全诊断测试，需全链路确认不泄露 key。
   - 验收标准：错误响应和日志只显示后缀或不显示 key。
   - 推荐测试：AI runtime tests
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
 - [ ] P2｜安全｜备份导入增加文件大小限制
@@ -621,12 +621,12 @@
 
 ## 文档
 
-- [ ] P1｜文档｜将 RBAC API 审计纳入维护流程
+- [x] P1｜文档｜将 RBAC API 审计纳入维护流程
   - 涉及文件：`docs/handover/RBAC_API_AUDIT.md`
   - 当前问题：API 权限表需要随 route 变更更新。
   - 验收标准：新增 route 的 PR 必须更新审计表或说明无需更新。
   - 推荐测试：PR checklist
-  - 状态：TODO
+  - 状态：DONE
   - 证据：规划推导
 
 - [ ] P2｜文档｜README 增加完整本地启动流程

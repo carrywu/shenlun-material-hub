@@ -315,16 +315,21 @@ export async function ensureInitialAdmin(): Promise<void> {
   if (envHash && (envHash.startsWith("$2a$") || envHash.startsWith("$2b$"))) {
     // Already a bcrypt hash
     passwordHash = envHash;
+  } else if (process.env.NODE_ENV === "production") {
+    // Production: refuse to create admin with default password
+    throw new Error(
+      "[AUTH] Production environment requires ADMIN_PASSWORD_HASH (bcrypt) to be set. " +
+        "Generate one with: node -e \"const bcrypt=require('bcryptjs'); bcrypt.hash('YOUR_PASSWORD',12).then(h=>console.log(h))\""
+    );
   } else if (envHash) {
-    // Legacy SHA-256 hash — we'll create with a default password that must be changed
-    // For now, hash "admin123" as default (matches the legacy default)
+    // Non-production: Legacy SHA-256 hash — create with default password that must be changed
     passwordHash = await hashPassword("admin123");
     await logger.warn(
       `Admin password initialized with default (env hash was SHA-256 legacy). Please change immediately.`,
       "AUTH"
     );
   } else {
-    // No env var at all — use default password
+    // Non-production: No env var at all — use default password
     passwordHash = await hashPassword("admin123");
     await logger.warn(
       "Admin password initialized with default (admin123). Please change immediately.",

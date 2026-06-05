@@ -192,6 +192,8 @@ model ContentItem {
   @@index([aiDecision])
   @@index([contentGenre])
   @@index([aiAssessedAt])
+  @@index([ownerUserId])
+  @@index([visibility])
 }
 
 // AI 素材卡
@@ -249,6 +251,7 @@ model SyncRecord {
   @@index([contentItemId])
   @@index([status])
   @@index([syncedAt])
+  @@index([userId])
 }
 
 // 采集运行记录

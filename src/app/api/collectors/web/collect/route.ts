@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       const task = await createAsyncTask("WEB_CRAWL", {
         scope: "all-enabled-website-sources",
         sourceCount: sources.length,
-      });
+      }, user.id);
 
       enqueueAsyncTask(task, () =>
         runWebCollectTask({
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
       sourceId: source.id,
       sourceName: source.name,
       collectorType: collectorType ?? null,
-    });
+    }, user.id);
 
     enqueueAsyncTask(task, () =>
       runWebCollectTask({

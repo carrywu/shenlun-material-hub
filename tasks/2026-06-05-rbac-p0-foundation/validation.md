@@ -60,3 +60,25 @@
 
 - `pnpm exec playwright test`：交接验证中观察到 11 failed / 2 skipped / 1 passed。
 - 不要在重新运行且退出码为 0 前声称 Playwright 通过。
+
+## 2026-06-05 23:00
+
+- Command: `pnpm lint`
+- Result: passed (0 errors, 3 warnings in test files)
+- Evidence: ESLint completed with no blocking errors.
+
+- Command: `pnpm test`
+- Result: passed, exit code 0.
+- Evidence: 36 test files / 215 tests passed.
+- Notes: Added 6 new test files (+38 tests) since last baseline (30 files / 177 tests).
+
+- Command: `pnpm build`
+- Result: passed, exit code 0.
+- Evidence: Next.js 16.2.6 production build compiled, TypeScript passed, 70 static pages generated.
+
+- Command: `prisma db push`
+- Result: passed.
+- Evidence: Schema synced — ContentItem_ownerUserId_idx, ContentItem_visibility_idx, SyncRecord_userId_idx created.
+
+- MCP: `mcp__shenlun-sqlite-logs__db_query_readonly`
+- Result: Verified 14 tables exist, admin user exists, new indexes created.

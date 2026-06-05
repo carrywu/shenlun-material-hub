@@ -1,10 +1,10 @@
 /**
  * 管理员初始化脚本 — 幂等创建初始管理员用户
- * 运行: pnpm tsx src/scripts/seed-admin.ts
+ * 运行: pnpm seed:admin
  *
  * 从环境变量读取管理员账号配置:
  * - ADMIN_USERNAME (默认: admin)
- * - ADMIN_PASSWORD (默认: admin123)
+ * - ADMIN_PASSWORD (生产环境必须设置且不能为默认值)
  *
  * 如果管理员用户已存在，跳过创建。
  */
@@ -18,6 +18,17 @@ async function main() {
 
   const username = process.env.ADMIN_USERNAME || "admin";
   const password = process.env.ADMIN_PASSWORD || "admin123";
+
+  // Production guard: refuse default password
+  if (process.env.NODE_ENV === "production") {
+    if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === "admin123") {
+      console.error(
+        "[SEED-ADMIN] ❌ Production environment requires ADMIN_PASSWORD to be explicitly set " +
+          "and different from the default 'admin123'."
+      );
+      process.exit(1);
+    }
+  }
 
   console.log(`检查管理员用户 "${username}"...`);
 
