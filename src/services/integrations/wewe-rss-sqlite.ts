@@ -3,8 +3,7 @@
  * 作为 API 的兜底方案，只读读取 wewe-rss.db 中的公众号列表。
  */
 
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
+import path from "path";
 
 export interface WeweRssFeedFromDb {
   id: string;        // MP_WXS_xxx
@@ -16,31 +15,55 @@ export interface WeweRssFeedFromDb {
   updateTime?: number; // 最近更新时间戳
 }
 
-const DEFAULT_DB_PATH = "infra/wechat-rss/wewe-rss/data/wewe-rss.db";
+const DEFAULT_DB_PATH = path.join(
+  /* turbopackIgnore: true */ process.cwd(),
+  "infra",
+  "wechat-rss",
+  "wewe-rss",
+  "data",
+  "wewe-rss.db"
+);
+
+async function loadDatabase() {
+  const { default: Database } = await import("better-sqlite3");
+  return Database;
+}
+
+async function fileExists(dbPath: string) {
+  const { access } = await import("fs/promises");
+
+  try {
+    await access(dbPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * 检查 SQLite 数据库文件是否存在且可读。
  */
-export function checkSqliteDb(dbPath?: string): {
+export async function checkSqliteDb(dbPath?: string): Promise<{
   exists: boolean;
   readable: boolean;
   message: string;
   path: string;
-} {
-  const path = dbPath ?? DEFAULT_DB_PATH;
-  const exists = existsSync(path);
+}> {
+  const resolvedPath = dbPath ?? DEFAULT_DB_PATH;
+  const exists = await fileExists(resolvedPath);
 
   if (!exists) {
     return {
       exists: false,
       readable: false,
-      message: `数据库文件不存在: ${path}。请先启动 WeWe RSS 并添加公众号。`,
-      path,
+      message: `数据库文件不存在: ${resolvedPath}。请先启动 WeWe RSS 并添加公众号。`,
+      path: resolvedPath,
     };
   }
 
   try {
-    const db = new Database(path, { readonly: true });
+    const Database = await loadDatabase();
+    const db = new Database(resolvedPath, { readonly: true });
     // 测试查询
     db.prepare("SELECT COUNT(*) FROM feeds").get();
     db.close();
@@ -48,7 +71,7 @@ export function checkSqliteDb(dbPath?: string): {
       exists: true,
       readable: true,
       message: "SQLite 数据库可读",
-      path,
+      path: resolvedPath,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -56,7 +79,7 @@ export function checkSqliteDb(dbPath?: string): {
       exists: true,
       readable: false,
       message: `SQLite 数据库无法读取: ${msg}`,
-      path,
+      path: resolvedPath,
     };
   }
 }
@@ -64,16 +87,17 @@ export function checkSqliteDb(dbPath?: string): {
 /**
  * 从 SQLite 只读获取公众号列表。
  */
-export function listFeedsFromSqlite(
+export async function listFeedsFromSqlite(
   dbPath?: string
-): WeweRssFeedFromDb[] {
-  const path = dbPath ?? DEFAULT_DB_PATH;
+): Promise<WeweRssFeedFromDb[]> {
+  const resolvedPath = dbPath ?? DEFAULT_DB_PATH;
 
-  if (!existsSync(path)) {
-    throw new Error(`SQLite 数据库不存在: ${path}`);
+  if (!(await fileExists(resolvedPath))) {
+    throw new Error(`SQLite 数据库不存在: ${resolvedPath}`);
   }
 
-  const db = new Database(path, { readonly: true });
+  const Database = await loadDatabase();
+  const db = new Database(resolvedPath, { readonly: true });
 
   try {
     const rows = db

@@ -23,6 +23,7 @@ import {
   Video,
   Camera,
 } from "lucide-react";
+import { waitForAdminTask } from "@/lib/client-admin-task";
 
 interface SourceItem {
   id: string;
@@ -189,6 +190,25 @@ export function CollectDialog({
         });
 
         const data = await res.json();
+
+        if (data.taskId) {
+          const task = await waitForAdminTask(data.taskId);
+          const result = task.result ? JSON.parse(task.result) : null;
+          if (task.status === "FAILED") {
+            throw new Error(result?.message ?? data.error ?? "采集失败");
+          }
+          allResults.push({
+            sourceId: source.id,
+            sourceName: source.name,
+            success: true,
+            discoveredCount: result?.discoveredCount,
+            importedCount: result?.importedCount,
+            skippedCount: result?.skippedCount,
+            error: undefined,
+          });
+          setIntermediateResults([...allResults]);
+          continue;
+        }
 
         allResults.push({
           sourceId: source.id,

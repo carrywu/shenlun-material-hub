@@ -19,7 +19,6 @@ import {
   Search,
   RefreshCw,
   ShieldQuestion,
-  CreditCard,
   X,
   Check,
   ExternalLink,
@@ -106,8 +105,6 @@ export default function ExplorePage() {
   // Actions state
   const [ignored, setIgnored] = useState<Set<string>>(new Set());
   const [verified, setVerified] = useState<Set<string>>(new Set());
-  const [generating, setGenerating] = useState<string | null>(null);
-
   const pageSize = 20;
 
   // Debounce search query
@@ -175,35 +172,6 @@ export default function ExplorePage() {
       setVerified((prev) => new Set(prev).add(sourceId));
     } catch (err) {
       alert(err instanceof Error ? err.message : "核验来源失败");
-    }
-  }
-
-  async function handleGenerateCard(item: ExploreItem) {
-    if (generating) return;
-    setGenerating(item.id);
-    try {
-      const res = await fetch(`/api/content-items/${item.id}/generate-card`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        let msg = data.error ?? "生成失败";
-        if (data.code === "AI_CONFIG_MISSING" || data.code === "AI_CONFIG_DECRYPT_FAILED") {
-          msg += "\n请前往 设置 > AI 配置 进行配置";
-        }
-        throw new Error(msg);
-      }
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === item.id
-            ? { ...i, _count: { materialCards: i._count.materialCards + 1 } }
-            : i
-        )
-      );
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "生成素材卡失败");
-    } finally {
-      setGenerating(null);
     }
   }
 
@@ -428,19 +396,6 @@ export default function ExplorePage() {
                         title="忽略"
                       >
                         <X className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleGenerateCard(item);
-                        }}
-                        disabled={generating === item.id}
-                        title="生成素材卡"
-                      >
-                        <CreditCard className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>

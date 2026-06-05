@@ -9,22 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   ArrowLeft,
   ExternalLink,
-  CreditCard,
   Loader2,
   FileText,
-  BookOpen,
-  BarChart3,
-  GitCompare,
-  Lightbulb,
   Bookmark,
   BookmarkCheck,
   Eye,
@@ -35,8 +23,6 @@ import {
   MessageSquarePlus,
   X,
 } from "lucide-react";
-import type { CardType } from "@/types";
-import { formatApiErrorMessage, type ApiErrorPayload } from "@/lib/api-error";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
 
@@ -93,18 +79,6 @@ interface ArticleDetail {
   }>;
   annotations: Annotation[];
 }
-
-const CARD_TYPE_OPTIONS: { value: CardType; label: string; icon: React.ElementType }[] = [
-  { value: "golden_sentence", label: "申论金句", icon: Sparkles },
-  { value: "standard_expression", label: "规范词", icon: FileText },
-  { value: "case_material", label: "案例素材", icon: Lightbulb },
-  { value: "countermeasure", label: "对策表达", icon: BookOpen },
-  { value: "problem_statement", label: "问题表述", icon: BarChart3 },
-  { value: "reason_analysis", label: "原因分析", icon: GitCompare },
-  { value: "policy_expression", label: "政策表述", icon: FileText },
-  { value: "person_story", label: "人物事迹", icon: Lightbulb },
-  { value: "article_structure", label: "文章框架", icon: BookOpen },
-];
 
 const CARD_TYPE_CONFIG: Record<string, { label: string }> = {
   golden_sentence: { label: "申论金句" },
@@ -331,9 +305,6 @@ export default function ArticleDetailPage() {
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cardType, setCardType] = useState<CardType>("golden_sentence");
-  const [generating, setGenerating] = useState(false);
-  const [errorInfo, setErrorInfo] = useState<{ message: string; code?: string } | null>(null);
 
   // Annotation state
   const [selectedText, setSelectedText] = useState("");
@@ -530,90 +501,6 @@ export default function ArticleDetailPage() {
     } catch {
       // ignore
     }
-  }
-
-  // Generate card
-  async function handleGenerateCard() {
-    if (generating || !article) return;
-    setGenerating(true);
-    setErrorInfo(null);
-    try {
-      const res = await fetch(`/api/content-items/${article.id}/generate-card`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardType }),
-      });
-      const data = (await res.json()) as ApiErrorPayload;
-      if (!res.ok) {
-        const msg = formatApiErrorMessage(data);
-        if (res.status === 409) {
-          toast.warning("素材卡已存在", { description: msg });
-        } else {
-          toast.error("生成失败", { description: msg });
-        }
-        setErrorInfo({ message: msg, code: data.code });
-        return;
-      }
-      const cardLabel = CARD_TYPE_OPTIONS.find(o => o.value === cardType)?.label ?? cardType;
-      toast.success("素材卡生成成功", { description: `已生成 1 张「${cardLabel}」` });
-      fetchArticle();
-    } catch {
-      const msg = "网络错误，请检查连接后重试";
-      toast.error("生成失败", { description: msg });
-      setErrorInfo({ message: msg });
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  // Unified: AI assess then generate card
-  const [assessing, setAssessing] = useState(false);
-
-  async function handleAssessAndGenerate() {
-    if (assessing || generating || !article) return;
-
-    // Step 1: Assess if not yet assessed
-    if (article.aiDecision !== "accept") {
-      setAssessing(true);
-      try {
-        toast.info("正在 AI 评估...", { description: "请稍候" });
-        const res = await fetch("/api/content-items/assess", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ids: [article.id] }),
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          toast.error("AI 评估失败", { description: data.error ?? "请检查 AI 配置" });
-          return;
-        }
-        await res.json();
-        // Refresh article to get updated aiDecision
-        await fetchArticle();
-        // Re-read the article state after refresh
-        const freshRes = await fetch(`/api/content-items/${article.id}`);
-        if (freshRes.ok) {
-          const freshArticle = await freshRes.json();
-          if (freshArticle.aiDecision !== "accept") {
-            toast.warning("文章不适合作为素材", {
-              description: freshArticle.aiReason ?? "AI 已拒绝该文章",
-            });
-            return;
-          }
-        } else {
-          toast.error("刷新文章状态失败");
-          return;
-        }
-      } catch {
-        toast.error("AI 评估失败", { description: "网络错误，请稍后重试" });
-        return;
-      } finally {
-        setAssessing(false);
-      }
-    }
-
-    // Step 2: Generate card
-    await handleGenerateCard();
   }
 
   // Render text with annotation highlights
@@ -959,91 +846,16 @@ export default function ArticleDetailPage() {
             {/* Generate card */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">素材卡操作</CardTitle>
+                <CardTitle className="text-sm">管理操作</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {/* Unified assess + generate button */}
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={handleAssessAndGenerate}
-                  disabled={assessing || generating || !article.fullText}
-                >
-                  {assessing || generating ? (
-                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="mr-1.5 h-4 w-4" />
-                  )}
-                  {assessing ? "正在 AI 评估..." : generating ? "正在生成素材卡..." : "AI 评估并生成素材卡"}
-                </Button>
-
-                {article.aiDecision !== "accept" && !assessing && (
-                  <p className="text-xs text-muted-foreground">
-                    点击上方按钮将自动完成评估和生成
-                  </p>
-                )}
-
-                <Separator />
-
-                {/* Manual single-type generation */}
-                <p className="text-xs font-medium text-muted-foreground">单独生成指定类型：</p>
-                <Select
-                  value={cardType}
-                  onValueChange={(v) => { if (v) setCardType(v as CardType); }}
-                >
-                  <SelectTrigger className="h-8">
-                    <SelectValue>
-                      {CARD_TYPE_OPTIONS.find((o) => o.value === cardType)?.label ?? cardType}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CARD_TYPE_OPTIONS.map((opt) => {
-                      const Icon = opt.icon;
-                      return (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          <div className="flex items-center gap-1.5">
-                            <Icon className="h-3.5 w-3.5" />
-                            {opt.label}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleGenerateCard}
-                  disabled={generating || assessing || !article.fullText || article.aiDecision !== "accept"}
-                >
-                  {generating ? (
-                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                  ) : (
-                    <CreditCard className="mr-1.5 h-4 w-4" />
-                  )}
-                  生成素材卡
-                </Button>
-                {article.aiDecision !== "accept" && !assessing && (
-                  <p className="text-xs text-muted-foreground">
-                    需先通过 AI 评估才能单独生成素材卡
-                  </p>
-                )}
-                {errorInfo && (
-                  <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm space-y-1">
-                    <p>{errorInfo.message}</p>
-                    {errorInfo.code === "AI_CONFIG_MISSING" && (
-                      <Link href="/settings/ai" className="underline text-xs block">
-                        去配置 AI
-                      </Link>
-                    )}
-                    {errorInfo.code === "AI_CONFIG_DECRYPT_FAILED" && (
-                      <Link href="/settings/ai" className="underline text-xs block">
-                        去重新配置 AI（删除旧配置）
-                      </Link>
-                    )}
-                  </div>
-                )}
+                <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground space-y-2">
+                  <p>当前页面为公开阅读视图。</p>
+                  <p>AI 评估、素材卡生成和采集等管理操作已迁移到后台。</p>
+                  <Link href="/admin/articles" className="underline">
+                    前往后台文章管理
+                  </Link>
+                </div>
               </CardContent>
             </Card>
 

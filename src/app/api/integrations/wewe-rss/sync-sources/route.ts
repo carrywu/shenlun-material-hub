@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { listFeedsAuto, buildFeedUrl } from "@/services/integrations/wewe-rss";
 
 // POST /api/integrations/wewe-rss/sync-sources — 从 WeWe RSS 同步公众号列表到 Source
 // 只创建和更新，不删除。缺失来源返回 toDelete 供前端确认。
@@ -10,6 +9,7 @@ export async function POST(request: NextRequest) {
     const baseUrl = body.baseUrl ?? process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
     const dbPath = body.dbPath;
     const syncMode = body.syncMode ?? "auto";
+    const { listFeedsAuto, buildFeedUrl } = await import("@/services/integrations/wewe-rss");
 
     // 1. 从 WeWe RSS 获取订阅列表（API 优先，SQLite 兜底）
     const { feeds, source: syncSource, message: _message } = await listFeedsAuto(baseUrl, syncMode, dbPath);

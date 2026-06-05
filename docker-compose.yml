@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: file:./prisma/dev.db
+    volumes:
+      - ./data/prisma:/app/prisma
+      - ./data/uploads:/app/public/uploads
+    restart: unless-stopped
+
+  # Optional local WeWe RSS sidecar.
+  # Keep it separate from the main app runtime boundary.
+  wewe-rss:
+    profiles: ["wewe-rss"]
+    extends:
+      file: ./infra/wechat-rss/wewe-rss/docker-compose.yml
+      service: wewe-rss

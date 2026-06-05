@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkHealth, listFeeds } from "@/services/integrations/wewe-rss";
+import { checkHealth, listFeeds } from "@/services/integrations/wewe-rss-api";
 
 // POST /api/integrations/wewe-rss/test — 测试 WeWe RSS 连接
 export async function POST(request: NextRequest) {

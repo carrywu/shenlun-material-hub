@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { refreshFeed, normalizeBaseUrl } from "@/services/integrations/wewe-rss";
+import { refreshFeed, normalizeBaseUrl } from "@/services/integrations/wewe-rss-api";
 import { fetchStandardRssArticles } from "@/services/collectors/wechat/weRssClient";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
 

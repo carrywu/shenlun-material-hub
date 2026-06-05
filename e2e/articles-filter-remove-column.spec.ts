@@ -22,10 +22,10 @@ test.describe('Articles Page filter linkage and column removal tests', () => {
     expect(headerTexts).toContain('AI');
     expect(headerTexts).toContain('字数');
 
-    // 3. 确认表格内容中每一行只有 7 个单元格
+    // 3. 公开文章页已移除管理员选择列，每行应只剩 6 个单元格
     const firstRowCells = page.locator('tbody tr').first().locator('td');
     if (await firstRowCells.count() > 0) {
-      expect(await firstRowCells.count()).toBe(7);
+      expect(await firstRowCells.count()).toBe(6);
     }
   });
 

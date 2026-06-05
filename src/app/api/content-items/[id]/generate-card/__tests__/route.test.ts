@@ -4,31 +4,25 @@ import { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
   findFirst: vi.fn(),
-  createCard: vi.fn(),
-  updateContent: vi.fn(),
-  generateCardForContentItem: vi.fn(),
+  createAsyncTask: vi.fn(),
+  enqueueAsyncTask: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   db: {
     contentItem: {
       findUnique: mocks.findUnique,
-      update: mocks.updateContent,
     },
     materialCard: {
       findFirst: mocks.findFirst,
-      create: mocks.createCard,
     },
   },
 }));
 
-vi.mock("@/services/ai", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/services/ai")>();
-  return {
-    AiServiceError: actual.AiServiceError,
-    generateCardForContentItem: mocks.generateCardForContentItem,
-  };
-});
+vi.mock("@/lib/async-task", () => ({
+  createAsyncTask: mocks.createAsyncTask,
+  enqueueAsyncTask: mocks.enqueueAsyncTask,
+}));
 
 describe("POST /api/content-items/[id]/generate-card", () => {
   beforeEach(() => {
@@ -42,43 +36,37 @@ describe("POST /api/content-items/[id]/generate-card", () => {
       source: { name: "来源" },
     });
     mocks.findFirst.mockResolvedValue(null);
-    mocks.updateContent.mockResolvedValue({});
+    mocks.createAsyncTask.mockResolvedValue({ id: "task-1", type: "CARD_GENERATE" });
   });
 
-  it("returns structured diagnostics when AI provider returns 401", async () => {
-    const { AiServiceError } = await import("@/services/ai");
-    mocks.generateCardForContentItem.mockRejectedValue(new AiServiceError(
-      "AI_API_CALL_FAILED",
-      "AI 请求失败",
-      401,
-      {
-        status: 401,
-        source: "db",
-        baseURL: "https://api.deepseek.com/v1",
-        model: "deepseek-chat",
-        keySuffix: "****1234",
-      }
-    ));
+  it("queues background generation and returns 202", async () => {
     const { POST } = await import("../route");
 
-    const response = await POST(new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
-      method: "POST",
-      body: JSON.stringify({ cardType: "golden_sentence" }),
-    }), { params: Promise.resolve({ id: "article-1" }) });
+    const response = await POST(
+      new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
+        method: "POST",
+        body: JSON.stringify({ cardType: "golden_sentence" }),
+      }),
+      { params: Promise.resolve({ id: "article-1" }) }
+    );
     const payload = await response.json();
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(202);
     expect(payload).toMatchObject({
-      error: "AI_API_CALL_FAILED",
-      message: "AI 请求失败",
-      status: 401,
-      source: "db",
-      baseURL: "https://api.deepseek.com/v1",
-      model: "deepseek-chat",
-      keySuffix: "****1234",
+      accepted: true,
+      taskId: "task-1",
+      status: "PENDING",
+      contentItemId: "article-1",
+      cardType: "golden_sentence",
     });
-    expect(payload).toHaveProperty("requestId");
-    expect(JSON.stringify(payload)).not.toContain("sk-");
+    expect(mocks.createAsyncTask).toHaveBeenCalledWith(
+      "CARD_GENERATE",
+      expect.objectContaining({
+        contentItemId: "article-1",
+        cardType: "golden_sentence",
+      })
+    );
+    expect(mocks.enqueueAsyncTask).toHaveBeenCalledTimes(1);
   });
 
   it("returns a clear error when full text is missing", async () => {
@@ -92,10 +80,13 @@ describe("POST /api/content-items/[id]/generate-card", () => {
     });
     const { POST } = await import("../route");
 
-    const response = await POST(new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
-      method: "POST",
-      body: JSON.stringify({ cardType: "golden_sentence" }),
-    }), { params: Promise.resolve({ id: "article-1" }) });
+    const response = await POST(
+      new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
+        method: "POST",
+        body: JSON.stringify({ cardType: "golden_sentence" }),
+      }),
+      { params: Promise.resolve({ id: "article-1" }) }
+    );
     const payload = await response.json();
 
     expect(response.status).toBe(400);
@@ -105,15 +96,18 @@ describe("POST /api/content-items/[id]/generate-card", () => {
   it("rejects data_fact as a new material card type", async () => {
     const { POST } = await import("../route");
 
-    const response = await POST(new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
-      method: "POST",
-      body: JSON.stringify({ cardType: "data_fact" }),
-    }), { params: Promise.resolve({ id: "article-1" }) });
+    const response = await POST(
+      new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
+        method: "POST",
+        body: JSON.stringify({ cardType: "data_fact" }),
+      }),
+      { params: Promise.resolve({ id: "article-1" }) }
+    );
     const payload = await response.json();
 
     expect(response.status).toBe(400);
     expect(payload.message).toContain("无效的卡片类型");
     expect(payload.message).not.toContain("data_fact");
-    expect(mocks.generateCardForContentItem).not.toHaveBeenCalled();
+    expect(mocks.enqueueAsyncTask).not.toHaveBeenCalled();
   });
 });

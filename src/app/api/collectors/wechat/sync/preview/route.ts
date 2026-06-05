@@ -5,7 +5,7 @@ import {
   fetchStandardRssArticles,
 } from "@/services/collectors/wechat/weRssClient";
 import { computeArticlePreview } from "@/services/collectors/wechat/weRssNormalizer";
-import { refreshFeed } from "@/services/integrations/wewe-rss";
+import { refreshFeed } from "@/services/integrations/wewe-rss-api";
 
 // POST /api/collectors/wechat/sync/preview — 预览采集结果（不写库）
 export async function POST(request: NextRequest) {

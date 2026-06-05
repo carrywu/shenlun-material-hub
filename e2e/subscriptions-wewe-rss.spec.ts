@@ -1,26 +1,29 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from "@playwright/test";
+import { attachConsoleGuard } from "./helpers/consoleGuard";
 
-test.describe('Subscriptions Page WeWe RSS integration', () => {
-  test('should load the subscriptions page and verify list renders without crashing', async ({ page }) => {
-    await page.goto('/subscriptions');
+test.describe("Admin sources and WeWe RSS integration", () => {
+  test("loads admin source management pages without list key warnings", async ({ page }, testInfo) => {
+    const guard = attachConsoleGuard(page);
 
-    // Check that the page header exists
-    await expect(page.locator('h1', { hasText: '来源管理' })).toBeVisible({ timeout: 10000 });
+    await page.goto("/admin/login");
+    await page.getByLabel("管理账号").fill("admin");
+    await page.getByLabel("管理密码").fill("admin123");
+    await page.getByRole("button", { name: "进入管理后台" }).click();
+    await expect(page).toHaveURL(/\/admin$/);
 
-    // There should be no list key warnings in the console (Playwright captures console messages)
-    const consoleMessages: string[] = [];
-    page.on('console', msg => {
-      if (msg.type() === 'error' || msg.type() === 'warning') {
-        consoleMessages.push(msg.text());
-      }
+    await page.goto("/admin/sources");
+    await expect(page.locator("h1.text-xl.font-semibold", { hasText: "来源管理" })).toBeVisible({
+      timeout: 10000,
     });
 
-    // Trigger any re-renders or data fetching if needed
     await page.reload();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState("networkidle");
 
-    // Check if React list key warnings occurred
-    const keyWarnings = consoleMessages.filter(msg => msg.includes('Each child in a list should have a unique "key" prop'));
-    expect(keyWarnings).toHaveLength(0);
+    await page.goto("/admin/integrations/wewe-rss");
+    await expect(page.getByRole("heading", { name: "WeWe RSS 集成", level: 1 })).toBeVisible({
+      timeout: 10000,
+    });
+
+    guard.report(testInfo);
   });
 });

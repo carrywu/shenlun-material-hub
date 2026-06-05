@@ -47,7 +47,7 @@ export function ChannelManager({ sourceId, sourceName }: ChannelManagerProps) {
   const [form, setForm] = useState(emptyChannelForm);
   const [saving, setSaving] = useState(false);
 
-  const fetchChannels = async () => {
+  async function fetchChannels() {
     try {
       const res = await fetch(`/api/sources/${sourceId}/channels`);
       if (res.ok) {
@@ -59,11 +59,35 @@ export function ChannelManager({ sourceId, sourceName }: ChannelManagerProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchChannels();
+    let cancelled = false;
+
+    async function loadChannels() {
+      try {
+        const res = await fetch(`/api/sources/${sourceId}/channels`);
+        if (!res.ok) {
+          return;
+        }
+        const data = await res.json();
+        if (!cancelled) {
+          setChannels(data);
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadChannels();
+
+    return () => {
+      cancelled = true;
+    };
   }, [sourceId]);
 
   function openCreate() {
@@ -115,7 +139,7 @@ export function ChannelManager({ sourceId, sourceName }: ChannelManagerProps) {
       }
 
       setShowForm(false);
-      fetchChannels();
+      void fetchChannels();
     } catch (err) {
       alert(err instanceof Error ? err.message : "保存失败");
     } finally {
@@ -130,7 +154,7 @@ export function ChannelManager({ sourceId, sourceName }: ChannelManagerProps) {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("删除失败");
-      fetchChannels();
+      void fetchChannels();
     } catch (err) {
       alert(err instanceof Error ? err.message : "删除失败");
     }
@@ -144,7 +168,7 @@ export function ChannelManager({ sourceId, sourceName }: ChannelManagerProps) {
         body: JSON.stringify({ isEnabled: !channel.isEnabled }),
       });
       if (!res.ok) throw new Error("操作失败");
-      fetchChannels();
+      void fetchChannels();
     } catch (err) {
       alert(err instanceof Error ? err.message : "操作失败");
     }

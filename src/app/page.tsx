@@ -7,13 +7,11 @@ import {
   Clock,
   CheckCircle2,
   ArrowRight,
-  Plus,
   Search,
   RotateCcw,
   BookOpen,
   TrendingUp,
   Layers,
-  Upload,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
@@ -122,8 +120,6 @@ export default async function DashboardPage() {
     { href: "/explore", label: "探索区", desc: "待核验内容", icon: Search, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-950/60" },
     { href: "/articles", label: "文章库", desc: "精选内容", icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60" },
     { href: "/cards", label: "素材卡", desc: "编辑同步", icon: Layers, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-950/60" },
-    { href: "/subscriptions", label: "来源管理", desc: "采集来源", icon: Plus, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-950/60" },
-    { href: "/sync-records", label: "同步记录", desc: "同步历史", icon: Upload, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/60" },
     { href: "/review", label: "复习", desc: "记忆检验", icon: RotateCcw, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/60" },
   ];
 

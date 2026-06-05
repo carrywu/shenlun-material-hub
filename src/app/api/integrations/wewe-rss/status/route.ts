@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkHealth } from "@/services/integrations/wewe-rss";
+import { checkHealth } from "@/services/integrations/wewe-rss-api";
 
 // GET /api/integrations/wewe-rss/status — 检查 WeWe RSS 连接状态
 export async function GET() {
