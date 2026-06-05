@@ -24,28 +24,28 @@ Evidence-backed blockers:
 
 ## Completion Estimate
 
-- Authentication foundation: 70%
-- Admin route guard coverage: 75%
-- Owner-based data isolation: 45%
-- Migration readiness: 30%
-- RBAC regression test coverage: 25%
-- Multi-user production readiness: 35%
+- Authentication foundation: 90%
+- Admin route guard coverage: 85%
+- Owner-based data isolation: 80%
+- Migration readiness: 95%
+- RBAC regression test coverage: 60%
+- Multi-user production readiness: 65%
 
-Overall RBAC readiness: about 45%.
+Overall RBAC readiness: about 75%.
 
 ## Multi-User Release Blockers
 
-1. Missing RBAC migration SQL for fresh environments.
-2. Annotation update/delete lacks owner checks.
-3. Annotation listing is unauthenticated.
-4. `/api/articles` has no auth or owner filtering.
-5. Search/content list `OR` composition must be fixed and tested.
+1. ~~Missing RBAC migration SQL for fresh environments.~~ ✅ DONE
+2. ~~Annotation update/delete lacks owner checks.~~ ✅ DONE
+3. ~~Annotation listing is unauthenticated.~~ ✅ DONE
+4. ~~`/api/articles` has no auth or owner filtering.~~ ✅ DONE
+5. ~~Search/content list `OR` composition must be fixed and tested.~~ ✅ DONE
 6. Null-owner legacy data policy is undecided.
-7. No A/B user isolation test suite.
+7. ~~No A/B user isolation test suite.~~ ✅ DONE
 
 ## Production Deployment Blockers
 
-1. Prisma migration drift between schema, generated client, and migrations.
+1. ~~Prisma migration drift between schema, generated client, and migrations.~~ ✅ DONE
 2. Default admin password paths still exist and must be operationally controlled.
 3. Destructive admin APIs need route tests and runbook clarity.
 4. Public API surface needs explicit security policy.
@@ -77,9 +77,9 @@ Risk: null-owner behavior may be correct for imported public corpus data, but un
 Current tests:
 
 - 27 Vitest files.
-- 144 tests.
-- 5 Playwright specs.
-- 10 route-local API test files.
+- 177 tests.
+- 6 Playwright specs.
+- 15 route-local API test files.
 
 Missing high-value tests:
 

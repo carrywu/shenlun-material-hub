@@ -7,14 +7,14 @@ This directory is the project handover surface for future Codex, Claude Code, Ge
 ## Audit Baseline
 
 - Branch: `feat/production-hardening`
-- HEAD: `97da329 feat: complete Phase 1 auth + fix Phase 2 data isolation gaps`
+- HEAD: `8d17471 feat: fix all P0 RBAC blockers`
 - Working tree before handover docs: no `git diff --stat` output
 - API routes found: 58 `src/app/api/**/route.ts`
-- Route-local API tests found: 10 `__tests__/route.test.ts`
-- Playwright specs found: 5
+- Route-local API tests found: 15 `__tests__/route.test.ts`
+- Playwright specs found: 6
 - Validation baseline from the audit pass:
   - `pnpm lint`: passed
-  - `pnpm test`: passed, 27 files / 144 tests
+  - `pnpm test`: passed, 27 files / 177 tests
   - `pnpm build`: passed
 
 ## Reading Order

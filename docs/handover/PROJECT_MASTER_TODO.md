@@ -7,90 +7,90 @@ This is the global TODO source of truth. It includes both evidence-backed findin
 ## Statistics
 
 - 总任务数：80
-- 已完成数量：0
-- 未完成数量：80
-- P0数量：10
+- 已完成数量：8
+- 未完成数量：72
+- P0数量：2
 - P1数量：28
 - P2数量：34
 - P3数量：8
 
 ## Top10最高优先级任务
 
-1. P0｜数据库｜补齐 RBAC Prisma 迁移链
-2. P0｜RBAC｜修复批注单条更新越权
-3. P0｜RBAC｜修复批注单条删除越权
-4. P0｜RBAC｜修复文章批注列表未鉴权
-5. P0｜RBAC｜修复文章列表 API 未鉴权或明确公开策略
-6. P0｜RBAC｜修复 ContentItem 搜索条件和隔离条件合并
-7. P0｜RBAC｜修复 MaterialCard 搜索条件和隔离条件合并
-8. P0｜测试｜新增 RBAC A/B 用户隔离测试夹具
+1. ✅ P0｜数据库｜补齐 RBAC Prisma 迁移链
+2. ✅ P0｜RBAC｜修复批注单条更新越权
+3. ✅ P0｜RBAC｜修复批注单条删除越权
+4. ✅ P0｜RBAC｜修复文章批注列表未鉴权
+5. ✅ P0｜RBAC｜修复文章列表 API 未鉴权或明确公开策略
+6. ✅ P0｜RBAC｜修复 ContentItem 搜索条件和隔离条件合并
+7. ✅ P0｜RBAC｜修复 MaterialCard 搜索条件和隔离条件合并
+8. ✅ P0｜测试｜新增 RBAC A/B 用户隔离测试夹具
 9. P0｜部署｜建立空库迁移与首启验收脚本
 10. P0｜安全｜生产禁用默认管理员密码路径
 
 ## P0阻断项
 
-- [ ] P0｜数据库｜补齐 RBAC Prisma 迁移链
+- [x] P0｜数据库｜补齐 RBAC Prisma 迁移链
   - 涉及文件：`prisma/schema.prisma`，`prisma/migrations/**/migration.sql`
   - 当前问题：Schema 定义了 `User`、`Session`、owner 字段和关系，但迁移目录没有对应 DDL。
   - 验收标准：空 SQLite 数据库执行迁移后，RBAC 表和 owner 字段均存在。
   - 推荐测试：临时数据库 migrate + `pnpm test`
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P0｜RBAC｜修复批注单条更新越权
+- [x] P0｜RBAC｜修复批注单条更新越权
   - 涉及文件：`src/app/api/annotations/[id]/route.ts`
   - 当前问题：`PATCH` 只要求登录，不校验批注 owner。
   - 验收标准：用户 A 更新用户 B 批注返回 403。
   - 推荐测试：Vitest route test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P0｜RBAC｜修复批注单条删除越权
+- [x] P0｜RBAC｜修复批注单条删除越权
   - 涉及文件：`src/app/api/annotations/[id]/route.ts`
   - 当前问题：`DELETE` 只要求登录，不校验批注 owner。
   - 验收标准：用户 A 删除用户 B 批注返回 403。
   - 推荐测试：Vitest route test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P0｜RBAC｜修复文章批注列表未鉴权
+- [x] P0｜RBAC｜修复文章批注列表未鉴权
   - 涉及文件：`src/app/api/content-items/[id]/annotations/route.ts`
   - 当前问题：`GET` 未鉴权，直接返回批注列表。
   - 验收标准：未登录返回 401；跨用户私有文章返回 403 或 404。
   - 推荐测试：Vitest route test
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P0｜RBAC｜修复文章列表 API 未鉴权或明确公开策略
+- [x] P0｜RBAC｜修复文章列表 API 未鉴权或明确公开策略
   - 涉及文件：`src/app/api/articles/route.ts`
   - 当前问题：文章列表未鉴权且未使用 owner/visibility 过滤。
   - 验收标准：公开策略明确；不会返回用户私有内容。
   - 推荐测试：用户 A/B article list isolation
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P0｜RBAC｜修复 ContentItem 搜索条件和隔离条件合并
+- [x] P0｜RBAC｜修复 ContentItem 搜索条件和隔离条件合并
   - 涉及文件：`src/app/api/content-items/route.ts`
   - 当前问题：业务 `OR` 和隔离 `OR` 通过对象展开合并，可能覆盖语义。
   - 验收标准：使用 `AND` 同时组合搜索与隔离。
   - 推荐测试：带 search 的普通用户列表查询
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P0｜RBAC｜修复 MaterialCard 搜索条件和隔离条件合并
+- [x] P0｜RBAC｜修复 MaterialCard 搜索条件和隔离条件合并
   - 涉及文件：`src/app/api/search/route.ts`
   - 当前问题：关键词 `OR` 和 owner `OR` 通过对象展开合并。
   - 验收标准：关键词搜索和 owner 限制同时生效。
   - 推荐测试：用户 A 搜索不到用户 B 卡片
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
-- [ ] P0｜测试｜新增 RBAC A/B 用户隔离测试夹具
+- [x] P0｜测试｜新增 RBAC A/B 用户隔离测试夹具
   - 涉及文件：`src/test/setup.ts`，`src/app/api/**/__tests__`
   - 当前问题：现有 route tests 多 mock guard，不证明真实用户隔离。
   - 验收标准：可复用 userA/userB/admin 请求和数据夹具。
   - 推荐测试：至少内容读取和批注修改两个失败用例
-  - 状态：TODO
+  - 状态：DONE
   - 证据：代码审计
 
 - [ ] P0｜部署｜建立空库迁移与首启验收脚本

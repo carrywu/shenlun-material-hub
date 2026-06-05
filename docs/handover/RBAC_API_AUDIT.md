@@ -27,8 +27,8 @@ Legend:
 | `src/app/api/ai-config/prompts/route.ts` | GET, PUT, POST | `requireAdmin` | none | yes | P2 | Global admin config, tested. |
 | `src/app/api/ai-config/route.ts` | GET, POST, DELETE | `requireAdmin` | none | yes | P2 | Global admin config, tested. |
 | `src/app/api/ai-config/test/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only external AI test, missing route test. |
-| `src/app/api/annotations/[id]/route.ts` | PATCH, DELETE | `requireAuth` | none | no | P0 | Any authenticated user can update/delete an annotation by id; no `userId` or content owner check. |
-| `src/app/api/articles/route.ts` | GET | none | none | yes | P0 | Lists all content without auth or owner visibility filtering. |
+| `src/app/api/annotations/[id]/route.ts` | PATCH, DELETE | `requireAuth` | `canModifyResource` | yes | P2 | Owner check added; route test covers cross-user denial. |
+| `src/app/api/articles/route.ts` | GET | `getUserFromRequest(optional)` | `contentVisibilityWhere`+`mergeWhere` | yes | P2 | Auth and visibility filtering added; route test covers isolation. |
 | `src/app/api/auth/change-password/route.ts` | POST | `requireAuth` | current user | no | P2 | Authenticated self-service, missing route test. |
 | `src/app/api/auth/check/route.ts` | GET | `requireAuth` | current user | no | P2 | Auth check surface missing route test. |
 | `src/app/api/auth/login/route.ts` | POST, GET | `requireAuth` on GET | current user | yes | P2 | Login route tested. |
@@ -42,13 +42,13 @@ Legend:
 | `src/app/api/collectors/wechat/sync/confirm/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only, missing route test. |
 | `src/app/api/collectors/wechat/sync/preview/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only preview, missing route test. |
 | `src/app/api/collectors/wechat/sync/route.ts` | POST | `requireAdmin` | none | yes | P2 | Admin-only sync, tested. |
-| `src/app/api/content-items/[id]/annotations/route.ts` | GET, POST, PUT | GET none; POST/PUT `requireAdmin` | none | no | P0 | GET is unauthenticated and returns all annotations for an item; creates do not set `userId`. |
+| `src/app/api/content-items/[id]/annotations/route.ts` | GET, POST, PUT | GET `requireAuth`; POST/PUT `requireAdmin` | GET `canAccessResource` | yes | P2 | GET now requires auth and ownership check; route test covers unauthenticated and cross-user denial. |
 | `src/app/api/content-items/[id]/generate-card/route.ts` | POST | `requireAdmin` | none | yes | P1 | Admin-only generation; ownership semantics for generated card need explicit test. |
 | `src/app/api/content-items/[id]/route.ts` | GET, PUT, DELETE | GET `requireAuth`; PUT/DELETE `requireAdmin` | `canAccessResource`, `canModifyResource` | no | P1 | Guard and ownership checks exist; missing route tests. |
 | `src/app/api/content-items/[id]/score/route.ts` | POST, GET | `requireAdmin` | none | no | P2 | Admin-only scoring, missing route test. |
 | `src/app/api/content-items/assess/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only AI assess, missing route test. |
 | `src/app/api/content-items/reassess/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only reassess, missing route test. |
-| `src/app/api/content-items/route.ts` | GET, POST | `requireAuth` | `contentVisibilityWhere`, sets `ownerUserId` on create | no | P0 | `where.OR` search filters can be overwritten by visibility `OR` via object spread; missing route test. |
+| `src/app/api/content-items/route.ts` | GET, POST | `requireAuth` | `contentVisibilityWhere`+`mergeWhere`, sets `ownerUserId` on create | no | P2 | `mergeWhere` fixes OR composition; missing route test. |
 | `src/app/api/discover/route.ts` | GET | none | none | no | P1 | Public recommendation feed; needs explicit public-data policy and test. |
 | `src/app/api/explore/route.ts` | GET | none | none | no | P1 | Public exploration feed; needs explicit public-data policy and test. |
 | `src/app/api/export/route.ts` | GET | `requireAuth` | `ownerScopeWhere` | no | P1 | Export isolation exists; missing route test for cross-user card export. |
@@ -60,10 +60,10 @@ Legend:
 | `src/app/api/integrations/wewe-rss/sync-sources/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only, missing route test. |
 | `src/app/api/integrations/wewe-rss/test/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only, missing route test. |
 | `src/app/api/material-cards/[id]/route.ts` | GET, PUT, DELETE | GET `requireAuth`; PUT/DELETE `requireAdmin` | `canAccessResource`, `canModifyResource` | no | P1 | Guard and ownership checks exist; missing route tests. |
-| `src/app/api/material-cards/route.ts` | GET, POST | `requireAuth` | `ownerScopeWhere`, sets `ownerUserId` | no | P1 | Isolation exists; creation should verify source content ownership. |
+| `src/app/api/material-cards/route.ts` | GET, POST | `requireAuth` | `ownerScopeWhere`+`mergeWhere`, sets `ownerUserId` | no | P2 | `mergeWhere` fixes OR composition; creation should verify source content ownership. |
 | `src/app/api/proxy/image/route.ts` | GET | none | allowlist only | no | P2 | Public proxy has domain/protocol allowlist; add SSRF regression tests. |
 | `src/app/api/review/route.ts` | GET, POST | `requireAuth` | `ownerScopeWhere`, manual owner check on POST | no | P1 | GET isolation exists; POST blocks non-owner but no tests. |
-| `src/app/api/search/route.ts` | GET | `requireAuth` | `ownerScopeWhere` | no | P0 | Query `OR` can be overwritten by owner `OR` via object spread. |
+| `src/app/api/search/route.ts` | GET | `requireAuth` | `ownerScopeWhere`+`mergeWhere` | no | P2 | `mergeWhere` fixes OR composition; missing route test. |
 | `src/app/api/sources/[id]/channels/[channelId]/route.ts` | PUT, DELETE | `requireAdmin` | none | no | P2 | Admin-only, missing route test. |
 | `src/app/api/sources/[id]/channels/route.ts` | GET, POST | `requireAdmin` | none | no | P2 | GET is admin-only route-level, but proxy does not protect GET `/api/sources*`; route guard does. |
 | `src/app/api/sources/[id]/route.ts` | GET, PUT, DELETE | `requireAdmin` | none | no | P2 | Admin-only, missing route test. |
@@ -77,6 +77,6 @@ Legend:
 ## Coverage Summary
 
 - API route files: 58
-- Route-local API tests: 10
-- E2E specs: 5
-- Public unauthenticated APIs that require policy review: `/api/articles`, `/api/discover`, `/api/explore`, `/api/health`, `/api/proxy/image`, `/api/auth/logout`.
+- Route-local API tests: 15
+- E2E specs: 6
+- Public unauthenticated APIs that require policy review: `/api/discover`, `/api/explore`, `/api/health`, `/api/proxy/image`, `/api/auth/logout`.
