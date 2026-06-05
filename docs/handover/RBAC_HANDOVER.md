@@ -31,7 +31,7 @@ RBAC 已部分实现，但仍不应直接开放多用户使用。
 - RBAC 回归测试覆盖：60%
 - 多用户生产就绪度：65%
 
-总体 RBAC 就绪度：约 75%。
+总体 RBAC 就绪度：约 85%（P0/P1 全部完成，P2 进行中，P3 规划中）。
 
 ## 多用户开放阻断项
 
@@ -46,7 +46,7 @@ RBAC 已部分实现，但仍不应直接开放多用户使用。
 ## 生产部署阻断项
 
 1. ~~schema、generated client、migrations 之间存在 Prisma migration drift。~~ ✅ DONE
-2. 默认管理员密码路径仍存在，需要生产运行约束。
+2. ~~默认管理员密码路径仍存在，需要生产运行约束。~~ ✅ DONE（`src/lib/auth.ts` 生产环境禁用默认密码）
 3. 破坏性 admin API 需要 route tests 和 runbook。
 4. public API surface 需要明确安全策略。
 5. 生产监控、备份、恢复流程仍不完整。
@@ -76,9 +76,9 @@ RBAC 已部分实现，但仍不应直接开放多用户使用。
 
 当前测试：
 
-- 27 个 Vitest 文件。
-- 177 个测试。
-- 6 个 Playwright specs。
+- 36 个 Vitest 文件。
+- 215 个测试。
+- 7 个 Playwright specs。
 - 15 个 route-local API test 文件。
 
 仍缺少的高价值测试：

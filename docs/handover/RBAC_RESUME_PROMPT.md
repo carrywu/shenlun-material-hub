@@ -3,7 +3,7 @@
 给下一位 Codex / Claude Code / Gemini 接管时使用：
 
 ```text
-你正在接管 shenlun-material-hub，当前分支为 feat/production-hardening。
+你正在接管 shenlun-material-hub，当前分支为 main。
 
 先读取根目录：
 - AGENT_HANDOFF.md
@@ -35,9 +35,11 @@
 6. ✅ 修复 /api/content-items 和 /api/search 中 unsafe Prisma where OR merges。
 7. ✅ 运行 pnpm lint、pnpm test、pnpm build；UI/auth 行为变化时运行 Playwright。
 
-剩余 P0：
-- P0｜部署｜建立空库迁移与首启验收脚本
-- P0｜安全｜生产禁用默认管理员密码路径
+剩余 P0：无（全部已完成）。
+
+已完成的额外 P0 项：
+- ✅ P0｜部署｜建立空库迁移与首启验收脚本（`scripts/setup-fresh-db.ts`）
+- ✅ P0｜安全｜生产禁用默认管理员密码路径（`src/lib/auth.ts`）
 
 项目约束：
 - WeWe RSS 是 sidecar，不嵌入本项目。

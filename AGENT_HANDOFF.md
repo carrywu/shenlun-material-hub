@@ -41,7 +41,7 @@ git log --oneline -20
 ## 当前已知基线
 
 - `pnpm lint`：最近一次通过。
-- `pnpm test`：最近一次通过，30 个测试文件 / 177 个测试。
+- `pnpm test`：最近一次通过，36 个测试文件 / 215 个测试。
 - `pnpm build`：最近一次通过。
 - `pnpm exec playwright test`：当前不是干净基线，详见 `docs/testing.md`。
 

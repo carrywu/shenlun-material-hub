@@ -6,15 +6,13 @@
 
 ## 审计基线
 
-- 分支：`feat/production-hardening`
-- HEAD：`8d17471 feat: fix all P0 RBAC blockers`
-- 交接文档生成前工作区：`git diff --stat` 无输出
+- 分支：`main`
 - API route 数量：58 个 `src/app/api/**/route.ts`
 - route-local API 测试数量：15 个 `__tests__/route.test.ts`
-- Playwright spec 数量：6 个
-- 审计验证基线：
-  - `pnpm lint`：通过
-  - `pnpm test`：通过，27 个文件 / 177 个测试
+- Playwright spec 数量：7 个
+- 验证基线：
+  - `pnpm lint`：通过（0 errors）
+  - `pnpm test`：通过，36 个文件 / 215 个测试
   - `pnpm build`：通过
 
 ## 建议阅读顺序

@@ -1,5 +1,10 @@
 # RBAC 总 TODO
 
+> **⚠️ 本文件已归档（2026-06-06）**
+>
+> 所有 P0 和 P1 项目均已完成。本文件保留作为历史审计记录。
+> 当前唯一 TODO 源为 [`PROJECT_MASTER_TODO.md`](./PROJECT_MASTER_TODO.md)。
+
 审计日期：2026-06-05
 
 本文件是 RBAC-only TODO 切片。全项目总源以 `PROJECT_MASTER_TODO.md` 为准。
