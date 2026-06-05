@@ -37,7 +37,7 @@
 | 前端 | React + Tailwind CSS + shadcn/ui | React 19.2.4, Tailwind 4 |
 | 后端 | Next.js API Routes (Route Handlers) | 同框架 |
 | ORM | Prisma (libSQL adapter) | 7.8.0 |
-| 数据库 | SQLite (via libSQL/better-sqlite3) | — |
+| 数据库 | PostgreSQL (via @prisma/adapter-pg + pg) | — |
 | AI | OpenAI SDK | 6.39.1 |
 | 测试 | Vitest + Playwright | Vitest 4.1.7, Playwright 1.60 |
 | 包管理 | pnpm | — |
@@ -85,7 +85,7 @@ src/
 
 ### 2.3 数据库
 
-SQLite 数据库，通过 Prisma 管理。当前 11 张表：
+PostgreSQL 数据库，通过 Prisma 管理。当前 12 张表：
 
 | 表名 | 职责 | 用户归属 |
 |---|---|---|
@@ -156,7 +156,7 @@ SQLite 数据库，通过 Prisma 管理。当前 11 张表：
 
 Docker Compose 单容器部署：
 - Next.js standalone 模式
-- SQLite 数据文件挂载到宿主机 `./data/prisma`
+- PostgreSQL 数据通过 docker volume 持久化
 - 上传文件挂载到 `./data/uploads`
 - 可选 WeWe RSS sidecar（Docker profile 门控）
 - 非 root 用户运行
@@ -1127,7 +1127,7 @@ Docker Compose 单容器部署：
 
 **理由**：
 
-1. **项目架构适合增加权限体系**：Next.js App Router + Prisma + SQLite 的技术栈支持多用户扩展，现有代码结构清晰，分层合理。
+1. **项目架构适合增加权限体系**：Next.js App Router + Prisma + PostgreSQL 的技术栈支持多用户扩展，现有代码结构清晰，分层合理。
 
 2. **当前安全状况需要立即改善**：89% 的 API 端点无认证保护，管理后台 API 完全公开，这是一个严重的安全问题，不论是否实施多用户系统都需要修复。
 

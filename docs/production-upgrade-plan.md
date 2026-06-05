@@ -12,7 +12,7 @@
    - **后台（管理区 `/admin`）**：必须登录访问，包括对应的敏感数据管理 API。
 3. **账户模型**：单管理员账号，由环境变量 `ADMIN_USERNAME` 与 `ADMIN_PASSWORD_HASH`（当前实现为 SHA-256 十六进制哈希）配置，免去复杂的账号注册和找回逻辑。
 4. **认证方式**：轻量级 JWT (JSON Web Token) 存放在 HTTP-Only Cookie 中，由 Next.js `proxy.ts` 进行安全校验。
-5. **数据库方案**：继续使用 **SQLite**。挂载宿主机数据卷（Docker Volume）保证持久化，并通过定时自动备份导出，既能满足个人/小团队需求，又免去了 PostgreSQL 部署开销。
+5. **数据库方案**：已迁移至 **PostgreSQL 16**。通过 Docker Compose postgres 服务（Docker Volume）保证持久化，使用 pg 持久化 volume 和 Prisma 序列化备份。
 6. **后台布局**：引入独立、现代的**左侧菜单导航布局**（Sidebar Layout），提供更加紧凑的管理面。
 
 ---
@@ -21,7 +21,7 @@
 
 - **安全与认证拦截**：由于公网部署，所有涉及**添加/修改/删除/配置修改/爬虫触发/AI 模板修改**的 API（即 `/api/sources/*`, `/api/ai-config/*`, `/api/collectors/*` 等）将通过 Next.js `proxy.ts` 统一进行 JWT Cookie 强校验，避免非授权调用。
 - **环境依赖**：部署阶段必须提供 `JWT_SECRET` 和 `ADMIN_PASSWORD_HASH`。生产环境缺失这些配置时，系统应直接拒绝启动或拒绝认证，而不是静默使用默认值。
-- **数据备份机制**：备份导出包含 SQLite 数据库文件 `prisma/dev.db` 和静态媒体文件，导入操作支持 Dry-run 模拟，防止覆盖损坏生产数据。
+- **数据备份机制**：备份导出包含 Prisma 序列化的全部表数据和静态媒体文件，导入操作支持 Dry-run 模拟，防止覆盖损坏生产数据。
 
 ---
 
@@ -73,7 +73,7 @@
   - 菜单包含：📊 控制台 (Dashboard)、📄 文章管理、🌐 来源管理、💬 微信集成、⚙️ AI 配置、⏳ 异步任务、📋 系统日志、💾 数据备份。
 - **控制台首页 (`src/app/admin/page.tsx`)**：
   - 展示文章总量、来源数、异常日志数、进行中任务等指标。
-  - 展示 SQLite 数据库文件大小、可用磁盘容量、系统 CPU 与内存概览。
+  - 展示 PostgreSQL 数据库大小、可用磁盘容量、系统 CPU 与内存概览。
   - 提供快捷链接方便直达各管理功能。
 
 ### 4. 路由迁移与整合 (Feature Re-routing)
@@ -112,7 +112,7 @@
 ### 7. 数据备份与恢复 (Database Backups)
 
 - **备份功能 (`/api/admin/backup/export`)**：
-  - 提供接口将 SQLite `dev.db` 文件和静态媒体文件一并打包压缩供管理员下载备份。
+  - 提供接口将全部数据表序列化并与静态媒体文件一并打包压缩供管理员下载备份。
 - **恢复功能与 Dry-run 校验 (`/api/admin/backup/import`)**：
   - 管理员上传备份文件后，后台先解密/解压并进行 Dry-run 分析。
   - 给出恢复预览（如“该备份包含 1200 篇文章，5 个来源，将覆盖当前系统中的 1000 篇文章”）。

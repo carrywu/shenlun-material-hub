@@ -46,7 +46,7 @@
 - 破坏性数据库操作必须 dry-run。
 - 保留手动来源和外部 WeRSS fallback。
 - MCP 数据库工具默认只读；写入必须由任务文档临时授权。
-- 暂不做 SQLite 到 PostgreSQL 迁移；仅作为 P3 长期规划。
+- ✅ 已完成 SQLite → PostgreSQL 迁移（2026-06-06）。数据库使用 PostgreSQL 16 + @prisma/adapter-pg。
 
 最终报告必须包含：修改文件、测试命令和结果、剩余风险、人工验收清单。
 ```

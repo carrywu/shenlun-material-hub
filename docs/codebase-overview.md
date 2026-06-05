@@ -9,8 +9,8 @@
 | 层面 | 技术 |
 |---|---|
 | 框架 | Next.js 16 (App Router, Turbopack) |
-| ORM | Prisma 7 + libsql adapter |
-| 数据库 | SQLite（dev: `prisma/dev.db`） |
+| ORM | Prisma 7 + pg adapter (PostgreSQL) |
+| 数据库 | PostgreSQL 16（docker compose postgres） |
 | 前端 | React 19 + Tailwind CSS 4 + shadcn/ui + Lucide 图标 |
 | AI | OpenAI 兼容 API（可配置 baseUrl / model） |
 | 测试 | Vitest 4（单元/集成）+ Playwright（E2E） |
@@ -34,7 +34,7 @@
 ├── prisma/
 │   ├── schema.prisma         # 数据库 schema（11 个模型）
 │   ├── migrations/           # 3 个迁移文件
-│   └── dev.db                # SQLite 开发数据库
+│   └── dev.db                # SQLite 开发数据库（已废弃，主库为 PostgreSQL）
 ├── config/                   # 服务器配置（端口、hostname）
 ├── scripts/                  # 工具脚本（迁移、修复、截图）
 ├── e2e/                      # Playwright E2E 测试（5 个 spec）
@@ -331,7 +331,7 @@ MaterialCard ──1:N──→ SyncRecord       [materialCardId, cascade delete
 
 | 文件 | 职责 |
 |---|---|
-| `db.ts` | PrismaClient 单例（libsql adapter，dev 热重载安全） |
+| `db.ts` | PrismaClient 单例（pg adapter + Pool，dev 热重载安全） |
 | `auth.ts` | 认证全套：bcrypt、session CRUD、JWT 兼容、角色中间件、初始 admin |
 | `crypto.ts` | AES-256-CBC 加密/解密（AI API Key 存储） |
 | `logger.ts` | 双写日志：console（彩色）+ SystemLog DB 表 |
@@ -413,7 +413,7 @@ MaterialCard ──1:N──→ SyncRecord       [materialCardId, cascade delete
 
 | 变量 | 用途 |
 |---|---|
-| `DATABASE_URL` | SQLite 数据库路径 |
+| `DATABASE_URL` | PostgreSQL 连接字符串 |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | 初始管理员创建 |
 | `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | AI 配置（fallback，优先使用数据库配置） |
 | `AI_CONFIG_ENCRYPTION_KEY` | AI API Key 加密密钥 |

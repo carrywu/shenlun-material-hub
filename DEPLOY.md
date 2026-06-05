@@ -23,7 +23,7 @@ pnpm dev
 
 | 变量 | 必填 | 说明 |
 |---|---|---|
-| `DATABASE_URL` | ✅ | SQLite 路径 |
+| `DATABASE_URL` | ✅ | PostgreSQL 连接字符串 |
 | `ADMIN_PASSWORD_HASH` | 生产必须 | bcrypt 哈希（生成见下方） |
 | `AI_CONFIG_ENCRYPTION_KEY` | 使用 AI 功能时 | `openssl rand -base64 32` |
 | `JWT_SECRET` | 可选 | 旧版 JWT 兼容 |
@@ -49,18 +49,18 @@ docker compose ps
 # 执行迁移（部署新版本时）
 pnpm db:migrate
 
-# 回滚：恢复备份文件
-cp prisma/dev.db.backup prisma/dev.db
+# 回滚：从 PostgreSQL 备份恢复（通过 API）
+# 使用管理后台的备份导入功能，或 pg_dump/pg_restore
 ```
 
 ### 备份
 
 ```bash
-# 手动备份
-cp prisma/dev.db prisma/dev.db.backup.$(date +%Y%m%d)
-
 # 通过 API 备份（需要 admin 认证）
-curl -b "auth_token=YOUR_TOKEN" http://localhost:3000/api/admin/backup/export -o backup.json
+curl -b "auth_token=YOUR_TOKEN" http://localhost:3000/api/admin/backup/export -o backup.json.gz
+
+# PostgreSQL 原生备份（可选）
+docker compose exec postgres pg_dump -U shenlun shenlun_material_hub > backup.sql
 ```
 
 ## WeWe RSS Sidecar

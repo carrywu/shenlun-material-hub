@@ -32,7 +32,7 @@
 - [x] P0｜数据库｜补齐 RBAC Prisma 迁移链
   - 涉及文件：`prisma/schema.prisma`，`prisma/migrations/**/migration.sql`
   - 当前问题：Schema 定义了 `User`、`Session`、owner 字段和关系，但迁移目录没有对应 DDL。
-  - 验收标准：空 SQLite 数据库执行迁移后，RBAC 表和 owner 字段均存在。
+  - 验收标准：空 PostgreSQL 数据库执行迁移后，RBAC 表和 owner 字段均存在。
   - 推荐测试：临时数据库 migrate + `pnpm test`
   - 状态：DONE
   - 证据：代码审计
@@ -97,7 +97,7 @@
   - 涉及文件：`package.json`，`prisma.config.ts`，`DEPLOY.md`
   - 当前问题：构建可过，但空库部署是否可迁移到当前 schema 未被验证。
   - 验收标准：一条命令可在临时 DB 完成 migrate、seed admin、health check。
-  - 推荐测试：CI 或本地临时 SQLite 验收
+  - 推荐测试：CI 或本地临时 PostgreSQL 验收
   - 状态：DONE — scripts/setup-fresh-db.ts, package.json db:setup, Dockerfile migrate
   - 证据：代码审计
 
@@ -613,7 +613,7 @@
 
 - [ ] P3｜性能｜搜索接口规划全文索引替代 contains
   - 涉及文件：`src/app/api/search/route.ts`
-  - 当前问题：SQLite contains 查询随数据增长会变慢。
+  - 当前问题：PostgreSQL 全文检索可替代 LIKE 查询，性能更优。
   - 验收标准：形成 FTS 或外部索引方案。
   - 推荐测试：性能基准
   - 状态：TODO

@@ -7,7 +7,7 @@
 | 名称 | 用途 | 权限 |
 | --- | --- | --- |
 | `shenlun-playwright` | 使用 Playwright MCP 驱动真实浏览器，检查页面、表单、可访问性树和交互流程 | 浏览器操作 |
-| `shenlun-sqlite-logs` | 查询项目 SQLite schema、执行只读 SQL、查询 `SystemLog` | 只读 |
+| `shenlun-sqlite-logs` | 查询项目 PostgreSQL schema、执行只读 SQL、查询 `SystemLog` | 只读 |
 
 ## 浏览器 MCP
 
@@ -31,27 +31,17 @@ npx -y @playwright/mcp@latest
 
 ## 数据库与日志 MCP
 
-数据库/日志 MCP 使用项目内脚本：
+数据库/日志 MCP 使用项目内脚本，连接 PostgreSQL：
 
 ```bash
-node scripts/mcp/sqlite-readonly-server.mjs
+DATABASE_URL="postgresql://shenlun:shenlun_dev@localhost:5432/shenlun_material_hub" node scripts/mcp/sqlite-readonly-server.mjs
 ```
 
-默认读取：
-
-```text
-prisma/dev.db
-```
-
-也可以通过环境变量指定临时库：
-
-```bash
-SHENLUN_SQLITE_DB_PATH=/path/to/temp.db node scripts/mcp/sqlite-readonly-server.mjs
-```
+需要设置环境变量 `DATABASE_URL` 指向 PostgreSQL 实例。
 
 暴露工具：
 
-- `db_schema`：查看表、字段、索引和建表 SQL。
+- `db_schema`：查看表、字段、索引。
 - `db_query_readonly`：执行只读 SQL。
 - `system_logs_query`：查询 `SystemLog`。
 
@@ -60,7 +50,6 @@ SHENLUN_SQLITE_DB_PATH=/path/to/temp.db node scripts/mcp/sqlite-readonly-server.
 - `SELECT`
 - `WITH`
 - `EXPLAIN`
-- 白名单内的安全 `PRAGMA`
 
 禁止：
 
@@ -72,9 +61,6 @@ SHENLUN_SQLITE_DB_PATH=/path/to/temp.db node scripts/mcp/sqlite-readonly-server.
 - `CREATE`
 - `REPLACE`
 - `TRUNCATE`
-- `ATTACH`
-- `DETACH`
-- `VACUUM`
 - 事务语句
 - 多语句 SQL
 
@@ -92,7 +78,7 @@ SHENLUN_SQLITE_DB_PATH=/path/to/temp.db node scripts/mcp/sqlite-readonly-server.
 ## 自测命令
 
 ```bash
-node scripts/mcp/sqlite-readonly-server.mjs --self-test
+DATABASE_URL="postgresql://..." node scripts/mcp/sqlite-readonly-server.mjs --self-test
 ```
 
 自测必须证明：

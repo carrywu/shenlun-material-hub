@@ -11,7 +11,7 @@
 | 项目根目录 | `/Users/apple/Downloads/ima-shenglun-creators/shenlun-material-hub` |
 | Git 状态 | 项目内部有 `.git` 目录，外层目录无 |
 | 文件总数（排除 node_modules/.next/generated） | ~160 个源文件 |
-| 技术栈 | Next.js 16.2.6 + Prisma 7.8.0 + SQLite (libSQL) + React 19 + Tailwind CSS 4 + Vitest 4 + Playwright 1.60 |
+| 技术栈 | Next.js 16.2.6 + Prisma 7.8.0 + PostgreSQL (pg) + React 19 + Tailwind CSS 4 + Vitest 4 + Playwright 1.60 |
 
 ## 阅读覆盖清单
 
@@ -53,7 +53,7 @@
 | 路径/目录 | 阅读状态 | 主要职责 | 与需求的关系 | 发现 |
 |---|---|---|---|---|
 | `src/lib/auth.ts` | 已完整阅读 | JWT 和密码工具 | **核心**：认证基础 | 单管理员、SHA-256（非 bcrypt）、Web Crypto JWT、无角色字段 |
-| `src/lib/db.ts` | 已完整阅读 | Prisma 客户端单例 | 数据库访问 | libSQL 适配器、全局单例 |
+| `src/lib/db.ts` | 已完整阅读 | Prisma 客户端单例 | 数据库访问 | pg adapter (PrismaPg + pg.Pool)、全局单例 |
 | `src/lib/crypto.ts` | 已完整阅读 | AES-256-CBC 加密 | 密钥加密 | AI_CONFIG_ENCRYPTION_KEY，零填充密钥（非 KDF） |
 | `src/lib/async-task.ts` | 已完整阅读 | 异步任务队列 | **核心**：任务系统 | 进程内内存队列、无持久化、默认并发 2、无重试 |
 | `src/lib/logger.ts` | 已完整阅读 | 日志服务 | 审计日志基础 | 写入 SystemLog 表 + console，无用户上下文 |

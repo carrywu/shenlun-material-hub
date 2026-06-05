@@ -43,4 +43,4 @@
 
 - 不修改 RBAC 业务代码。
 - 不生成或应用数据库 migration。
-- 不修改 `.env`、SQLite 数据库、Docker 服务或外部 WeWe RSS 状态。
+- 不修改 `.env`、PostgreSQL 数据库、Docker 服务或外部 WeWe RSS 状态。

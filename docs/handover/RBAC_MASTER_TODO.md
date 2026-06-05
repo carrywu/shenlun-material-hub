@@ -9,7 +9,7 @@
 - [ ] P0｜数据库｜补齐 RBAC Prisma 迁移链
   - 涉及文件：`prisma/schema.prisma`，`prisma/migrations/**/migration.sql`
   - 当前问题：Schema 定义了 `User`、`Session`、owner 字段和关系，但迁移目录没有对应 DDL。
-  - 验收标准：从空 SQLite 数据库执行迁移后，`User`、`Session`、`ownerUserId`、`visibility`、`ArticleAnnotation.userId`、`AsyncTask.userId`、`SyncRecord.userId` 均存在。
+  - 验收标准：从空 PostgreSQL 数据库执行迁移后，`User`、`Session`、`ownerUserId`、`visibility`、`ArticleAnnotation.userId`、`AsyncTask.userId`、`SyncRecord.userId` 均存在。
   - 推荐测试：新建临时数据库运行 Prisma migrate，再执行 `pnpm test`。
   - 状态：TODO
   - 证据：代码审计

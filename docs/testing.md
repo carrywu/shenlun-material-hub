@@ -1,6 +1,6 @@
 # 测试与验证指南
 
-本项目使用 Next.js 16、Prisma 7、SQLite、Vitest、ESLint 和 Playwright。
+本项目使用 Next.js 16、Prisma 7、PostgreSQL、Vitest、ESLint 和 Playwright。
 
 本文件是 Codex、Claude Code、Gemini 和人工维护者共享的验证契约。不要依赖聊天历史判断该跑哪些检查。
 

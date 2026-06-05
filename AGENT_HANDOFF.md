@@ -8,7 +8,7 @@
 - 以真实代码、当前 Git 状态、当前任务文档为准。
 - 不默认重读全仓库；先读本文件和当前任务，再按证据扩展阅读范围。
 - 不覆盖无关的本地未提交改动。
-- 不修改 `.env`、SQLite 数据库文件、生产配置或 WeWe RSS sidecar 状态，除非任务明确授权。
+- 不修改 `.env`、PostgreSQL 数据库、生产配置或 WeWe RSS sidecar 状态，除非任务明确授权。
 
 ## 接管后先执行
 
@@ -48,7 +48,7 @@ git log --oneline -20
 ## MCP 使用规则
 
 - 浏览器：使用 `shenlun-playwright` MCP 做交互式页面检查；正式 E2E 仍以 `pnpm exec playwright test` 为准。
-- 数据库/日志：使用 `shenlun-sqlite-logs` MCP，只读查询 SQLite 和 `SystemLog`。
+- 数据库/日志：使用 `shenlun-sqlite-logs` MCP，只读查询 PostgreSQL 和 `SystemLog`。
 - 数据库 MCP 默认禁止写入。任何写入、迁移、修复数据必须走任务文档授权、dry-run、备份或临时库验证。
 
 ## 每轮结束前必须更新
@@ -61,6 +61,9 @@ git log --oneline -20
 
 ## 当前长期决策
 
-- 暂不做 SQLite 到 PostgreSQL 迁移。
-- 理由：当前定位是个人/小团队工具，现有文档明确选择 SQLite；当前阻断项是 RBAC、安全、空库迁移验收、备份恢复和 Playwright 基线，不是数据库类型。
-- PostgreSQL 仅作为 P3 长期规划：当高并发、多租户 SaaS、连接池、备份 SLA 或 SQLite 文件锁成为真实瓶颈时再启动。
+- ✅ **已完成 SQLite → PostgreSQL 迁移**（2026-06-06，分支 `feat/postgresql-migration`）。
+  - 数据库：PostgreSQL 16，通过 `@prisma/adapter-pg` + `pg.Pool` 连接。
+  - 备份系统：v2 Prisma 序列化格式（不再是文件复制）。
+  - MCP 工具：已重写为 PostgreSQL 版本。
+  - `better-sqlite3` 保留仅供 WeWe RSS sidecar 只读访问。
+  - 迁移详情：`scripts/migrate-sqlite-to-postgres.ts`，662 行数据已验证迁移。
