@@ -1,87 +1,89 @@
-# Production Deploy
+# 部署指南
 
-## 1. Prepare environment
-
-1. Copy `.env.example` to `.env`.
-2. Set these values before any production start:
-   - `ADMIN_USERNAME`
-   - `ADMIN_PASSWORD_HASH`
-   - `JWT_SECRET`
-   - `AI_CONFIG_ENCRYPTION_KEY`
-3. Generate a password hash for the admin password. The current app expects a SHA-256 hex string:
+## 快速开始（本地开发）
 
 ```bash
-printf '%s' 'your-admin-password' | shasum -a 256
+# 1. 安装依赖
+pnpm install
+
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env 设置管理员密码等
+
+# 3. 初始化数据库（首次部署）
+pnpm db:setup
+
+# 4. 启动开发服务器
+pnpm dev
 ```
 
-4. Generate a JWT secret:
+## 生产部署
+
+### 环境变量检查清单
+
+| 变量 | 必填 | 说明 |
+|---|---|---|
+| `DATABASE_URL` | ✅ | SQLite 路径 |
+| `ADMIN_PASSWORD_HASH` | 生产必须 | bcrypt 哈希（生成见下方） |
+| `AI_CONFIG_ENCRYPTION_KEY` | 使用 AI 功能时 | `openssl rand -base64 32` |
+| `JWT_SECRET` | 可选 | 旧版 JWT 兼容 |
+
+生成 bcrypt 密码哈希：
+```bash
+node -e "const bcrypt=require('bcryptjs'); bcrypt.hash('YOUR_PASSWORD',12).then(h=>console.log(h))"
+```
+
+### Docker 部署
 
 ```bash
-openssl rand -base64 32
+# 构建并启动
+docker compose up -d
+
+# 查看健康状态
+docker compose ps
 ```
 
-## 2. Persistent data
-
-The app keeps local state in:
-
-- `prisma/dev.db`
-- `public/uploads`
-
-`docker-compose.yml` maps these to:
-
-- `./data/prisma`
-- `./data/uploads`
-
-Create them before first boot:
+### 迁移与回滚
 
 ```bash
-mkdir -p data/prisma data/uploads
+# 执行迁移（部署新版本时）
+pnpm db:migrate
+
+# 回滚：恢复备份文件
+cp prisma/dev.db.backup prisma/dev.db
 ```
 
-## 3. Build and run
+### 备份
 
 ```bash
-docker compose build app
-docker compose up -d app
+# 手动备份
+cp prisma/dev.db prisma/dev.db.backup.$(date +%Y%m%d)
+
+# 通过 API 备份（需要 admin 认证）
+curl -b "auth_token=YOUR_TOKEN" http://localhost:3000/api/admin/backup/export -o backup.json
 ```
 
-Open `http://<server-ip>:3000/admin/login` after startup.
+## WeWe RSS Sidecar
 
-## 4. Optional WeWe RSS sidecar
-
-If you need local WeWe RSS in the same host:
+WeWe RSS 是可选的本地 sidecar 服务，本项目**只读消费**其数据。
 
 ```bash
-docker compose --profile wewe-rss up -d wewe-rss
+# 启动 WeWe RSS（可选）
+docker compose --profile wewe-rss up -d
 ```
 
-Then set `WEWERSS_BASE_URL` in `.env`, for example:
-
-```env
-WEWERSS_BASE_URL="http://wewe-rss:4000"
-```
-
-This project must continue to treat WeWe RSS as a sidecar. Do not embed or write its database.
-
-## 5. Verification
-
-Run these checks before promotion:
+## 验证
 
 ```bash
+# 代码检查
 pnpm lint
+
+# 单元测试
 pnpm test
+
+# 构建
 pnpm build
+
+# E2E 测试
+pnpm exec playwright test
 ```
-
-After deployment:
-
-1. Visit `/admin/login` and verify login works with configured credentials.
-2. Visit `/admin` and confirm dashboard metrics load.
-3. Trigger one website collect, one WeWe RSS sync, one AI assess, and one card generation request.
-4. Confirm `AsyncTask` rows and `SystemLog` rows are written.
-
-## 6. Known limitations
-
-- Prisma migration history and the local `prisma/dev.db` currently have drift in this workspace. If you need to rebuild the local dev database from migrations, Prisma will require a reset.
-- Next.js still warns that `middleware.ts` should migrate to `proxy.ts`.
-- The WeWe RSS SQLite fallback still causes Turbopack NFT tracing warnings during build, even though the build completes successfully.

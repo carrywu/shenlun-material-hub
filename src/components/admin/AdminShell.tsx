@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BookText,
+  ChevronLeft,
+  ChevronRight,
   Database,
   ExternalLink,
   FolderTree,
@@ -13,11 +15,13 @@ import {
   ListTodo,
   LogOut,
   LucideIcon,
+  Menu,
   Rss,
   Settings,
   Terminal,
   User,
   Shield,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
@@ -46,6 +50,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [adminUser, setAdminUser] = useState("管理员");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { isAdmin } = useAuth();
 
   useEffect(() => {
@@ -94,16 +100,55 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background font-sans text-foreground">
-      <aside className="flex h-full w-64 flex-shrink-0 flex-col border-r border-border bg-card">
-        <div className="flex h-16 items-center gap-3 border-b border-border px-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 shadow-sm">
-            <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold tracking-tight text-foreground">申论素材后台</h2>
-            <span className="text-[10px] text-muted-foreground">管理控制台</span>
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile menu button */}
+      <button
+        className="fixed top-4 left-4 z-30 rounded-lg border border-border bg-card p-2 lg:hidden"
+        onClick={() => setMobileOpen(true)}
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      <aside className={`flex h-full flex-shrink-0 flex-col border-r border-border bg-card transition-all duration-200
+        ${collapsed ? "w-16" : "w-64"}
+        ${mobileOpen ? "fixed inset-y-0 left-0 z-50 w-64" : "hidden lg:flex"}
+      `}>
+        <div className="flex h-16 items-center gap-3 border-b border-border px-4">
+          {!collapsed && (
+            <>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 shadow-sm">
+                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold tracking-tight text-foreground">申论素材后台</h2>
+                <span className="text-[10px] text-muted-foreground">管理控制台</span>
+              </div>
+            </>
+          )}
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              className="hidden rounded p-1 text-muted-foreground hover:bg-muted lg:block"
+              onClick={() => setCollapsed(!collapsed)}
+              title={collapsed ? "展开侧边栏" : "收起侧边栏"}
+            >
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </button>
+            <button
+              className="rounded p-1 text-muted-foreground hover:bg-muted lg:hidden"
+              onClick={() => setMobileOpen(false)}
+              title="关闭菜单"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -116,14 +161,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setMobileOpen(false)}
                 className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? "bg-accent text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+                } ${collapsed ? "justify-center" : ""}`}
+                title={collapsed ? item.name : undefined}
               >
-                <Icon className={`h-4 w-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                <span>{item.name}</span>
+                <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                {!collapsed && <span>{item.name}</span>}
               </Link>
             );
           })}

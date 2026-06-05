@@ -31,6 +31,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "请上传备份文件" }, { status: 400 });
     }
 
+    // File size limit: 500MB max for backup imports
+    const MAX_BACKUP_SIZE = 500 * 1024 * 1024;
+    if (file.size > MAX_BACKUP_SIZE) {
+      return NextResponse.json(
+        { error: `备份文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），最大允许 500MB` },
+        { status: 413 }
+      );
+    }
+
     const manifest = await parseBackupArchive(Buffer.from(await file.arrayBuffer()));
     const summary = summarizeBackupArchive(manifest);
     const backupCounts = await inspectBackupDatabase(manifest);

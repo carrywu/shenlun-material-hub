@@ -91,16 +91,16 @@ export async function GET(request: NextRequest) {
       if (collectedEnd) where.createdAt.lte = new Date(collectedEnd + "T23:59:59");
     }
 
-    // 排序
-    let orderBy: Record<string, string>;
+    // 排序 — always include id as tiebreaker for stable pagination
+    let orderBy: Record<string, string>[];
     if (sortBy === "aiScore") {
-      orderBy = { aiScore: "desc" };
+      orderBy = [{ aiScore: "desc" }, { id: "desc" }];
     } else if (sortBy === "effectiveTextLength") {
-      orderBy = { effectiveTextLength: "desc" };
+      orderBy = [{ effectiveTextLength: "desc" }, { id: "desc" }];
     } else if (sortBy === "publishedAt") {
-      orderBy = { publishedAt: "desc" };
+      orderBy = [{ publishedAt: "desc" }, { id: "desc" }];
     } else {
-      orderBy = { createdAt: "desc" };
+      orderBy = [{ createdAt: "desc" }, { id: "desc" }];
     }
 
     // Visibility: authenticated users see public+own+legacy; anonymous see public only

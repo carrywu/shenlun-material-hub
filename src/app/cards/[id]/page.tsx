@@ -19,7 +19,9 @@ import {
   BarChart3,
   Lightbulb,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { CardType } from "@/types";
 import { CONTENT_TYPE_LABELS, PLATFORM_LABELS } from "@/lib/display-labels";
 import { useAuth } from "@/lib/auth-context";
@@ -207,6 +209,32 @@ export default function CardDetailPage() {
                 >
                   <Edit3 className="mr-1.5 h-4 w-4" />
                   编辑
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (!confirm("确认重新生成此素材卡？将使用 AI 重新生成内容。")) return;
+                    try {
+                      const res = await fetch(`/api/content-items/${card.contentItem.id}/generate-card`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ cardType: card.cardType }),
+                      });
+                      if (res.ok) {
+                        toast.success("已提交重新生成任务");
+                        setTimeout(() => fetchCard(), 2000);
+                      } else {
+                        const data = await res.json();
+                        toast.error(data.message || data.error || "重新生成失败");
+                      }
+                    } catch {
+                      toast.error("重新生成请求失败");
+                    }
+                  }}
+                >
+                  <RefreshCw className="mr-1.5 h-4 w-4" />
+                  重新生成
                 </Button>
                 <Button
                   variant={card.confirmed ? "outline" : "default"}
