@@ -1,10 +1,10 @@
-# Project Master TODO
+# 项目总 TODO
 
-Audit date: 2026-06-05
+审计日期：2026-06-05
 
-This is the global TODO source of truth. It includes both evidence-backed findings and planning-derived long-term work.
+本文件是全项目 TODO 总源，包含代码证据支持的问题，也包含从项目规划和长期维护目标推导出的任务。
 
-## Statistics
+## 统计
 
 - 总任务数：80
 - 已完成数量：8

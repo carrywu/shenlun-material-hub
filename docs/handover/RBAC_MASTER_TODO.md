@@ -1,8 +1,8 @@
-# RBAC Master TODO
+# RBAC 总 TODO
 
-Audit date: 2026-06-05
+审计日期：2026-06-05
 
-This file is the RBAC-only slice. The global source of truth is `PROJECT_MASTER_TODO.md`.
+本文件是 RBAC-only TODO 切片。全项目总源以 `PROJECT_MASTER_TODO.md` 为准。
 
 ## P0
 

@@ -1,6 +1,16 @@
 import { NextRequest } from "next/server";
 import type { AuthUser } from "@/lib/auth";
 
+type NextRequestOptions = ConstructorParameters<typeof NextRequest>[1];
+
+function normalizeRequestOptions(options?: RequestInit): NextRequestOptions {
+  const { signal, ...requestOptions } = options ?? {};
+  return {
+    ...requestOptions,
+    ...(signal ? { signal } : {}),
+  };
+}
+
 /**
  * Create a NextRequest with an auth cookie header.
  */
@@ -13,7 +23,10 @@ export function createAuthenticatedRequest(
   if (!headers.has("cookie")) {
     headers.set("cookie", "auth_token=mock-session-token");
   }
-  return new NextRequest(url, { ...options, headers });
+  return new NextRequest(url, {
+    ...normalizeRequestOptions(options),
+    headers,
+  });
 }
 
 /**
@@ -23,5 +36,5 @@ export function createAnonymousRequest(
   url: string,
   options?: RequestInit
 ): NextRequest {
-  return new NextRequest(url, options);
+  return new NextRequest(url, normalizeRequestOptions(options));
 }

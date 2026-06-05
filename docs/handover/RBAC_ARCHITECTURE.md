@@ -1,106 +1,110 @@
-# RBAC Architecture
+# RBAC 架构说明
 
-Audit date: 2026-06-05
+审计日期：2026-06-05
 
-## Data Model
+## 数据模型
 
-Current `prisma/schema.prisma` defines the RBAC and ownership model:
+当前 `prisma/schema.prisma` 定义了 RBAC 和 ownership 模型：
 
 - `User`
-  - `username` unique login identity.
-  - `passwordHash` stores bcrypt-compatible hashes.
-  - `role`: `ADMIN`, `VERIFIED_USER`, `USER`.
-  - `status`: `ACTIVE`, `DISABLED`.
-  - Relations to sessions, owned content, owned cards, async tasks, sync records, annotations.
+  - `username`：唯一登录身份。
+  - `passwordHash`：保存 bcrypt-compatible hash。
+  - `role`：`ADMIN`、`VERIFIED_USER`、`USER`。
+  - `status`：`ACTIVE`、`DISABLED`。
+  - 关联 sessions、owned content、owned cards、async tasks、sync records、annotations。
 - `Session`
-  - DB-backed `auth_token` session token.
-  - `expiresAt` controls session expiry.
-  - Cascade delete from user.
-- Ownership fields:
-  - `ContentItem.ownerUserId`, `ContentItem.visibility`.
-  - `MaterialCard.ownerUserId`.
-  - `ArticleAnnotation.userId`.
-  - `AsyncTask.userId`.
-  - `SyncRecord.userId`.
-- Global/admin-only configuration:
-  - `AiConfig` has no owner field and is treated as admin-controlled global state.
-  - `AiPromptTemplate` has no owner field and is treated as admin-controlled global state.
+  - 数据库支持的 `auth_token` session token。
+  - `expiresAt` 控制 session 过期。
+  - 用户删除时 cascade delete。
+- ownership 字段：
+  - `ContentItem.ownerUserId`、`ContentItem.visibility`。
+  - `MaterialCard.ownerUserId`。
+  - `ArticleAnnotation.userId`。
+  - `AsyncTask.userId`。
+  - `SyncRecord.userId`。
+- 全局/admin-only 配置：
+  - `AiConfig` 没有 owner 字段，按 admin-controlled global state 处理。
+  - `AiPromptTemplate` 没有 owner 字段，按 admin-controlled global state 处理。
 
-## Server Auth Flow
+## 服务端认证流程
 
-Core file: `src/lib/auth.ts`.
+核心文件：`src/lib/auth.ts`。
 
-- Password verification supports bcrypt and a legacy SHA-256 fallback.
-- `createSession(userId)` creates a DB session with a high-entropy token.
-- `validateSession(token)` resolves an active session and rejects expired or disabled users.
-- `getUserFromRequest(request)` reads `auth_token` and supports legacy JWT compatibility.
-- `requireAuth(request)` returns any active authenticated user.
-- `requireAdmin(request)` returns only `ADMIN`.
-- `requireVerifiedUser(request)` returns `ADMIN` or `VERIFIED_USER`.
-- `unauthorizedResponse()` returns 401.
-- `forbiddenResponse()` returns 403.
+- 密码校验支持 bcrypt 和 legacy SHA-256 fallback。
+- `createSession(userId)` 创建数据库 session，并生成高熵 token。
+- `validateSession(token)` 解析有效 session，拒绝过期或 disabled 用户。
+- `getUserFromRequest(request)` 读取 `auth_token`，并支持 legacy JWT 兼容。
+- `requireAuth(request)` 返回任意已认证活跃用户。
+- `requireAdmin(request)` 仅返回 `ADMIN`。
+- `requireVerifiedUser(request)` 返回 `ADMIN` 或 `VERIFIED_USER`。
+- `unauthorizedResponse()` 返回 401。
+- `forbiddenResponse()` 返回 403。
 
-## Client Auth Flow
+## 客户端认证流程
 
-Core files:
+核心文件：
 
 - `src/app/layout.tsx`
 - `src/lib/auth-context.tsx`
 - `src/components/admin/AdminShell.tsx`
 
-`RootLayout` reads the `auth_token` cookie server-side and provides `AuthProvider` to client components. `useAuth()` exposes:
+`RootLayout` 在服务端读取 `auth_token` cookie，并把用户状态提供给客户端 `AuthProvider`。`useAuth()` 暴露：
 
 - `user`
 - `isAdmin`
 - `isVerifiedUser`
 - `isAuthenticated`
 
-`AdminShell` checks `/api/auth/check` client-side and redirects to `/admin/login` when the session check fails. Server-side route guards remain the security boundary.
+`AdminShell` 在客户端检查 `/api/auth/check`，session 检查失败时跳转 `/admin/login`。服务端 route guard 仍然是安全边界。
 
-## Proxy / Middleware Policy
+## Proxy / Middleware 策略
 
-Core file: `src/proxy.ts`.
+核心文件：`src/proxy.ts`。
 
-- Public paths:
-  - `/admin/login`
-  - `/api/auth/login`
-  - `/api/auth/check`
-  - `/api/auth/logout`
-- Protected API prefixes in proxy:
-  - `/api/admin`
-  - `/api/collectors`
-  - `/api/ai-config`
-  - `/api/integrations`
-  - selected AI task APIs under `/api/content-items`
-  - non-GET `/api/sources`
-- All page routes redirect to `/admin/login` when unauthenticated.
+公开路径：
 
-Important: proxy protection is incomplete as an authorization model. Each API route still needs explicit route-level auth and owner checks.
+- `/admin/login`
+- `/api/auth/login`
+- `/api/auth/check`
+- `/api/auth/logout`
 
-## Data Isolation Helpers
+proxy 保护的 API 前缀：
 
-Core file: `src/lib/data-isolation.ts`.
+- `/api/admin`
+- `/api/collectors`
+- `/api/ai-config`
+- `/api/integrations`
+- `/api/content-items` 下选定 AI task API
+- 非 GET 的 `/api/sources`
+
+所有页面 route 在未认证时跳转 `/admin/login`。
+
+重要结论：proxy 保护不能替代完整授权模型。每个 API route 仍需要明确 route-level auth 和 owner check。
+
+## 数据隔离 Helper
+
+核心文件：`src/lib/data-isolation.ts`。
 
 - `contentVisibilityWhere(user)`
-  - Admin sees all.
-  - Non-admin sees public content, own content, and `ownerUserId=null` legacy content.
+  - Admin 可见全部。
+  - 非 admin 可见 public 内容、自己的内容、`ownerUserId=null` legacy 内容。
 - `ownerScopeWhere(user, fieldName = "ownerUserId")`
-  - Admin sees all.
-  - Non-admin sees own rows and null-owner legacy rows.
+  - Admin 可见全部。
+  - 非 admin 可见自己的行和 null-owner legacy 行。
 - `canAccessResource(user, ownerId, visibility?)`
-  - Admin sees all.
-  - Owner sees own.
-  - Null-owner rows are accessible.
-  - `visibility="public"` is accessible.
+  - Admin 可见全部。
+  - owner 可见自己的。
+  - null-owner 行可访问。
+  - `visibility="public"` 可访问。
 - `canModifyResource(user, ownerId)`
-  - Admin can modify all.
-  - Only owner can modify own rows.
-  - Null-owner rows are not modifiable by non-admin.
+  - Admin 可修改全部。
+  - owner 只能修改自己的。
+  - 非 admin 不能修改 null-owner 行。
 
-## Architecture Gaps
+## 架构缺口
 
-- Migration drift: schema contains RBAC tables and owner columns, but migration SQL does not contain `User`, `Session`, or ownership field DDL.
-- Legacy null-owner access is not settled for multi-user production. It may be compatibility behavior, but it is a data exposure risk if private historical data exists.
-- Some routes merge Prisma `OR` filters by object spread, which can overwrite either search filters or isolation filters.
-- Annotation routes do not consistently bind operations to `ArticleAnnotation.userId` or `ContentItem.ownerUserId`.
-- Route-local tests mock guards but do not provide enough real A/B user isolation coverage.
+- 仍需要空库迁移验收脚本证明 migration chain 与 schema 一致。
+- legacy null-owner 数据在多用户生产中的访问策略未最终确定。
+- 部分 route 虽已修复 where 组合，但仍需要回归测试固定。
+- 批注 route 需要更多真实 A/B 用户隔离测试。
+- route-local tests 中仍有 mock guard 场景，不能完全证明真实 auth extraction 和 owner isolation。

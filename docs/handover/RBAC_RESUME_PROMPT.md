@@ -1,45 +1,52 @@
-# RBAC Resume Prompt
+# RBAC 接管提示词
 
-Use this prompt for the next Codex / Claude Code / Gemini takeover:
+给下一位 Codex / Claude Code / Gemini 接管时使用：
 
 ```text
-You are taking over shenlun-material-hub on branch feat/production-hardening.
+你正在接管 shenlun-material-hub，当前分支为 feat/production-hardening。
 
-Start by reading:
+先读取根目录：
+- AGENT_HANDOFF.md
+
+需要 RBAC 细节时再读取：
 - docs/handover/README.md
 - docs/handover/PROJECT_MASTER_TODO.md
 - docs/handover/RBAC_HANDOVER.md
 - docs/handover/RBAC_API_AUDIT.md
 - docs/handover/RBAC_RISK_REGISTER.md
+- docs/testing.md
+- docs/mcp.md
 
-Do not trust prior chat history. Reconfirm the current code state with:
+不要相信历史聊天记录。先用真实代码状态重新确认：
 - git status --short --branch
 - git branch --show-current
 - git log --oneline -20
 - git diff --stat
 
-Primary mission:
-Fix P0 RBAC blockers before adding new features.
+首要任务：
+在新增功能前，修复并验证 P0 RBAC / 部署 / 安全阻断项。
 
-P0 order:
-1. ✅ Resolve Prisma migration drift for User, Session, owner fields, and RBAC relations.
-2. ✅ Add failing A/B user isolation tests.
-3. ✅ Fix annotation PATCH/DELETE ownership checks.
-4. ✅ Fix content item annotation GET auth and isolation.
-5. ✅ Decide and enforce /api/articles public/private policy.
-6. ✅ Fix unsafe Prisma where OR merges in /api/content-items and /api/search.
-7. ✅ Run pnpm lint, pnpm test, pnpm build, and Playwright where UI/auth behavior changed.
+已完成的 P0 RBAC 项：
+1. ✅ 补齐 User、Session、owner 字段和 RBAC 关系的 Prisma migration chain。
+2. ✅ 添加 A/B 用户隔离测试。
+3. ✅ 修复 annotation PATCH/DELETE ownership checks。
+4. ✅ 修复 content item annotation GET auth 和 isolation。
+5. ✅ 决策并执行 /api/articles public/private policy。
+6. ✅ 修复 /api/content-items 和 /api/search 中 unsafe Prisma where OR merges。
+7. ✅ 运行 pnpm lint、pnpm test、pnpm build；UI/auth 行为变化时运行 Playwright。
 
-Remaining P0 items:
+剩余 P0：
 - P0｜部署｜建立空库迁移与首启验收脚本
 - P0｜安全｜生产禁用默认管理员密码路径
 
-Project constraints:
-- WeWe RSS is a sidecar. Do not embed it.
-- Do not write the WeWe RSS database.
-- Do not implement WeChat reverse engineering or bypass login/captcha/risk controls.
-- Destructive database operations require dry-run.
-- Preserve manual source and external WeRSS fallback support.
+项目约束：
+- WeWe RSS 是 sidecar，不嵌入本项目。
+- 不写 WeWe RSS 数据库。
+- 不做微信逆向，不绕登录/验证码/风控。
+- 破坏性数据库操作必须 dry-run。
+- 保留手动来源和外部 WeRSS fallback。
+- MCP 数据库工具默认只读；写入必须由任务文档临时授权。
+- 暂不做 SQLite 到 PostgreSQL 迁移；仅作为 P3 长期规划。
 
-Final report must include changed files, test commands/results, remaining risks, and manual verification checklist.
+最终报告必须包含：修改文件、测试命令和结果、剩余风险、人工验收清单。
 ```

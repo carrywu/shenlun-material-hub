@@ -1,103 +1,97 @@
-# RBAC Handover
+# RBAC 交接报告
 
-Audit date: 2026-06-05
+审计日期：2026-06-05
 
-## Current Assessment
+## 当前评估
 
-RBAC is partially implemented and not ready for open multi-user use.
+RBAC 已部分实现，但仍不应直接开放多用户使用。
 
-Evidence-backed completed pieces:
+已有代码证据支持的完成项：
 
-- `User` and `Session` models exist in `prisma/schema.prisma`.
-- DB session auth exists in `src/lib/auth.ts`.
-- Client auth context exists in `src/lib/auth-context.tsx`.
-- Global page redirect and partial API protection exist in `src/proxy.ts`.
-- Admin-only route guards are present on most admin, collector, AI config, source mutation, and integration routes.
-- Ownership fields exist in schema for `ContentItem`, `MaterialCard`, `ArticleAnnotation`, `AsyncTask`, and `SyncRecord`.
-- Isolation helpers exist in `src/lib/data-isolation.ts`.
+- `prisma/schema.prisma` 中存在 `User` 和 `Session` 模型。
+- `src/lib/auth.ts` 中存在数据库 session auth。
+- `src/lib/auth-context.tsx` 中存在客户端 auth context。
+- `src/proxy.ts` 中存在全局页面跳转和部分 API 保护。
+- 大部分 admin、collector、AI config、source mutation 和 integration routes 已有 admin-only route guard。
+- `ContentItem`、`MaterialCard`、`ArticleAnnotation`、`AsyncTask`、`SyncRecord` 已有 owner 字段。
+- `src/lib/data-isolation.ts` 中存在隔离 helper。
 
-Evidence-backed blockers:
+仍需关注的证据项：
 
-- Migration history does not include RBAC DDL for `User`, `Session`, owner fields, or annotation tables.
-- Several API routes are unguarded or under-scoped for multi-user data.
-- The current test suite does not prove user A/B isolation.
+- 需要用空库迁移验收脚本证明 RBAC DDL 与当前 schema 一致。
+- 部分 API route 的多用户数据策略仍需 route tests 固定。
+- 当前测试套件还没有覆盖所有真实用户 A/B 隔离场景。
 
-## Completion Estimate
+## 完成度估算
 
-- Authentication foundation: 90%
-- Admin route guard coverage: 85%
-- Owner-based data isolation: 80%
-- Migration readiness: 95%
-- RBAC regression test coverage: 60%
-- Multi-user production readiness: 65%
+- 认证基础：90%
+- admin route guard 覆盖：85%
+- owner-based 数据隔离：80%
+- migration readiness：95%
+- RBAC 回归测试覆盖：60%
+- 多用户生产就绪度：65%
 
-Overall RBAC readiness: about 75%.
+总体 RBAC 就绪度：约 75%。
 
-## Multi-User Release Blockers
+## 多用户开放阻断项
 
-1. ~~Missing RBAC migration SQL for fresh environments.~~ ✅ DONE
-2. ~~Annotation update/delete lacks owner checks.~~ ✅ DONE
-3. ~~Annotation listing is unauthenticated.~~ ✅ DONE
-4. ~~`/api/articles` has no auth or owner filtering.~~ ✅ DONE
-5. ~~Search/content list `OR` composition must be fixed and tested.~~ ✅ DONE
-6. Null-owner legacy data policy is undecided.
-7. ~~No A/B user isolation test suite.~~ ✅ DONE
+1. ~~新环境缺少 RBAC migration SQL。~~ ✅ DONE
+2. ~~批注 update/delete 缺少 owner 检查。~~ ✅ DONE
+3. ~~批注列表未认证。~~ ✅ DONE
+4. ~~`/api/articles` 无 auth 或 owner filtering。~~ ✅ DONE
+5. ~~search/content list 的 `OR` 组合需要修复和测试。~~ ✅ DONE
+6. `ownerUserId=null` legacy 数据策略未最终确定。
+7. ~~缺少 A/B 用户隔离测试套件。~~ ✅ DONE
 
-## Production Deployment Blockers
+## 生产部署阻断项
 
-1. ~~Prisma migration drift between schema, generated client, and migrations.~~ ✅ DONE
-2. Default admin password paths still exist and must be operationally controlled.
-3. Destructive admin APIs need route tests and runbook clarity.
-4. Public API surface needs explicit security policy.
-5. Monitoring/backup/restore procedures are incomplete for production operations.
+1. ~~schema、generated client、migrations 之间存在 Prisma migration drift。~~ ✅ DONE
+2. 默认管理员密码路径仍存在，需要生产运行约束。
+3. 破坏性 admin API 需要 route tests 和 runbook。
+4. public API surface 需要明确安全策略。
+5. 生产监控、备份、恢复流程仍不完整。
 
-## Role Semantics
+## 角色语义
 
-Current roles:
+当前角色：
 
-- `ADMIN`: operational owner, all admin APIs, all data.
-- `VERIFIED_USER`: recognized by `useAuth` and `requireVerifiedUser`, but no clear route capability matrix was found.
-- `USER`: authenticated user, can use user-facing APIs where `requireAuth` is used.
+- `ADMIN`：运营所有者，可访问全部 admin API 和全部数据。
+- `VERIFIED_USER`：已被 `useAuth` 和 `requireVerifiedUser` 识别，但尚未看到清晰 route capability matrix。
+- `USER`：普通已认证用户，可访问使用 `requireAuth` 的用户侧 API。
 
-Required next step: define a capability matrix for route groups before adding non-admin collaboration features.
+下一步要求：在增加非 admin 协作功能前，为 route group 定义能力矩阵。
 
-## Data Isolation Semantics
+## 数据隔离语义
 
-Current helper behavior:
+当前 helper 行为：
 
-- Admin sees all rows.
-- Non-admin can see own rows.
-- Non-admin can also see null-owner legacy rows.
-- Public `ContentItem.visibility` can override strict owner isolation for reads.
+- Admin 可见全部数据。
+- 非 admin 可见自己的数据。
+- 非 admin 也可见 `ownerUserId=null` 的 legacy 数据。
+- 公开 `ContentItem.visibility` 可覆盖严格 owner 隔离，用于读路径。
 
-Risk: null-owner behavior may be correct for imported public corpus data, but unsafe if historical user-created data exists.
+风险：null-owner 行为可能适合导入的公开语料，但如果历史用户创建数据中存在私有内容，就会带来数据暴露风险。
 
-## Test Audit Summary
+## 测试审计摘要
 
-Current tests:
+当前测试：
 
-- 27 Vitest files.
-- 177 tests.
-- 6 Playwright specs.
-- 15 route-local API test files.
+- 27 个 Vitest 文件。
+- 177 个测试。
+- 6 个 Playwright specs。
+- 15 个 route-local API test 文件。
 
-Missing high-value tests:
+仍缺少的高价值测试：
 
-- Unauthenticated access to every protected API group.
-- Authenticated non-admin access to admin APIs.
-- User A reading User B content/card/annotation/sync/task.
-- User A modifying/deleting User B content/card/annotation.
-- Search isolation.
-- Review isolation.
-- AsyncTask isolation.
-- SyncRecord isolation.
+- 未登录访问每组受保护 API。
+- 已登录普通用户访问 admin API。
+- 用户 A 读取用户 B 的 content/card/annotation/sync/task。
+- 用户 A 修改或删除用户 B 的 content/card/annotation。
+- Search 隔离。
+- Review 隔离。
+- AsyncTask 隔离。
+- SyncRecord 隔离。
 
-## Recommended Next Agent Start
+## 下一位 Agent 建议入口
 
-Start with `RBAC_RESUME_PROMPT.md`, then implement P0 items from `PROJECT_MASTER_TODO.md` in this order:
-
-1. Fix Prisma migration drift.
-2. Add A/B isolation tests that currently fail.
-3. Fix annotation routes.
-4. Fix articles/search/content list isolation.
-5. Re-run lint, tests, build, and Playwright.
+从根目录 `AGENT_HANDOFF.md` 开始；需要 RBAC 细节时再读 `RBAC_RESUME_PROMPT.md`，然后按 `PROJECT_MASTER_TODO.md` 的 P0/P1 顺序继续。
