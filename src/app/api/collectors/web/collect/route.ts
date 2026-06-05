@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 import { listCollectors, getCollector } from "@/services/collectors/registry";
-import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireAdmin, requireAuth, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 interface WebCollectTaskParams {
   scope: "all-enabled-website-sources" | "single-source";
@@ -251,7 +251,10 @@ export async function POST(request: NextRequest) {
 }
 
 // GET /api/collectors/web/collect — 列出可用采集器
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
+
   return NextResponse.json({
     collectors: listCollectors(),
   });

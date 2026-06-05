@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
         contentItemId,
         cardType,
         title,
+        ownerUserId: user.id,
         sourceSnapshot: sourceSnapshot ?? null,
         originalFacts: originalFacts ?? null,
         aiSummary: aiSummary ?? null,

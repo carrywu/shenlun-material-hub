@@ -17,7 +17,9 @@ import {
   Settings,
   Terminal,
   User,
+  Shield,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 interface SidebarItem {
   name: string;
@@ -44,6 +46,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [adminUser, setAdminUser] = useState("管理员");
   const [loggingOut, setLoggingOut] = useState(false);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -145,6 +148,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <div className="flex flex-col">
                 <span className="max-w-[100px] truncate text-xs font-medium text-foreground">{adminUser}</span>
                 <span className="flex items-center gap-1 text-[10px] text-emerald-600">
+                  {isAdmin && <Shield className="h-2.5 w-2.5" />}
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></span>
                   在线
                 </span>

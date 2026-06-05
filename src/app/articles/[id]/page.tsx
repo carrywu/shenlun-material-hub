@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
+import { useAuth } from "@/lib/auth-context";
 
 interface Annotation {
   id: string;
@@ -301,6 +302,7 @@ export default function ArticleDetailPage() {
   const params = useParams();
   const router = useRouter();
   const articleId = params.id as string;
+  const { isAdmin } = useAuth();
 
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -777,8 +779,8 @@ export default function ArticleDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Annotation form */}
-            {showAnnotationForm && selectedText && (
+            {/* Annotation form — admin only */}
+            {isAdmin && showAnnotationForm && selectedText && (
               <Card className="border-yellow-200 bg-yellow-50/50">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2">
@@ -859,7 +861,8 @@ export default function ArticleDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Annotations list */}
+            {/* Annotations list — admin only */}
+            {isAdmin && (
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -975,6 +978,7 @@ export default function ArticleDetailPage() {
                 )}
               </CardContent>
             </Card>
+            )}
 
             {/* Material cards list */}
             <Card>

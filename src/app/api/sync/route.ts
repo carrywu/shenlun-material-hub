@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "素材卡尚未确认，请先确认后再同步" }, { status: 400 });
       }
 
-      const result = await syncToIma(cardId);
+      const result = await syncToIma(cardId, user.id);
       return NextResponse.json(result);
     }
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await syncBatchToIma(cardIds);
+      const result = await syncBatchToIma(cardIds, undefined, user.id);
       return NextResponse.json(result);
     }
 

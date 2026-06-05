@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
         sourceId: sourceId ?? "",
         title,
         originalUrl,
+        ownerUserId: user.id,
         platform: resolvedPlatform,
         contentType: resolvedContentType,
         trustLevel: resolvedTrustLevel,

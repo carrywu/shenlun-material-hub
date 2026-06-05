@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import { CollectDialog } from "@/components/CollectDialog";
+import { useAuth } from "@/lib/auth-context";
 
 interface CollectButtonProps {
   onComplete?: () => void;
@@ -11,6 +12,9 @@ interface CollectButtonProps {
 
 export function CollectButton({ onComplete }: CollectButtonProps) {
   const [open, setOpen] = useState(false);
+  const { isAdmin } = useAuth();
+
+  if (!isAdmin) return null;
 
   return (
     <>

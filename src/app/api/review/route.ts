@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth, unauthorizedResponse } from "@/lib/auth";
+import { ownerScopeWhere } from "@/lib/data-isolation";
 
 // GET /api/review - 获取复习用的素材卡
 export async function GET(request: NextRequest) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get("mode") ?? "random";
@@ -12,9 +16,12 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {};
     if (cardType) where.cardType = cardType;
 
+    // Multi-user data isolation: restrict to owned cards
+    const ownerFilter = ownerScopeWhere(user);
+
     if (mode === "random") {
       const cards = await db.materialCard.findMany({
-        where,
+        where: { ...where, ...ownerFilter },
         include: {
           contentItem: {
             select: {
@@ -36,6 +43,7 @@ export async function GET(request: NextRequest) {
       const cards = await db.materialCard.findMany({
         where: {
           ...where,
+          ...ownerFilter,
           confirmed: false,
         },
         include: {
@@ -59,6 +67,7 @@ export async function GET(request: NextRequest) {
       const cards = await db.materialCard.findMany({
         where: {
           ...where,
+          ...ownerFilter,
           confirmed: false,
         },
         include: {
@@ -89,6 +98,8 @@ export async function GET(request: NextRequest) {
 
 // POST /api/review - 记录复习（将素材卡标记为已确认）
 export async function POST(request: NextRequest) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const body = await request.json();
     const { cardId } = body as { cardId: string; quality?: number };
@@ -100,6 +111,11 @@ export async function POST(request: NextRequest) {
     const card = await db.materialCard.findUnique({ where: { id: cardId } });
     if (!card) {
       return NextResponse.json({ error: "素材卡不存在" }, { status: 404 });
+    }
+
+    // Verify ownership (ADMIN can confirm any, others only their own)
+    if (user.role !== "ADMIN" && card.ownerUserId !== user.id) {
+      return NextResponse.json({ error: "无权操作此素材卡" }, { status: 403 });
     }
 
     const updated = await db.materialCard.update({

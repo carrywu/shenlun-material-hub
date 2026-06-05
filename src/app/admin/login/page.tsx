@@ -57,12 +57,12 @@ function LoginForm() {
 
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="username">
-          管理账号
+          账号
         </label>
         <input
           id="username"
           type="text"
-          placeholder="请输入管理员账号"
+          placeholder="请输入账号"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           className="w-full px-4 py-3 bg-background border border-input rounded-xl text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200"
@@ -72,7 +72,7 @@ function LoginForm() {
 
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="password">
-          管理密码
+          密码
         </label>
         <input
           id="password"
@@ -127,7 +127,7 @@ export default function AdminLoginPage() {
             申论素材采集台
           </h1>
           <p className="text-xs text-muted-foreground mt-2">
-            系统管理后台，请输入凭证登入
+            请输入账号和密码
           </p>
         </div>
 

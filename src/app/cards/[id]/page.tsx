@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { CardType } from "@/types";
 import { CONTENT_TYPE_LABELS, PLATFORM_LABELS } from "@/lib/display-labels";
+import { useAuth } from "@/lib/auth-context";
 
 interface CardDetail {
   id: string;
@@ -81,6 +82,7 @@ export default function CardDetailPage() {
   const params = useParams();
   const router = useRouter();
   const cardId = params.id as string;
+  const { isAdmin } = useAuth();
 
   const [card, setCard] = useState<CardDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -196,7 +198,7 @@ export default function CardDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {!editing && (
+            {!editing && isAdmin && (
               <>
                 <Button
                   variant="outline"

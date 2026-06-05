@@ -171,7 +171,8 @@ function deriveFolders(contentItem: { regionScopes: string | null }, cardType: s
 }
 
 export async function syncToIma(
-  cardId: string
+  cardId: string,
+  userId?: string
 ): Promise<{ success: boolean; syncRecordId: string; error?: string }> {
   const card = await db.materialCard.findUnique({
     where: { id: cardId },
@@ -198,6 +199,7 @@ export async function syncToIma(
       regionFolder,
       typeFolder,
       status: "pending",
+      userId: userId ?? null,
     },
   });
 
@@ -252,7 +254,8 @@ export async function syncToIma(
 
 export async function syncBatchToIma(
   cardIds: string[],
-  concurrency: number = 3
+  concurrency: number = 3,
+  userId?: string
 ): Promise<{
   total: number;
   success: number;
@@ -276,7 +279,7 @@ export async function syncBatchToIma(
     const batchResults = await Promise.all(
       batch.map(async (cardId) => {
         try {
-          const result = await syncToIma(cardId);
+          const result = await syncToIma(cardId, userId);
           return {
             cardId,
             success: result.success,
