@@ -169,7 +169,7 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜前端页面｜文章列表增加 owner/visibility 调试列的开发态开关
+- [x] P2｜前端页面｜文章列表增加 owner/visibility 调试列的开发态开关
   - 涉及文件：`src/components/articles/ArticlesPage.tsx`
   - 当前问题：多用户调试时难以看出数据归属。
   - 验收标准：开发态可显示 owner/visibility，生产默认隐藏。
@@ -177,7 +177,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜前端页面｜素材卡详情增加重新生成入口
+- [x] P2｜前端页面｜素材卡详情增加重新生成入口
   - 涉及文件：`src/app/cards/[id]/page.tsx`，`src/components/MaterialCardEditor.tsx`
   - 当前问题：生成失败或内容过期时缺少明确重生成流程。
   - 验收标准：有权限用户可触发重新生成并看到结果或错误。
@@ -185,7 +185,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜前端页面｜搜索页增加无结果状态
+- [x] P2｜前端页面｜搜索页增加无结果状态
   - 涉及文件：`src/app/search/page.tsx`
   - 当前问题：搜索隔离后更容易出现无结果，需要清晰反馈。
   - 验收标准：无结果时显示中文空状态和清空筛选入口。
@@ -203,7 +203,7 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜管理后台｜侧边栏支持折叠
+- [x] P2｜管理后台｜侧边栏支持折叠
   - 涉及文件：`src/components/admin/AdminShell.tsx`
   - 当前问题：后台侧边栏固定 64 宽，窄屏效率低。
   - 验收标准：桌面可折叠，状态不遮挡内容。
@@ -211,7 +211,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜管理后台｜移动端菜单适配
+- [x] P2｜管理后台｜移动端菜单适配
   - 涉及文件：`src/components/admin/AdminShell.tsx`
   - 当前问题：后台 shell 使用固定侧栏，移动端不友好。
   - 验收标准：小屏使用抽屉或顶部菜单，内容无重叠。
@@ -219,7 +219,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜管理后台｜系统日志页增加按时间范围筛选
+- [x] P2｜管理后台｜系统日志页增加按时间范围筛选
   - 涉及文件：`src/app/admin/logs/page.tsx`，`src/app/api/admin/logs/route.ts`
   - 当前问题：API 支持 level/category，缺少时间范围操作。
   - 验收标准：可按起止时间过滤日志。
@@ -237,7 +237,7 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜网站采集｜广东省政府采集增加异常日志
+- [x] P2｜网站采集｜广东省政府采集增加异常日志
   - 涉及文件：`src/services/collectors/web/guangdongOfficial.ts`
   - 当前问题：采集异常需要进入统一日志和任务结果。
   - 验收标准：解析失败时记录 source、URL、错误摘要。
@@ -245,7 +245,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜网站采集｜湖南省政府栏目解析适配补充 fixture
+- [x] P2｜网站采集｜湖南省政府栏目解析适配补充 fixture
   - 涉及文件：`src/services/collectors/web/hunanOfficial.ts`，`src/services/collectors/__tests__/hunan-collector.test.ts`
   - 当前问题：已有湖南测试，但需要覆盖更多栏目结构。
   - 验收标准：至少两个栏目 HTML fixture 通过解析。
@@ -263,7 +263,7 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜微信公众号｜修复脏 HTML 脚本加入验收记录
+- [x] P2｜微信公众号｜修复脏 HTML 脚本加入验收记录
   - 涉及文件：`scripts/repair-wechat-content.ts`，`docs/acceptance/local-wechat-rss-acceptance.md`
   - 当前问题：清洗脚本存在，需记录 dry-run/apply 验收。
   - 验收标准：文档列出 dry-run 输出示例和回滚方式。
@@ -271,7 +271,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜微信公众号｜图片代理增加微信 CDN 回归测试
+- [x] P2｜微信公众号｜图片代理增加微信 CDN 回归测试
   - 涉及文件：`src/app/api/proxy/image/route.ts`
   - 当前问题：代理有白名单和私网拦截但无测试。
   - 验收标准：允许微信 CDN，拒绝非白名单和私网地址。
@@ -289,7 +289,7 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜WeWe RSS｜删除缺失来源流程增加二次确认 E2E
+- [x] P2｜WeWe RSS｜删除缺失来源流程增加二次确认 E2E
   - 涉及文件：`src/components/integrations/WeweRssIntegrationPage.tsx`
   - 当前问题：规则要求二次确认，需要浏览器测试固定。
   - 验收标准：未确认不能删除，确认后只删除 provider=wewe-rss 来源。
@@ -297,7 +297,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜WeWe RSS｜外部 WeRSS fallback 增加配置诊断
+- [x] P2｜WeWe RSS｜外部 WeRSS fallback 增加配置诊断
   - 涉及文件：`src/services/integrations/wewe-rss.ts`，`src/app/api/integrations/wewe-rss/status/route.ts`
   - 当前问题：外部 fallback 必须保留，需在状态页可诊断。
   - 验收标准：状态 API 返回 API/OPML/SQLite/fallback 可用性。
@@ -323,7 +323,7 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜AI评估｜AI 评分错误进入 SystemLog
+- [x] P2｜AI评估｜AI 评分错误进入 SystemLog
   - 涉及文件：`src/services/ai.ts`，`src/lib/logger.ts`
   - 当前问题：生产排障需要统一日志链路。
   - 验收标准：AI provider 错误记录 category=AI 且不泄露 key。
@@ -341,7 +341,7 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜素材卡生成｜素材卡支持重新生成按钮
+- [x] P2｜素材卡生成｜素材卡支持重新生成按钮
   - 涉及文件：`src/app/cards/[id]/page.tsx`
   - 当前问题：用户无法从卡片详情直接重新生成。
   - 验收标准：按钮触发重新生成并保留旧版本或提示覆盖。
@@ -349,7 +349,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜素材卡生成｜生成失败保留可重试错误状态
+- [x] P2｜素材卡生成｜生成失败保留可重试错误状态
   - 涉及文件：`src/app/api/content-items/[id]/generate-card/route.ts`，`src/components/articles/ArticlesPage.tsx`
   - 当前问题：AI 生成失败后的前端恢复路径需要更明确。
   - 验收标准：失败原因可见，用户可重试。
@@ -367,7 +367,7 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜IMA同步｜失败重试策略文档化
+- [x] P2｜IMA同步｜失败重试策略文档化
   - 涉及文件：`src/services/ima-sync.ts`，`docs/handover/PROJECT_MASTER_TODO.md`
   - 当前问题：远端上传失败后的重试/幂等策略需要明确。
   - 验收标准：记录 retry 次数、错误码、人工恢复步骤。
@@ -401,7 +401,7 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜数据库｜备份恢复流程加入 RBAC 表校验
+- [x] P2｜数据库｜备份恢复流程加入 RBAC 表校验
   - 涉及文件：`src/lib/backup.ts`，`src/app/api/admin/backup/**`
   - 当前问题：备份恢复需覆盖 User/Session/owner 字段一致性。
   - 验收标准：恢复后 auth 和 owner 数据完整。
@@ -419,7 +419,7 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜异步任务｜任务详情增加 result JSON 安全解析
+- [x] P2｜异步任务｜任务详情增加 result JSON 安全解析
   - 涉及文件：`src/app/admin/tasks/page.tsx`
   - 当前问题：任务 result 为 JSON 字符串，前端需要稳定展示异常格式。
   - 验收标准：非法 JSON 不导致页面崩溃。
@@ -427,7 +427,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜异步任务｜任务列表增加发起用户筛选
+- [x] P2｜异步任务｜任务列表增加发起用户筛选
   - 涉及文件：`src/app/admin/tasks/page.tsx`，`src/app/api/admin/tasks/route.ts`
   - 当前问题：多用户后 admin 需要按用户排查任务。
   - 验收标准：admin 可按 username/userId 筛选任务。
@@ -453,7 +453,7 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜API｜统一 401/403 判断逻辑
+- [x] P2｜API｜统一 401/403 判断逻辑
   - 涉及文件：`src/lib/auth.ts`，`src/app/api/**/route.ts`
   - 当前问题：多个 route 手写 cookie 判断 401/403。
   - 验收标准：使用统一 helper，行为一致。
@@ -479,7 +479,7 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜测试体系｜测试命令加入 CI 文档
+- [x] P2｜测试体系｜测试命令加入 CI 文档
   - 涉及文件：`README.md`，`DEPLOY.md`
   - 当前问题：项目有 lint/test/build/playwright 命令，但 CI 契约不完整。
   - 验收标准：文档列出本地和 CI 验证顺序。
@@ -505,7 +505,7 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜Playwright｜覆盖 WeWe RSS 删除缺失来源确认
+- [x] P2｜Playwright｜覆盖 WeWe RSS 删除缺失来源确认
   - 涉及文件：`e2e/subscriptions-wewe-rss.spec.ts`
   - 当前问题：已有页面加载测试，缺少删除确认流程。
   - 验收标准：取消不删除，确认后执行。
@@ -523,7 +523,7 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜部署｜部署文档增加迁移回滚步骤
+- [x] P2｜部署｜部署文档增加迁移回滚步骤
   - 涉及文件：`DEPLOY.md`
   - 当前问题：数据库迁移失败时的回滚流程不明确。
   - 验收标准：文档包含备份、迁移、验证、回滚步骤。
@@ -533,7 +533,7 @@
 
 ## Docker
 
-- [ ] P2｜Docker｜docker-compose 增加健康检查
+- [x] P2｜Docker｜docker-compose 增加健康检查
   - 涉及文件：`docker-compose.yml`
   - 当前问题：服务健康状态未被容器编排显式检查。
   - 验收标准：healthcheck 调用 `/api/health` 或等价命令。
@@ -541,7 +541,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜Docker｜WeWe RSS sidecar 文档标明只读挂载策略
+- [x] P2｜Docker｜WeWe RSS sidecar 文档标明只读挂载策略
   - 涉及文件：`infra/wechat-rss/wewe-rss/docker-compose.yml`，`infra/wechat-rss/wewe-rss/README.md`
   - 当前问题：规则要求不写 sidecar DB，需要部署层说明。
   - 验收标准：文档说明本项目只读消费 sidecar 数据。
@@ -551,7 +551,7 @@
 
 ## 监控告警
 
-- [ ] P2｜监控告警｜SystemLog 增加错误等级仪表盘
+- [x] P2｜监控告警｜SystemLog 增加错误等级仪表盘
   - 涉及文件：`src/app/admin/logs/page.tsx`
   - 当前问题：日志可查询，但缺少错误趋势和告警视图。
   - 验收标准：admin 可看到最近 24h ERROR/WARN 数量。
@@ -559,7 +559,7 @@
   - 状态：TODO
   - 证据：规划推导
 
-- [ ] P2｜监控告警｜AsyncTask 失败率监控
+- [x] P2｜监控告警｜AsyncTask 失败率监控
   - 涉及文件：`src/app/admin/page.tsx`，`src/app/api/admin/metrics/route.ts`
   - 当前问题：任务失败需要进入运营视图。
   - 验收标准：后台首页展示失败任务计数和入口。
@@ -585,7 +585,7 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜安全｜备份导入增加文件大小限制
+- [x] P2｜安全｜备份导入增加文件大小限制
   - 涉及文件：`src/app/api/admin/backup/import/route.ts`
   - 当前问题：备份导入是高风险入口，需要大小和类型限制。
   - 验收标准：超限文件返回 413 或 400。
@@ -595,7 +595,7 @@
 
 ## 性能
 
-- [ ] P2｜性能｜ContentItem owner 查询增加索引验证
+- [x] P2｜性能｜ContentItem owner 查询增加索引验证
   - 涉及文件：`prisma/schema.prisma`
   - 当前问题：多用户列表查询会频繁使用 owner/visibility。
   - 验收标准：常用过滤字段有索引并通过 explain 或查询审查。
@@ -603,7 +603,7 @@
   - 状态：TODO
   - 证据：代码审计
 
-- [ ] P2｜性能｜文章列表分页增加稳定排序兜底
+- [x] P2｜性能｜文章列表分页增加稳定排序兜底
   - 涉及文件：`src/app/api/articles/route.ts`，`src/app/api/content-items/route.ts`
   - 当前问题：仅按时间排序时同时间记录分页可能不稳定。
   - 验收标准：排序包含 `id` 兜底或明确稳定排序策略。
@@ -629,7 +629,7 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜文档｜README 增加完整本地启动流程
+- [x] P2｜文档｜README 增加完整本地启动流程
   - 涉及文件：`README.md`
   - 当前问题：README 目前非常简短。
   - 验收标准：包含安装、env、迁移、seed、dev、test。
@@ -637,7 +637,7 @@
   - 状态：TODO
   - 证据：代码审计
 
-- [ ] P2｜文档｜CLAUDE.md 和 AGENTS.md 保持同步检查
+- [x] P2｜文档｜CLAUDE.md 和 AGENTS.md 保持同步检查
   - 涉及文件：`CLAUDE.md`，`AGENTS.md`
   - 当前问题：两份规则需长期同步。
   - 验收标准：关键约束一致，差异有说明。
@@ -647,7 +647,7 @@
 
 ## 技术债
 
-- [ ] P2｜技术债｜统一 API where 条件构造 helper
+- [x] P2｜技术债｜统一 API where 条件构造 helper
   - 涉及文件：`src/lib/data-isolation.ts`，`src/app/api/**/route.ts`
   - 当前问题：多个 route 手写 where merge，容易产生 OR 覆盖。
   - 验收标准：提供 `andWhere()` 或等价 helper 并迁移高风险 route。
@@ -655,7 +655,7 @@
   - 状态：TODO
   - 证据：代码审计
 
-- [ ] P2｜技术债｜统一 API 错误响应格式
+- [x] P2｜技术债｜统一 API 错误响应格式
   - 涉及文件：`src/lib/api-error.ts`，`src/app/api/**/route.ts`
   - 当前问题：部分 route 手写 `{ error }` 和状态码。
   - 验收标准：错误响应结构和中文提示一致。
