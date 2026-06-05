@@ -29,8 +29,16 @@
 
 - `RBAC_ARCHITECTURE.md` - auth/RBAC/data-isolation 架构。
 - `RBAC_CHANGELOG.md` - 基于 Git 和代码证据的 RBAC 变更历史。
-- `RBAC_MASTER_TODO.md` - RBAC-only TODO 切片。
 - `PROJECT_MASTER_TODO.md` - 全项目 TODO，包含代码证据项和规划推导项。
+
+## 归档文档
+
+已完成的历史评估、设计文档和检查点已移至 `docs/archive/`。包括：
+- 4 份 AUTH_RBAC_* 预实现评估报告
+- 生产加固设计方案（已实现）
+- 项目评估报告（2 份，预 RBAC）
+- Agent checkpoint 和 resume prompt（已过时）
+- RBAC_MASTER_TODO（已归档，唯一 TODO 源为 PROJECT_MASTER_TODO.md）
 
 ## 证据标签
 
