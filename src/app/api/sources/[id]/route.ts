@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // GET /api/sources/[id] - 获取单个来源
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAdmin(_request);
+  if (!user) {
+    const cookieHeader = _request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const { id } = await params;
     const source = await db.source.findUnique({
@@ -32,6 +41,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const { id } = await params;
     const body = await request.json();
@@ -96,6 +113,14 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAdmin(_request);
+  if (!user) {
+    const cookieHeader = _request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const { id } = await params;
 

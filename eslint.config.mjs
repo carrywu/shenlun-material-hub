@@ -11,6 +11,8 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "playwright-report/**",
+    "test-results/**",
     "next-env.d.ts",
     // Exclude .claude skills/config (CJS files, not project code)
     ".claude/**",

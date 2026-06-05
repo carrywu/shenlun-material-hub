@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import type { CardType } from "@/types";
 import { formatApiErrorMessage, type ApiErrorPayload } from "@/lib/api-error";
+import { waitForAdminTask } from "@/lib/client-admin-task";
 
 interface ContentItemDetailProps {
   article: {
@@ -47,6 +48,7 @@ interface ContentItemDetailProps {
     _count?: { materialCards: number };
   };
   onClose: () => void;
+  managementMode?: boolean;
 }
 
 const CARD_TYPE_OPTIONS: { value: CardType; label: string; icon: React.ElementType }[] = [
@@ -61,7 +63,7 @@ const CARD_TYPE_OPTIONS: { value: CardType; label: string; icon: React.ElementTy
   { value: "article_structure", label: "文章框架", icon: BookOpen },
 ];
 
-export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
+export function ArticleDetail({ article, onClose, managementMode = false }: ContentItemDetailProps) {
   const [cardType, setCardType] = useState<CardType>("golden_sentence");
   const [generating, setGenerating] = useState(false);
   const [errorInfo, setErrorInfo] = useState<{ message: string; code?: string } | null>(null);
@@ -100,11 +102,26 @@ export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
         return;
       }
 
-      setGeneratedCard(data as {
-        id: string;
-        cardType: string;
-        aiSummary: string | null;
-        originalFacts: string | null;
+      if (!managementMode || !data.taskId) {
+        return;
+      }
+
+      const task = await waitForAdminTask(data.taskId);
+      if (task.status === "FAILED") {
+        throw new Error("后台素材卡生成失败");
+      }
+
+      const parsedResult = task.result ? JSON.parse(task.result) : null;
+      if (parsedResult?.duplicated) {
+        setErrorInfo({ message: "该内容已存在同类型素材卡", code: "MATERIAL_CARD_ALREADY_EXISTS" });
+        return;
+      }
+
+      setGeneratedCard({
+        id: parsedResult?.cardId ?? data.taskId,
+        cardType,
+        aiSummary: null,
+        originalFacts: null,
       });
     } catch {
       setErrorInfo({ message: "网络错误，请检查连接后重试" });
@@ -211,96 +228,104 @@ export function ArticleDetail({ article, onClose }: ContentItemDetailProps) {
           {article.fullText ?? "暂无全文内容"}
         </div>
 
-        {/* Generate Card Section */}
         <Separator />
-        <div className="space-y-3">
-          <p className="text-sm font-medium">一键生成素材卡</p>
-          <div className="flex items-center gap-2">
-            <Select
-              value={cardType}
-              onValueChange={(v) => {
-                if (v) setCardType(v as CardType);
-              }}
-            >
-              <SelectTrigger className="flex-1 h-8">
-                <SelectValue>
-                  {CARD_TYPE_OPTIONS.find((o) => o.value === cardType)?.label ?? cardType}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {CARD_TYPE_OPTIONS.map((opt) => {
-                  const Icon = opt.icon;
-                  return (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      <div className="flex items-center gap-1.5">
-                        <Icon className="h-3.5 w-3.5" />
-                        {opt.label}
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              onClick={handleGenerateCard}
-              disabled={generating || !article.fullText || article.aiDecision !== "accept"}
-            >
-              {generating ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              ) : (
-                <CreditCard className="mr-1.5 h-4 w-4" />
-              )}
-              生成
-            </Button>
-          </div>
-
-          {errorInfo && (
-            <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm space-y-1">
-              <p>{errorInfo.message}</p>
-              {errorInfo.code === "AI_CONFIG_MISSING" && (
-                <Link href="/settings/ai" className="underline text-xs block">
-                  去配置 AI
-                </Link>
-              )}
-              {errorInfo.code === "AI_CONFIG_DECRYPT_FAILED" && (
-                <Link href="/settings/ai" className="underline text-xs block">
-                  去重新配置 AI（删除旧配置）
-                </Link>
-              )}
+        {managementMode ? (
+          <div className="space-y-3">
+            <p className="text-sm font-medium">一键生成素材卡</p>
+            <div className="flex items-center gap-2">
+              <Select
+                value={cardType}
+                onValueChange={(v) => {
+                  if (v) setCardType(v as CardType);
+                }}
+              >
+                <SelectTrigger className="flex-1 h-8">
+                  <SelectValue>
+                    {CARD_TYPE_OPTIONS.find((o) => o.value === cardType)?.label ?? cardType}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {CARD_TYPE_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    return (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <div className="flex items-center gap-1.5">
+                          <Icon className="h-3.5 w-3.5" />
+                          {opt.label}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={handleGenerateCard}
+                disabled={generating || !article.fullText || article.aiDecision !== "accept"}
+              >
+                {generating ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <CreditCard className="mr-1.5 h-4 w-4" />
+                )}
+                生成
+              </Button>
             </div>
-          )}
 
-          {/* Generated card preview */}
-          {generatedCard && (
-            <div className="rounded-md border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="text-xs">
-                  {CARD_TYPE_OPTIONS.find((o) => o.value === generatedCard.cardType)?.label ?? generatedCard.cardType}
-                </Badge>
-                <span className="text-[10px] text-muted-foreground">
-                  已生成
-                </span>
+            {errorInfo && (
+              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm space-y-1">
+                <p>{errorInfo.message}</p>
+                {errorInfo.code === "AI_CONFIG_MISSING" && (
+                  <Link href="/admin/settings/ai" className="underline text-xs block">
+                    去配置 AI
+                  </Link>
+                )}
+                {errorInfo.code === "AI_CONFIG_DECRYPT_FAILED" && (
+                  <Link href="/admin/settings/ai" className="underline text-xs block">
+                    去重新配置 AI（删除旧配置）
+                  </Link>
+                )}
               </div>
-              {generatedCard.originalFacts && (
-                <div>
-                  <p className="text-xs font-medium mb-1">原始事实</p>
-                  <p className="text-xs text-muted-foreground line-clamp-4 whitespace-pre-wrap">
-                    {generatedCard.originalFacts}
-                  </p>
+            )}
+
+            {generatedCard && (
+              <div className="rounded-md border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Badge variant="secondary" className="text-xs">
+                    {CARD_TYPE_OPTIONS.find((o) => o.value === generatedCard.cardType)?.label ?? generatedCard.cardType}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">
+                    已生成
+                  </span>
                 </div>
-              )}
-              {generatedCard.aiSummary && (
-                <div>
-                  <p className="text-xs font-medium mb-1">AI 摘要</p>
-                  <p className="text-xs text-muted-foreground whitespace-pre-wrap">
-                    {generatedCard.aiSummary}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                {generatedCard.originalFacts && (
+                  <div>
+                    <p className="text-xs font-medium mb-1">原始事实</p>
+                    <p className="text-xs text-muted-foreground line-clamp-4 whitespace-pre-wrap">
+                      {generatedCard.originalFacts}
+                    </p>
+                  </div>
+                )}
+                {generatedCard.aiSummary && (
+                  <div>
+                    <p className="text-xs font-medium mb-1">AI 摘要</p>
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                      {generatedCard.aiSummary}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-md bg-muted/50 p-3 text-sm text-muted-foreground space-y-1">
+            <p>当前为公开阅读视图。</p>
+            <p>AI 评估和素材卡生成已迁移到管理后台。</p>
+            <Link href="/admin/articles" className="underline">
+              前往后台文章管理
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

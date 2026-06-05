@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { resetAiConfigCache } from "@/services/ai";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // GET /api/ai-config — 获取 AI 配置
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const config = await db.aiConfig.findFirst({
       where: { name: "default" },
@@ -43,6 +52,14 @@ export async function GET() {
 
 // POST /api/ai-config — 创建或更新 AI 配置
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const { baseUrl, apiKey, model, temperature } = body;
@@ -92,7 +109,15 @@ export async function POST(request: NextRequest) {
 }
 
 // DELETE /api/ai-config — 删除 AI 配置
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     await db.aiConfig.deleteMany({ where: { name: "default" } });
     // 清除缓存，确保下次调用使用环境变量 fallback

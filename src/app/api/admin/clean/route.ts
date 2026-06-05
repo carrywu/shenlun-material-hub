@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // POST /api/admin/clean — Execute data cleaning
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
     const { confirm, rules } = body as {
@@ -169,7 +179,16 @@ export async function POST(request: NextRequest) {
 }
 
 // GET /api/admin/clean — Preview cleaning impact
-export async function GET() {
+export async function GET(request: Request) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
+
   try {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

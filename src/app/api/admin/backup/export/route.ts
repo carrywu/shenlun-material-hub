@@ -1,0 +1,37 @@
+import { NextResponse } from "next/server";
+import { createBackupArchive, resolveUploadsDirectoryPath } from "@/lib/backup";
+import { logger } from "@/lib/logger";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+
+export async function GET(request: Request) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
+
+  try {
+    const uploadsDir = resolveUploadsDirectoryPath();
+    const archive = await createBackupArchive({ uploadsDir });
+    const filename = `shenlun-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.json.gz`;
+
+    await logger.info("Exported system backup", "BACKUP", { uploadsDir, bytes: archive.byteLength });
+
+    return new NextResponse(new Uint8Array(archive), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/gzip",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      },
+    });
+  } catch (error) {
+    await logger.error("Failed to export backup", "BACKUP", error instanceof Error ? error.message : "unknown");
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "导出备份失败" },
+      { status: 500 }
+    );
+  }
+}

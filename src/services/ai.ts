@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
+import { logger } from "@/lib/logger";
 import type { CardType, AIScoreDetail, ContentGenre, AiDecision, ErrorCode } from "@/types";
 
 export type AiRuntimeSource = "db" | "env";
@@ -228,6 +229,17 @@ function providerStatus(error: unknown): number | undefined {
 
 function aiRequestError(error: unknown, runtime: AiRuntime): AiServiceError {
   const status = providerStatus(error);
+  const safeMsg = safeProviderMessage(error);
+
+  // Log AI errors to SystemLog for production diagnostics
+  void logger.error("AI request failed", "AI", {
+    status,
+    source: runtime.source,
+    model: runtime.model,
+    keySuffix: runtime.keySuffix,
+    providerMessage: safeMsg ?? undefined,
+  });
+
   return new AiServiceError(
     "AI_API_CALL_FAILED",
     "AI 请求失败",
@@ -239,7 +251,7 @@ function aiRequestError(error: unknown, runtime: AiRuntime): AiServiceError {
       model: runtime.model,
       keySuffix: runtime.keySuffix,
       cacheKey: runtime.cacheKey,
-      providerMessage: safeProviderMessage(error),
+      providerMessage: safeMsg,
     }
   );
 }

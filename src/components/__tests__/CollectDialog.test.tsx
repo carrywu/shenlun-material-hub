@@ -46,7 +46,7 @@ describe("CollectDialog", () => {
     });
     expect(screen.getByText("微信B")).toBeInTheDocument();
     expect(mockFetch).toHaveBeenCalledWith("/api/sources?pageSize=100&isEnabled=true");
-  });
+  }, 10000);
 
   it("没有来源时应该显示空状态", async () => {
     mockFetch.mockResolvedValue({

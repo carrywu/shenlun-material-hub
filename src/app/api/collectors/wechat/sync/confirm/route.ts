@@ -5,9 +5,18 @@ import {
   fetchStandardRssArticles,
 } from "@/services/collectors/wechat/weRssClient";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // POST /api/collectors/wechat/sync/confirm — 确认导入选中的文章
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const { sourceId, werssSourceId, selectedUrls } = body;

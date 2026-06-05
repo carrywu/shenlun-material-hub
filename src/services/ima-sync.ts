@@ -171,7 +171,8 @@ function deriveFolders(contentItem: { regionScopes: string | null }, cardType: s
 }
 
 export async function syncToIma(
-  cardId: string
+  cardId: string,
+  userId?: string
 ): Promise<{ success: boolean; syncRecordId: string; error?: string }> {
   const card = await db.materialCard.findUnique({
     where: { id: cardId },
@@ -198,6 +199,7 @@ export async function syncToIma(
       regionFolder,
       typeFolder,
       status: "pending",
+      userId: userId ?? null,
     },
   });
 
@@ -252,7 +254,8 @@ export async function syncToIma(
 
 export async function syncBatchToIma(
   cardIds: string[],
-  concurrency: number = 3
+  concurrency: number = 3,
+  userId?: string
 ): Promise<{
   total: number;
   success: number;
@@ -276,7 +279,7 @@ export async function syncBatchToIma(
     const batchResults = await Promise.all(
       batch.map(async (cardId) => {
         try {
-          const result = await syncToIma(cardId);
+          const result = await syncToIma(cardId, userId);
           return {
             cardId,
             success: result.success,
@@ -338,10 +341,11 @@ export interface SyncRecordsQuery {
   dateTo?: string;
   page?: number;
   pageSize?: number;
+  extraWhere?: Record<string, unknown>;
 }
 
 export async function getSyncRecords(query: SyncRecordsQuery) {
-  const { status, documentRole, dateFrom, dateTo, page = 1, pageSize = 20 } = query;
+  const { status, documentRole, dateFrom, dateTo, page = 1, pageSize = 20, extraWhere } = query;
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
@@ -352,9 +356,12 @@ export async function getSyncRecords(query: SyncRecordsQuery) {
     if (dateTo) (where.syncedAt as Record<string, Date>).lte = new Date(dateTo);
   }
 
+  // Merge any additional where conditions (e.g. data isolation filters)
+  const mergedWhere = { ...where, ...extraWhere };
+
   const [data, total] = await Promise.all([
     db.syncRecord.findMany({
-      where,
+      where: mergedWhere,
       include: {
         materialCard: { select: { id: true, title: true, cardType: true, confirmed: true } },
       },
@@ -362,7 +369,7 @@ export async function getSyncRecords(query: SyncRecordsQuery) {
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-    db.syncRecord.count({ where }),
+    db.syncRecord.count({ where: mergedWhere }),
   ]);
 
   return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };

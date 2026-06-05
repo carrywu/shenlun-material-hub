@@ -164,3 +164,4 @@ infra/wechat-rss/wewe-rss/.env
 config/server.config.local.json
 
 /src/generated/prisma
+prisma/dev.db.pre-pg-migration

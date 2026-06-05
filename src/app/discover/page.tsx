@@ -15,7 +15,6 @@ import {
   ChevronRight,
   RefreshCw,
   Bookmark,
-  CreditCard,
   CheckCircle,
   ExternalLink,
   Shield,
@@ -121,8 +120,6 @@ export default function DiscoverPage() {
   // Actions state
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
   const [markedRead, setMarkedRead] = useState<Set<string>>(new Set());
-  const [generating, setGenerating] = useState<string | null>(null);
-
   const pageSize = 20;
 
   const fetchItems = useCallback(async () => {
@@ -177,36 +174,6 @@ export default function DiscoverPage() {
     });
   }
 
-  async function handleGenerateCard(item: DiscoverItem) {
-    if (generating) return;
-    setGenerating(item.id);
-    try {
-      const res = await fetch(`/api/content-items/${item.id}/generate-card`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        let msg = data.error ?? "生成失败";
-        if (data.code === "AI_CONFIG_MISSING" || data.code === "AI_CONFIG_DECRYPT_FAILED") {
-          msg += "\n请前往 设置 > AI 配置 进行配置";
-        }
-        throw new Error(msg);
-      }
-      // Update card count locally
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === item.id
-            ? { ...i, _count: { materialCards: i._count.materialCards + 1 } }
-            : i
-        )
-      );
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "生成素材卡失败");
-    } finally {
-      setGenerating(null);
-    }
-  }
-
   // Group items by source
   const groupedBySource = items.reduce(
     (acc, item) => {
@@ -234,7 +201,7 @@ export default function DiscoverPage() {
           <div>
             <h1 className="text-xl font-semibold">今日推荐</h1>
             <p className="text-sm text-muted-foreground">
-              来自<strong>已核验来源</strong>的高质量内容，质量更有保障，适合直接评估与生成素材卡
+              来自<strong>已核验来源</strong>的高质量内容，质量更有保障，适合直接阅读与整理素材
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">共 {total} 条</p>
           </div>
@@ -424,16 +391,6 @@ export default function DiscoverPage() {
                                         : ""
                                     }`}
                                   />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => handleGenerateCard(item)}
-                                  disabled={generating === item.id}
-                                  title="生成素材卡"
-                                >
-                                  <CreditCard className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   variant={

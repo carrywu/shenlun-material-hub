@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 interface ImportSource {
   name: string;
@@ -18,6 +19,14 @@ interface ImportSource {
 
 // POST /api/sources/import — 批量导入来源，按 externalId+platform 去重
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const sources: ImportSource[] = Array.isArray(body) ? body : body.sources;

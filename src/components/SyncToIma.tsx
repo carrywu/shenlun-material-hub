@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Loader2, CheckCircle2, XCircle, RefreshCw, AlertTriangle } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 interface SyncResult {
   success: boolean;
@@ -41,6 +42,10 @@ export function SyncToIma({
 }: SyncToImaProps) {
   const [syncing, setSyncing] = useState(false);
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
+  const { isAdmin } = useAuth();
+
+  // Only admins can sync to IMA
+  if (!isAdmin) return null;
 
   async function handleSync() {
     setSyncing(true);

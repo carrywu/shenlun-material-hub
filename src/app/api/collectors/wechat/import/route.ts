@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { parseWechatArticle } from "@/services/collectors/wechat/wechatParser";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // POST /api/collectors/wechat/import
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const { urls, sourceId } = body as { urls: string[]; sourceId: string };

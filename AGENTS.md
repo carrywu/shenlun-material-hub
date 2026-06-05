@@ -5,7 +5,7 @@
 ## Project Context
 
 申论素材采集与 AI 素材卡生成系统。
-技术栈：Next.js 16 + Prisma 7 + SQLite + React 19 + Tailwind CSS + Vitest + Playwright
+技术栈：Next.js 16 + Prisma 7 + PostgreSQL + React 19 + Tailwind CSS + Vitest + Playwright
 
 详细模块说明和边界规则见 `CLAUDE.md`（本目录），两文件内容保持同步。
 

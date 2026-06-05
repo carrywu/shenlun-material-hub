@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { collectBilibili } from "@/services/collectors/mediacrawler/bilibili";
 import { collectXiaohongshu } from "@/services/collectors/mediacrawler/xiaohongshu";
 import { testConnection } from "@/services/collectors/mediacrawler/client";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 /**
  * POST /api/collectors/mediacrawler/crawl
@@ -15,6 +16,14 @@ import { testConnection } from "@/services/collectors/mediacrawler/client";
  * Returns the CollectorRun record.
  */
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const { platform, userId } = body as {

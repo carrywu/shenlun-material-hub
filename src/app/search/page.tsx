@@ -300,8 +300,19 @@ export default function SearchPage() {
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <FileText className="h-8 w-8 mb-2 opacity-50" />
-                  <p>未找到匹配的素材卡</p>
-                  <p className="text-sm">尝试调整搜索关键词或筛选条件</p>
+                  <p className="text-base font-medium">未找到匹配的素材卡</p>
+                  <p className="text-sm mt-1">尝试调整搜索关键词或筛选条件</p>
+                  {activeFilters.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="mt-3"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      清空所有筛选条件
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (

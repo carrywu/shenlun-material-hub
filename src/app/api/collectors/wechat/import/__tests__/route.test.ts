@@ -1,6 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+const authMocks = vi.hoisted(() => ({
+  requireAdmin: vi.fn().mockResolvedValue({ id: "test-admin", username: "admin", role: "ADMIN", status: "ACTIVE" }),
+  requireAuth: vi.fn().mockResolvedValue({ id: "test-admin", username: "admin", role: "ADMIN", status: "ACTIVE" }),
+  unauthorizedResponse: vi.fn().mockReturnValue(new Response(JSON.stringify({ error: "未登录" }), { status: 401 })),
+  forbiddenResponse: vi.fn().mockReturnValue(new Response(JSON.stringify({ error: "权限不足" }), { status: 403 })),
+  validateSession: vi.fn().mockResolvedValue({ id: "test-admin", username: "admin", role: "ADMIN", status: "ACTIVE" }),
+  hashPassword: vi.fn().mockResolvedValue("$2a$12$hash"),
+  verifyPassword: vi.fn().mockResolvedValue({ valid: true }),
+  createSession: vi.fn().mockResolvedValue("test-token"),
+  ensureInitialAdmin: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/auth", () => authMocks);
+
 // Mock db - must use vi.hoisted for variables used in vi.mock
 const { mockDb } = vi.hoisted(() => ({
   mockDb: {

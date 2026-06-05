@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { ownerScopeWhere, mergeWhere, canAccessResource } from "@/lib/data-isolation";
 
 // GET /api/material-cards — 分页 + 筛选
 export async function GET(request: NextRequest) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
@@ -19,6 +23,10 @@ export async function GET(request: NextRequest) {
     if (confirmed !== null && confirmed !== undefined && confirmed !== "all") {
       where.confirmed = confirmed === "true";
     }
+
+    // Multi-user data isolation: restrict to owned cards
+    const ownerFilter = ownerScopeWhere(user);
+
     if (search) {
       where.OR = [
         { title: { contains: search } },
@@ -26,9 +34,12 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Merge owner filter into where clause
+    const mergedWhere = mergeWhere(where, ownerFilter);
+
     const [data, total] = await Promise.all([
       db.materialCard.findMany({
-        where,
+        where: mergedWhere,
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -42,7 +53,7 @@ export async function GET(request: NextRequest) {
           },
         },
       }),
-      db.materialCard.count({ where }),
+      db.materialCard.count({ where: mergedWhere }),
     ]);
 
     return NextResponse.json({
@@ -63,6 +74,8 @@ export async function GET(request: NextRequest) {
 
 // POST /api/material-cards — 手动创建素材卡
 export async function POST(request: NextRequest) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const body = await request.json();
     const {
@@ -83,7 +96,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify content item exists
+    // Verify content item exists and user can access it
     const item = await db.contentItem.findUnique({
       where: { id: contentItemId },
     });
@@ -91,11 +104,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "内容条目不存在" }, { status: 404 });
     }
 
+    // Check content item access — user must be able to read it to create a card from it
+    if (!canAccessResource(user, item.ownerUserId, item.visibility)) {
+      return forbiddenResponse("无法基于不可访问的内容创建素材卡");
+    }
+
     const card = await db.materialCard.create({
       data: {
         contentItemId,
         cardType,
         title,
+        ownerUserId: user.id,
         sourceSnapshot: sourceSnapshot ?? null,
         originalFacts: originalFacts ?? null,
         aiSummary: aiSummary ?? null,

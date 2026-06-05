@@ -1,4 +1,4 @@
-// 申论素材采集台 数据库 Schema v3
+// 申论素材采集台 数据库 Schema v4
 
 generator client {
   provider = "prisma-client"
@@ -6,7 +6,40 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+}
+
+// 用户
+model User {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  email        String?
+  displayName  String?
+  passwordHash String                // bcrypt 哈希
+  role         String     @default("USER") // ADMIN | VERIFIED_USER | USER
+  status       String     @default("ACTIVE") // ACTIVE | DISABLED
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  sessions              Session[]
+  ownedContentItems     ContentItem[]      @relation("ContentItemOwner")
+  ownedMaterialCards    MaterialCard[]     @relation("MaterialCardOwner")
+  asyncTasks            AsyncTask[]
+  syncRecords           SyncRecord[]
+  annotations           ArticleAnnotation[]
+}
+
+// 会话
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique          // 高熵随机 token
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
 }
 
 // 信息源
@@ -134,10 +167,15 @@ model ContentItem {
   read                Boolean  @default(false) // 已阅读
   ignored             Boolean  @default(false) // 已忽略
 
+  // Phase 2: 多用户数据隔离
+  ownerUserId         String?                // 所属用户 ID（null 表示公共数据）
+  visibility          String   @default("public") // public / private
+
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   source        Source         @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  ownerUser     User?          @relation("ContentItemOwner", fields: [ownerUserId], references: [id])
   materialCards MaterialCard[]
   syncRecords   SyncRecord[]
   annotations   ArticleAnnotation[]
@@ -154,6 +192,8 @@ model ContentItem {
   @@index([aiDecision])
   @@index([contentGenre])
   @@index([aiAssessedAt])
+  @@index([ownerUserId])
+  @@index([visibility])
 }
 
 // AI 素材卡
@@ -172,16 +212,19 @@ model MaterialCard {
   userEditedContent    String?                // 用户编辑内容
   confirmed            Boolean  @default(false)
   confirmedAt          DateTime?              // 确认时间
+  ownerUserId          String?                // Phase 2: 所属用户
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   contentItem  ContentItem    @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  ownerUser    User?          @relation("MaterialCardOwner", fields: [ownerUserId], references: [id])
   syncRecords  SyncRecord[]
 
   @@index([contentItemId])
   @@index([cardType])
   @@index([confirmed])
   @@index([createdAt])
+  @@index([ownerUserId])
 }
 
 // 同步记录
@@ -198,14 +241,17 @@ model SyncRecord {
   errorCode         String?                // 错误码
   errorMessage      String?                // 错误信息
   syncedAt          DateTime @default(now())
+  userId            String?                // Phase 2: 同步发起用户
 
   materialCard MaterialCard @relation(fields: [materialCardId], references: [id], onDelete: Cascade)
   contentItem  ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
 
   @@index([materialCardId])
   @@index([contentItemId])
   @@index([status])
   @@index([syncedAt])
+  @@index([userId])
 }
 
 // 采集运行记录
@@ -273,11 +319,49 @@ model ArticleAnnotation {
   startOffset   Int?                   // 选区起始偏移
   endOffset     Int?                   // 选区结束偏移
   paragraph     Int?                   // 段落索引
+  userId        String?                // Phase 2: 批注用户
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  user        User?        @relation(fields: [userId], references: [id])
 
   @@index([contentItemId])
   @@index([createdAt])
+  @@index([userId])
 }
+
+// 生产化运行日志
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     String   // INFO | WARN | ERROR
+  category  String   // SYSTEM | CRAWLER | AI | AUTH | BACKUP
+  message   String
+  detail    String?  // 详细堆栈/JSON
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// 异步采集与处理任务
+model AsyncTask {
+  id          String    @id @default(uuid())
+  type        String    // WEWE_RSS_SYNC | WEB_CRAWL | AI_ASSESS
+  status      String    // PENDING | RUNNING | COMPLETED | FAILED
+  params      String?   // JSON 格式请求参数
+  result      String?   // JSON 格式运行结果/报错信息
+  userId      String?   // Phase 2: 任务发起用户
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@index([userId])
+}
+

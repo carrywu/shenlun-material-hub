@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { refreshFeed, normalizeBaseUrl } from "@/services/integrations/wewe-rss";
+import { refreshFeed, normalizeBaseUrl } from "@/services/integrations/wewe-rss-api";
 import { fetchStandardRssArticles } from "@/services/collectors/wechat/weRssClient";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // POST /api/integrations/wewe-rss/refresh-source — 刷新并采集单个 WeWe RSS 来源
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const { sourceId } = body;

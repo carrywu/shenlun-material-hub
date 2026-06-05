@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateCardForContentItem, AiServiceError } from "@/services/ai";
+import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import type { CardType, ErrorCode } from "@/types";
 
 function newRequestId(): string {
@@ -16,16 +18,99 @@ function errorResponse(
   return NextResponse.json({ error: code, code, message, status, ...extra }, { status });
 }
 
+async function runGenerateCardTask(id: string, cardType: CardType, requestId: string, ownerUserId: string) {
+  const item = await db.contentItem.findUnique({
+    where: { id },
+    include: {
+      source: { select: { name: true } },
+    },
+  });
+
+  if (!item?.fullText) {
+    throw new Error("该内容条目没有全文，无法生成素材卡");
+  }
+
+  const existingCard = await db.materialCard.findFirst({
+    where: { contentItemId: id, cardType },
+  });
+  if (existingCard) {
+    return {
+      contentItemId: id,
+      cardType,
+      existingCardId: existingCard.id,
+      duplicated: true,
+    };
+  }
+
+  try {
+    const aiData = await generateCardForContentItem(
+      item.title,
+      item.source?.name ?? "未知来源",
+      item.fullText,
+      cardType
+    );
+
+    const card = await db.materialCard.create({
+      data: {
+        contentItemId: id,
+        cardType,
+        title: item.title.slice(0, 100),
+        sourceSnapshot: aiData.sourceSnapshot,
+        originalFacts: aiData.originalFacts,
+        aiSummary: aiData.aiSummary,
+        highlightSuggestions: aiData.highlightSuggestions,
+        transferSuggestions: aiData.transferSuggestions,
+        ownerUserId,
+      },
+    });
+
+    await db.contentItem.update({
+      where: { id },
+      data: { processingStatus: "card_generated" },
+    });
+
+    return {
+      cardId: card.id,
+      contentItemId: id,
+      cardType,
+      duplicated: false,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "素材卡生成失败";
+
+    await db.contentItem.update({
+      where: { id },
+      data: {
+        processingStatus: "failed",
+        aiAssessmentError: `[${requestId}] ${errorMessage}`,
+      },
+    });
+
+    if (error instanceof AiServiceError) {
+      throw new Error(error.message);
+    }
+
+    throw error;
+  }
+}
+
 // POST /api/content-items/[id]/generate-card
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   const requestId = newRequestId();
-  let id = "";
 
   try {
-    ({ id } = await params);
+    const { id } = await params;
     const body = await request.json().catch(() => ({}));
     const cardType = (body.cardType as CardType) ?? "golden_sentence";
 
@@ -43,7 +128,7 @@ export async function POST(
     if (!validTypes.includes(cardType)) {
       return errorResponse(
         "AI_RESPONSE_INVALID_JSON",
-        `无效的卡片类型，请在页面提供的中文素材类型中选择`,
+        "无效的卡片类型，请在页面提供的中文素材类型中选择",
         400,
         { requestId }
       );
@@ -85,75 +170,28 @@ export async function POST(
       );
     }
 
-    const aiData = await generateCardForContentItem(
-      item.title,
-      item.source?.name ?? "未知来源",
-      item.fullText,
-      cardType
-    );
+    const task = await createAsyncTask("CARD_GENERATE", {
+      contentItemId: id,
+      cardType,
+      requestId,
+    });
 
-    const card = await db.materialCard.create({
-      data: {
+    enqueueAsyncTask(task, () => runGenerateCardTask(id, cardType, requestId, user.id));
+
+    return NextResponse.json(
+      {
+        accepted: true,
+        taskId: task.id,
+        status: "PENDING",
         contentItemId: id,
         cardType,
-        title: item.title.slice(0, 100),
-        sourceSnapshot: aiData.sourceSnapshot,
-        originalFacts: aiData.originalFacts,
-        aiSummary: aiData.aiSummary,
-        highlightSuggestions: aiData.highlightSuggestions,
-        transferSuggestions: aiData.transferSuggestions,
+        requestId,
+        message: "已加入后台素材卡生成队列",
       },
-    });
-
-    await db.contentItem.update({
-      where: { id },
-      data: { processingStatus: "card_generated" },
-    });
-
-    return NextResponse.json(card, { status: 201 });
+      { status: 202 }
+    );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "素材卡生成失败";
-
-    if (error instanceof AiServiceError) {
-      console.error("Failed to generate card", {
-        requestId,
-        code: error.code,
-        status: error.status,
-        source: error.diagnostics?.source,
-        baseURL: error.diagnostics?.baseURL,
-        model: error.diagnostics?.model,
-        keySuffix: error.diagnostics?.keySuffix,
-        providerMessage: error.diagnostics?.providerMessage,
-      });
-    } else {
-      console.error("Failed to generate card", { requestId, error: errorMessage });
-    }
-
-    // Persist failure status to DB
-    if (id) {
-      try {
-        await db.contentItem.update({
-          where: { id },
-          data: {
-            processingStatus: "failed",
-            aiAssessmentError: `[${requestId}] ${errorMessage}`,
-          },
-        });
-      } catch (dbError) {
-        console.error("Failed to persist error status", { requestId, error: dbError instanceof Error ? dbError.message : "unknown" });
-      }
-    }
-
-    if (error instanceof AiServiceError) {
-      return errorResponse(error.code, error.message, error.status ?? 500, {
-        requestId,
-        source: error.diagnostics?.source,
-        baseURL: error.diagnostics?.baseURL,
-        model: error.diagnostics?.model,
-        keySuffix: error.diagnostics?.keySuffix,
-      });
-    }
-
     return errorResponse("AI_API_CALL_FAILED", errorMessage, 500, { requestId });
   }
 }

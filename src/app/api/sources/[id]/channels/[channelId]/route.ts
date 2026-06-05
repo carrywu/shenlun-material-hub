@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // PUT /api/sources/[id]/channels/[channelId] — 更新栏目
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; channelId: string }> }
 ) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const { channelId } = await params;
     const body = await request.json();
@@ -42,6 +51,14 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; channelId: string }> }
 ) {
+  const user = await requireAdmin(_request);
+  if (!user) {
+    const cookieHeader = _request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const { channelId } = await params;
 

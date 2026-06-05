@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 import { assessRelevanceWithRetry } from "@/services/ai";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 const DEFAULT_CONCURRENCY = 3;
 
@@ -40,7 +42,7 @@ async function assessSingleItem(
         aiSummary: result.summary || null,
         aiQuotes: JSON.stringify(result.quotes),
         aiAssessedAt: new Date(),
-        aiAssessmentError: null, // 清除旧的错误信息
+        aiAssessmentError: null,
         qualityStatus: result.decision === "accept" ? "accepted" : "filtered",
         processingStatus:
           result.decision === "accept" ? "pending" : "filtered",
@@ -66,8 +68,74 @@ async function assessSingleItem(
   }
 }
 
+async function runAssessTask(
+  ids: string[] | undefined,
+  retryFailed: boolean | undefined,
+  concurrency: number
+) {
+  let whereClause: Record<string, unknown>;
+
+  if (retryFailed) {
+    whereClause = {
+      qualityStatus: "candidate",
+      aiDecision: null,
+      aiAssessmentError: { not: null },
+    };
+    if (ids && ids.length > 0) {
+      whereClause.id = { in: ids };
+    }
+  } else {
+    whereClause = {
+      id: { in: ids ?? [] },
+      qualityStatus: "candidate",
+      aiDecision: null,
+    };
+  }
+
+  const items = await db.contentItem.findMany({
+    where: whereClause,
+    include: {
+      source: { select: { name: true } },
+    },
+  });
+
+  let accepted = 0;
+  let rejected = 0;
+  let errorsCount = 0;
+  const errors: string[] = [];
+
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const results = await Promise.all(
+      batch.map((item) => assessSingleItem(item, errors))
+    );
+
+    for (const result of results) {
+      if (result === "accepted") accepted++;
+      else if (result === "rejected") rejected++;
+      else if (result === "error") errorsCount++;
+    }
+  }
+
+  return {
+    assessed: items.length,
+    accepted,
+    rejected,
+    errors_count: errorsCount,
+    errors: errors.length > 0 ? errors : undefined,
+  };
+}
+
 // POST /api/content-items/assess — 批量 AI 评估内容条目
 export async function POST(request: NextRequest) {
+  const user = await requireAdmin(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) {
+      return unauthorizedResponse();
+    }
+    return forbiddenResponse();
+  }
   try {
     const body = await request.json();
     const { ids, retryFailed, concurrency: rawConcurrency } = body;
@@ -77,10 +145,15 @@ export async function POST(request: NextRequest) {
       Math.max(1, rawConcurrency ?? DEFAULT_CONCURRENCY)
     );
 
-    let whereClause: Record<string, unknown>;
+    if (!retryFailed && (!ids || !Array.isArray(ids) || ids.length === 0)) {
+      return NextResponse.json(
+        { error: "需要提供 ids 数组" },
+        { status: 400 }
+      );
+    }
 
+    let whereClause: Record<string, unknown>;
     if (retryFailed) {
-      // 重试失败的评估
       whereClause = {
         qualityStatus: "candidate",
         aiDecision: null,
@@ -90,13 +163,6 @@ export async function POST(request: NextRequest) {
         whereClause.id = { in: ids };
       }
     } else {
-      // 正常评估
-      if (!ids || !Array.isArray(ids) || ids.length === 0) {
-        return NextResponse.json(
-          { error: "需要提供 ids 数组" },
-          { status: 400 }
-        );
-      }
       whereClause = {
         id: { in: ids },
         qualityStatus: "candidate",
@@ -104,14 +170,8 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const items = await db.contentItem.findMany({
-      where: whereClause,
-      include: {
-        source: { select: { name: true } },
-      },
-    });
-
-    if (items.length === 0) {
+    const count = await db.contentItem.count({ where: whereClause });
+    if (count === 0) {
       return NextResponse.json({
         message: retryFailed
           ? "没有需要重试的失败评估"
@@ -120,33 +180,29 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    let accepted = 0;
-    let rejected = 0;
-    let errors_count = 0;
-    const errors: string[] = [];
-
-    // 并发处理
-    for (let i = 0; i < items.length; i += concurrency) {
-      const batch = items.slice(i, i + concurrency);
-      const results = await Promise.all(
-        batch.map((item) => assessSingleItem(item, errors))
-      );
-      for (const r of results) {
-        if (r === "accepted") accepted++;
-        else if (r === "rejected") rejected++;
-        else if (r === "error") errors_count++;
-      }
-    }
-
-    return NextResponse.json({
-      assessed: items.length,
-      accepted,
-      rejected,
-      errors_count,
-      errors: errors.length > 0 ? errors : undefined,
+    const task = await createAsyncTask("AI_ASSESS", {
+      ids,
+      retryFailed,
+      concurrency,
+      itemCount: count,
     });
+
+    enqueueAsyncTask(task, () => runAssessTask(ids, retryFailed, concurrency));
+
+    return NextResponse.json(
+      {
+        accepted: true,
+        taskId: task.id,
+        status: "PENDING",
+        queuedCount: count,
+        message: `已加入后台 AI 评估队列，共 ${count} 条`,
+      },
+      { status: 202 }
+    );
   } catch (error) {
-    console.error("AI 评估失败:", error);
-    return NextResponse.json({ error: "评估执行失败" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "评估执行失败" },
+      { status: 500 }
+    );
   }
 }

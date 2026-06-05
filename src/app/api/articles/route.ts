@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getUserFromRequest } from "@/lib/auth";
+import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    let where: any = {};
 
     // 关键词搜索：标题 + 摘要
     if (keyword) {
@@ -89,16 +91,24 @@ export async function GET(request: NextRequest) {
       if (collectedEnd) where.createdAt.lte = new Date(collectedEnd + "T23:59:59");
     }
 
-    // 排序
-    let orderBy: Record<string, string>;
+    // 排序 — always include id as tiebreaker for stable pagination
+    let orderBy: Record<string, string>[];
     if (sortBy === "aiScore") {
-      orderBy = { aiScore: "desc" };
+      orderBy = [{ aiScore: "desc" }, { id: "desc" }];
     } else if (sortBy === "effectiveTextLength") {
-      orderBy = { effectiveTextLength: "desc" };
+      orderBy = [{ effectiveTextLength: "desc" }, { id: "desc" }];
     } else if (sortBy === "publishedAt") {
-      orderBy = { publishedAt: "desc" };
+      orderBy = [{ publishedAt: "desc" }, { id: "desc" }];
     } else {
-      orderBy = { createdAt: "desc" };
+      orderBy = [{ createdAt: "desc" }, { id: "desc" }];
+    }
+
+    // Visibility: authenticated users see public+own+legacy; anonymous see public only
+    const user = await getUserFromRequest(request);
+    if (user) {
+      where = mergeWhere(where, contentVisibilityWhere(user));
+    } else {
+      where.visibility = "public";
     }
 
     const [data, total] = await Promise.all([

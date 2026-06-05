@@ -6,7 +6,7 @@ test.describe('全站 UI 中文化与体验一致性验收测试', () => {
   let cardId = '';
 
   async function waitForPageLoaded(page: import('@playwright/test').Page) {
-    await expect(page.locator('main')).not.toContainText('加载中...', { timeout: 20000 });
+    await expect(page.locator('main').last()).not.toContainText('加载中...', { timeout: 20000 });
   }
 
   test.beforeAll(async () => {
@@ -77,7 +77,7 @@ test.describe('全站 UI 中文化与体验一致性验收测试', () => {
     }
   });
 
-  test('测试 2：文章详情页“单独生成指定类型”下拉选择框中文化', async ({ page }) => {
+  test('测试 2：公开文章详情页不再暴露后台生成控件', async ({ page }) => {
     if (!articleId) {
       test.skip();
       return;
@@ -85,21 +85,11 @@ test.describe('全站 UI 中文化与体验一致性验收测试', () => {
     await page.goto(`/articles/${articleId}`);
     await waitForPageLoaded(page);
 
-    // 1. 检查一键生成 Select 默认值是否不是 golden_sentence
-    const selectTrigger = page.locator('button[data-slot="select-trigger"]').first();
-    await expect(selectTrigger).toBeVisible();
-    
-    const triggerText = await selectTrigger.textContent();
-    expect(triggerText).toContain('申论金句'); // 默认应该是“申论金句”而不是 "golden_sentence"
-    expect(triggerText).not.toContain('golden_sentence');
-
-    // 2. 点击下拉列表，验证所有选项均为中文，不出现英文 code 
-    await selectTrigger.click();
-    await expect(page.locator('text=规范词')).toBeVisible();
-    await expect(page.locator('text=案例素材')).toBeVisible();
-    await expect(page.locator('text=对策表达')).toBeVisible();
-    await expect(page.locator('text=数据事实')).not.toBeVisible();
-    await expect(page.locator('text=data_fact')).not.toBeVisible();
+    await expect(page.locator('text=当前页面为公开阅读视图。')).toBeVisible();
+    await expect(page.locator('text=AI 评估、素材卡生成和采集等管理操作已迁移到后台。')).toBeVisible();
+    await expect(page.locator('a', { hasText: '前往后台文章管理' })).toBeVisible();
+    await expect(page.locator('button[data-slot="select-trigger"]')).toHaveCount(0);
+    await expect(page.locator('text=golden_sentence')).toHaveCount(0);
   });
 
   test('测试 3：微信正文图片渲染与大图预览', async ({ page }) => {
@@ -153,7 +143,13 @@ test.describe('全站 UI 中文化与体验一致性验收测试', () => {
   });
 
   test('测试 5：AI 配置页提示词管理无废弃类型', async ({ page }) => {
-    await page.goto('/settings/ai');
+    await page.goto('/admin/login');
+    await page.getByLabel('管理账号').fill('admin');
+    await page.getByLabel('管理密码').fill('admin123');
+    await page.getByRole('button', { name: '进入管理后台' }).click();
+    await expect(page).toHaveURL(/\/admin$/);
+
+    await page.goto('/admin/settings/ai');
     await waitForPageLoaded(page);
 
     await expect(page.locator('text=提示词配置')).toBeVisible({ timeout: 10000 });

@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "shenlun-sqlite-logs": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/Users/apple/Downloads/ima-shenglun-creators/shenlun-material-hub/scripts/mcp/sqlite-readonly-server.mjs"
+      ],
+      "env": {}
+    },
+    "shenlun-playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ],
+      "env": {}
+    }
+  }
+}

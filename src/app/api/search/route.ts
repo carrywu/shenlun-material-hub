@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth, unauthorizedResponse } from "@/lib/auth";
+import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
 
 // GET /api/search - 全文搜索素材卡
 export async function GET(request: NextRequest) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q") ?? "";
@@ -43,9 +47,14 @@ export async function GET(request: NextRequest) {
       where.confirmed = confirmed === "true";
     }
 
+    // Multi-user data isolation: restrict to owned cards
+    // Multi-user data isolation: restrict to owned cards
+    const ownerFilter = ownerScopeWhere(user);
+    const mergedWhere = mergeWhere(where, ownerFilter);
+
     const [data, total] = await Promise.all([
       db.materialCard.findMany({
-        where,
+        where: mergedWhere,
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -59,7 +68,7 @@ export async function GET(request: NextRequest) {
           },
         },
       }),
-      db.materialCard.count({ where }),
+      db.materialCard.count({ where: mergedWhere }),
     ]);
 
     return NextResponse.json({
