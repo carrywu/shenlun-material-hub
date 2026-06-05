@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { createBackupArchive, resolveDatabaseFilePath } from "@/lib/backup";
-import { resolveUploadsDirectoryPath } from "@/lib/backup";
+import { createBackupArchive, resolveUploadsDirectoryPath } from "@/lib/backup";
 import { logger } from "@/lib/logger";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
@@ -15,12 +14,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const dbPath = resolveDatabaseFilePath();
     const uploadsDir = resolveUploadsDirectoryPath();
-    const archive = await createBackupArchive({ dbPath, uploadsDir });
+    const archive = await createBackupArchive({ uploadsDir });
     const filename = `shenlun-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.json.gz`;
 
-    await logger.info("Exported system backup", "BACKUP", { dbPath, uploadsDir, bytes: archive.byteLength });
+    await logger.info("Exported system backup", "BACKUP", { uploadsDir, bytes: archive.byteLength });
 
     return new NextResponse(new Uint8Array(archive), {
       status: 200,

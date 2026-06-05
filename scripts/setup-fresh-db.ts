@@ -8,7 +8,7 @@
  *   pnpm db:setup:seed     # 跳过迁移，只执行 seed
  *
  * 环境变量：
- *   DATABASE_URL           — SQLite 路径（默认 file:./prisma/dev.db）
+ *   DATABASE_URL           — PostgreSQL 连接字符串
  *   ADMIN_USERNAME         — 管理员用户名（默认 admin）
  *   ADMIN_PASSWORD         — 管理员密码（生产环境必须设置）
  */
@@ -121,10 +121,16 @@ async function stepHealthCheck(): Promise<boolean> {
   }
 
   try {
-    // Use require for CJS compatibility in scripts/
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
     const { PrismaClient } = require("../src/generated/prisma") as { PrismaClient: any };
-    const prisma = new PrismaClient();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+    const { PrismaPg } = require("@prisma/adapter-pg") as { PrismaPg: any };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+    const { Pool } = require("pg") as { Pool: any };
+
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const adapter = new PrismaPg(pool);
+    const prisma = new PrismaClient({ adapter });
 
     // 检查核心表
     const userCount = await prisma.user.count();
@@ -156,7 +162,7 @@ async function main() {
   console.log("═══════════════════════════════════════════════════");
   console.log("  shenlun-material-hub 空库初始化与验收");
   console.log(`  模式: ${isDryRun ? "DRY-RUN（仅预览）" : "执行"}`);
-  console.log(`  数据库: ${process.env.DATABASE_URL || "file:./prisma/dev.db"}`);
+  console.log(`  数据库: ${process.env.DATABASE_URL || "postgresql://localhost:5432/shenlun_material_hub"}`);
   console.log("═══════════════════════════════════════════════════");
   console.log("");
 

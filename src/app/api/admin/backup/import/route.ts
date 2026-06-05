@@ -4,7 +4,6 @@ import { requireAdmin, unauthorizedResponse, forbiddenResponse, verifyPassword }
 import {
   inspectBackupDatabase,
   parseBackupArchive,
-  resolveDatabaseFilePath,
   resolveUploadsDirectoryPath,
   restoreBackupArchive,
   summarizeBackupArchive,
@@ -76,12 +75,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "管理员密码校验失败" }, { status: 401 });
     }
 
-    const dbPath = resolveDatabaseFilePath();
     const uploadsDir = resolveUploadsDirectoryPath();
-    await restoreBackupArchive(manifest, { dbPath, uploadsDir });
+    await restoreBackupArchive(manifest, { uploadsDir });
 
     await logger.warn("Applied system backup restore", "BACKUP", {
-      dbPath,
       uploadsDir,
       backupCounts,
       currentCounts,

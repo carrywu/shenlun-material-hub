@@ -1,31 +1,35 @@
-Loaded Prisma config from prisma.config.ts.
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateTable
 CREATE TABLE "User" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "username" TEXT NOT NULL,
     "email" TEXT,
     "displayName" TEXT,
     "passwordHash" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'USER',
     "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Session" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "token" TEXT NOT NULL,
-    "expiresAt" DATETIME NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Source" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "externalId" TEXT,
     "platform" TEXT NOT NULL,
@@ -40,25 +44,27 @@ CREATE TABLE "Source" (
     "verificationStatus" TEXT NOT NULL DEFAULT 'unverified',
     "keywords" TEXT NOT NULL DEFAULT '[]',
     "collectionFrequency" TEXT,
-    "lastCollectedAt" DATETIME,
+    "lastCollectedAt" TIMESTAMP(3),
     "lastError" TEXT,
-    "archivedAt" DATETIME,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "archivedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "provider" TEXT,
     "feedId" TEXT,
-    "lastSyncedAt" DATETIME,
-    "hitRate" REAL NOT NULL DEFAULT 0,
-    "filterRate" REAL NOT NULL DEFAULT 0,
-    "effectiveRate" REAL NOT NULL DEFAULT 0,
-    "avgAiScore" REAL,
+    "lastSyncedAt" TIMESTAMP(3),
+    "hitRate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "filterRate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "effectiveRate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "avgAiScore" DOUBLE PRECISION,
     "sourceGrade" TEXT,
-    "metricsUpdatedAt" DATETIME
+    "metricsUpdatedAt" TIMESTAMP(3),
+
+    CONSTRAINT "Source_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "CollectionChannel" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "sourceId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "listUrl" TEXT NOT NULL,
@@ -66,16 +72,17 @@ CREATE TABLE "CollectionChannel" (
     "paginationPattern" TEXT,
     "maxPages" INTEGER NOT NULL DEFAULT 3,
     "isEnabled" BOOLEAN NOT NULL DEFAULT true,
-    "lastCollectedAt" DATETIME,
+    "lastCollectedAt" TIMESTAMP(3),
     "collectedCount" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "CollectionChannel_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "Source" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CollectionChannel_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ContentItem" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "sourceId" TEXT NOT NULL,
     "channelId" TEXT,
     "externalContentId" TEXT,
@@ -85,7 +92,7 @@ CREATE TABLE "ContentItem" (
     "title" TEXT NOT NULL,
     "authorOrAccount" TEXT,
     "originalUrl" TEXT NOT NULL,
-    "publishedAt" DATETIME,
+    "publishedAt" TIMESTAMP(3),
     "section" TEXT,
     "regionScopes" TEXT NOT NULL DEFAULT '[]',
     "topicTags" TEXT NOT NULL DEFAULT '[]',
@@ -103,33 +110,33 @@ CREATE TABLE "ContentItem" (
     "filterReason" TEXT,
     "qualityStatus" TEXT NOT NULL DEFAULT 'pending',
     "effectiveTextLength" INTEGER NOT NULL DEFAULT 0,
-    "lastCleanedAt" DATETIME,
-    "aiScore" REAL,
+    "lastCleanedAt" TIMESTAMP(3),
+    "aiScore" DOUBLE PRECISION,
     "aiDecision" TEXT,
     "aiReason" TEXT,
     "aiCategories" TEXT,
     "aiUsableFor" TEXT,
     "aiSummary" TEXT,
     "aiQuotes" TEXT,
-    "aiAssessedAt" DATETIME,
+    "aiAssessedAt" TIMESTAMP(3),
     "aiAssessmentError" TEXT,
     "contentGenre" TEXT,
     "aiScoreDetail" TEXT,
-    "aiScoredAt" DATETIME,
+    "aiScoredAt" TIMESTAMP(3),
     "bookmarked" BOOLEAN NOT NULL DEFAULT false,
     "read" BOOLEAN NOT NULL DEFAULT false,
     "ignored" BOOLEAN NOT NULL DEFAULT false,
     "ownerUserId" TEXT,
     "visibility" TEXT NOT NULL DEFAULT 'public',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "ContentItem_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "Source" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "ContentItem_ownerUserId_fkey" FOREIGN KEY ("ownerUserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ContentItem_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "MaterialCard" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "contentItemId" TEXT NOT NULL,
     "cardType" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -142,17 +149,17 @@ CREATE TABLE "MaterialCard" (
     "markdownContent" TEXT,
     "userEditedContent" TEXT,
     "confirmed" BOOLEAN NOT NULL DEFAULT false,
-    "confirmedAt" DATETIME,
+    "confirmedAt" TIMESTAMP(3),
     "ownerUserId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "MaterialCard_contentItemId_fkey" FOREIGN KEY ("contentItemId") REFERENCES "ContentItem" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "MaterialCard_ownerUserId_fkey" FOREIGN KEY ("ownerUserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MaterialCard_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SyncRecord" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "materialCardId" TEXT NOT NULL,
     "contentItemId" TEXT NOT NULL,
     "documentRole" TEXT NOT NULL,
@@ -163,46 +170,48 @@ CREATE TABLE "SyncRecord" (
     "status" TEXT NOT NULL DEFAULT 'pending',
     "errorCode" TEXT,
     "errorMessage" TEXT,
-    "syncedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "syncedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "userId" TEXT,
-    CONSTRAINT "SyncRecord_materialCardId_fkey" FOREIGN KEY ("materialCardId") REFERENCES "MaterialCard" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "SyncRecord_contentItemId_fkey" FOREIGN KEY ("contentItemId") REFERENCES "ContentItem" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "SyncRecord_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+
+    CONSTRAINT "SyncRecord_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "CollectorRun" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "sourceId" TEXT NOT NULL,
     "collectorType" TEXT NOT NULL,
-    "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "finishedAt" DATETIME,
+    "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "finishedAt" TIMESTAMP(3),
     "status" TEXT NOT NULL DEFAULT 'running',
     "discoveredCount" INTEGER NOT NULL DEFAULT 0,
     "importedCount" INTEGER NOT NULL DEFAULT 0,
     "errorSummary" TEXT,
     "evidencePath" TEXT,
-    CONSTRAINT "CollectorRun_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "Source" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+
+    CONSTRAINT "CollectorRun_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "AiConfig" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "baseUrl" TEXT NOT NULL DEFAULT 'https://api.openai.com/v1',
     "encryptedKey" TEXT NOT NULL,
     "model" TEXT NOT NULL DEFAULT 'gpt-4o',
-    "temperature" REAL NOT NULL DEFAULT 0.3,
+    "temperature" DOUBLE PRECISION NOT NULL DEFAULT 0.3,
     "isEnabled" BOOLEAN NOT NULL DEFAULT true,
-    "lastTestedAt" DATETIME,
+    "lastTestedAt" TIMESTAMP(3),
     "lastTestError" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AiConfig_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "AiPromptTemplate" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -210,13 +219,15 @@ CREATE TABLE "AiPromptTemplate" (
     "defaultContent" TEXT,
     "enabled" BOOLEAN NOT NULL DEFAULT true,
     "version" INTEGER NOT NULL DEFAULT 1,
-    "updatedAt" DATETIME NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AiPromptTemplate_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ArticleAnnotation" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "contentItemId" TEXT NOT NULL,
     "cardType" TEXT,
     "selectedText" TEXT NOT NULL,
@@ -226,34 +237,37 @@ CREATE TABLE "ArticleAnnotation" (
     "endOffset" INTEGER,
     "paragraph" INTEGER,
     "userId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "ArticleAnnotation_contentItemId_fkey" FOREIGN KEY ("contentItemId") REFERENCES "ContentItem" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "ArticleAnnotation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ArticleAnnotation_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SystemLog" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "level" TEXT NOT NULL,
     "category" TEXT NOT NULL,
     "message" TEXT NOT NULL,
     "detail" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SystemLog_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "AsyncTask" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "type" TEXT NOT NULL,
     "status" TEXT NOT NULL,
     "params" TEXT,
     "result" TEXT,
     "userId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    "completedAt" DATETIME,
-    CONSTRAINT "AsyncTask_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "completedAt" TIMESTAMP(3),
+
+    CONSTRAINT "AsyncTask_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -335,6 +349,12 @@ CREATE INDEX "ContentItem_contentGenre_idx" ON "ContentItem"("contentGenre");
 CREATE INDEX "ContentItem_aiAssessedAt_idx" ON "ContentItem"("aiAssessedAt");
 
 -- CreateIndex
+CREATE INDEX "ContentItem_ownerUserId_idx" ON "ContentItem"("ownerUserId");
+
+-- CreateIndex
+CREATE INDEX "ContentItem_visibility_idx" ON "ContentItem"("visibility");
+
+-- CreateIndex
 CREATE INDEX "MaterialCard_contentItemId_idx" ON "MaterialCard"("contentItemId");
 
 -- CreateIndex
@@ -360,6 +380,9 @@ CREATE INDEX "SyncRecord_status_idx" ON "SyncRecord"("status");
 
 -- CreateIndex
 CREATE INDEX "SyncRecord_syncedAt_idx" ON "SyncRecord"("syncedAt");
+
+-- CreateIndex
+CREATE INDEX "SyncRecord_userId_idx" ON "SyncRecord"("userId");
 
 -- CreateIndex
 CREATE INDEX "CollectorRun_sourceId_idx" ON "CollectorRun"("sourceId");
@@ -417,4 +440,43 @@ CREATE INDEX "AsyncTask_createdAt_idx" ON "AsyncTask"("createdAt");
 
 -- CreateIndex
 CREATE INDEX "AsyncTask_userId_idx" ON "AsyncTask"("userId");
+
+-- AddForeignKey
+ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CollectionChannel" ADD CONSTRAINT "CollectionChannel_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "Source"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ContentItem" ADD CONSTRAINT "ContentItem_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "Source"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ContentItem" ADD CONSTRAINT "ContentItem_ownerUserId_fkey" FOREIGN KEY ("ownerUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "MaterialCard" ADD CONSTRAINT "MaterialCard_contentItemId_fkey" FOREIGN KEY ("contentItemId") REFERENCES "ContentItem"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "MaterialCard" ADD CONSTRAINT "MaterialCard_ownerUserId_fkey" FOREIGN KEY ("ownerUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SyncRecord" ADD CONSTRAINT "SyncRecord_materialCardId_fkey" FOREIGN KEY ("materialCardId") REFERENCES "MaterialCard"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SyncRecord" ADD CONSTRAINT "SyncRecord_contentItemId_fkey" FOREIGN KEY ("contentItemId") REFERENCES "ContentItem"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SyncRecord" ADD CONSTRAINT "SyncRecord_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CollectorRun" ADD CONSTRAINT "CollectorRun_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "Source"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ArticleAnnotation" ADD CONSTRAINT "ArticleAnnotation_contentItemId_fkey" FOREIGN KEY ("contentItemId") REFERENCES "ContentItem"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ArticleAnnotation" ADD CONSTRAINT "ArticleAnnotation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AsyncTask" ADD CONSTRAINT "AsyncTask_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 

@@ -14,7 +14,8 @@
  */
 
 import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaLibSql } from "@prisma/adapter-libsql";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
 const LEGACY_TYPE_MAP: Record<string, string> = {
   fact_summary: "case_material",
@@ -38,9 +39,10 @@ const NEW_TYPE_LABELS: Record<string, string> = {
 
 async function main() {
   const isExecute = process.argv.includes("--execute");
-  const adapter = new PrismaLibSql({
-    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL ?? "postgresql://shenlun:shenlun_dev@localhost:5432/shenlun_material_hub",
   });
+  const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
 
   try {

@@ -1,4 +1,21 @@
 services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: shenlun
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shenlun_dev}
+      POSTGRES_DB: shenlun_material_hub
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shenlun"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   app:
     build:
       context: .
@@ -10,10 +27,12 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: file:./prisma/dev.db
+      DATABASE_URL: postgresql://shenlun:${POSTGRES_PASSWORD:-shenlun_dev}@postgres:5432/shenlun_material_hub?schema=public
     volumes:
-      - ./data/prisma:/app/prisma
       - ./data/uploads:/app/public/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
@@ -30,3 +49,6 @@ services:
     extends:
       file: ./infra/wechat-rss/wewe-rss/docker-compose.yml
       service: wewe-rss
+
+volumes:
+  pgdata:

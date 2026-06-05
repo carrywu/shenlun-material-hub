@@ -14,7 +14,8 @@ const ENV_CHECKS: EnvCheck[] = [
   {
     key: "DATABASE_URL",
     required: true,
-    description: "SQLite 数据库路径",
+    description: "PostgreSQL 数据库连接字符串",
+    validate: (v) => v.startsWith("postgresql://") || v.startsWith("postgres://"),
   },
   {
     key: "JWT_SECRET",

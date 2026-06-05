@@ -12,9 +12,13 @@
 // Use dynamic import to avoid TypeScript build issues with standalone scripts
 async function main() {
   const { PrismaClient } = await import("../generated/prisma");
+  const { PrismaPg } = await import("@prisma/adapter-pg");
+  const { Pool } = await import("pg");
   const bcrypt = await import("bcryptjs");
 
-  const prisma = new PrismaClient();
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg(pool);
+  const prisma = new PrismaClient({ adapter });
 
   const username = process.env.ADMIN_USERNAME || "admin";
   const password = process.env.ADMIN_PASSWORD || "admin123";

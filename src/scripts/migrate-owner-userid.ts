@@ -8,11 +8,13 @@
 
 async function main() {
   const { PrismaClient } = await import("../generated/prisma/client");
-  const { PrismaLibSql } = await import("@prisma/adapter-libsql");
+  const { PrismaPg } = await import("@prisma/adapter-pg");
+  const { Pool } = await import("pg");
 
-  const adapter = new PrismaLibSql({
-    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL ?? "postgresql://shenlun:shenlun_dev@localhost:5432/shenlun_material_hub",
   });
+  const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
 
   const isApply = process.argv.includes("--apply");
