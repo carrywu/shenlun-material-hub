@@ -3,6 +3,11 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
 
+/** Check if the encryption key is configured (non-throwing) */
+export function hasEncryptionKey(): boolean {
+  return !!process.env.AI_CONFIG_ENCRYPTION_KEY;
+}
+
 function getKey(): Buffer {
   const key = process.env.AI_CONFIG_ENCRYPTION_KEY;
   if (!key) {

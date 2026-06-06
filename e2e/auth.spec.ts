@@ -7,7 +7,7 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('登录页（未认证）', () => {
   // These tests need to start without auth cookies so they can test the login flow
-  test.use({ storageState: undefined });
+  test.use({ storageState: { cookies: [], origins: [] } });
 
   test('登录页：未登录访问 /admin 重定向到登录页', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
@@ -312,7 +312,7 @@ test.describe('注册页', () => {
 // ─── 注册页表单校验（无 auth） ────────────────────────────────────
 
 test.describe('注册页表单校验', () => {
-  test.use({ storageState: undefined });
+  test.use({ storageState: { cookies: [], origins: [] } });
 
   test('账号少于3字符显示校验提示', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);

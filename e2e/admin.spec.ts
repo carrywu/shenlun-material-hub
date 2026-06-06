@@ -238,8 +238,8 @@ test.describe('Admin Users', () => {
 
     // Click create button
     await page.getByRole('button', { name: '创建', exact: true }).click();
-    // Wait for success: either the dialog closes or user appears in table
-    await expect(page.getByText(username)).toBeVisible({ timeout: 10000 });
+    // Wait for success: user appears in table (use cell to avoid matching toast notification)
+    await expect(page.getByRole('cell', { name: username })).toBeVisible({ timeout: 10000 });
 
     guard.report(testInfo);
   });
@@ -361,8 +361,8 @@ test.describe('Admin Clean', () => {
 
     await page.goto('/admin/clean');
     await expect(page.getByRole('heading', { name: '数据清洗', level: 1 })).toBeVisible({ timeout: 10000 });
-    // Rule checkboxes visible
-    await expect(page.locator('[data-state]')).toBeVisible({ timeout: 10000 });
+    // Rule checkboxes visible (base-ui renders as button[role="checkbox"])
+    await expect(page.locator('button[role="checkbox"]').first()).toBeVisible({ timeout: 10000 });
     // Execute button visible
     await expect(page.getByRole('button', { name: '执行清洗' })).toBeVisible();
 
@@ -409,10 +409,13 @@ test.describe('Admin Clean', () => {
 
     await page.goto('/admin/clean');
     await page.waitForTimeout(1000);
-    // Find and check a rule checkbox
-    const checkbox = page.locator('input[type="checkbox"]').first();
+    // Find and check a rule checkbox (base-ui renders as button[role="checkbox"])
+    const checkbox = page.locator('button[role="checkbox"]').first();
     if (await checkbox.isVisible()) {
-      await checkbox.check();
+      const isChecked = await checkbox.getAttribute('data-checked');
+      if (isChecked === null) {
+        await checkbox.click();
+      }
     }
     const execBtn = page.getByRole('button', { name: /执行|清理/ });
     if (await execBtn.isVisible()) {
@@ -442,10 +445,10 @@ test.describe('Admin Clean', () => {
     const checkboxes = page.locator('button[role="checkbox"]');
     const checkboxCount = await checkboxes.count();
 
-    // Make sure at least one checkbox is checked
+    // Make sure at least one checkbox is checked (base-ui uses data-checked attribute)
     for (let i = 0; i < checkboxCount; i++) {
-      const isChecked = await checkboxes.nth(i).getAttribute('data-state');
-      if (isChecked !== 'checked') {
+      const isChecked = await checkboxes.nth(i).getAttribute('data-checked');
+      if (isChecked === null) {
         await checkboxes.nth(i).click();
       }
     }

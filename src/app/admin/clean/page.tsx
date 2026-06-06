@@ -137,7 +137,7 @@ export default function CleanPage() {
       <div className="border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">数据清洗</h1>
+            <h2 className="text-xl font-semibold">数据清洗</h2>
             <p className="text-sm text-muted-foreground">
               清理过期、重复和异常数据，保持数据库整洁
             </p>

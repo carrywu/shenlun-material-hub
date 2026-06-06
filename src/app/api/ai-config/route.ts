@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { encrypt, decrypt } from "@/lib/crypto";
+import { encrypt, decrypt, hasEncryptionKey } from "@/lib/crypto";
 import { resetAiConfigCache } from "@/services/ai";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
@@ -61,6 +61,14 @@ export async function POST(request: NextRequest) {
     return forbiddenResponse();
   }
   try {
+    // 检查加密密钥是否配置
+    if (!hasEncryptionKey()) {
+      return NextResponse.json(
+        { error: "加密密钥未配置（AI_CONFIG_ENCRYPTION_KEY），无法保存配置" },
+        { status: 503 },
+      );
+    }
+
     const body = await request.json();
     const { baseUrl, apiKey, model, temperature } = body;
 

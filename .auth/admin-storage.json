@@ -1,4 +1,15 @@
 {
-  "cookies": [],
+  "cookies": [
+    {
+      "name": "auth_token",
+      "value": "db97412d5ab8363fec90d16bd3e9a4108e54ae7821d8c13f60616ab0aae4e33d9896501ac39be3b3ae9876adbcfac1bd",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1780843649.706913,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Strict"
+    }
+  ],
   "origins": []
 }

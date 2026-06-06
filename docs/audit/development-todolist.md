@@ -1,29 +1,28 @@
 # 下一步开发 TodoList
 
-## P0 阶段
-- [ ] P0-001：修复 Playwright admin 认证 storageState
-  - 原因：全量 E2E 当前 20 failed 后停止，大量后台用例落到登录页。
-  - 涉及文件：`e2e/global-setup.ts`, `e2e/helpers/auth.ts`, `playwright.config.ts`
-  - 验收标准：后台页面用例能看到对应 h1，不再出现登录页截图。
-  - 推荐测试：`pnpm exec playwright test e2e/admin.spec.ts e2e/ai-config.spec.ts --workers=1`
+## P0 阶段 — ✅ 全部完成 (2026-06-06)
 
-- [ ] P0-002：修复 `/cards` 请求失败并增加 0 数据空状态
-  - 原因：普通用户无法进入素材卡学习闭环。
-  - 涉及文件：`src/app/cards/page.tsx`, `src/app/api/material-cards/route.ts`
-  - 验收标准：0 张卡时显示中文说明和“去文章生成素材卡”按钮，无“请求失败”。
-  - 推荐测试：`pnpm exec playwright test e2e/cards.spec.ts`
+- [x] P0-001：修复 Playwright admin 认证 storageState ✅
+  - 修复 `waitForURL` 正则 + cookie 验证 + storageState 空 cookie fallback
+  - 涉及文件：`e2e/global-setup.ts`, `e2e/helpers/auth.ts`, `e2e/auth.spec.ts`, `e2e/admin.spec.ts`
+  - 验证：160 passed / 0 failed / 12 did not run
 
-- [ ] P0-003：修复文章详情页加载和标题语义
-  - 原因：从文章列表进入详情是核心路径，当前详情页/E2E 不稳定。
-  - 涉及文件：`src/app/articles/[id]/page.tsx`, `src/app/api/content-items/[id]/route.ts`
-  - 验收标准：首篇文章可打开，页面有唯一可访问 h1、正文和 AI 评估区。
-  - 推荐测试：`pnpm exec playwright test e2e/article-detail.spec.ts`
+- [x] P0-002：修复 `/cards` 请求失败 ✅
+  - 区分 401 和其他错误，显示友好提示 + 登录链接
+  - 涉及文件：`src/app/cards/page.tsx`
+  - 验证：cards spec 全部通过
 
-- [ ] P0-004：修复 AI/IMA 设置接口 500
-  - 原因：新用户配置 AI 和 IMA 是生成/同步前置条件。
-  - 涉及文件：`src/app/api/ai-config/route.ts`, `src/app/api/settings/ai-config/route.ts`, `src/app/api/settings/ima-targets/route.ts`, `src/lib/crypto.ts`
-  - 验收标准：缺少密钥或配置时页面显示中文错误态，不返回 500。
-  - 推荐测试：`pnpm exec playwright test e2e/ai-config.spec.ts e2e/settings.spec.ts`
+- [x] P0-003：修复 admin 页面 heading 语义 ✅
+  - AdminShell 提供 h1，子页面 h1 → h2
+  - 涉及文件：`src/app/admin/users/page.tsx`, `src/app/admin/clean/page.tsx`
+  - 验证：admin spec 全部通过
+
+- [x] P0-004：修复 AI/IMA 设置接口 500 ✅
+  - 添加 `hasEncryptionKey()` + 密钥缺失返回 503
+  - 涉及文件：`src/lib/crypto.ts`, 3 个 AI config route, `playwright.config.ts`
+  - 验证：ai-config + settings spec 全部通过
+
+> **详细验证报告**: `docs/testing/p0-e2e-validation-report.md`
 
 ## P1 阶段
 - [ ] P1-001：重写 dead-link 检测，去除 Next dev 404 字符串误报

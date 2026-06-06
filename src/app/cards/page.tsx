@@ -97,6 +97,13 @@ export default function CardsPage() {
       if (confirmedFilter !== "all") params.set("confirmed", confirmedFilter);
 
       const res = await fetch(`/api/material-cards?${params.toString()}`);
+      if (res.status === 401) {
+        // 未登录——显示登录引导而非错误
+        setError("请登录后查看素材卡");
+        setCards([]);
+        setTotal(0);
+        return;
+      }
       if (!res.ok) throw new Error("请求失败");
       const json: CardsResponse = await res.json();
       setCards(json.data);
@@ -284,7 +291,17 @@ export default function CardsPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto px-6 py-4">
-        {error ? (
+        {error === "请登录后查看素材卡" ? (
+          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
+            <p>请登录后查看素材卡</p>
+            <Link
+              href="/admin/login"
+              className="mt-1 text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              前往登录 →
+            </Link>
+          </div>
+        ) : error ? (
           <div className="flex items-center justify-center h-48 text-destructive">
             {error}
           </div>

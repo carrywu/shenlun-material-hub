@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { encrypt, decrypt } from "@/lib/crypto";
+import { encrypt, decrypt, hasEncryptionKey } from "@/lib/crypto";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
 
 // GET /api/settings/ima-targets — 获取当前用户的 IMA 目标列表
@@ -50,6 +50,14 @@ export async function POST(request: NextRequest) {
   if (!user) return unauthorizedResponse();
 
   try {
+    // 检查加密密钥是否配置
+    if (!hasEncryptionKey()) {
+      return NextResponse.json(
+        { error: "加密密钥未配置（AI_CONFIG_ENCRYPTION_KEY），无法保存 IMA 目标" },
+        { status: 503 },
+      );
+    }
+
     const body = await request.json();
     const { name, baseUrl, clientId, apiKey, knowledgeBaseId } = body;
 

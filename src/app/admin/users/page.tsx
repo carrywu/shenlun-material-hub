@@ -230,7 +230,7 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">用户管理</h1>
+          <h2 className="text-lg font-semibold text-foreground">用户管理</h2>
           <p className="text-sm text-muted-foreground">管理系统用户账号、角色和权限</p>
         </div>
         <div className="flex gap-2">

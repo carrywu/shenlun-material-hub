@@ -25,6 +25,7 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/crypto", () => ({
   encrypt: mocks.encrypt,
   decrypt: mocks.decrypt,
+  hasEncryptionKey: vi.fn(() => true),
 }));
 
 vi.mock("@/services/ai", () => ({

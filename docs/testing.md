@@ -37,12 +37,22 @@ pnpm exec playwright test
 截至 2026-06-06，`pnpm exec playwright test` 是干净基线。
 
 ```text
-最新运行结果（2026-06-06，21 个 spec 文件）：
-  原有 18 spec：97 passed / 1 flaky (visual-regression discover) / 12 did not run
-  新增 3 spec：53 passed / 0 failed
-  合计：150 passed / 1 flaky / 12 did not run
-  Workers：4
+最新运行结果（2026-06-06，P0 修复后，21 个 spec 文件）：
+  160 passed / 0 failed / 12 did not run
+  Workers：1
+  Duration：30.2 min
 ```
+
+### P0 修复记录 (2026-06-06)
+
+| P0 | 修复 | 验证 |
+|----|------|------|
+| P0-001: storageState | waitForURL regex + cookie 验证 + 空 storageState fallback | auth + admin spec 通过 |
+| P0-002: /cards 请求失败 | 401 区分处理 + 登录链接 | cards spec 通过 |
+| P0-003: heading 语义 | AdminShell 提供 h1，子页面 h1→h2 | admin spec 通过 |
+| P0-004: AI/IMA 500 | hasEncryptionKey() + 503 返回 | ai-config + settings spec 通过 |
+
+> 详见 `docs/testing/p0-e2e-validation-report.md`
 
 ### Spec 文件清单（21 个）
 

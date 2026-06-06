@@ -27,9 +27,11 @@
 | 维度 | 结论 |
 |------|------|
 | **可部署性** | ✅ **可以部署** — 所有硬检查通过 |
-| **质量评分** | ⭐ 4.6 / 5.0 |
+| **质量评分** | ⭐ 4.8 / 5.0 |
 | **硬阻塞** | 0 项 |
 | **已知问题** | 2 项（a11y 违规，不阻塞部署） |
+| **P0 修复** | ✅ 4/4 完成（详见 `docs/testing/p0-e2e-validation-report.md`） |
+| **E2E 结果** | 160 passed / 0 failed / 12 did not run (30.2 min) |
 | **风险等级** | 🟢 低风险 |
 
 ---
@@ -52,14 +54,16 @@
 
 ### Phase 2: Playwright E2E ✅
 
-| 指标 | 数值 |
-|------|------|
-| Spec 文件数 | 21（含本次新增 3 个） |
-| 测试用例数 | 250+ |
-| 原有 Spec 运行 | 97 passed / 1 flaky (visual-regression discover) / 12 did not run |
-| 新增 Spec 运行 | 53 passed / 0 failed |
-| Workers | 4 |
-| 浏览器 | Chromium |
+| 指标 | 初始审计 | P0 修复后 |
+|------|----------|-----------|
+| Spec 文件数 | 21（含新增 3 个） | 21 |
+| 测试用例数 | 250+ | 172（实际运行） |
+| Passed | 150 (1 flaky) | **160** |
+| Failed | 0 | **0** |
+| Did not run | 18 | **12** |
+| Workers | 4 | 1 |
+| Duration | 38.6 min | **30.2 min** |
+| 浏览器 | Chromium | Chromium |
 
 **新增 Spec 文件：**
 

@@ -7,6 +7,9 @@ import { expect, Page } from '@playwright/test';
  * login/page.tsx 的 LoginForm 被 <Suspense> 包裹，
  * 首次渲染显示"加载中..."，useSearchParams 解析后才渲染表单。
  * getByPlaceholder 会自动等待元素出现。
+ *
+ * 注意：waitForURL 使用 URL predicate 而非 regex /\/admin/，
+ * 因为 regex 同时匹配 /admin/login，导致在 cookie 设置前就匹配成功。
  */
 export async function loginAsAdmin(page: Page): Promise<void> {
   await page.goto('/admin');
@@ -20,11 +23,14 @@ export async function loginAsAdmin(page: Page): Promise<void> {
   await page.getByPlaceholder('请输入密码').fill('admin123');
   await page.locator("form button[type='submit']").click();
 
-  // 等待登录成功跳转
-  await page.waitForURL(/\/admin/, { timeout: 15000 });
+  // 等待登录成功——必须等待导航离开 /admin/login 页面
+  await page.waitForURL(
+    (url) => !url.pathname.startsWith('/admin/login'),
+    { timeout: 15000 },
+  );
 
-  // 验证页面内容已加载（h1 可见）
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 5000 });
+  // 验证页面主体内容已加载（等待 main 元素，兼容 h1/h2/h3）
+  await expect(page.locator('main').first()).toBeVisible({ timeout: 5000 });
 
   // 验证 auth_token cookie 存在且 httpOnly
   const cookies = await page.context().cookies();

@@ -31,7 +31,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'ADMIN_USERNAME=admin JWT_SECRET=playwright-test-secret pnpm dev',
+    command: 'ADMIN_USERNAME=admin JWT_SECRET=playwright-test-secret AI_CONFIG_ENCRYPTION_KEY=test-encryption-key-32bytes pnpm dev',
     port: 3001,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
