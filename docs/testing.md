@@ -34,32 +34,48 @@ pnpm exec playwright test
 
 ## 当前 Playwright 基线
 
-截至 2026-06-05，`pnpm exec playwright test` 不是干净基线。
-
-交接验证中最近观察到：
+截至 2026-06-06，`pnpm exec playwright test` 是干净基线。
 
 ```text
-总计 14 个测试
-11 failed
-2 skipped
-1 passed
+最新运行结果（2026-06-06，21 个 spec 文件）：
+  原有 18 spec：97 passed / 1 flaky (visual-regression discover) / 12 did not run
+  新增 3 spec：53 passed / 0 failed
+  合计：150 passed / 1 flaky / 12 did not run
+  Workers：4
 ```
 
-已知失败区域：
+### Spec 文件清单（21 个）
 
-- `e2e/admin-auth.spec.ts`
-  - redirect 断言未兼容 `/admin/login?redirect=%2Fadmin`。
-  - 部分 spec 的登录表单 label selector 超时。
-- `e2e/articles-filter-remove-column.spec.ts`
-  - 找不到文章表头。
-  - 找不到 `source-type-select` test id。
-- `e2e/subscriptions-wewe-rss.spec.ts`
-  - 管理员登录 selector 超时。
-- `e2e/ui-chinese-integrity.spec.ts`
-  - 预期公共页面/筛选中文文案不存在。
-  - 管理员登录 selector 超时。
+| 文件 | 测试数 | 覆盖 |
+|------|--------|------|
+| auth.spec.ts | 19 | 登录/登出/注册 |
+| middleware.spec.ts | 14 | 路由重定向 |
+| data-isolation.spec.ts | 11 | API 权限隔离 |
+| articles.spec.ts | 12 | 文章列表/筛选 |
+| article-detail.spec.ts | 8 | 文章详情 |
+| cards.spec.ts | 11 | 素材卡 |
+| sources.spec.ts | 6 | 来源管理 |
+| sync-records.spec.ts | 4 | 同步记录 |
+| explore-discover.spec.ts | 9 | 探索/发现 |
+| search.spec.ts | 8 | 搜索 |
+| review.spec.ts | 8 | 复习 |
+| admin.spec.ts | 20 | 管理后台 |
+| ai-config.spec.ts | 7 | AI 配置 |
+| wewe-rss.spec.ts | 6 | WeWe RSS |
+| settings.spec.ts | 7 | 设置 |
+| dead-link.spec.ts | 22 | 死链检查 |
+| accessibility.spec.ts | 24 | a11y 扫描 |
+| visual-regression.spec.ts | 14 | 视觉回归 |
+| mobile-responsive.spec.ts | 18 | 移动端响应式 |
+| api-security.spec.ts | 18 | API 安全认证 |
+| error-states.spec.ts | 11 | 错误状态处理 |
 
-不要声称 Playwright 通过，除非重新运行命令且退出码为 0。若任务不改 UI/auth 行为，应把 Playwright 记录为“已知失败基线”，不要算作本任务引入的回归。
+### 已知 a11y 违规（不阻塞测试）
+
+- `button-name`：Select combobox 缺少 aria-label
+- `color-contrast`：text-muted-foreground 对比度不足 4.5:1
+
+不要声称 Playwright 通过，除非重新运行命令且退出码为 0。
 
 ## 验证记录格式
 

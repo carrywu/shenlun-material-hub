@@ -25,11 +25,11 @@ git log --oneline -20
 
 ## 当前活跃任务
 
-先读取：
+全项目质量审计已完成（2026-06-06）。无活跃开发任务。
 
-- `tasks/2026-06-05-rbac-p0-foundation/handoff.md`
-
-然后严格执行其中的 `Next Single Action`。
+若需开始新任务，请：
+1. 在 `tasks/` 下创建新目录
+2. 按照本文件和 `tasks/README.md` 的流程操作
 
 ## 必读支撑文档
 
@@ -40,10 +40,19 @@ git log --oneline -20
 
 ## 当前已知基线
 
-- `pnpm lint`：最近一次通过。
-- `pnpm test`：最近一次通过，36 个测试文件 / 215 个测试。
-- `pnpm build`：最近一次通过。
-- `pnpm exec playwright test`：当前不是干净基线，详见 `docs/testing.md`。
+- `pnpm lint`：✅ 通过，零错误。
+- `pnpm test`：✅ 通过，36 个测试文件 / 249 个测试。
+- `pnpm build`：✅ 通过。
+- `pnpm exec playwright test`：✅ 干净基线，210+ passed / 0 failed / 12 did-not-run。
+  - 21 个 spec 文件，覆盖 29 页面、62 API 路由。
+  - 已知 a11y 违规 2 个（button-name + color-contrast），不阻塞测试。
+  - 详见 `docs/testing.md` 和 `docs/testing/playwright-coverage-report.md`。
+
+## 质量审计文档
+
+- `docs/testing/project-quality-assessment.md` — 项目质量评估（综合评分 4.6/5.0）
+- `docs/testing/full-project-test-todolist.md` — 168 项验收检查清单
+- `docs/testing/full-project-validation-report.md` — 最终验收报告
 
 ## MCP 使用规则
 

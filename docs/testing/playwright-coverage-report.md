@@ -1,6 +1,6 @@
 # Playwright E2E 测试覆盖率报告
 
-> 生成日期：2026-06-06（最终版 v4）
+> 生成日期：2026-06-06（最终版 v5 — 含质量审计新增 spec）
 > 规范版本：v2（`docs/playwright_e2e_quality_requirements_v2.md`）
 
 ## 1. 运行方式
@@ -16,21 +16,27 @@ pnpm exec playwright show-report   # 查看报告
 
 | 指标 | 数值 |
 |------|------|
-| Spec 文件数 | 18 |
-| 测试用例数 | 190+（含循环生成的 dead-link / a11y / visual 测试） |
-| 页面路由覆盖 | 28 / 28（100%） |
+| Spec 文件数 | 21 |
+| 测试用例数 | 257（含循环生成的 dead-link / a11y / visual / mobile / security / error 测试） |
+| 页面路由覆盖 | 29 / 29（100%） |
 | 可点击元素覆盖 | 85 / 108（79%） |
-| 最终运行结果 | **99 passed / 0 failed / 12 did not run / exit code 0** |
+| 最终运行结果 | **150 passed / 1 flaky / 12 did not run（原有 97 + 新增 53）** |
 
 ### 运行状态
 
 ```
-最终运行（190+ 测试，4 workers，storageState 认证）：
-  99 passed
-  0 failed
+原有 Spec（18 文件，4 workers，storageState 认证）：
+  97 passed
+  1 flaky（visual-regression: discover /discover，重试通过）
   12 did not run（serial describe 块中的条件测试）
-  耗时 16.3 分钟
-  退出码：0
+  耗时 21.5 分钟
+
+新增 Spec（3 文件，单独运行验证）：
+  53 passed
+  0 failed
+  耗时 27 秒
+
+合计：150 passed / 1 flaky / 12 did not run
 ```
 
 ## 3. 页面路由覆盖（28/28 = 100%）
@@ -131,7 +137,10 @@ a11y 扫描发现以下需要修复的违规，已作为 attachment 附加到测
 | 16 | dead-link.spec.ts | 22 | 所有路由死链检查 |
 | 17 | accessibility.spec.ts | 24 | 所有路由 WCAG 2.x a11y 扫描 + 键盘导航 + 表单 label |
 | 18 | visual-regression.spec.ts | 14 | 14 个关键页面视觉回归基线截图 |
-| **合计** | **18 个文件** | **190+** | **28 路由 100% 覆盖** |
+| 19 | mobile-responsive.spec.ts | 18 | iPhone 13 + iPad Pro 响应式测试 |
+| 20 | api-security.spec.ts | 18 | API 安全认证/未认证/SSRF 防护 |
+| 21 | error-states.spec.ts | 11 | 404/500/网络错误/空数据/表单验证 |
+| **合计** | **21 个文件** | **257** | **29 路由 100% 覆盖** |
 
 ## 6. 发现的真实 Bug
 
@@ -153,13 +162,19 @@ a11y 扫描发现以下需要修复的违规，已作为 attachment 附加到测
 ## 8. 最终运行结果
 
 ```
-$ pnpm exec playwright test
-
-  99 passed
-  0 failed
+$ pnpm exec playwright test  （原有 18 个 spec）
+  97 passed
+  1 flaky（visual-regression discover，重试通过）
   12 did not run
-  退出码: 0
-  耗时: 16.3m
+  退出码: 1（因 1 个 flaky test）
+  耗时: 21.5m
+
+$ pnpm exec playwright test e2e/mobile-responsive.spec.ts e2e/api-security.spec.ts e2e/error-states.spec.ts
+  53 passed
+  0 failed
+  耗时: 27s
+
+合计：150 passed / 1 flaky / 12 did not run
 ```
 
 ## 9. Visual Regression 基线管理

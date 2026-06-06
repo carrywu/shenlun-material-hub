@@ -24,9 +24,12 @@ test.describe('Admin Dashboard', () => {
     await page.goto('/admin');
     await expect(page.getByRole('heading', { name: '系统概览', level: 1 })).toBeVisible({ timeout: 10000 });
 
+    // Wait for metrics data to load (page shows skeleton → content)
+    await expect(page.getByText('文章总量')).toBeVisible({ timeout: 15000 });
+
     // Click the refresh button (contains "手动刷新" text)
     const refreshBtn = page.getByRole('button', { name: /手动刷新|刷新中/ });
-    await expect(refreshBtn).toBeVisible();
+    await expect(refreshBtn).toBeVisible({ timeout: 10000 });
     await refreshBtn.click();
     // After click, button text changes to "刷新中" briefly, then data reloads
     await expect(page.getByText('文章总量')).toBeVisible({ timeout: 10000 });
@@ -59,9 +62,9 @@ test.describe('Admin Tasks', () => {
     await page.goto('/admin/tasks');
     await expect(page.getByRole('heading', { name: '异步任务', level: 1 })).toBeVisible({ timeout: 10000 });
 
-    // Fill the search input
+    // Wait for page content to render (search input is in a Card with filter UI)
     const searchInput = page.getByPlaceholder('搜索 taskId / 参数 / 结果');
-    await expect(searchInput).toBeVisible();
+    await expect(searchInput).toBeVisible({ timeout: 10000 });
     await searchInput.fill('nonexistent_query_xyz');
     // After filtering, the table should be empty (no matching rows)
     await page.waitForTimeout(500);
