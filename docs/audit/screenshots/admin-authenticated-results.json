@@ -1,0 +1,208 @@
+{
+  "generatedAt": "2026-06-06T11:54:00.466Z",
+  "loginUrl": "200 cookie-set",
+  "results": [
+    {
+      "route": "/admin",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin",
+      "h1": "系统概览",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 系统概览 系统状态: 正常运行 当前时间: 2026/6/6 控制台概览 运行状态监控与模块配置中心 手动刷新 文章总量 439 数据库占用 60.98 MB 信息来源 31 涵盖网站与微信公众号 活动中任务 0 后台同步/爬取任务数 24h 失败任务 0 近 24 小时失败任务数 24h 错误日志 38 近 24 小时系统报错次数 硬件运行环境 当前机器性能指标 处理器负载 664% (8核) 内存占用 16355 / 16384 MB (99.8%) 磁盘剩余空间 剩余 61.2 GB (13.099999999999994%) Darwin 24.4.0 (x64) 最近执行任务 全部任务 任务类型 触发时间 状态 AI_ASSESS 2026/6/5 15:09:27 成功 AI_ASSESS 2026/6/5 15:09:17 成功 最近系统异常 日志中心 AUTH Login error: aborted 2026/6/6 17:12:54 AUTH Login error: aborted 2026/6/6 16:24:16 AUTH Login error: aborted 2026/6/6 16:21:37 AUTH Login error: aborted 2026/6/6 16:18:27 AUTH Login error: aborted 2026/6/6 15:53:58",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/admin/articles",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/articles",
+      "h1": "文章管理",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 文章管理 系统状态: 正常运行 当前时间: 2026/6/6 文章列表 共 439 篇 管理采集的内容条目，AI 评估后生成素材卡 开始采集 AI 评估 🐛 调试 刷新 关键词 来源类型 全部 文章来源 全部来源 AI 评估状态 全部 搜索 重置 高级筛选 标题 来源 文章发布时间 采集时间 AI 字数 元旦假期后首个工作日 广州交警推出新举措规范交通秩序 广东省政府网 2026-01-05 09:53 2026-06-04 17:19 拒绝 普通新闻 750 全国首台警用载人无人机在广州入列 广东省政府网 2026-01-12 10:08 2026-06-04 17:19 拒绝 普通新闻 306 梅州公安全方位守护金柚产业振兴路 广东省政府网 2026-01-15 09:22 2026-06-04 17:19 通过 案例实践 1153 去年广州交警交通治理成绩单发布 建成55.4公里“机非共享车道” 广东省政府网 2026-01-15 09:25 2026-06-04 17:19 通过 案例实践 1246 广东推动自然保护地全方位智慧监管 广东省政府网 2026-01-20 10:13 2026-06-04 17:19 通过 案例实践 668 全省交警排查治理“人车路企”交通安全隐患 10家运输企业因风险突出被曝光 广东省政府网 2026-01-29 10:22 2026-06-04 17:19 拒绝 普通新闻 689 广铁公安全力护航春运平安畅通 严打霸座等突出治安问题 广东省政府网 2026-02-02 10:45 2026-06-04 17:19 拒绝 普通新闻 613 广铁公安为旅客平安返乡保驾护航 警用机器人开",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/admin/sources",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/sources",
+      "h1": "来源管理",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 来源管理 系统状态: 正常运行 当前时间: 2026/6/6 来源管理 管理内容采集来源，配置平台、信任等级与核验状态 刷新 刷新质量 同步 WeWe 新建来源 全部平台 全部类型 全部等级 全部状态 全部 名称 平台 来源 内容类型 信任等级 质量 优先级 频率 最近采集 启用 核验 条目 操作 隔壁班学习园地 http://localhost:4000/feeds/MP_WXS_3280082932.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 2026/6/4 未核验 10 茂名社科 http://localhost:4000/feeds/MP_WXS_3886164949.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 半月谈公考 http://localhost:4000/feeds/MP_WXS_3236953033.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 学习强国 http://localhost:4000/feeds/MP_WXS_3878251562.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 南方日报 http://localhost:4000/feeds/MP_WXS_2106247381.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 人民日报评论 http://localhost:4000/feeds/MP_WXS_3089222529.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 ",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/admin/backup",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/backup",
+      "h1": "数据备份",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 数据备份 系统状态: 正常运行 当前时间: 2026/6/6 数据备份 导出当前 SQLite 数据与上传文件，并支持 dry-run 恢复预览 导出备份 下载备份压缩包 恢复备份 Dry-run 预览",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/admin/clean",
+      "status": "page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/admin/clean\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "finalUrl": "http://localhost:3001/admin/clean",
+      "h1": "数据清洗",
+      "textSample": "申论素材采集台 仪表板今日推荐探索区文章列表素材卡检索复习设置 管理员管理后台admin 退出 申论素材后台 管理控制台 系统概览文章管理来源管理微信集成同步记录异步任务系统日志AI 配置数据备份数据清洗用户管理 返回前台学习区 管理员在线 数据清洗 系统状态: 正常运行当前时间: 2026/6/6 数据清洗 清理过期、重复和异常数据，保持数据库整洁 刷新 加载中...",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/admin/logs",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/logs",
+      "h1": "系统日志",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 系统日志 系统状态: 正常运行 当前时间: 2026/6/6 系统日志 查看认证、AI、采集与备份相关日志 刷新 清理30天前日志 INFO 17 WARN 3 ERROR 0 当前筛选结果 20 筛选 all all 时间 级别 分类 消息 详情 2026/6/6 19:52:24 INFO AUTH User \"admin\" (role: ADMIN) logged in. - 2026/6/6 19:51:58 INFO AUTH User \"admin\" (role: ADMIN) logged in. - 2026/6/6 17:28:21 INFO AUTH User \"admin\" (role: ADMIN) logged in. - 2026/6/6 17:25:15 INFO AUTH User \"admin\" (role: ADMIN) logged in. - 2026/6/6 17:24:12 WARN AUTH Failed login attempt: Incorrect password for user \"admin\" - 2026/6/6 17:21:42 INFO AUTH User \"admin\" (role: ADMIN) logged in. - 2026/6/6 17:21:42 INFO AUTH User \"admin\" (role: ADMIN) logged in. - 2026/6/6 17:21:40 INFO AUTH User \"admin\" (role: ADMIN) logged in. - 2026/6/6 17:21:39 INFO AUTH User \"admin\" (role: ADMIN) lo",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/admin/settings/ai",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/settings/ai",
+      "h1": "AI 配置",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 AI 配置 系统状态: 正常运行 当前时间: 2026/6/6 AI 配置 配置 AI 服务连接，用于内容评估和素材卡生成 连接状态 未配置 测试连接 服务配置 支持 OpenAI 兼容 API（OpenAI、Deepseek、通义千问等） API Base URL OpenAI: https://api.openai.com/v1 | Deepseek: https://api.deepseek.com/v1 API Key Key 会加密存储在数据库中。留空则保持现有 Key 不变。 模型 温度 (0-1) 保存配置 提示词配置 自定义内容会优先生效；留空不会保存，运行异常时自动回退默认提示词。 可用变量 {{title}}：文章标题 {{sourceName}}：来源名称 {{contentType}}：内容类型 {{content}}：文章正文 {{excerpt}}：文章摘要 {{aiSummary}}：已有 AI 摘要 {{aiCategories}}：已有 AI 分类 {{aiQuotes}}：已有 AI 金句 文章评估提示词 默认 判断文章是否适合作为申论素材 恢复默认 保存 申论金句提示词 默认 提炼可背诵和迁移的申论金句 恢复默认 保存 规范词提示词 默认 提炼政府材料规范表达 恢复默认 保存 案例素材提示词 默认 提炼治理案例、地方实践和典型做法 恢复默认 保存 对策表达提示词 默认 提炼措施、做法和对策表达 恢复默认 保存 问题表述提示词 默认 提炼治理难点和问题表述 恢复默认 保存 原因分析提示词 默认 提炼原因分析表达和逻辑框架 恢复默认 保存 政策表述提示词 默认 提炼政策、会议、文",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/admin/integrations/wewe-rss",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/integrations/wewe-rss",
+      "h1": "微信集成",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 微信集成 系统状态: 正常运行 当前时间: 2026/6/6 WeWe RSS 集成 管理本地 WeWe RSS 服务连接，同步公众号列表 连接状态 已连接 WeWe RSS 服务可访问，已订阅 9 个公众号 测试连接 已订阅 9 个公众号 同步公众号列表 从 WeWe RSS 同步订阅的公众号到申论项目的来源列表。优先使用 API，SQLite 只读兜底。 预览同步 同步公众号列表 打开 WeWe 后台 工作原理 1. WeWe RSS 是独立的 Docker 服务，负责微信读书登录和公众号订阅 2. 申论项目通过 HTTP API 或 SQLite 只读方式获取订阅列表 3. 点击\"刷新并采集\"时，会先请求 WeWe RSS 更新 feed，再采集入库 4. 同步时发现 WeWe RSS 已删除的公众号，会提示确认后再删除 5. 手动添加的来源不会被同步删除",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/admin/sync-records",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/sync-records",
+      "h1": "同步记录",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 同步记录 系统状态: 正常运行 当前时间: 2026/6/6 同步记录 查看素材卡同步到 ima 知识库的历史记录 刷新 状态 全部 文档角色 全部 起始日期 年/月/日 结束日期 年/月/日 素材卡 类型 角色 文件夹 状态 远端文档 时间 操作 从“人”看湖南工会百年 案例素材 素材卡 类型: 事实摘要 失败 ima API error (404): {\"message\":\"Cannot POST /v1/knowledge_bases//documents\",\"error\":\"Not Found\",\"statusCode\":404} - 2026/6/4 09:15:45 壹时评：维护儿童消费健康生态，不是… 案例素材 素材卡 类型: 事实摘要 成功 note_c9ad43f06d7a7786cabb471bb9ac9dff_74675401879768807467538464117795 2026/6/2 19:38:41 壹时评：维护儿童消费健康生态，不是… 案例素材 素材卡 类型: 事实摘要 成功 note_c9ad43f06d7a7786cabb471bb9ac9dff_74675399279301607464244769485717 2026/6/2 19:37:38 壹时评：维护儿童消费健康生态，不是… 案例素材 素材卡 类型: 事实摘要 成功 7467537545567001 2026/6/2 19:28:11 壹时评：维护儿童消费健康生态，不是… 案例素材 素材卡 类型: 事实摘要 成功 7467537528788486 2026/6/2 19:28:07 壹时评：维护儿童消",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": true
+    },
+    {
+      "route": "/admin/tasks",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/tasks",
+      "h1": "异步任务",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 异步任务 系统状态: 正常运行 当前时间: 2026/6/6 异步任务 查看采集、评估和素材卡任务执行状态 刷新 筛选 all all all 任务ID 类型 状态 创建时间 完成时间 结果 0dafb397-a6eb-4878-9760-c46cc4d3a7af AI_ASSESS COMPLETED 2026/6/5 15:09:27 2026/6/5 15:10:05 {\"assessed\":19,\"accepted\":9,\"rejected\":10,\"errors_count\":0} ef1e9b66-124d-4c96-a8c8-eba4dec6ad9f AI_ASSESS COMPLETED 2026/6/5 15:09:17 2026/6/5 15:09:20 {\"assessed\":1,\"accepted\":0,\"rejected\":1,\"errors_count\":0}",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/admin/users",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/users",
+      "h1": "用户管理",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 用户管理 系统状态: 正常运行 当前时间: 2026/6/6 用户管理 管理系统用户账号、角色和权限 刷新 创建用户 用户名 显示名 邮箱 角色 状态 创建时间 操作 773275204 carrywu 773275204@QQ.COM 普通用户 正常 2026/6/6 admin 管理员 — 管理员 正常 2026/6/5 ",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/settings",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/settings",
+      "h1": "个人设置",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 个人设置 管理你的 AI 配置、IMA 同步目标和集成设置 账号设置 查看账号信息、修改密码。 AI 配置 配置 AI 模型、API Key 和参数。用于内容评估、素材卡生成和智能批注。 IMA 知识库 配置 IMA 知识库目标，同步已确认的素材卡到腾讯 IMA 知识库。 外部集成 WeWe RSS、外部 WeRSS 等集成配置。 当前账号 用户名：admin 角色：管理员 → 前往管理后台",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/settings/account",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/settings/account",
+      "h1": "账号设置",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 账号设置 查看账号信息和修改密码 基本信息 用户名 admin 角色 管理员 修改密码 当前密码 新密码 确认新密码 修改密码",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/settings/ai",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/settings/ai",
+      "h1": "AI 配置",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 AI 配置 配置您的个人 AI 模型参数，优先级高于系统默认配置 💡 您是管理员，也可以直接 管理系统全局 AI 配置。 模型参数 API Base URL API Key 模型名称 Temperature: 0.3 精确 (0) 创意 (1) 保存配置 优先级说明 1. 个人配置（本页面）— 最高优先级 2. 系统全局配置 — 管理员设置 3. 环境变量 — 服务器配置兜底",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/settings/ima",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/settings/ima",
+      "h1": "IMA 知识库",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 IMA 知识库 配置您的个人 IMA 知识库同步目标 添加 IMA 目标 暂未配置 IMA 知识库目标 配置后，素材卡可以同步到您的 IMA 知识库",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/subscriptions",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/sources",
+      "h1": "来源管理",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 来源管理 系统状态: 正常运行 当前时间: 2026/6/6 来源管理 管理内容采集来源，配置平台、信任等级与核验状态 刷新 刷新质量 同步 WeWe 新建来源 全部平台 全部类型 全部等级 全部状态 全部 名称 平台 来源 内容类型 信任等级 质量 优先级 频率 最近采集 启用 核验 条目 操作 隔壁班学习园地 http://localhost:4000/feeds/MP_WXS_3280082932.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 2026/6/4 未核验 10 茂名社科 http://localhost:4000/feeds/MP_WXS_3886164949.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 半月谈公考 http://localhost:4000/feeds/MP_WXS_3236953033.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 学习强国 http://localhost:4000/feeds/MP_WXS_3878251562.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 南方日报 http://localhost:4000/feeds/MP_WXS_2106247381.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 人民日报评论 http://localhost:4000/feeds/MP_WXS_3089222529.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 ",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    },
+    {
+      "route": "/sync-records",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/sync-records",
+      "h1": "同步记录",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 同步记录 系统状态: 正常运行 当前时间: 2026/6/6 同步记录 查看素材卡同步到 ima 知识库的历史记录 刷新 状态 全部 文档角色 全部 起始日期 年/月/日 结束日期 年/月/日 素材卡 类型 角色 文件夹 状态 远端文档 时间 操作 从“人”看湖南工会百年 案例素材 素材卡 类型: 事实摘要 失败 ima API error (404): {\"message\":\"Cannot POST /v1/knowledge_bases//documents\",\"error\":\"Not Found\",\"statusCode\":404} - 2026/6/4 09:15:45 壹时评：维护儿童消费健康生态，不是… 案例素材 素材卡 类型: 事实摘要 成功 note_c9ad43f06d7a7786cabb471bb9ac9dff_74675401879768807467538464117795 2026/6/2 19:38:41 壹时评：维护儿童消费健康生态，不是… 案例素材 素材卡 类型: 事实摘要 成功 note_c9ad43f06d7a7786cabb471bb9ac9dff_74675399279301607464244769485717 2026/6/2 19:37:38 壹时评：维护儿童消费健康生态，不是… 案例素材 素材卡 类型: 事实摘要 成功 7467537545567001 2026/6/2 19:28:11 壹时评：维护儿童消费健康生态，不是… 案例素材 素材卡 类型: 事实摘要 成功 7467537528788486 2026/6/2 19:28:07 壹时评：维护儿童消",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": true
+    },
+    {
+      "route": "/integrations/wewe-rss",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/integrations/wewe-rss",
+      "h1": "微信集成",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 微信集成 系统状态: 正常运行 当前时间: 2026/6/6 WeWe RSS 集成 管理本地 WeWe RSS 服务连接，同步公众号列表 连接状态 已连接 WeWe RSS 服务可访问，已订阅 9 个公众号 测试连接 已订阅 9 个公众号 同步公众号列表 从 WeWe RSS 同步订阅的公众号到申论项目的来源列表。优先使用 API，SQLite 只读兜底。 预览同步 同步公众号列表 打开 WeWe 后台 工作原理 1. WeWe RSS 是独立的 Docker 服务，负责微信读书登录和公众号订阅 2. 申论项目通过 HTTP API 或 SQLite 只读方式获取订阅列表 3. 点击\"刷新并采集\"时，会先请求 WeWe RSS 更新 feed，再采集入库 4. 同步时发现 WeWe RSS 已删除的公众号，会提示确认后再删除 5. 手动添加的来源不会被同步删除",
+      "visibleLogin": false,
+      "visibleError": false,
+      "visible404": false
+    }
+  ],
+  "consoleIssues": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3001/admin/settings/ai"
+    },
+    {
+      "type": "error",
+      "text": "Each child in a list should have a unique \"key\" prop.%s%s See https://react.dev/link/warning-keys for more information. \n\nCheck the render method of `TableBody`.  It was passed a child from AdminTasksPage.",
+      "url": "http://localhost:3001/admin/tasks"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3001/settings/ai"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:3001/settings/ima"
+    }
+  ]
+}

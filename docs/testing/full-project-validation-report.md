@@ -234,3 +234,48 @@
 | 审计工具 | Claude Code + Playwright + Vitest + @axe-core/playwright |
 | 综合评分 | ⭐ **4.6 / 5.0** |
 | 结论 | **✅ 通过 — 可以部署** |
+
+---
+
+## 9. 2026-06-06 复验更新（Codex 项目审计）
+
+> 本节为后续复验结果。与上方历史报告冲突时，以本节和 `docs/audit/project-audit-report.md` 为准。
+
+### 环境
+
+- Branch：`main`
+- Commit：`fb33bfa test: full project quality audit with 3 new E2E specs`
+- Node：`v24.14.0`
+- pnpm：`11.4.0`
+- Base URL：`http://localhost:3001`
+
+### 命令结果
+
+| Command | Result | Notes |
+|---|---|---|
+| `pnpm install` | PASS | Already up to date；pnpm 11 warning |
+| `pnpm lint` | PASS with warnings | 8 unused-variable warnings |
+| `pnpm test` | PASS | 36 files / 249 tests passed |
+| `pnpm build` | PASS | Next build completed，78 static pages |
+| `pnpm exec playwright test --max-failures=20` | FAIL | 26 passed / 20 failed / 3 interrupted / 216 did not run |
+| `pnpm exec playwright test e2e/accessibility.spec.ts --workers=1` | PASS | 24 passed |
+| `pnpm exec playwright test e2e/visual-regression.spec.ts --workers=1 --max-failures=5` | FAIL | 12 passed / 2 failed |
+| `pnpm exec playwright test e2e/dead-link.spec.ts --workers=1 --max-failures=10` | FAIL | 10 failed / 12 did not run |
+
+### 关键失败
+
+- E2E 全量：后台 admin/AI 配置用例大量找不到 h1，失败截图显示落到登录页；需修复 Playwright auth storage。
+- Visual regression：`/explore`、`/discover` expected 1280x720，但实际 full-page 高度分别约 2802/2942。
+- Dead-link：测试读取 `body.textContent()`，命中 Next dev 内联 RSC/错误边界脚本中的 `404`，造成误报。
+- Console：定向浏览器审计捕获 AI/IMA 设置 500 和 `/admin/tasks` React key warning。
+
+### 浏览器证据
+
+- 定向截图：`docs/audit/screenshots/*.png`
+- 页面结果：`docs/audit/screenshots/browser-audit-results.json`
+- 认证后台结果：`docs/audit/screenshots/admin-authenticated-results.json`
+- Playwright 失败 trace：`test-results/**/trace.zip`
+
+### 复验结论
+
+当前复验结论调整为：**不建议直接部署给普通用户**。应先处理 P0：Playwright admin 认证门禁、`/cards` 请求失败、文章详情稳定性、AI/IMA 设置 500。

@@ -1,0 +1,514 @@
+{
+  "baseUrl": "http://localhost:3001",
+  "generatedAt": "2026-06-06T11:49:19.307Z",
+  "loggedInUrl": "http://localhost:3001/admin/login",
+  "pages": [
+    {
+      "route": "/",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2F",
+      "elapsedMs": 1676,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/articles",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles",
+      "elapsedMs": 2621,
+      "title": "申论素材采集台",
+      "h1": "文章列表",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 文章列表 共 439 篇 浏览已采集的内容条目，按来源、主题和时间筛选阅读 刷新 关键词 来源类型 全部 文章来源 全部来源 AI 评估状态 全部 搜索 重置 高级筛选 标题 来源 文章发布时间 采集时间 AI 字数 元旦假期后首个工作日 广州交警推出新举措规范交通秩序 广东省政府网 2026-01-05 09:53 2026-06-04 17:19 拒绝 普通新闻 750 全国首台警用载人无人机在广州入列 广东省政府网 2026-01-12 10:08 2026-06-04 17:19 拒绝 普通新闻 306 梅州公安全方位守护金柚产业振兴路 广东省政府网 2026-01-15 09:22 2026-06-04 17:19 通过 案例实践 1153 去年广州交警交通治理成绩单发布 建成55.4公里“机非共享车道” 广东省政府网 2026-01-15 09:25 2026-06-04 17:19 通过 案例实践 1246 广东推动自然保护地全方位智慧监管 广东省政府网 2026-01-20 10:13 2026-06-04 17:19 通过 案例实践 668 全省交警排查治理“人车路企”交通安全隐患 10家运输企业因风险突出被曝光 广东省政府网 2026-01-29 10:22 2026-06-04 17:19 拒绝 普通新闻 689 广铁公安全力护航春运平安畅通 严打霸座等突出治安问题 广东省政府网 2026-02-02 10:45 2026-06-04 17:19 拒绝 普通新闻 613 广铁公安为旅客平安返乡保驾护航 警用机器人开展全自动巡逻 广东省政府网 2026-02-03 09:19 2026-06-04 17:19 拒绝 普通新闻 422 春运期间广州警方严打车辆违停及非法营运等行为 广东省政府网 2026-02-04 10:30 2026-06-04 17:19 拒绝 普通新闻 548 广东公安严打涉烟犯罪 查获走私烟数量同比增长87.04% 广东省政府网 2026-02-09 10:56 2026-06-04 17:19 拒绝 普通新闻 509 广东交出“十四五”平安法治建设高分答卷 2025年群众安全感指数98.76% 广东省政府网 2026-02-10 10:44 2026-06-04 17:19 通过 案例实践 3097 严打非法载客、强化联合值守 饶平全力护航春节水上出行 广东省政府网 2026-02-13",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/cards",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards",
+      "elapsedMs": 1018,
+      "title": "申论素材采集台",
+      "h1": "素材卡管理",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 素材卡管理 查看和管理 AI 生成的申论素材卡 刷新 全部 已确认 未确认 共 0 张素材卡 全部 申论金句 规范词 案例素材 对策表达 问题表述 原因分析 政策表述 人物事迹 文章框架 请求失败",
+      "visible404": false,
+      "visibleError": true
+    },
+    {
+      "route": "/discover",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/discover",
+      "elapsedMs": 1961,
+      "title": "申论素材采集台",
+      "h1": "今日推荐",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 今日推荐 来自已核验来源的高质量内容，质量更有保障，适合直接阅读与整理素材 共 409 条 刷新 全部平台 全部类型 全部等级 人民网观点 未验证 网站 16 条内容 以实干实绩书写中国式现代化新篇章 干事创业，政绩观至关重要。 近日，《习近平关于树立和践行正确政绩观论述摘编》在全国发行。党的十八大以来，习近平总书记围绕树立和践行正确政绩观发表的一系列重要论述，立意高远，内涵丰富，思想深刻，近期又在多次重要讲话中特别加以强调，为开展树立和践行正确政绩观学习教育指明了方向、提供了重要遵循。 党中央决定，在全党开展树立和践行正确政绩观学习教育，这是今年党的建设的重要任务。2月24日，中央党的 未验证 official_primary 一步一个脚印坚定朝前走 （一） 因理想而生、为使命而战，中国共产党团结带领人民所进行的一切奋斗，就是为了把我国建设成为现代化强国，实现中华民族伟大复兴。 在今年春节团拜会上，习近平总书记指出：“只要保持战略定力，一步一个脚印坚定朝前走，一个阶段一个阶段扎实推进，党和国家事业就一定会不断积小胜为大胜，我们的目标就一定能实现。”这是对历史的总结，更是对未来的指引。 “确保基本实现社会主义现代化取得决定性进展”，党 未验证 official_primary 更加清醒坚定地推进反腐败斗争 “腐败是党和国家事业发展进程中的拦路虎、绊脚石，反腐败是一场输不起也决不能输的重大斗争。”在二十届中央纪委五次全会上，习近平总书记准确把握反腐败斗争形势任务以及阶段性特征，部署以更高标准、更实举措推进全面从严治党，强调“更加清醒坚定地推进反腐败斗争”。 党的十八大以来，我们党开展了史无前例的反腐败斗争，以“得罪千百人、不负十四亿”的使命担当祛疴治乱，坚持无禁区、全覆盖、零容忍，“打虎”、“拍蝇 未验证 official_primary 零关税政策为非洲发展打开机遇之窗（国际论坛） 零关税政策是中国扩大高水平对外开放的创新实践，彰显了中国的大国担当 中国于5月1日起对53个非洲建交国全面实施零关税举措。这不仅是非洲国家的重大经贸机遇，更是中国支持非洲改善民生、加快发展、推进减贫的务实举措，为非洲发展振兴打开了全新的机遇之窗。 早在2024年12月1日，中国就率先对包括几内亚比绍等33个非洲国家在内的所有同中国建交的最不发达国家实行100%税目产品零关税政策。几内 未验证 official_primary “锻造明日”，何",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/explore",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/explore",
+      "elapsedMs": 2307,
+      "title": "申论素材采集台",
+      "h1": "探索区",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 探索区 来自待核验来源的内容，可自行筛选后决定是否使用，与今日推荐（已核验来源）互为补充 共 412 条 刷新 全部平台 全部类型 梅州公安全方位守护金柚产业振兴路 在梅州市梅县区雁洋镇，一颗颗金柚压弯枝头，空气里弥漫着清冽的甜香。产业繁荣的背后，离不开当地公安机关对这份“甜蜜事业”的守护。 雁洋派出所副所长胡其玉是懂柚树的“半个专家”，更是善调纠纷的“和事佬”。据悉，该镇两户李姓人家柚园相邻，李先生家9棵柚树枝叶遮挡了李阿婆的果园，2025年12月初，李阿婆将9棵挂果柚树锯断，双方的矛盾暴发。 胡其玉和同事前两次上门为李阿婆调解，均吃了闭门羹。民警不急不 广东省政府网 local_official verified 待处理 2026/1/15 查看原文 核验 去年广州交警交通治理成绩单发布 建成55.4公里“机非共享车道” 1月14日，广州市公安局发布2025年广州交警交通治理成绩单。其中，广州市一般程序道路交通事故宗数、死亡人数同比分别下降7.0%、12.2%，交通安全形势进一步筑稳建好。在备受关注的电动自行车违法治理方面，全市建成529套电子抓拍取证设备，并加强重点路段现场执法，共建成55.4公里“机非共享车道”，推动非机动车按道通行比例提高50%以上。 定期整治重点车辆重点违法 2025年，广州交警聚焦重点 广东省政府网 local_official verified 待处理 2026/1/15 查看原文 核验 广东推动自然保护地全方位智慧监管 1月19日，据广东省林业局消息，“十四五”期间，广东以国家公园创建为核心载体，推动自然保护地建设从“数量覆盖”向“质量提升”跨越升级，一批“国字号”生态品牌持续擦亮，多层次、全覆盖的保护发展体系初步形成。 “十四五”期间，广东持续推动自然保护地管护数字化、精细化转型，构建起全方位覆盖的智慧监管体系。目前，全省累计建设或复查生物资源监测样地376块，布设样线1192千米，新增红外相机3006台，推 广东省政府网 local_official verified 待处理 2026/1/20 查看原文 核验 广东交出“十四五”平安法治建设高分答卷 2025年群众安全感指数98.76% “十四五”时期，广东将“扎实推进法治广东平安广东建设，在构建新安全格局上取得新突破”纳入省委“1310”具体部署，奋力打造全国最安全稳定、最公平公正、法治环境最好的地区之一。 2月9日，广东召开“‘十四五’广东成就”系列主题新",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/search",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/search",
+      "elapsedMs": 1158,
+      "title": "申论素材采集台",
+      "h1": "素材卡检索",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 素材卡检索 全文搜索素材卡内容，支持按类型和标签筛选 导出 Markdown 搜索 全部类型 全部状态 搜索素材卡 输入关键词后按 Enter 或点击搜索按钮",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/review",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/review",
+      "elapsedMs": 1681,
+      "title": "申论素材采集台",
+      "h1": "复习模式",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 复习模式 逐步揭示素材卡内容，检验记忆效果 换一批 0 当前待复习 0 本次已复习 0 素材卡总数 随机复习 全部类型 随机复习 太棒了！ 当前没有需要复习的素材卡 换一批",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/settings",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fsettings",
+      "elapsedMs": 1734,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/settings/account",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fsettings%2Faccount",
+      "elapsedMs": 1198,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/settings/ai",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fsettings%2Fai",
+      "elapsedMs": 2072,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/settings/ima",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fsettings%2Fima",
+      "elapsedMs": 1509,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/subscriptions",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fsubscriptions",
+      "elapsedMs": 1791,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/sync-records",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fsync-records",
+      "elapsedMs": 4741,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/integrations/wewe-rss",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fintegrations%2Fwewe-rss",
+      "elapsedMs": 4509,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/articles/cmpzaad4j006f9dvymthh6g9n",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmpzaad4j006f9dvymthh6g9n",
+      "elapsedMs": 2117,
+      "title": "申论素材采集台",
+      "h1": "",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 请求失败 返回列表",
+      "visible404": false,
+      "visibleError": true
+    },
+    {
+      "route": "/admin",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin",
+      "elapsedMs": 4385,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/login",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login",
+      "elapsedMs": 1780,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/articles",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Farticles",
+      "elapsedMs": 2125,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/sources",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Fsources",
+      "elapsedMs": 1983,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/backup",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Fbackup",
+      "elapsedMs": 1297,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/clean",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Fclean",
+      "elapsedMs": 1746,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/logs",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Flogs",
+      "elapsedMs": 1288,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/settings/ai",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Fsettings%2Fai",
+      "elapsedMs": 1456,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/integrations/wewe-rss",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Fintegrations%2Fwewe-rss",
+      "elapsedMs": 3102,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/sync-records",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Fsync-records",
+      "elapsedMs": 1605,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/tasks",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Ftasks",
+      "elapsedMs": 1270,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    },
+    {
+      "route": "/admin/users",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Fusers",
+      "elapsedMs": 1547,
+      "title": "申论素材采集台",
+      "h1": "申论素材采集台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved.",
+      "visible404": false,
+      "visibleError": false
+    }
+  ],
+  "interactions": [
+    {
+      "label": "已登录访问登录页/跳转",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": true,
+      "url": "http://localhost:3001/admin/login",
+      "text": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 请填写用户名和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved."
+    },
+    {
+      "label": "文章搜索",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": true,
+      "url": "http://localhost:3001/articles",
+      "text": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 文章列表 共 439 篇 浏览已采集的内容条目，按来源、主题和时间筛选阅读 刷新 关键词 来源类型 全部 文章来源 全部来源 AI 评估状态 全部 搜索 重置 高级筛选 标题 来源 文章发布时间 采集时间 AI 字数 元旦假期后首个工作日 广州交警推出新举措规范交通秩序 广东省政府网 2026-01-05 09:53 2026-06-04 17:19 拒绝 普通新闻 750 全国首台警用载人无人机在广州入列 广东省政府网 2026-01-12 10:08 2026-06-04 17:19 拒绝 普通新闻 306 梅州公安全方位守护金柚产业振兴路 广东省政府网 2026-01-15 09:22 2026-06-04 17:19 通过 案例实践 1153 去年广州交警交通治理成绩单发布 建成55.4公里“机非共享车道” 广东省政府网 2026-01-15 09:25 2026-06-04 17:19 通过 案例实践 1246 广东推动自然保护地全方位智慧监管 广东省政府网 2026-01-20 10:13 2026-06-04 17:19 通过 案例实践 668 全省交警排查治理“人车路企”交通安全隐患 10家运输企业因风险突出被曝光 广东省政府网 2026-01-29 10:22 2026-06-04 17:19 拒绝 普通新闻 689 广铁公安全力护航春运平安畅通 严打霸座等突出治安问题 广东省政府网 2026-02-02 10:45 2026-06-04 17:19",
+      "afterInput": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 文章列表 共 8 篇 浏览已采集的内容条目，按来源、主题和时间筛选阅读 刷新 关键词 来源类型 全部 文章来源 全部来源 AI 评估状态 全部 搜索 重置 高级筛选 标题 来源 文章发布时间 采集时间 AI 字数 最新申论系统课答疑 隔壁班学习园地 2026-06-01 19:00 2026-06-04 11:38 未评估 1545 5月申论范文合集！ 隔壁班学习园地 2026-06-01 19:00 2026-06-04 11:38 未评估 827 申论范文：下功夫方能长功夫 隔壁班学习园地 2026-06-01 19:00 2026-06-04 11:38 通过 政策解读 4308 最新申论系统课答疑 隔壁班学习园地 2026-06-02 19:01 2026-06-04 11:38 未评估 1545 申论范文：下活乡村发展“一盘棋” 隔壁班学习园地 2026-06-02 19:01 2026-06-04 11:38 通过 评论 5003 最新申论系统课答疑 隔壁班学习园地 "
+    },
+    {
+      "label": "打开文章详情",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "素材卡搜索/空态",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": true,
+      "url": "http://localhost:3001/cards",
+      "text": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 素材卡管理 查看和管理 AI 生成的申论素材卡 刷新 全部 已确认 未确认 共 0 张素材卡 全部 申论金句 规范词 案例素材 对策表达 问题表述 原因分析 政策表述 人物事迹 文章框架 请求失败"
+    },
+    {
+      "label": "打开素材卡详情",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "管理文章搜索",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "生成素材卡入口",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "来源新增入口",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "来源删除取消",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "触发采集入口",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "任务筛选",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "日志筛选",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "AI 测试连接入口",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "AI 保存入口",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "WeWe RSS 测试连接",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "WeWe RSS 预览同步",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "备份导出入口",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "数据清洗预览/dry-run",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "用户禁用入口",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": false,
+      "error": "locator.waitFor: Timeout 2500ms exceeded."
+    },
+    {
+      "label": "移动端菜单",
+      "expected": "点击后应出现明确反馈或进入目标状态",
+      "clicked": true,
+      "url": "http://localhost:3001/admin/login?redirect=%2Fadmin",
+      "text": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 登录 申论素材采集台 请输入账号和密码 请填写用户名和密码 账号 密码 登 录 申论素材采集台 © 2026 All Rights Reserved."
+    }
+  ],
+  "consoleIssues": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:3001/cards"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:3001/articles"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:3001/cards"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:3001/review"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:3001/review"
+    },
+    {
+      "type": "error",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML ta",
+      "url": "http://localhost:3001/admin/login?redirect=%2Fsettings%2Fai"
+    },
+    {
+      "type": "error",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML ta",
+      "url": "http://localhost:3001/admin/login?redirect=%2Fsync-records"
+    },
+    {
+      "type": "error",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML ta",
+      "url": "http://localhost:3001/admin/login?redirect=%2Fintegrations%2Fwewe-rss"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:3001/articles/cmpzaad4j006f9dvymthh6g9n"
+    },
+    {
+      "type": "error",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML ta",
+      "url": "http://localhost:3001/admin/login?redirect=%2Fadmin"
+    },
+    {
+      "type": "error",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML ta",
+      "url": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Fclean"
+    },
+    {
+      "type": "error",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML ta",
+      "url": "http://localhost:3001/admin/login?redirect=%2Fadmin%2Fintegrations%2Fwewe-rss"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:3001/articles"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:3001/cards"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:3001/articles"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:3001/cards"
+    }
+  ],
+  "requestIssues": []
+}
