@@ -238,3 +238,89 @@ docker compose down
 docker compose down -v
 rm -rf ./data
 ```
+
+---
+
+## 11. 脏 HTML 修复脚本验收
+
+### 背景
+
+微信公众号文章通过 WeWe RSS 采集后，`fullText` 字段可能包含未清洗的 HTML（如 `<!DOCTYPE html>`、`<html>`、`<head>`、`<script>` 等标签）。`scripts/repair-wechat-content.ts` 脚本用于批量修复这些脏数据。
+
+### 11.1 dry-run 使用方法
+
+默认即为 dry-run 模式，不会修改数据库：
+
+```bash
+# dry-run 模式（默认，不加参数）
+npx tsx scripts/repair-wechat-content.ts
+
+# 显式指定 dry-run
+npx tsx scripts/repair-wechat-content.ts --dry-run
+
+# 实际写入数据库（需显式指定）
+npx tsx scripts/repair-wechat-content.ts --apply
+```
+
+脚本会：
+1. 查找 `platform=wechat` 且 `fullText` 包含 HTML 特征的 `ContentItem` 记录
+2. 调用 `cleanWechatHtml` 清洗正文
+3. 重新计算 `wordCount`、`contentHash`、`excerpt`
+4. 若清洗后字数 >= 300 且原状态为 `filtered`，自动提升为 `candidate`
+
+### 11.2 dry-run 输出示例描述
+
+```
+=== WeChat Article Content Repair Tool ===
+Mode: DRY-RUN (No changes will be written)
+Found 3 suspect dirty WeChat articles.
+- [cm5abc123] "论新时代文化自信": length 15234 -> 3210
+- [cm5def456] "加强基层治理体系建设": length 8976 -> 2105
+- [cm5ghi789] "推动高质量发展": length 12345 -> 4567
+
+Summary:
+Processed: 3/3 articles.
+Status: Dry-run completed successfully. No DB writes.
+```
+
+关键信息：
+
+- `length 15234 -> 3210`：修复前后的字符长度对比。前者是原始 HTML 长度，后者是清洗后纯文本长度。
+- `Found N suspect dirty WeChat articles`：匹配到包含 HTML 特征的文章数量。
+- 最后一行明确标注 `No DB writes`，确认无数据写入。
+
+### 11.3 回滚方式说明
+
+该脚本**直接覆盖** `fullText`、`rawHtml`、`effectiveTextLength`、`contentHash`、`excerpt` 等字段，不保留原始值。因此：
+
+1. **执行前务必先 dry-run**：确认输出符合预期后再加 `--apply`。
+
+2. **数据库备份**：执行 `--apply` 前建议备份数据库。
+
+   ```bash
+   # PostgreSQL 备份
+   pg_dump -h localhost -U postgres shenlun_material_hub > backup_before_repair_$(date +%Y%m%d).sql
+   ```
+
+3. **如果已执行 --apply 需要回滚**：
+
+   ```bash
+   # 从备份恢复
+   psql -h localhost -U postgres shenlun_material_hub < backup_before_repair_20260606.sql
+   ```
+
+4. **部分回滚**（仅恢复单篇文章）：
+
+   由于脚本会将原始 HTML 保存到 `rawHtml` 字段，如果需要恢复单篇文章的 `fullText`，可以从 `rawHtml` 重新提取。但需要注意 `rawHtml` 也已经被 `cleanWechatHtml` 处理过，可能无法完全还原。因此**全量数据库备份是最可靠的回滚方式**。
+
+5. **质量状态回退**：脚本会将 `filtered` 状态提升为 `candidate`。如需恢复，可手动执行：
+
+   ```sql
+   -- 仅查看受影响的记录
+   SELECT id, title, "qualityStatus" FROM "ContentItem"
+   WHERE platform = 'wechat' AND "qualityStatus" = 'candidate';
+
+   -- 回退特定记录（需确认 ID）
+   -- UPDATE "ContentItem" SET "qualityStatus" = 'filtered', "filterReason" = 'reverted'
+   -- WHERE id = '<specific-id>';
+   ```

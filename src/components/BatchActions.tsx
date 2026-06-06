@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Layers, Loader2, X } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 interface BatchActionsProps {
   selectedCount: number;
@@ -25,21 +26,25 @@ export function BatchActions({
   onDeselectAll,
   onGenerate,
 }: BatchActionsProps) {
+  const { isAdmin } = useAuth();
+
   return (
     <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-2.5">
-      <Checkbox
-        checked={allSelected}
-        onCheckedChange={(checked) => {
-          if (checked) onSelectAll();
-          else onDeselectAll();
-        }}
-      />
+      {isAdmin && (
+        <Checkbox
+          checked={allSelected}
+          onCheckedChange={(checked) => {
+            if (checked) onSelectAll();
+            else onDeselectAll();
+          }}
+        />
+      )}
       <span className="text-sm text-muted-foreground">
         {selectedCount > 0
           ? `已选 ${selectedCount} / ${totalCount} 篇`
           : `共 ${totalCount} 篇`}
       </span>
-      {selectedCount > 0 && (
+      {isAdmin && selectedCount > 0 && (
         <>
           <Button size="sm" onClick={onGenerate} disabled={generating}>
             {generating ? (

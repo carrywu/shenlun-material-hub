@@ -307,6 +307,7 @@ export default function ArticleDetailPage() {
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [assessing, setAssessing] = useState(false);
 
   // Annotation state
   const [selectedText, setSelectedText] = useState("");
@@ -502,6 +503,27 @@ export default function ArticleDetailPage() {
       }
     } catch {
       // ignore
+    }
+  }
+
+  async function handleAssess() {
+    setAssessing(true);
+    try {
+      const res = await fetch(`/api/content-items/assess`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentItemIds: [articleId] }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "AI 评估失败");
+      } else {
+        toast.success("AI 评估已提交，请稍后刷新查看结果");
+      }
+    } catch {
+      toast.error("AI 评估请求失败");
+    } finally {
+      setAssessing(false);
     }
   }
 
@@ -845,19 +867,36 @@ export default function ArticleDetailPage() {
 
           {/* Sidebar */}
           <div className="space-y-4">
-            {/* Generate card */}
+            {/* Quick Actions */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">管理操作</CardTitle>
+                <CardTitle className="text-sm">快捷操作</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground space-y-2">
-                  <p>当前页面为公开阅读视图。</p>
-                  <p>AI 评估、素材卡生成和采集等管理操作已迁移到后台。</p>
-                  <Link href="/admin/articles" className="underline">
-                    前往后台文章管理
-                  </Link>
-                </div>
+              <CardContent className="space-y-2">
+                {isAdmin ? (
+                  <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground space-y-2">
+                    <p>当前页面为公开阅读视图。</p>
+                    <Link href="/admin/articles" className="underline">
+                      前往后台文章管理
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Button
+                      onClick={handleAssess}
+                      disabled={assessing}
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs"
+                    >
+                      {assessing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                      AI 评估
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      AI 评估和素材卡生成功能
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -3,7 +3,7 @@ import "./globals.css";
 import Link from "next/link";
 import {
   FileText, Home, Layers, CreditCard, Search,
-  RotateCcw, Compass, Sparkles, Shield,
+  RotateCcw, Compass, Sparkles, Shield, Settings,
 } from "lucide-react";
 import { Toaster } from "sonner";
 import { cookies } from "next/headers";
@@ -23,6 +23,7 @@ const navItems = [
   { href: "/cards", label: "素材卡", icon: CreditCard },
   { href: "/search", label: "检索", icon: Search },
   { href: "/review", label: "复习", icon: RotateCcw },
+  { href: "/settings", label: "设置", icon: Settings },
 ];
 
 const roleLabels: Record<string, { label: string; color: string }> = {

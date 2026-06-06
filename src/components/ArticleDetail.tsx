@@ -239,7 +239,7 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
                   if (v) setCardType(v as CardType);
                 }}
               >
-                <SelectTrigger className="flex-1 h-8">
+                <SelectTrigger className="flex-1 h-8" aria-label="素材卡类型">
                   <SelectValue>
                     {CARD_TYPE_OPTIONS.find((o) => o.value === cardType)?.label ?? cardType}
                   </SelectValue>

@@ -215,7 +215,7 @@ export default function SearchPage() {
             value={cardType}
             onValueChange={(v) => setCardType(v === "all" || !v ? "" : v)}
           >
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32" aria-label="素材卡类型">
               <SelectValue>
                 {cardType === "" ? "全部类型" : (CARD_TYPE_LABELS[cardType] ?? cardType)}
               </SelectValue>
@@ -238,7 +238,7 @@ export default function SearchPage() {
           />
 
           <Select value={confirmed} onValueChange={(v) => { if (v) setConfirmed(v); }}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32" aria-label="确认状态">
               <SelectValue>
                 {confirmed === "all" ? "全部状态" : (confirmed === "true" ? "已确认" : "未确认")}
               </SelectValue>

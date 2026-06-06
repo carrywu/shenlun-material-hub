@@ -27,6 +27,8 @@ import {
   AlertTriangle,
   RotateCw,
   Calendar,
+  Copy,
+  Check,
 } from "lucide-react";
 import { SYNC_STATUSES, DOCUMENT_ROLES } from "@/types";
 
@@ -118,6 +120,19 @@ export default function SyncRecordsPage() {
   // Retry state
   const [retryingId, setRetryingId] = useState<string | null>(null);
 
+  // Copy state for remote document ID
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  async function copyRemoteId(recordId: string, remoteDocId: string) {
+    try {
+      await navigator.clipboard.writeText(remoteDocId);
+      setCopiedId(recordId);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // ignore
+    }
+  }
+
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -198,7 +213,7 @@ export default function SyncRecordsPage() {
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">状态</label>
             <Select value={statusFilter} onValueChange={(v) => { if (v) setStatusFilter(v); }}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-32" aria-label="同步状态">
                 <SelectValue>
                   {statusFilter === "all" ? "全部" : (STATUS_LABELS[statusFilter] ?? statusFilter)}
                 </SelectValue>
@@ -216,7 +231,7 @@ export default function SyncRecordsPage() {
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">文档角色</label>
             <Select value={roleFilter} onValueChange={(v) => { if (v) setRoleFilter(v); }}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-32" aria-label="文档角色">
                 <SelectValue>
                   {roleFilter === "all" ? "全部" : (DOC_ROLE_LABELS[roleFilter] ?? roleFilter)}
                 </SelectValue>
@@ -287,6 +302,7 @@ export default function SyncRecordsPage() {
                 <TableHead>角色</TableHead>
                 <TableHead>文件夹</TableHead>
                 <TableHead>状态</TableHead>
+                <TableHead>远端文档</TableHead>
                 <TableHead>时间</TableHead>
                 <TableHead className="w-20">操作</TableHead>
               </TableRow>
@@ -294,14 +310,14 @@ export default function SyncRecordsPage() {
             <TableBody>
               {loading && records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
                     加载中...
                   </TableCell>
                 </TableRow>
               ) : records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                     暂无同步记录
                   </TableCell>
                 </TableRow>
@@ -342,6 +358,29 @@ export default function SyncRecordsPage() {
                           <div className="text-xs text-destructive mt-1 max-w-48 truncate" title={record.errorMessage}>
                             {record.errorMessage}
                           </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {record.remoteDocumentId ? (
+                          <div className="flex items-center gap-1">
+                            <code className="text-xs text-muted-foreground truncate max-w-28">
+                              {record.remoteDocumentId}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => copyRemoteId(record.id, record.remoteDocumentId!)}
+                              className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+                              title="复制远端文档 ID"
+                            >
+                              {copiedId === record.id ? (
+                                <Check className="h-3 w-3 text-green-600" />
+                              ) : (
+                                <Copy className="h-3 w-3 text-muted-foreground" />
+                              )}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">

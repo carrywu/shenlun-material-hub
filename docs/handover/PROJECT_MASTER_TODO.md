@@ -1,18 +1,18 @@
 # 项目总 TODO
 
-审计日期：2026-06-05
+审计日期：2026-06-06
 
 本文件是全项目 TODO 总源，包含代码证据支持的问题，也包含从项目规划和长期维护目标推导出的任务。
 
 ## 统计
 
 - 总任务数：80
-- 已完成数量：57
-- 未完成数量：23
+- 已完成数量：80
+- 未完成数量：0
 - P0数量：0（全部完成）
 - P1数量：0（全部完成）
-- P2数量：34（19 已完成 / 15 未完成）
-- P3数量：8（全部未完成）
+- P2数量：34（全部完成）
+- P3数量：8（全部完成）
 
 ## Top10最高优先级任务
 
@@ -169,13 +169,13 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜前端页面｜文章列表增加 owner/visibility 调试列的开发态开关
+- [x] P2｜前端页面｜文章列表增加 owner/visibility 调试列的开发态开关
   - 涉及文件：`src/components/articles/ArticlesPage.tsx`
   - 当前问题：多用户调试时难以看出数据归属。
   - 验收标准：开发态可显示 owner/visibility，生产默认隐藏。
   - 推荐测试：组件渲染测试
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — ArticlesPage.tsx has showDebugCols toggle with Owner + visibility columns
+  - 证据：代码审计
 
 - [x] P2｜前端页面｜素材卡详情增加重新生成入口
   - 涉及文件：`src/app/cards/[id]/page.tsx`，`src/components/MaterialCardEditor.tsx`
@@ -237,13 +237,13 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜网站采集｜广东省政府采集增加异常日志
+- [x] P2｜网站采集｜广东省政府采集增加异常日志
   - 涉及文件：`src/services/collectors/web/guangdongOfficial.ts`
   - 当前问题：采集异常需要进入统一日志和任务结果。
   - 验收标准：解析失败时记录 source、URL、错误摘要。
   - 推荐测试：collector fixture test
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — guangdongOfficial.ts has logger.error("广东政府采集异常", "CRAWLER", ...)
+  - 证据：代码审计
 
 - [x] P2｜网站采集｜湖南省政府栏目解析适配补充 fixture
   - 涉及文件：`src/services/collectors/web/hunanOfficial.ts`，`src/services/collectors/__tests__/hunan-collector.test.ts`
@@ -263,20 +263,20 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜微信公众号｜修复脏 HTML 脚本加入验收记录
+- [x] P2｜微信公众号｜修复脏 HTML 脚本加入验收记录
   - 涉及文件：`scripts/repair-wechat-content.ts`，`docs/acceptance/local-wechat-rss-acceptance.md`
   - 当前问题：清洗脚本存在，需记录 dry-run/apply 验收。
   - 验收标准：文档列出 dry-run 输出示例和回滚方式。
   - 推荐测试：脚本 dry-run
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — local-wechat-rss-acceptance.md section 11 (lines 244-327): dry-run usage, output example, rollback procedure
+  - 证据：代码审计
 
-- [ ] P2｜微信公众号｜图片代理增加微信 CDN 回归测试
+- [x] P2｜微信公众号｜图片代理增加微信 CDN 回归测试
   - 涉及文件：`src/app/api/proxy/image/route.ts`
   - 当前问题：代理有白名单和私网拦截但无测试。
   - 验收标准：允许微信 CDN，拒绝非白名单和私网地址。
   - 推荐测试：Vitest route test
-  - 状态：TODO
+  - 状态：DONE — route.test.ts has 20+ test cases covering allowlist, SSRF, private IP blocking
   - 证据：代码审计
 
 ## WeWe RSS
@@ -289,21 +289,21 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜WeWe RSS｜删除缺失来源流程增加二次确认 E2E
+- [x] P2｜WeWe RSS｜删除缺失来源流程增加二次确认 E2E
   - 涉及文件：`src/components/integrations/WeweRssIntegrationPage.tsx`
   - 当前问题：规则要求二次确认，需要浏览器测试固定。
   - 验收标准：未确认不能删除，确认后只删除 provider=wewe-rss 来源。
   - 推荐测试：Playwright
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — e2e/wewe-rss.spec.ts has cancel and confirm tests with page.route() mocking
+  - 证据：代码审计
 
-- [ ] P2｜WeWe RSS｜外部 WeRSS fallback 增加配置诊断
+- [x] P2｜WeWe RSS｜外部 WeRSS fallback 增加配置诊断
   - 涉及文件：`src/services/integrations/wewe-rss.ts`，`src/app/api/integrations/wewe-rss/status/route.ts`
   - 当前问题：外部 fallback 必须保留，需在状态页可诊断。
   - 验收标准：状态 API 返回 API/OPML/SQLite/fallback 可用性。
   - 推荐测试：route test
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — status/route.ts returns channels: { api, sqlite, weressFallback }
+  - 证据：代码审计
 
 ## AI评估
 
@@ -367,21 +367,21 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜IMA同步｜失败重试策略文档化
+- [x] P2｜IMA同步｜失败重试策略文档化
   - 涉及文件：`src/services/ima-sync.ts`，`docs/handover/PROJECT_MASTER_TODO.md`
   - 当前问题：远端上传失败后的重试/幂等策略需要明确。
   - 验收标准：记录 retry 次数、错误码、人工恢复步骤。
   - 推荐测试：mock IMA 失败单测
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — docs/handover/IMA_SYNC_GUIDE.md (208 lines): retry params (MAX_RETRIES=3, exponential backoff), error codes, recovery steps
+  - 证据：代码审计
 
-- [ ] P3｜IMA同步｜同步记录页增加远端文档链接
+- [x] P3｜IMA同步｜同步记录页增加远端文档链接
   - 涉及文件：`src/components/sync/SyncRecordsPage.tsx`
   - 当前问题：有 `remoteDocumentId` 字段但前端可跳转性需增强。
   - 验收标准：成功记录显示可点击远端链接或复制 ID。
   - 推荐测试：组件测试
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — SyncRecordsPage.tsx added "远端文档" column with monospace display + copy-to-clipboard
+  - 证据：代码审计
 
 ## 数据库
 
@@ -401,13 +401,13 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜数据库｜备份恢复流程加入 RBAC 表校验
+- [x] P2｜数据库｜备份恢复流程加入 RBAC 表校验
   - 涉及文件：`src/lib/backup.ts`，`src/app/api/admin/backup/**`
   - 当前问题：备份恢复需覆盖 User/Session/owner 字段一致性。
   - 验收标准：恢复后 auth 和 owner 数据完整。
   - 推荐测试：backup unit test
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — backup.ts includes User/Session in TABLE_ORDER; backup.test.ts has RBAC test cases
+  - 证据：代码审计
 
 ## 异步任务
 
@@ -419,21 +419,21 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜异步任务｜任务详情增加 result JSON 安全解析
+- [x] P2｜异步任务｜任务详情增加 result JSON 安全解析
   - 涉及文件：`src/app/admin/tasks/page.tsx`
   - 当前问题：任务 result 为 JSON 字符串，前端需要稳定展示异常格式。
   - 验收标准：非法 JSON 不导致页面崩溃。
   - 推荐测试：component test
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — admin/tasks/page.tsx has safeJsonParse() with try/catch
+  - 证据：代码审计
 
-- [ ] P2｜异步任务｜任务列表增加发起用户筛选
+- [x] P2｜异步任务｜任务列表增加发起用户筛选
   - 涉及文件：`src/app/admin/tasks/page.tsx`，`src/app/api/admin/tasks/route.ts`
   - 当前问题：多用户后 admin 需要按用户排查任务。
   - 验收标准：admin 可按 username/userId 筛选任务。
   - 推荐测试：route test + Playwright
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — admin/tasks/route.ts supports userId filter; admin/tasks/page.tsx has user dropdown
+  - 证据：代码审计
 
 ## API
 
@@ -479,13 +479,13 @@
   - 状态：DONE
   - 证据：代码审计
 
-- [ ] P2｜测试体系｜测试命令加入 CI 文档
+- [x] P2｜测试体系｜测试命令加入 CI 文档
   - 涉及文件：`README.md`，`DEPLOY.md`
   - 当前问题：项目有 lint/test/build/playwright 命令，但 CI 契约不完整。
   - 验收标准：文档列出本地和 CI 验证顺序。
   - 推荐测试：人工文档检查
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — DEPLOY.md lines 66-101: full CI validation sequence with min/complete configs
+  - 证据：代码审计
 
 ## Playwright
 
@@ -505,13 +505,13 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜Playwright｜覆盖 WeWe RSS 删除缺失来源确认
-  - 涉及文件：`e2e/subscriptions-wewe-rss.spec.ts`
+- [x] P2｜Playwright｜覆盖 WeWe RSS 删除缺失来源确认
+  - 涉及文件：`e2e/wewe-rss.spec.ts`
   - 当前问题：已有页面加载测试，缺少删除确认流程。
   - 验收标准：取消不删除，确认后执行。
   - 推荐测试：Playwright
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — e2e/wewe-rss.spec.ts has cancel/confirm tests with page.route() mocking
+  - 证据：代码审计
 
 ## 部署
 
@@ -541,31 +541,31 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜Docker｜WeWe RSS sidecar 文档标明只读挂载策略
+- [x] P2｜Docker｜WeWe RSS sidecar 文档标明只读挂载策略
   - 涉及文件：`infra/wechat-rss/wewe-rss/docker-compose.yml`，`infra/wechat-rss/wewe-rss/README.md`
   - 当前问题：规则要求不写 sidecar DB，需要部署层说明。
   - 验收标准：文档说明本项目只读消费 sidecar 数据。
   - 推荐测试：配置审查
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — infra/wechat-rss/wewe-rss/README.md lines 150-194: read-only section with Docker :ro mount example
+  - 证据：代码审计
 
 ## 监控告警
 
-- [ ] P2｜监控告警｜SystemLog 增加错误等级仪表盘
-  - 涉及文件：`src/app/admin/logs/page.tsx`
+- [x] P2｜监控告警｜SystemLog 增加错误等级仪表盘
+  - 涉及文件：`src/app/admin/page.tsx`
   - 当前问题：日志可查询，但缺少错误趋势和告警视图。
   - 验收标准：admin 可看到最近 24h ERROR/WARN 数量。
   - 推荐测试：route + component test
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — admin/page.tsx shows errorLogs24h card (lines 171-178) from /api/admin/metrics
+  - 证据：代码审计
 
-- [ ] P2｜监控告警｜AsyncTask 失败率监控
+- [x] P2｜监控告警｜AsyncTask 失败率监控
   - 涉及文件：`src/app/admin/page.tsx`，`src/app/api/admin/metrics/route.ts`
   - 当前问题：任务失败需要进入运营视图。
   - 验收标准：后台首页展示失败任务计数和入口。
   - 推荐测试：metrics route test
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — admin/page.tsx shows failedTasks24h card (lines 162-169) + link to tasks page
+  - 证据：代码审计
 
 ## 安全
 
@@ -611,13 +611,13 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P3｜性能｜搜索接口规划全文索引替代 contains
+- [x] P3｜性能｜搜索接口规划全文索引替代 contains
   - 涉及文件：`src/app/api/search/route.ts`
   - 当前问题：PostgreSQL 全文检索可替代 LIKE 查询，性能更优。
   - 验收标准：形成 FTS 或外部索引方案。
   - 推荐测试：性能基准
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — docs/design/search-architecture.md: pg_trgm GIN (Phase 1), MeiliSearch (Phase 2), pgvector (Phase 3)
+  - 证据：设计文档
 
 ## 文档
 
@@ -629,12 +629,12 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P2｜文档｜README 增加完整本地启动流程
+- [x] P2｜文档｜README 增加完整本地启动流程
   - 涉及文件：`README.md`
   - 当前问题：README 目前非常简短。
   - 验收标准：包含安装、env、迁移、seed、dev、test。
   - 推荐测试：新环境手动演练
-  - 状态：TODO
+  - 状态：DONE — README.md lines 13-107: install, env, migrate, seed, dev, test
   - 证据：代码审计
 
 - [x] P2｜文档｜CLAUDE.md 和 AGENTS.md 保持同步检查
@@ -663,52 +663,52 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [ ] P3｜技术债｜移除或封存 legacy JWT 支持
+- [x] P3｜技术债｜移除或封存 legacy JWT 支持
   - 涉及文件：`src/lib/auth.ts`
   - 当前问题：legacy JWT 兼容增加认证复杂度。
   - 验收标准：确认无旧 token 依赖后删除或加过期计划。
   - 推荐测试：auth tests
-  - 状态：TODO
-  - 证据：代码审计
+  - 状态：DONE — docs/design/legacy-jwt-deprecation.md: 90-day monitoring plan + removal steps
+  - 证据：设计文档
 
-- [ ] P3｜技术债｜整理 generated Prisma client 提交流程
+- [x] P3｜技术债｜整理 generated Prisma client 提交流程
   - 涉及文件：`src/generated/prisma/**`
   - 当前问题：生成产物已提交，需明确何时更新。
   - 验收标准：文档说明 schema 改动后如何 regenerate 和 review。
   - 推荐测试：build
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — docs/design/prisma-client-regeneration.md: workflow, CI stale detection, troubleshooting
+  - 证据：设计文档
 
 ## 长期规划
 
-- [ ] P3｜长期规划｜定义多用户协作模式
+- [x] P3｜长期规划｜定义多用户协作模式
   - 涉及文件：`docs/handover/RBAC_ARCHITECTURE.md`
   - 当前问题：当前模型偏个人 owner，协作/共享空间未设计。
   - 验收标准：明确个人、公共、团队空间的数据模型方向。
   - 推荐测试：架构评审
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — docs/design/multi-user-collaboration.md: Workspace/WorkspaceMember model, permission matrix, migration strategy
+  - 证据：设计文档
 
-- [ ] P3｜长期规划｜规划素材卡版本历史
+- [x] P3｜长期规划｜规划素材卡版本历史
   - 涉及文件：`prisma/schema.prisma`，`src/components/MaterialCardEditor.tsx`
   - 当前问题：重新生成和人工编辑需要版本策略。
   - 验收标准：形成版本表或快照方案。
   - 推荐测试：设计评审
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — docs/design/material-card-version-history.md: MaterialCardVersion table, trigger points, API design, UI mockup
+  - 证据：设计文档
 
-- [ ] P3｜长期规划｜规划采集源质量自动降权
+- [x] P3｜长期规划｜规划采集源质量自动降权
   - 涉及文件：`src/services/source-quality.ts`
   - 当前问题：已有质量指标，长期可用于自动降权。
   - 验收标准：定义降权阈值、人工复核和恢复机制。
   - 推荐测试：source-quality unit test
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — docs/design/source-quality-auto-downweight.md: F→archive 30d, D→downweight 60d, protection mechanisms
+  - 证据：设计文档
 
-- [ ] P3｜长期规划｜规划外部搜索/向量检索
+- [x] P3｜长期规划｜规划外部搜索/向量检索
   - 涉及文件：`src/app/api/search/route.ts`
   - 当前问题：当前搜索以数据库 contains 为主，长期扩展有限。
   - 验收标准：形成 FTS/向量/外部服务选型文档。
   - 推荐测试：搜索质量评估集
-  - 状态：TODO
-  - 证据：规划推导
+  - 状态：DONE — docs/design/search-architecture.md: pg_trgm (Phase 1), MeiliSearch (Phase 2), pgvector (Phase 3) evaluation
+  - 证据：设计文档

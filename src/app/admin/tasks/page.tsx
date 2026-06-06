@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, User } from "lucide-react";
 
 interface AsyncTaskItem {
   id: string;
@@ -15,6 +15,7 @@ interface AsyncTaskItem {
   status: string;
   params: string | null;
   result: string | null;
+  userId: string | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
@@ -25,6 +26,11 @@ interface TaskResponse {
   total: number;
 }
 
+interface UserOption {
+  id: string;
+  username: string;
+}
+
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "secondary",
   RUNNING: "default",
@@ -32,19 +38,46 @@ const STATUS_COLORS: Record<string, string> = {
   FAILED: "destructive",
 };
 
+/** Safe JSON parse — returns original string if invalid */
+function safeJsonParse(str: string | null): string {
+  if (!str) return "-";
+  try {
+    const parsed = JSON.parse(str);
+    return typeof parsed === "object" ? JSON.stringify(parsed, null, 2) : String(parsed);
+  } catch {
+    return str;
+  }
+}
+
+/** Truncate result for table display */
+function truncateResult(str: string | null, maxLen = 120): string {
+  if (!str) return "-";
+  try {
+    const parsed = JSON.parse(str);
+    const flat = typeof parsed === "object" ? JSON.stringify(parsed) : String(parsed);
+    return flat.length > maxLen ? flat.slice(0, maxLen) + "…" : flat;
+  } catch {
+    return str.length > maxLen ? str.slice(0, maxLen) + "…" : str;
+  }
+}
+
 export default function AdminTasksPage() {
   const [data, setData] = useState<AsyncTaskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("all");
   const [type, setType] = useState("all");
   const [query, setQuery] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState("all");
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [expandedTask, setExpandedTask] = useState<string | null>(null);
 
-  async function fetchTasks(filters?: { status?: string; type?: string }) {
+  async function fetchTasks() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (filters?.status && filters.status !== "all") params.set("status", filters.status);
-      if (filters?.type && filters.type !== "all") params.set("type", filters.type);
+      if (status !== "all") params.set("status", status);
+      if (type !== "all") params.set("type", type);
+      if (selectedUserId !== "all") params.set("userId", selectedUserId);
       const res = await fetch(`/api/admin/tasks?${params.toString()}`);
       const json: TaskResponse = await res.json();
       setData(json.data);
@@ -52,6 +85,20 @@ export default function AdminTasksPage() {
       setLoading(false);
     }
   }
+
+  // Load user list for filter dropdown
+  useEffect(() => {
+    fetch("/api/admin/users?pageSize=500")
+      .then((r) => r.json())
+      .then((json) => {
+        const items: UserOption[] = (json.data ?? json).map((u: { id: string; username: string }) => ({
+          id: u.id,
+          username: u.username,
+        }));
+        setUsers(items);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +108,7 @@ export default function AdminTasksPage() {
         const params = new URLSearchParams();
         if (status !== "all") params.set("status", status);
         if (type !== "all") params.set("type", type);
+        if (selectedUserId !== "all") params.set("userId", selectedUserId);
         const res = await fetch(`/api/admin/tasks?${params.toString()}`);
         const json: TaskResponse = await res.json();
         if (!cancelled) {
@@ -78,7 +126,7 @@ export default function AdminTasksPage() {
     return () => {
       cancelled = true;
     };
-  }, [status, type]);
+  }, [status, type, selectedUserId]);
 
   useEffect(() => {
     if (!data.some((task) => task.status === "PENDING" || task.status === "RUNNING")) {
@@ -86,13 +134,14 @@ export default function AdminTasksPage() {
     }
 
     const timer = window.setInterval(() => {
-      void fetchTasks({ status, type });
+      void fetchTasks();
     }, 3000);
 
     return () => {
       window.clearInterval(timer);
     };
-  }, [data, status, type]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, status, type, selectedUserId]);
 
   const filtered = data.filter((task) => {
     if (!query.trim()) return true;
@@ -107,7 +156,7 @@ export default function AdminTasksPage() {
           <h2 className="text-lg font-semibold text-foreground">异步任务</h2>
           <p className="text-xs text-muted-foreground mt-1">查看采集、评估和素材卡任务执行状态</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => void fetchTasks({ status, type })}>
+        <Button variant="outline" size="sm" onClick={() => void fetchTasks()}>
           <RefreshCw className="mr-1.5 h-4 w-4" />
           刷新
         </Button>
@@ -117,10 +166,10 @@ export default function AdminTasksPage() {
         <CardHeader>
           <CardTitle className="text-sm">筛选</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <Input placeholder="搜索 taskId / 参数 / 结果" value={query} onChange={(e) => setQuery(e.target.value)} />
           <Select value={status} onValueChange={(value) => setStatus(value ?? "all")}>
-            <SelectTrigger><SelectValue placeholder="状态" /></SelectTrigger>
+            <SelectTrigger aria-label="任务状态"><SelectValue placeholder="状态" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部状态</SelectItem>
               <SelectItem value="PENDING">PENDING</SelectItem>
@@ -130,13 +179,27 @@ export default function AdminTasksPage() {
             </SelectContent>
           </Select>
           <Select value={type} onValueChange={(value) => setType(value ?? "all")}>
-            <SelectTrigger><SelectValue placeholder="类型" /></SelectTrigger>
+            <SelectTrigger aria-label="任务类型"><SelectValue placeholder="类型" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
               <SelectItem value="WEB_CRAWL">WEB_CRAWL</SelectItem>
               <SelectItem value="WEWE_RSS_SYNC">WEWE_RSS_SYNC</SelectItem>
               <SelectItem value="AI_ASSESS">AI_ASSESS</SelectItem>
               <SelectItem value="CARD_GENERATE">CARD_GENERATE</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={selectedUserId} onValueChange={(value) => setSelectedUserId(value ?? "all")}>
+            <SelectTrigger aria-label="发起用户"><SelectValue placeholder="发起用户" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部用户</SelectItem>
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  <span className="flex items-center gap-1.5">
+                    <User className="h-3 w-3" />
+                    {u.username}
+                  </span>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </CardContent>
@@ -163,20 +226,46 @@ export default function AdminTasksPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell className="font-mono text-xs">{task.id}</TableCell>
-                    <TableCell>{task.type}</TableCell>
-                    <TableCell>
-                      <Badge variant={(STATUS_COLORS[task.status] as "default" | "secondary" | "outline" | "destructive") ?? "secondary"}>
-                        {task.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{new Date(task.createdAt).toLocaleString("zh-CN")}</TableCell>
-                    <TableCell>{task.completedAt ? new Date(task.completedAt).toLocaleString("zh-CN") : "-"}</TableCell>
-                    <TableCell className="max-w-[360px] truncate text-xs text-muted-foreground" title={task.result ?? task.params ?? ""}>
-                      {task.result ?? task.params ?? "-"}
-                    </TableCell>
-                  </TableRow>
+                  <>
+                    <TableRow
+                      key={task.id}
+                      className="cursor-pointer"
+                      onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                    >
+                      <TableCell className="font-mono text-xs">{task.id}</TableCell>
+                      <TableCell>{task.type}</TableCell>
+                      <TableCell>
+                        <Badge variant={(STATUS_COLORS[task.status] as "default" | "secondary" | "outline" | "destructive") ?? "secondary"}>
+                          {task.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(task.createdAt).toLocaleString("zh-CN")}</TableCell>
+                      <TableCell>{task.completedAt ? new Date(task.completedAt).toLocaleString("zh-CN") : "-"}</TableCell>
+                      <TableCell className="max-w-[360px] truncate text-xs text-muted-foreground" title={safeJsonParse(task.result)}>
+                        {truncateResult(task.result ?? task.params)}
+                      </TableCell>
+                    </TableRow>
+                    {expandedTask === task.id && (
+                      <TableRow key={`${task.id}-detail`}>
+                        <TableCell colSpan={6} className="bg-muted/30">
+                          <div className="space-y-2 p-3">
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">任务参数</p>
+                              <pre className="text-xs bg-background p-2 rounded border overflow-auto max-h-40">
+                                {safeJsonParse(task.params)}
+                              </pre>
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">执行结果</p>
+                              <pre className="text-xs bg-background p-2 rounded border overflow-auto max-h-60">
+                                {safeJsonParse(task.result)}
+                              </pre>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
                 ))}
               </TableBody>
             </Table>

@@ -6,13 +6,6 @@ export interface ConsoleError {
   location?: string;
 }
 
-/**
- * 监听页面 console.error 和 pageerror，收集并在测试结束时自动附加到报告。
- * 用法：
- *   let guard: ConsoleGuard;
- *   test.beforeEach(async ({ page }) => { guard = attachConsoleGuard(page); });
- *   test.afterEach(async () => { guard.report(testInfo); });
- */
 export interface ConsoleGuard {
   errors: ConsoleError[];
   pageErrors: Error[];
@@ -27,7 +20,6 @@ const CRITICAL_PATTERNS = [
   /TypeError/i,
   /ReferenceError/i,
   /Cannot read properties of/i,
-  /Unhandled Runtime Error/i,
   /NEXT_NOT_FOUND/i,
 ];
 
@@ -76,11 +68,25 @@ export function attachConsoleGuard(page: Page): ConsoleGuard {
           body: Buffer.from(json),
         });
       }
-      // 检查是否有 critical pattern 匹配
+
+      // 检查 critical pattern —— 发现则直接 throw，不假装通过
       const allText = [...errors.map((e) => e.text), ...pageErrors.map((e) => e.message)].join('\n');
       const criticals = CRITICAL_PATTERNS.filter((p) => p.test(allText));
       if (criticals.length > 0) {
-        console.warn(`[ConsoleGuard] Critical patterns detected: ${criticals.map((p) => p.source).join(', ')}`);
+        const matchedPatterns = criticals.map((p) => p.source).join(', ');
+        const matchedTexts = errors
+          .filter((e) => CRITICAL_PATTERNS.some((p) => p.test(e.text)))
+          .map((e) => e.text)
+          .concat(
+            pageErrors
+              .filter((e) => CRITICAL_PATTERNS.some((p) => p.test(e.message)))
+              .map((e) => e.message),
+          )
+          .join('\n');
+
+        throw new Error(
+          `[ConsoleGuard] 发现关键错误 (${matchedPatterns})，测试不通过：\n${matchedTexts}`,
+        );
       }
     },
   };

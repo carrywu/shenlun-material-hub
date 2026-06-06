@@ -46,6 +46,7 @@ export class AiServiceError extends Error {
 }
 
 let cachedRuntime: AiRuntime | null = null;
+const cachedRuntimeByUser = new Map<string, AiRuntime>();
 
 export function buildAiContent(content: string, maxLength = 4000): string {
   if (content.length <= maxLength) return content;
@@ -68,6 +69,7 @@ export function buildAiContent(content: string, maxLength = 4000): string {
  */
 export function resetAiConfigCache(): void {
   cachedRuntime = null;
+  cachedRuntimeByUser.clear();
 }
 
 function trimConfigValue(value: string | null | undefined): string | undefined {
@@ -88,7 +90,7 @@ function envHash(apiKey: string, baseURL: string | undefined, model: string): st
     .slice(0, 16);
 }
 
-async function resolveAiRuntimeConfig(): Promise<{
+async function resolveAiRuntimeConfig(userId?: string): Promise<{
   apiKey: string;
   model: string;
   source: AiRuntimeSource;
@@ -96,16 +98,34 @@ async function resolveAiRuntimeConfig(): Promise<{
   cacheKey: string;
 }> {
   try {
-    const config = await db.aiConfig.findFirst({
-      where: { name: "default", isEnabled: true },
-      select: {
-        id: true,
-        encryptedKey: true,
-        baseUrl: true,
-        model: true,
-        updatedAt: true,
-      },
-    });
+    // Phase 3: If userId provided, try user-specific config first
+    let config = null;
+    if (userId) {
+      config = await db.aiConfig.findFirst({
+        where: { userId, isEnabled: true },
+        select: {
+          id: true,
+          encryptedKey: true,
+          baseUrl: true,
+          model: true,
+          updatedAt: true,
+        },
+      });
+    }
+
+    // Fall back to global config
+    if (!config) {
+      config = await db.aiConfig.findFirst({
+        where: { name: "default", isEnabled: true, userId: null },
+        select: {
+          id: true,
+          encryptedKey: true,
+          baseUrl: true,
+          model: true,
+          updatedAt: true,
+        },
+      });
+    }
 
     if (config) {
       if (!process.env.AI_CONFIG_ENCRYPTION_KEY) {
@@ -174,14 +194,24 @@ async function resolveAiRuntimeConfig(): Promise<{
   };
 }
 
-export async function getAiRuntime(): Promise<AiRuntime> {
-  const config = await resolveAiRuntimeConfig();
+export async function getAiRuntime(userId?: string): Promise<AiRuntime> {
+  const config = await resolveAiRuntimeConfig(userId);
 
-  if (cachedRuntime?.cacheKey === config.cacheKey) {
-    return cachedRuntime;
+  // Per-user cache keyed by userId (or "global" for unauthenticated)
+  const cacheKey = userId ?? "global";
+
+  if (userId) {
+    const cached = cachedRuntimeByUser.get(cacheKey);
+    if (cached?.cacheKey === config.cacheKey) {
+      return cached;
+    }
+  } else {
+    if (cachedRuntime?.cacheKey === config.cacheKey) {
+      return cachedRuntime;
+    }
   }
 
-  cachedRuntime = {
+  const runtime: AiRuntime = {
     client: new OpenAI({
       apiKey: config.apiKey,
       baseURL: config.baseURL,
@@ -193,7 +223,13 @@ export async function getAiRuntime(): Promise<AiRuntime> {
     cacheKey: config.cacheKey,
   };
 
-  return cachedRuntime;
+  if (userId) {
+    cachedRuntimeByUser.set(cacheKey, runtime);
+  } else {
+    cachedRuntime = runtime;
+  }
+
+  return runtime;
 }
 
 export async function getOpenAI(): Promise<{ openai: OpenAI; model: string }> {
@@ -370,9 +406,10 @@ export async function assessRelevance(
   title: string,
   sourceName: string,
   content: string,
-  contentType: string
+  contentType: string,
+  userId?: string
 ): Promise<RelevanceResult> {
-  const runtime = await getAiRuntime();
+  const runtime = await getAiRuntime(userId);
   const temperature = await getTemperature();
   const systemPrompt = renderPromptTemplate(await getPromptTemplate("article_evaluation"), {
     title,
@@ -439,7 +476,7 @@ export async function assessRelevanceWithRetry(
   sourceName: string,
   content: string,
   contentType: string,
-  options?: { maxRetries?: number; timeoutMs?: number }
+  options?: { maxRetries?: number; timeoutMs?: number; userId?: string }
 ): Promise<RelevanceResult> {
   const maxRetries = options?.maxRetries ?? 2;
   const timeoutMs = options?.timeoutMs ?? 30000;
@@ -450,7 +487,7 @@ export async function assessRelevanceWithRetry(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const result = await Promise.race([
-        assessRelevance(title, sourceName, content, contentType),
+        assessRelevance(title, sourceName, content, contentType, options?.userId),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("AI 评估超时")), timeoutMs)
         ),
@@ -506,9 +543,10 @@ export async function scoreContentItem(
   title: string,
   sourceName: string,
   content: string,
-  contentType: string
+  contentType: string,
+  userId?: string
 ): Promise<AIScoreResult> {
-  const runtime = await getAiRuntime();
+  const runtime = await getAiRuntime(userId);
 
   const userPrompt = `请对以下文章进行评分：
 
@@ -1050,9 +1088,10 @@ export async function generateCardForContentItem(
   title: string,
   sourceName: string,
   content: string,
-  cardType: CardType
+  cardType: CardType,
+  userId?: string
 ): Promise<AIGeneratedCardData> {
-  const runtime = await getAiRuntime();
+  const runtime = await getAiRuntime(userId);
   const aiContent = buildAiContent(content);
   const systemPrompt = renderPromptTemplate(await getPromptTemplate(CARD_TYPE_PROMPT_KEYS[cardType]), {
     title,
@@ -1114,7 +1153,8 @@ interface GenerationResult {
 
 export async function generateBatchCards(
   items: ContentItemForGeneration[],
-  concurrency: number = 3
+  concurrency: number = 3,
+  userId?: string
 ): Promise<GenerationResult[]> {
   const results: GenerationResult[] = [];
 
@@ -1127,7 +1167,8 @@ export async function generateBatchCards(
             item.title,
             item.sourceName,
             item.content,
-            item.cardType
+            item.cardType,
+            userId
           );
           return { contentItemId: item.id, success: true, data };
         } catch (error) {
@@ -1148,9 +1189,9 @@ export async function generateBatchCards(
 /**
  * 测试 AI 配置是否可用
  */
-export async function testAiConfig(): Promise<{ success: boolean; error?: string }> {
+export async function testAiConfig(userId?: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const runtime = await getAiRuntime();
+    const runtime = await getAiRuntime(userId);
 
     const completion = await createChatCompletion(runtime, {
       model: runtime.model,

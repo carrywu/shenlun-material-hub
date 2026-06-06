@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 import { assessRelevanceWithRetry } from "@/services/ai";
-import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 const DEFAULT_CONCURRENCY = 3;
 
@@ -15,7 +15,8 @@ async function assessSingleItem(
     excerpt: string | null;
     source: { name: string } | null;
   },
-  errors: string[]
+  errors: string[],
+  userId?: string
 ): Promise<"accepted" | "rejected" | "skipped" | "error"> {
   const content = item.fullText ?? item.excerpt ?? "";
   if (!content || content.length < 300) {
@@ -28,7 +29,8 @@ async function assessSingleItem(
       item.title,
       item.source?.name ?? "未知来源",
       content,
-      item.contentType
+      item.contentType,
+      { userId }
     );
 
     await db.contentItem.update({
@@ -71,7 +73,8 @@ async function assessSingleItem(
 async function runAssessTask(
   ids: string[] | undefined,
   retryFailed: boolean | undefined,
-  concurrency: number
+  concurrency: number,
+  userId?: string
 ) {
   let whereClause: Record<string, unknown>;
 
@@ -107,7 +110,7 @@ async function runAssessTask(
   for (let i = 0; i < items.length; i += concurrency) {
     const batch = items.slice(i, i + concurrency);
     const results = await Promise.all(
-      batch.map((item) => assessSingleItem(item, errors))
+      batch.map((item) => assessSingleItem(item, errors, userId))
     );
 
     for (const result of results) {
@@ -128,7 +131,7 @@ async function runAssessTask(
 
 // POST /api/content-items/assess — 批量 AI 评估内容条目
 export async function POST(request: NextRequest) {
-  const user = await requireAdmin(request);
+  const user = await requireVerifiedUser(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) {
@@ -187,7 +190,7 @@ export async function POST(request: NextRequest) {
       itemCount: count,
     });
 
-    enqueueAsyncTask(task, () => runAssessTask(ids, retryFailed, concurrency));
+    enqueueAsyncTask(task, () => runAssessTask(ids, retryFailed, concurrency, user.id));
 
     return NextResponse.json(
       {

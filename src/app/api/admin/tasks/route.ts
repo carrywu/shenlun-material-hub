@@ -24,6 +24,10 @@ export async function GET(request: NextRequest) {
     if (status && status !== "all") where.status = status;
     if (type && type !== "all") where.type = type;
 
+    // Admin can filter by userId to see tasks from a specific user
+    const userIdFilter = searchParams.get("userId");
+    if (userIdFilter) where.userId = userIdFilter;
+
     // Multi-user data isolation: for non-ADMIN users, filter by userId
     // (Currently only admins can access this route, but added for future-proofing)
     const ownerFilter = ownerScopeWhere(user, "userId");

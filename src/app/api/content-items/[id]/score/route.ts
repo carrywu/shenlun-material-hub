@@ -43,7 +43,8 @@ export async function POST(
       item.title,
       item.source?.name ?? "未知来源",
       item.fullText ?? item.excerpt ?? "",
-      item.contentType
+      item.contentType,
+      user.id
     );
 
     // Save score to database

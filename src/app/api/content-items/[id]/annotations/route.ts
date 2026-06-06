@@ -82,7 +82,8 @@ export async function POST(
         item.title,
         item.fullText,
         selectedText,
-        cardType
+        cardType,
+        user.id
       );
 
       const annotation = await db.articleAnnotation.create({
@@ -164,7 +165,7 @@ export async function PUT(
       );
     }
 
-    const results = await autoAnnotateArticle(id, item.title, item.fullText);
+    const results = await autoAnnotateArticle(id, item.title, item.fullText, user.id);
 
     // 批量创建批注
     const created = await Promise.all(

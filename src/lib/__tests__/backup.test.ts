@@ -59,6 +59,7 @@ vi.mock("@/lib/db", () => ({
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      count: vi.fn().mockResolvedValue(0),
     },
     systemLog: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -84,7 +85,9 @@ vi.mock("@/lib/db", () => ({
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      count: vi.fn().mockResolvedValue(0),
     },
+    $queryRaw: vi.fn().mockResolvedValue([{ count: BigInt(0) }]),
   },
 }));
 
@@ -126,5 +129,85 @@ describe("backup helpers", () => {
     await restoreBackupArchive(parsed, { uploadsDir: targetUploadsDir });
 
     expect(readFileSync(path.join(targetUploadsDir, "nested/file.txt"), "utf8")).toBe("nested-data");
+  });
+
+  it("returns RBAC warnings when no active admin exists", async () => {
+    const uploadsDir = path.join(rootDir, "uploads");
+    mkdirSync(uploadsDir, { recursive: true });
+
+    const { createBackupArchive, parseBackupArchive, restoreBackupArchive } = await import("../backup");
+    const { db } = await import("@/lib/db");
+
+    // Mock: 0 admins (first call), 0 total users (second call), 0 sessions
+    vi.mocked(db.user.count).mockResolvedValue(0);
+    vi.mocked(db.session.count).mockResolvedValue(0);
+
+    const archive = await createBackupArchive({ uploadsDir });
+    const parsed = await parseBackupArchive(archive);
+    const result = await restoreBackupArchive(parsed, { uploadsDir });
+
+    expect(result.rbacWarnings).toContain("恢复后无活跃管理员账户，请手动创建管理员");
+  });
+
+  it("returns RBAC warnings when sessions exist but no users", async () => {
+    const uploadsDir = path.join(rootDir, "uploads");
+    mkdirSync(uploadsDir, { recursive: true });
+
+    const { createBackupArchive, parseBackupArchive, restoreBackupArchive } = await import("../backup");
+    const { db } = await import("@/lib/db");
+
+    // Mock: admin exists, but 0 users and 5 sessions
+    vi.mocked(db.user.count)
+      .mockResolvedValueOnce(1)  // admin check: at least one admin
+      .mockResolvedValueOnce(0); // total users: 0
+    vi.mocked(db.session.count).mockResolvedValue(5);
+
+    const archive = await createBackupArchive({ uploadsDir });
+    const parsed = await parseBackupArchive(archive);
+    const result = await restoreBackupArchive(parsed, { uploadsDir });
+
+    expect(result.rbacWarnings).toContain("恢复后有 5 个会话但无用户，建议清理孤立会话");
+  });
+
+  it("returns RBAC warnings when orphaned sessions reference non-existent users", async () => {
+    const uploadsDir = path.join(rootDir, "uploads");
+    mkdirSync(uploadsDir, { recursive: true });
+
+    const { createBackupArchive, parseBackupArchive, restoreBackupArchive } = await import("../backup");
+    const { db } = await import("@/lib/db");
+
+    // Mock: admin exists, 3 users, 10 sessions, 2 orphaned
+    vi.mocked(db.user.count)
+      .mockResolvedValueOnce(1)  // admin check: has admin
+      .mockResolvedValueOnce(3); // total users: 3
+    vi.mocked(db.session.count).mockResolvedValue(10);
+    vi.mocked(db.$queryRaw).mockResolvedValue([{ count: BigInt(2) }]);
+
+    const archive = await createBackupArchive({ uploadsDir });
+    const parsed = await parseBackupArchive(archive);
+    const result = await restoreBackupArchive(parsed, { uploadsDir });
+
+    expect(result.rbacWarnings).toContain("恢复后有 2 个孤立会话（引用了不存在的用户），建议清理");
+  });
+
+  it("returns no warnings when data is healthy", async () => {
+    const uploadsDir = path.join(rootDir, "uploads");
+    mkdirSync(uploadsDir, { recursive: true });
+
+    const { createBackupArchive, parseBackupArchive, restoreBackupArchive } = await import("../backup");
+    const { db } = await import("@/lib/db");
+
+    // Mock: admin exists, users exist, sessions exist, no orphans
+    vi.mocked(db.user.count)
+      .mockResolvedValueOnce(1)  // admin check: has admin
+      .mockResolvedValueOnce(2); // total users: 2
+    vi.mocked(db.session.count).mockResolvedValue(5);
+    vi.mocked(db.$queryRaw).mockResolvedValue([{ count: BigInt(0) }]);
+
+    const archive = await createBackupArchive({ uploadsDir });
+    const parsed = await parseBackupArchive(archive);
+    const result = await restoreBackupArchive(parsed, { uploadsDir });
+
+    expect(result.rbacWarnings).toEqual([]);
   });
 });

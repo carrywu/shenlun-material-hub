@@ -49,6 +49,14 @@ export async function GET(request: Request) {
     });
 
     const past24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const failedTasks24h = await db.asyncTask.count({
+      where: {
+        status: "FAILED",
+        createdAt: { gte: past24h }
+      }
+    });
+
     const errorLogs24h = await db.systemLog.count({
       where: {
         level: "ERROR",
@@ -102,6 +110,7 @@ export async function GET(request: Request) {
         totalArticles,
         totalSources,
         activeTasks,
+        failedTasks24h,
         errorLogs24h,
         dbSizeMb
       },

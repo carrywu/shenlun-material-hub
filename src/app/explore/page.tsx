@@ -216,7 +216,7 @@ export default function ExplorePage() {
           </div>
 
           <Select value={platform} onValueChange={(v) => { if (v) setPlatform(v); }}>
-            <SelectTrigger className="w-32 h-8">
+            <SelectTrigger className="w-32 h-8" aria-label="平台">
               <SelectValue>
                 {platform === "all" ? "全部平台" : (PLATFORM_LABELS[platform] ?? platform)}
               </SelectValue>
@@ -232,7 +232,7 @@ export default function ExplorePage() {
           </Select>
 
           <Select value={contentType} onValueChange={(v) => { if (v) setContentType(v); }}>
-            <SelectTrigger className="w-36 h-8">
+            <SelectTrigger className="w-36 h-8" aria-label="内容类型">
               <SelectValue>
                 {contentType === "all" ? "全部类型" : (CONTENT_TYPE_LABELS[contentType] ?? contentType)}
               </SelectValue>

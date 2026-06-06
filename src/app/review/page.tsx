@@ -210,7 +210,7 @@ export default function ReviewPage() {
         {/* Controls */}
         <div className="flex flex-wrap gap-2 items-center">
           <Select value={mode} onValueChange={(v) => { if (v) setMode(v); }}>
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="w-36" aria-label="复习模式">
               <SelectValue>
                 {modeLabels[mode] ?? mode}
               </SelectValue>
@@ -226,7 +226,7 @@ export default function ReviewPage() {
             value={cardType}
             onValueChange={(v) => setCardType(v === "all" || !v ? "" : v)}
           >
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32" aria-label="素材卡类型">
               <SelectValue>
                 {cardType === "" ? "全部类型" : (CARD_TYPE_LABELS[cardType] ?? cardType)}
               </SelectValue>

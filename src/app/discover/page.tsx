@@ -216,7 +216,7 @@ export default function DiscoverPage() {
       <div className="border-b px-6 py-3">
         <div className="flex items-center gap-3">
           <Select value={platform} onValueChange={(v) => { if (v) setPlatform(v); }}>
-            <SelectTrigger className="w-32 h-8">
+            <SelectTrigger className="w-32 h-8" aria-label="平台">
               <SelectValue>
                 {platform === "all" ? "全部平台" : (PLATFORM_LABELS[platform] ?? platform)}
               </SelectValue>
@@ -232,7 +232,7 @@ export default function DiscoverPage() {
           </Select>
 
           <Select value={contentType} onValueChange={(v) => { if (v) setContentType(v); }}>
-            <SelectTrigger className="w-36 h-8">
+            <SelectTrigger className="w-36 h-8" aria-label="内容类型">
               <SelectValue>
                 {contentType === "all" ? "全部类型" : (CONTENT_TYPE_LABELS[contentType] ?? contentType)}
               </SelectValue>
@@ -248,7 +248,7 @@ export default function DiscoverPage() {
           </Select>
 
           <Select value={trustLevel} onValueChange={(v) => { if (v) setTrustLevel(v); }}>
-            <SelectTrigger className="w-36 h-8">
+            <SelectTrigger className="w-36 h-8" aria-label="信任等级">
               <SelectValue>
                 {trustLevel === "all" ? "全部等级" : (TRUST_LEVEL_CONFIG[trustLevel]?.label ?? trustLevel)}
               </SelectValue>

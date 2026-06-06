@@ -29,7 +29,7 @@ export function SourceFilter({ value, onChange }: SourceFilterProps) {
     <div className="flex items-center gap-2">
       <span className="text-sm font-medium text-muted-foreground">来源:</span>
       <Select value={value} onValueChange={(v) => onChange(v ?? "all")}>
-        <SelectTrigger className="h-8 w-[140px]">
+        <SelectTrigger className="h-8 w-[140px]" aria-label="来源">
           <SelectValue>
             {sources.find(s => s.value === value)?.label ?? value}
           </SelectValue>

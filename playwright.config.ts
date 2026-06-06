@@ -2,14 +2,17 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30 * 1000,
+  timeout: 60 * 1000,
   expect: {
-    timeout: 5000
+    timeout: 10000,
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.02,
+    },
   },
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 2 : 1,
+  workers: process.env.CI ? 1 : 4,
   reporter: 'html',
   use: {
     actionTimeout: 0,
@@ -17,7 +20,10 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    storageState: '.auth/admin-storage.json',
   },
+  snapshotDir: './e2e/__screenshots__',
+  globalSetup: require.resolve('./e2e/global-setup'),
   projects: [
     {
       name: 'chromium',

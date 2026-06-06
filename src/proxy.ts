@@ -14,7 +14,23 @@ const ALWAYS_PUBLIC = [
 
 // Page routes that allow anonymous access (non-API, browser-visible pages)
 const PUBLIC_PAGES = [
-  "/articles",
+  "/articles",       // 文章列表（公开浏览）
+  "/discover",       // 今日推荐（公开内容源）
+  "/explore",        // 探索区（未验证来源）
+  "/search",         // 素材卡检索
+  "/review",         // 复习模式
+  "/cards",          // 素材卡浏览
+  "/register",       // 用户注册
+];
+
+// API routes that allow anonymous access (public data feeds)
+const PUBLIC_APIS = [
+  "/api/articles",       // 文章列表 API
+  "/api/discover",       // 推荐内容 API
+  "/api/explore",        // 探索内容 API
+  "/api/search",         // 搜索 API
+  "/api/health",         // 健康检查
+  "/api/auth/register",  // 注册 API
 ];
 
 export async function proxy(req: NextRequest) {
@@ -57,6 +73,14 @@ export async function proxy(req: NextRequest) {
 
   // ── API routes: return 401 JSON for protected endpoints ───────────────────
   if (pathname.startsWith("/api/")) {
+    // Check if this API is in the explicit public whitelist
+    const isPublicApi = PUBLIC_APIS.some(
+      (p) => pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p + "?")
+    );
+    if (isPublicApi) {
+      return NextResponse.next();
+    }
+
     const isAiTaskApi =
       pathname === "/api/content-items/assess" ||
       pathname === "/api/content-items/reassess" ||

@@ -25,7 +25,7 @@ export function RegionFilter({ value, onChange }: RegionFilterProps) {
     <div className="flex items-center gap-2">
       <span className="text-sm font-medium text-muted-foreground">地区:</span>
       <Select value={value} onValueChange={(v) => onChange(v ?? "all")}>
-        <SelectTrigger className="h-8 w-[140px]">
+        <SelectTrigger className="h-8 w-[140px]" aria-label="地区">
           <SelectValue>
             {regions.find(r => r.value === value)?.label ?? value}
           </SelectValue>

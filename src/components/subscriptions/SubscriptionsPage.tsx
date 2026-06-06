@@ -609,7 +609,7 @@ export default function SubscriptionsPage() {
           </div>
 
           <Select value={platform} onValueChange={(v) => { if (v) setPlatform(v); }}>
-            <SelectTrigger className="w-28">
+            <SelectTrigger className="w-28" aria-label="平台">
               <SelectValue>
                 {platform === "all" ? "全部平台" : (PLATFORM_LABELS[platform] ?? platform)}
               </SelectValue>
@@ -625,7 +625,7 @@ export default function SubscriptionsPage() {
           </Select>
 
           <Select value={contentType} onValueChange={(v) => { if (v) setContentType(v); }}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32" aria-label="内容类型">
               <SelectValue>
                 {contentType === "all" ? "全部类型" : (CONTENT_TYPE_LABELS[contentType] ?? contentType)}
               </SelectValue>
@@ -641,7 +641,7 @@ export default function SubscriptionsPage() {
           </Select>
 
           <Select value={trustLevel} onValueChange={(v) => { if (v) setTrustLevel(v); }}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32" aria-label="信任等级">
               <SelectValue>
                 {trustLevel === "all" ? "全部等级" : (TRUST_LEVEL_LABELS[trustLevel] ?? trustLevel)}
               </SelectValue>
@@ -657,7 +657,7 @@ export default function SubscriptionsPage() {
           </Select>
 
           <Select value={isEnabled} onValueChange={(v) => { if (v) setIsEnabled(v); }}>
-            <SelectTrigger className="w-28">
+            <SelectTrigger className="w-28" aria-label="启用状态">
               <SelectValue>
                 {isEnabled === "all" ? "全部状态" : isEnabled === "true" ? "已启用" : "已停用"}
               </SelectValue>
@@ -673,7 +673,7 @@ export default function SubscriptionsPage() {
             value={verificationStatus}
             onValueChange={(v) => { if (v) setVerificationStatus(v); }}
           >
-            <SelectTrigger className="w-28">
+            <SelectTrigger className="w-28" aria-label="核验状态">
               <SelectValue>
                 {verificationStatus === "all" ? "全部" : (VERIFICATION_LABELS[verificationStatus] ?? verificationStatus)}
               </SelectValue>
@@ -993,7 +993,7 @@ export default function SubscriptionsPage() {
                       if (v) setForm((f) => ({ ...f, platform: v }));
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="来源平台">
                       <SelectValue>
                         {PLATFORM_LABELS[form.platform] ?? form.platform}
                       </SelectValue>
@@ -1024,7 +1024,7 @@ export default function SubscriptionsPage() {
                       if (v) setForm((f) => ({ ...f, priority: v }));
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="优先级">
                       <SelectValue>
                         {form.priority}
                       </SelectValue>
@@ -1049,7 +1049,7 @@ export default function SubscriptionsPage() {
                       if (v) setForm((f) => ({ ...f, contentType: v }));
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="内容类型">
                       <SelectValue>
                         {CONTENT_TYPE_LABELS[form.contentType] ?? form.contentType}
                       </SelectValue>
@@ -1072,7 +1072,7 @@ export default function SubscriptionsPage() {
                       if (v) setForm((f) => ({ ...f, trustLevel: v }));
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="信任等级">
                       <SelectValue>
                         {TRUST_LEVEL_LABELS[form.trustLevel] ?? form.trustLevel}
                       </SelectValue>
@@ -1225,7 +1225,7 @@ export default function SubscriptionsPage() {
               <div className="grid gap-1.5">
                 <label className="text-sm font-medium">核验状态</label>
                 <Select value={verifyStatus} onValueChange={(v) => { if (v) setVerifyStatus(v); }}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="核验状态">
                     <SelectValue>
                       {VERIFICATION_LABELS[verifyStatus] ?? verifyStatus}
                     </SelectValue>

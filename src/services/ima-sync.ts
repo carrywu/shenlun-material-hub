@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { decrypt } from "@/lib/crypto";
 import type { MaterialCardStructuredContent } from "@/types";
 
 const IMA_API_BASE = process.env.IMA_API_BASE ?? "https://api.ima.qq.com";
@@ -8,6 +9,42 @@ const IMA_KNOWLEDGE_BASE_ID = process.env.IMA_KNOWLEDGE_BASE_ID ?? "";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
+
+export interface ImaConfig {
+  baseUrl: string;
+  clientId: string;
+  apiKey: string;
+  knowledgeBaseId: string;
+}
+
+/**
+ * 解析 IMA 配置：优先从数据库 ImaTarget 表读取用户配置，回退到环境变量。
+ */
+export async function resolveImaConfig(userId?: string): Promise<ImaConfig> {
+  if (userId) {
+    const target = await db.imaTarget.findFirst({
+      where: { userId, isEnabled: true },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    if (target) {
+      return {
+        baseUrl: target.baseUrl,
+        clientId: target.clientId ?? "",
+        apiKey: target.encryptedApiKey ? decrypt(target.encryptedApiKey) : "",
+        knowledgeBaseId: target.knowledgeBaseId ?? "",
+      };
+    }
+  }
+
+  // 回退到环境变量
+  return {
+    baseUrl: IMA_API_BASE,
+    clientId: IMA_CLIENT_ID,
+    apiKey: IMA_API_KEY,
+    knowledgeBaseId: IMA_KNOWLEDGE_BASE_ID,
+  };
+}
 
 interface ImaDocument {
   title: string;
@@ -87,13 +124,17 @@ function formatCardContent(
 async function callImaApi(
   endpoint: string,
   method: string,
-  body?: unknown
+  body?: unknown,
+  config?: ImaConfig
 ): Promise<unknown> {
-  const url = `${IMA_API_BASE}${endpoint}`;
+  const baseUrl = config?.baseUrl ?? IMA_API_BASE;
+  const clientId = config?.clientId ?? IMA_CLIENT_ID;
+  const apiKey = config?.apiKey ?? IMA_API_KEY;
+  const url = `${baseUrl}${endpoint}`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-Client-Id": IMA_CLIENT_ID,
-    Authorization: `Bearer ${IMA_API_KEY}`,
+    "X-Client-Id": clientId,
+    Authorization: `Bearer ${apiKey}`,
   };
 
   const res = await fetch(url, {
@@ -111,32 +152,36 @@ async function callImaApi(
 }
 
 async function uploadDocument(
-  doc: ImaDocument
+  doc: ImaDocument,
+  config?: ImaConfig
 ): Promise<ImaSyncResult> {
+  const kbId = config?.knowledgeBaseId ?? IMA_KNOWLEDGE_BASE_ID;
   const result = (await callImaApi(
-    `/v1/knowledge_bases/${IMA_KNOWLEDGE_BASE_ID}/documents`,
+    `/v1/knowledge_bases/${kbId}/documents`,
     "POST",
     {
       title: doc.title,
       content: doc.content,
       metadata: doc.metadata,
-    }
+    },
+    config
   )) as { document_id: string };
 
   return {
-    knowledgeBaseId: IMA_KNOWLEDGE_BASE_ID,
+    knowledgeBaseId: kbId,
     documentId: result.document_id,
   };
 }
 
 async function uploadDocumentWithRetry(
-  doc: ImaDocument
+  doc: ImaDocument,
+  config?: ImaConfig
 ): Promise<ImaSyncResult> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      return await uploadDocument(doc);
+      return await uploadDocument(doc, config);
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       if (attempt < MAX_RETRIES - 1) {
@@ -204,6 +249,7 @@ export async function syncToIma(
   });
 
   try {
+    const config = await resolveImaConfig(userId);
     const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
     const topicTags = card.contentItem?.topicTags ?? "[]";
     let parsedTags: string;
@@ -220,7 +266,7 @@ export async function syncToIma(
       parsedTags
     );
 
-    const result = await uploadDocumentWithRetry(doc);
+    const result = await uploadDocumentWithRetry(doc, config);
 
     await db.syncRecord.update({
       where: { id: syncRecord.id },

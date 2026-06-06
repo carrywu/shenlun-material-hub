@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assessRelevanceWithRetry } from "@/services/ai";
-import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 
 // POST /api/content-items/reassess — 重新评估单个条目
 export async function POST(request: NextRequest) {
-  const user = await requireAdmin(request);
+  const user = await requireVerifiedUser(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) {
@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
       item.title,
       item.source?.name ?? "未知来源",
       content,
-      item.contentType
+      item.contentType,
+      { userId: user.id }
     );
 
     const updated = await db.contentItem.update({

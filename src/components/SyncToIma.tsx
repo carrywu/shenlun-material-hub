@@ -165,6 +165,10 @@ export function BatchSyncToIma({
 }: BatchSyncToImaProps) {
   const [syncing, setSyncing] = useState(false);
   const [result, setResult] = useState<BatchSyncResult | null>(null);
+  const { isAdmin } = useAuth();
+
+  // Only admins can batch sync to IMA
+  if (!isAdmin) return null;
 
   async function handleBatchSync() {
     setSyncing(true);

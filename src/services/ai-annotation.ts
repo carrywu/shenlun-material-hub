@@ -12,9 +12,10 @@ export async function generateAnnotation(
   articleTitle: string,
   articleContent: string,
   selectedText: string,
-  cardType?: string
+  cardType?: string,
+  userId?: string
 ): Promise<AnnotationResult> {
-  const runtime = await getAiRuntime();
+  const runtime = await getAiRuntime(userId);
   const systemPrompt = await getPromptTemplate("annotation_selected");
 
   const contextSnippet = articleContent.slice(0, 3000);
@@ -60,9 +61,10 @@ ${cardType ? `\n【关联素材卡类型】${cardType}` : ""}
 export async function autoAnnotateArticle(
   articleId: string,
   articleTitle: string,
-  articleContent: string
+  articleContent: string,
+  userId?: string
 ): Promise<Array<{ paragraph: number; selectedText: string; comment: string; tags: string[] }>> {
-  const runtime = await getAiRuntime();
+  const runtime = await getAiRuntime(userId);
   const systemPrompt = await getPromptTemplate("annotation_auto");
 
   const content = articleContent.slice(0, 5000);

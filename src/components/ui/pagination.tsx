@@ -46,7 +46,7 @@ export function Pagination({
                 if (v) onPageSizeChange(Number(v));
               }}
             >
-              <SelectTrigger className="w-16 h-7">
+              <SelectTrigger className="w-16 h-7" aria-label="每页条数">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

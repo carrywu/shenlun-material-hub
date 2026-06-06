@@ -1,4 +1,5 @@
 import { BaseCollector, type RawArticle } from "../base";
+import { logger } from "@/lib/logger";
 
 // 广东省政府网采集器
 // 使用栏目配置（CollectionChannel）进行采集
@@ -104,7 +105,10 @@ export class GuangdongOfficialCollector extends BaseCollector {
       }
 
       return { fullText, publishedAt, author };
-    } catch {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : String(error);
+      logger.error("广东政府采集异常", "CRAWLER", `URL: ${url}, Error: ${message}`);
       return null;
     }
   }

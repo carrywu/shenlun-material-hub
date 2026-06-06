@@ -26,6 +26,12 @@ model User {
   asyncTasks            AsyncTask[]
   syncRecords           SyncRecord[]
   annotations           ArticleAnnotation[]
+  aiConfigs             AiConfig[]
+  userIntegrations      UserIntegration[]
+  imaTargets            ImaTarget[]
+  createdInvitations    Invitation[]       @relation("CreatedInvitations")
+  invitationUses        InvitationUse[]
+  auditLogs             AuditLog[]
 }
 
 // 会话
@@ -277,7 +283,8 @@ model CollectorRun {
 // P0-2: AI 配置（加密存储 API 密钥）
 model AiConfig {
   id            String   @id @default(cuid())
-  name          String   @unique           // 配置名称（如 default）
+  name          String                     // 配置名称（如 default）
+  userId        String?                    // Phase 3: 用户级配置（null = 全局）
   baseUrl       String   @default("https://api.openai.com/v1")
   encryptedKey  String                     // 加密后的 API Key
   model         String   @default("gpt-4o")
@@ -288,7 +295,11 @@ model AiConfig {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([name, userId])
   @@index([name])
+  @@index([userId])
   @@index([isEnabled])
 }
 
@@ -363,5 +374,92 @@ model AsyncTask {
   @@index([type])
   @@index([createdAt])
   @@index([userId])
+}
+
+// Phase 3: 用户集成配置
+model UserIntegration {
+  id        String   @id @default(cuid())
+  userId    String
+  provider  String                     // wewe-rss | werss-external | other
+  config    String                     // JSON 格式配置（baseUrl, apiKey 等）
+  isEnabled Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([provider])
+}
+
+// Phase 3: 用户 IMA 知识库配置
+model ImaTarget {
+  id               String   @id @default(cuid())
+  userId           String
+  name             String                     // 配置名称
+  baseUrl          String   @default("https://api.ima.qq.com")
+  clientId         String?                    // IMA Client ID
+  encryptedApiKey  String?                    // 加密后的 IMA API Key
+  knowledgeBaseId  String?                    // IMA 知识库 ID
+  isEnabled        Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([isEnabled])
+}
+
+// Phase 4: 邀请码
+model Invitation {
+  id          String    @id @default(cuid())
+  code        String    @unique                    // 8位随机邀请码
+  createdBy   String                               // 创建者 userId
+  maxUses     Int       @default(1)                // 最大使用次数
+  usedCount   Int       @default(0)                // 已使用次数
+  expiresAt   DateTime?                            // 过期时间
+  createdAt   DateTime  @default(now())
+
+  creator     User      @relation("CreatedInvitations", fields: [createdBy], references: [id], onDelete: Cascade)
+  uses        InvitationUse[]
+
+  @@index([code])
+  @@index([createdBy])
+  @@index([expiresAt])
+}
+
+model InvitationUse {
+  id           String   @id @default(cuid())
+  invitationId String
+  userId       String                              // 注册用户 ID
+  usedAt       DateTime @default(now())
+
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([invitationId])
+  @@index([userId])
+}
+
+// Phase 4: 审计日志
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?                             // 操作用户（null=系统）
+  action    String                              // 操作类型：login/create/update/delete/export/import/sync/assess
+  resource  String                              // 资源类型：User/ContentItem/MaterialCard/Source/AiConfig等
+  resourceId String?                            // 资源 ID
+  detail    String?                             // JSON 格式详情
+  ip        String?                             // 请求 IP
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
 }
 

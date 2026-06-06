@@ -191,3 +191,33 @@ export async function getAsyncTaskById(id: string) {
     where: { id },
   });
 }
+
+/**
+ * 检查用户是否可以创建新任务（速率限制）
+ * - 每用户最多 MAX_CONCURRENT 个并发任务
+ * - 每用户每天最多 MAX_DAILY 个任务
+ */
+export async function checkTaskRateLimit(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+  const MAX_CONCURRENT = 3;  // 最大并发任务
+  const MAX_DAILY = 50;      // 每日最大任务数
+
+  // 检查并发任务数
+  const runningCount = await db.asyncTask.count({
+    where: { userId, status: { in: ["PENDING", "RUNNING"] } },
+  });
+  if (runningCount >= MAX_CONCURRENT) {
+    return { allowed: false, reason: `并发任务数已达上限 (${MAX_CONCURRENT})` };
+  }
+
+  // 检查每日任务数
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const dailyCount = await db.asyncTask.count({
+    where: { userId, createdAt: { gte: todayStart } },
+  });
+  if (dailyCount >= MAX_DAILY) {
+    return { allowed: false, reason: `今日任务数已达上限 (${MAX_DAILY})` };
+  }
+
+  return { allowed: true };
+}

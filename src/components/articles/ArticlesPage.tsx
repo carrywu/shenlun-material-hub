@@ -53,6 +53,8 @@ interface ContentItemData {
   aiScoredAt: string | null;
   effectiveTextLength: number;
   section: string | null;
+  ownerUserId: string | null;
+  visibility: string | null;
   source?: { name: string } | null;
   _count: { materialCards: number };
 }
@@ -175,13 +177,19 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
   // Detail view
   const [detailItem, setDetailItem] = useState<ContentItemData | null>(null);
 
+  // Dev debug mode: show owner/visibility columns
+  const [showDebugCols, setShowDebugCols] = useState(false);
+
   // 加载来源列表
   useEffect(() => {
     fetch("/api/sources?pageSize=500")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) return []; // 401/403 for anonymous users — return empty
+        return r.json();
+      })
       .then((data) => {
-        const items = data.data ?? data;
-        setAllSources(items);
+        const items = data?.data ?? data;
+        setAllSources(Array.isArray(items) ? items : []);
       })
       .catch(() => {});
   }, []);
@@ -478,6 +486,14 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                   {assessing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Brain className="mr-1.5 h-4 w-4" />}
                   {assessing ? "评估中..." : "AI 评估"}
                 </Button>
+                <Button
+                  variant={showDebugCols ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowDebugCols(!showDebugCols)}
+                  title="切换 owner/visibility 调试列"
+                >
+                  🐛 调试
+                </Button>
               </>
             )}
             <Button variant="outline" size="sm" onClick={fetchItems}>
@@ -511,7 +527,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
           <div className="w-32">
             <label className="text-xs font-medium text-muted-foreground mb-1 block">来源类型</label>
             <Select value={sourceType} onValueChange={handleSourceTypeChange}>
-              <SelectTrigger className="h-8" data-testid="source-type-select">
+              <SelectTrigger className="h-8" data-testid="source-type-select" aria-label="来源类型">
                 <SelectValue>
                   {sourceType === "all" ? "全部" : sourceType === "website" ? "网站" : "公众号"}
                 </SelectValue>
@@ -528,7 +544,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
           <div className="w-48">
             <label className="text-xs font-medium text-muted-foreground mb-1 block">文章来源</label>
             <Select value={sourceName} onValueChange={(v) => { if (v) setSourceName(v); }}>
-              <SelectTrigger className="h-8" data-testid="source-name-select">
+              <SelectTrigger className="h-8" data-testid="source-name-select" aria-label="文章来源">
                 <SelectValue>
                   {sourceName === "all" ? "全部来源" : sourceName}
                 </SelectValue>
@@ -546,7 +562,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
           <div className="w-40">
             <label className="text-xs font-medium text-muted-foreground mb-1 block">AI 评估状态</label>
             <Select value={aiDecision} onValueChange={(v) => { if (v) setAiDecision(v); }}>
-              <SelectTrigger className="h-8">
+              <SelectTrigger className="h-8" aria-label="AI评估状态">
                 <SelectValue>
                   {AI_DECISION_OPTIONS.find(o => o.value === aiDecision)?.label ?? "全部"}
                 </SelectValue>
@@ -600,7 +616,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">素材价值</label>
               <Select value={qualityStatus} onValueChange={(v) => { if (v) setQualityStatus(v); }}>
-                <SelectTrigger className="h-8">
+                <SelectTrigger className="h-8" aria-label="素材价值">
                   <SelectValue>
                     {QUALITY_STATUS_OPTIONS.find(o => o.value === qualityStatus)?.label ?? "全部"}
                   </SelectValue>
@@ -617,7 +633,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">排序方式</label>
               <Select value={sortBy} onValueChange={(v) => { if (v) setSortBy(v); }}>
-                <SelectTrigger className="h-8">
+                <SelectTrigger className="h-8" aria-label="排序方式">
                   <SelectValue>
                     {sortBy === "createdAt" ? "按采集时间" : sortBy === "publishedAt" ? "按发布时间" : sortBy === "aiScore" ? "按评分" : "按字数"}
                   </SelectValue>
@@ -764,6 +780,8 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                     <TableHead className="w-32">采集时间</TableHead>
                     <TableHead className="w-16">AI</TableHead>
                     <TableHead className="w-14">字数</TableHead>
+                    {showDebugCols && <TableHead className="w-24">Owner</TableHead>}
+                    {showDebugCols && <TableHead className="w-20">可见性</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -825,6 +843,18 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                       <TableCell className="text-sm text-muted-foreground">
                         {item.effectiveTextLength ?? "-"}
                       </TableCell>
+                      {showDebugCols && (
+                        <TableCell className="text-[10px] text-muted-foreground font-mono">
+                          {item.ownerUserId ? item.ownerUserId.slice(0, 8) + "…" : "null"}
+                        </TableCell>
+                      )}
+                      {showDebugCols && (
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px]">
+                            {item.visibility ?? "null"}
+                          </Badge>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

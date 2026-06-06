@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateCardForContentItem, AiServiceError } from "@/services/ai";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
-import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import type { CardType, ErrorCode } from "@/types";
 
 function newRequestId(): string {
@@ -47,7 +47,8 @@ async function runGenerateCardTask(id: string, cardType: CardType, requestId: st
       item.title,
       item.source?.name ?? "未知来源",
       item.fullText,
-      cardType
+      cardType,
+      ownerUserId
     );
 
     const card = await db.materialCard.create({
@@ -99,7 +100,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireAdmin(request);
+  const user = await requireVerifiedUser(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) {

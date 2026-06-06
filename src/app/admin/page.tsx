@@ -20,6 +20,7 @@ interface MetricsData {
     totalArticles: number;
     totalSources: number;
     activeTasks: number;
+    failedTasks24h: number;
     errorLogs24h: number;
     dbSizeMb: number;
   };
@@ -102,7 +103,7 @@ export default function AdminDashboardPage() {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-10 w-48 bg-muted rounded-lg" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-28 bg-card rounded-xl border border-border" />
           ))}
@@ -159,7 +160,16 @@ export default function AdminDashboardPage() {
       link: "/admin/tasks"
     },
     {
-      title: "今日错误日志",
+      title: "24h 失败任务",
+      value: dbStats.failedTasks24h,
+      desc: "近 24 小时失败任务数",
+      icon: AlertOctagon,
+      color: "from-orange-500 to-red-500",
+      textColor: dbStats.failedTasks24h > 0 ? "text-red-600" : "text-foreground",
+      link: "/admin/tasks"
+    },
+    {
+      title: "24h 错误日志",
       value: dbStats.errorLogs24h,
       desc: "近 24 小时系统报错次数",
       icon: AlertOctagon,

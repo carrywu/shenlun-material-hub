@@ -147,6 +147,52 @@ rm -rf ./data
 
 SQLite 数据库文件存储在 `./data` 目录中。Docker 容器重启后数据不会丢失。
 
+## 只读消费策略（重要）
+
+shenlun-material-hub **只读消费** WeWe RSS 数据，遵循以下约束：
+
+1. **SQLite 只读**：shenlun-material-hub 通过 `better-sqlite3` 只读访问 `./data/wewe-rss.db`，不会写入或修改 WeWe RSS 数据库
+2. **API 只读**：通过 WeWe RSS HTTP API 获取订阅列表和文章，不触发写入操作
+3. **数据流单向**：`WeWe RSS → shenlun-material-hub`，shenlun-material-hub 不会反向影响 WeWe RSS
+
+### Docker 挂载配置
+
+在 `docker-compose.yml` 中，WeWe RSS 的数据卷挂载为：
+
+```yaml
+volumes:
+  - ./data:/app/data
+```
+
+如果 shenlun-material-hub 需要直接读取 SQLite 数据库（fallback 模式），确保：
+- `./data/wewe-rss.db` 文件权限允许读取
+- 两个服务在同一主机上运行，或通过共享卷访问
+
+### 多容器部署注意
+
+如果使用 Docker Compose 将两个服务部署在同一个 `docker-compose.yml` 中：
+
+```yaml
+# WeWe RSS sidecar — 只读挂载给 shenlun-material-hub
+services:
+  wewe-rss:
+    image: cooderl/wewe-rss-sqlite:v2.6.1
+    volumes:
+      - wewe-rss-data:/app/data
+
+  shenlun-material-hub:
+    image: shenlun-material-hub:latest
+    volumes:
+      - wewe-rss-data:/app/wewe-rss-data:ro  # 注意 :ro 只读挂载
+    environment:
+      - WEWERSS_SQLITE_PATH=/app/wewe-rss-data/wewe-rss.db
+
+volumes:
+  wewe-rss-data:
+```
+
+**关键点**：shenlun-material-hub 的挂载使用 `:ro`（只读）标记，确保不会意外修改 WeWe RSS 数据。
+
 ## 相关文档
 
 - [shenlun-material-hub 本地 RSS 接入说明](../../docs/local-wechat-rss.md)

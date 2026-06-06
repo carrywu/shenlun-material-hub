@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     return forbiddenResponse();
   }
   try {
-    const result = await testAiConfig();
+    const result = await testAiConfig(user.id);
 
     // 更新测试结果
     await db.aiConfig.updateMany({

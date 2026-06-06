@@ -30,7 +30,7 @@ export function TopicFilter({ value, onChange }: TopicFilterProps) {
     <div className="flex items-center gap-2">
       <span className="text-sm font-medium text-muted-foreground">主题:</span>
       <Select value={value} onValueChange={(v) => onChange(v ?? "all")}>
-        <SelectTrigger className="h-8 w-[140px]">
+        <SelectTrigger className="h-8 w-[140px]" aria-label="主题">
           <SelectValue>
             {topics.find(t => t.value === value)?.label ?? value}
           </SelectValue>

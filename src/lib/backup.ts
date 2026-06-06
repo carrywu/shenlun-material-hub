@@ -199,6 +199,62 @@ export async function inspectBackupDatabase(manifest: BackupManifest) {
   throw new Error("v1 备份无法在 PostgreSQL 环境中检查。");
 }
 
+// ─── Post-restore RBAC validation ────────────────────────────────────────────
+
+async function validateRestoredData(): Promise<string[]> {
+  const warnings: string[] = [];
+
+  try {
+    // Check at least one active admin exists
+    const adminCount = await db.user.count({
+      where: { role: "ADMIN", status: "ACTIVE" },
+    });
+    if (adminCount === 0) {
+      warnings.push("恢复后无活跃管理员账户，请手动创建管理员");
+    }
+
+    // Check for orphaned sessions: sessions whose userId does not match any user
+    const totalUsers = await db.user.count();
+    const totalSessions = await db.session.count();
+    if (totalSessions > 0 && totalUsers === 0) {
+      warnings.push(
+        `恢复后有 ${totalSessions} 个会话但无用户，建议清理孤立会话`
+      );
+    } else if (totalSessions > 0 && totalUsers > 0) {
+      // Find sessions referencing non-existent users via raw query
+      // (Prisma relation filter on Session.user being null would also match
+      //  valid sessions whose user was simply not loaded, so we use a direct
+      //  SQL approach for accuracy.)
+      const orphanedResult = await db.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*)::bigint AS count
+        FROM "Session" s
+        WHERE NOT EXISTS (
+          SELECT 1 FROM "User" u WHERE u.id = s."userId"
+        )
+      `;
+      const orphanedCount = Number(orphanedResult[0]?.count ?? 0);
+      if (orphanedCount > 0) {
+        warnings.push(
+          `恢复后有 ${orphanedCount} 个孤立会话（引用了不存在的用户），建议清理`
+        );
+      }
+    }
+  } catch (err) {
+    warnings.push(
+      `数据验证出错: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+
+  if (warnings.length > 0) {
+    console.warn(
+      "[Backup] RBAC 验证警告:\n" +
+        warnings.map((w) => `  - ${w}`).join("\n")
+    );
+  }
+
+  return warnings;
+}
+
 // ─── Restore: write tables via Prisma ────────────────────────────────────────
 
 export async function restoreBackupArchive(
@@ -252,6 +308,15 @@ export async function restoreBackupArchive(
     mkdirSync(path.dirname(absolutePath), { recursive: true });
     writeFileSync(absolutePath, Buffer.from(file.contentBase64, "base64"));
   }
+
+  // Post-restore RBAC validation against the live database
+  const rbacWarnings = await validateRestoredData();
+
+  return {
+    restoredTables: Object.keys(v2.tables).length,
+    totalRows: Object.values(v2.tables).reduce((sum, t) => sum + t.count, 0),
+    rbacWarnings,
+  };
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
