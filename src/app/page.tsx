@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { CollectButton } from "@/components/CollectButton";
+import { CONTENT_TYPE_LABELS } from "@/lib/display-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -223,7 +224,7 @@ export default async function DashboardPage() {
                             <Badge variant="outline" className="text-[10px] h-4 px-1.5 py-0">
                               {item.source?.name ?? item.platform}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">{item.contentType}</span>
+                            <span className="text-xs text-muted-foreground">{CONTENT_TYPE_LABELS[item.contentType] ?? item.contentType}</span>
                             {item.publishedAt && (
                               <span className="text-xs text-muted-foreground">
                                 {new Date(item.publishedAt).toLocaleDateString("zh-CN")}

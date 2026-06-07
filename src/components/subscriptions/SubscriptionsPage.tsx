@@ -247,6 +247,13 @@ export default function SubscriptionsPage() {
     hourly: "每小时",
   };
 
+  // Priority labels
+  const PRIORITY_LABELS: Record<string, string> = {
+    P0: "最高优先",
+    P1: "普通优先",
+    P2: "低优先",
+  };
+
   const pageSize = 20;
 
   const fetchSources = useCallback(async () => {
@@ -822,7 +829,7 @@ export default function SubscriptionsPage() {
                       }
                       className="text-xs"
                     >
-                      {source.priority}
+                      {PRIORITY_LABELS[source.priority] ?? source.priority}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
@@ -1020,13 +1027,13 @@ export default function SubscriptionsPage() {
                   >
                     <SelectTrigger aria-label="优先级">
                       <SelectValue>
-                        {form.priority}
+                        {PRIORITY_LABELS[form.priority] ?? form.priority}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {PRIORITIES.map((p) => (
                         <SelectItem key={p} value={p}>
-                          {p}
+                          {PRIORITY_LABELS[p] ?? p}
                         </SelectItem>
                       ))}
                     </SelectContent>

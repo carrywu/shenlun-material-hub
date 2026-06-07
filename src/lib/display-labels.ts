@@ -38,6 +38,19 @@ export const CONTENT_TYPE_LABELS: Record<string, string> = {
   education_reform: "教育改革",
   livelihood_welfare: "民生福祉",
   international_affairs: "国际事务",
+  // 种子数据扩展类型
+  local_official: "地方政务",
+  official_primary: "核心官媒",
+  official_case: "官方案例",
+  government_policy: "政府政策",
+  wechat_official: "微信公众号",
+  creator_content: "创作者内容",
+};
+
+export const PRIORITY_LABELS: Record<string, string> = {
+  P0: "最高优先",
+  P1: "普通优先",
+  P2: "低优先",
 };
 
 export const TRUST_LEVEL_LABELS: Record<string, string> = {

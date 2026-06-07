@@ -24,6 +24,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { CONTENT_TYPES, PLATFORMS } from "@/types";
+import { VERIFICATION_LABELS } from "@/lib/display-labels";
 
 interface ExploreItem {
   id: string;
@@ -67,6 +68,13 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   education_reform: "教育改革",
   livelihood_welfare: "民生福祉",
   international_affairs: "国际事务",
+  // 种子数据扩展类型
+  local_official: "地方政务",
+  official_primary: "核心官媒",
+  official_case: "官方案例",
+  government_policy: "政府政策",
+  wechat_official: "微信公众号",
+  creator_content: "创作者内容",
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -327,11 +335,8 @@ export default function ExplorePage() {
                           }`}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {item.source.verificationStatus === "unverified"
-                            ? "待核验"
-                            : item.source.verificationStatus === "disputed"
-                              ? "有争议"
-                              : item.source.verificationStatus}
+                          {VERIFICATION_LABELS[item.source.verificationStatus] ??
+                            item.source.verificationStatus}
                         </Badge>
                         <Badge variant="outline" className="text-[10px]" onClick={(e) => e.stopPropagation()}>
                           {STATUS_LABELS[item.processingStatus] ??
