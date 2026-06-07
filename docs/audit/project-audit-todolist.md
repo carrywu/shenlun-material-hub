@@ -17,11 +17,11 @@
 
 ## 阶段 1：P0 安全问题（部署前必须完成）
 
-- [ ] P0-1：登录暴力破解保护
-- [ ] P0-2：移除硬编码 JWT Secret fallback
-- [ ] P0-3：添加 Next.js middleware 守卫 admin 路由
-- [ ] P0-4：Dashboard 服务端鉴权与数据隔离
-- [ ] P0-5：`/api/health` 敏感信息分离
+- [x] P0-1：登录暴力破解保护 ✅ `9953c63`
+- [x] P0-2：移除硬编码 JWT Secret fallback ✅ `9953c63`
+- [x] P0-3：添加 Next.js middleware 守卫 admin 路由 ✅ 已有 proxy.ts 覆盖（误报）
+- [x] P0-4：Dashboard 服务端鉴权与数据隔离 ✅ `9953c63`
+- [x] P0-5：`/api/health` 敏感信息分离 ✅ `9953c63`
 
 ## 阶段 2：P1 核心问题
 

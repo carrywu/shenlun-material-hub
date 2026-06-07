@@ -13,6 +13,7 @@ vi.mock("@/services/ai", () => ({
     cacheKey: "env:test",
   })),
   getPromptTemplate: vi.fn(async () => "mock system prompt"),
+  parseAiJson: vi.fn((raw: string, _ctx: string) => JSON.parse(raw)),
 }));
 
 describe("ai-annotation", () => {

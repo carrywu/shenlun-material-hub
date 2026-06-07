@@ -282,8 +282,16 @@ export async function getOpenAI(): Promise<{ openai: OpenAI; model: string }> {
   return { openai: runtime.client, model: runtime.model };
 }
 
-async function getTemperature(): Promise<number> {
+async function getTemperature(userId?: string): Promise<number> {
   try {
+    // P1-4 fix: prefer user-specific config, fall back to global
+    if (userId) {
+      const userConfig = await db.aiConfig.findFirst({
+        where: { userId, isEnabled: true },
+        select: { temperature: true },
+      });
+      if (userConfig) return userConfig.temperature;
+    }
     const config = await db.aiConfig.findFirst({
       where: { name: "default", isEnabled: true },
       select: { temperature: true },
@@ -352,7 +360,7 @@ async function createChatCompletion(
   }
 }
 
-function parseAiJson(rawJson: string, context: string): Record<string, unknown> {
+export function parseAiJson(rawJson: string, context: string): Record<string, unknown> {
   try {
     return JSON.parse(rawJson) as Record<string, unknown>;
   } catch {
@@ -455,7 +463,7 @@ export async function assessRelevance(
   userId?: string
 ): Promise<RelevanceResult> {
   const runtime = await getAiRuntime(userId);
-  const temperature = await getTemperature();
+  const temperature = await getTemperature(userId);
   const systemPrompt = renderPromptTemplate(await getPromptTemplate("article_evaluation"), {
     title,
     sourceName,
@@ -463,13 +471,8 @@ export async function assessRelevance(
     content: buildAiContent(content),
   });
 
-  const userPrompt = `请评估以下文章是否适合作为申论备考素材：
-
-【标题】${title}
-【来源】${sourceName}
-【内容类型】${contentType}
-【正文】
-${buildAiContent(content)}`;
+  // P1-1 fix: user prompt no longer duplicates content — it's already in systemPrompt via template
+  const userPrompt = `请根据以上要求评估这篇文章。`;
 
   const completion = await createChatCompletion(runtime, {
     model: runtime.model,
@@ -486,7 +489,7 @@ ${buildAiContent(content)}`;
     throw new Error("AI 未返回有效内容");
   }
 
-  const data = JSON.parse(rawJson);
+  const data = parseAiJson(rawJson, "评估结果");
 
   return {
     decision: data.decision === "accept" ? "accept" : "reject",
@@ -601,6 +604,8 @@ export async function scoreContentItem(
 【正文】
 ${buildAiContent(content)}`;
 
+  // Note: scoreContentItem doesn't use renderPromptTemplate, so content goes in userPrompt only (no duplication)
+
   const completion = await createChatCompletion(runtime, {
     model: runtime.model,
     messages: [
@@ -616,7 +621,7 @@ ${buildAiContent(content)}`;
     throw new Error("AI 未返回有效内容");
   }
 
-  const data = JSON.parse(rawJson);
+  const data = parseAiJson(rawJson, "评分结果");
 
   const dimensions: (keyof AIScoreDetail)[] = [
     "relevance",
@@ -1144,12 +1149,8 @@ export async function generateCardForContentItem(
     content: aiContent,
   });
 
-  const userPrompt = `请分析以下文章，生成素材卡：
-
-【标题】${title}
-【来源】${sourceName}
-【正文】
-${aiContent}`;
+  // P1-1 fix: user prompt no longer duplicates content — it's already in systemPrompt via template
+  const userPrompt = `请根据以上要求，为这篇文章生成素材卡。`;
 
   const completion = await createChatCompletion(runtime, {
     model: runtime.model,

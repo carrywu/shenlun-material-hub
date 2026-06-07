@@ -1,4 +1,4 @@
-import { getAiRuntime, getPromptTemplate } from "@/services/ai";
+import { getAiRuntime, getPromptTemplate, parseAiJson } from "@/services/ai";
 
 // ==================== 文章批注生成 ====================
 
@@ -46,7 +46,7 @@ ${cardType ? `\n【关联素材卡类型】${cardType}` : ""}
     throw new Error("AI 未返回有效批注内容");
   }
 
-  const data = JSON.parse(rawJson);
+  const data = parseAiJson(rawJson, "批注结果");
 
   return {
     comment: String(data.comment || "").slice(0, 500),
@@ -87,7 +87,7 @@ export async function autoAnnotateArticle(
     throw new Error("AI 未返回自动批注结果");
   }
 
-  const data = JSON.parse(rawJson);
+  const data = parseAiJson(rawJson, "自动批注结果");
   const annotations = Array.isArray(data.annotations) ? data.annotations : [];
 
   return annotations.map((a: Record<string, unknown>, i: number) => ({
