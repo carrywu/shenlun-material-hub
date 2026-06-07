@@ -529,11 +529,34 @@ export default function ArticleDetailPage() {
     if (annotations.length === 0) return text;
 
     // Sort annotations by position in text
+    // P1-10 fix: prefer startOffset over indexOf to handle duplicate text
+    const usedOffsets = new Set<number>();
     const sortedAnnotations = [...annotations]
-      .map((a) => ({
-        ...a,
-        index: text.indexOf(a.selectedText),
-      }))
+      .map((a) => {
+        let index = -1;
+        // Prefer stored offset if available
+        if (a.startOffset != null && a.startOffset >= 0 && a.startOffset < text.length) {
+          const candidate = text.slice(a.startOffset, a.startOffset + a.selectedText.length);
+          if (candidate === a.selectedText) {
+            index = a.startOffset;
+          }
+        }
+        // Fallback: find next occurrence that hasn't been used
+        if (index === -1) {
+          let searchFrom = 0;
+          while (searchFrom < text.length) {
+            const found = text.indexOf(a.selectedText, searchFrom);
+            if (found === -1) break;
+            if (!usedOffsets.has(found)) {
+              index = found;
+              break;
+            }
+            searchFrom = found + 1;
+          }
+        }
+        if (index >= 0) usedOffsets.add(index);
+        return { ...a, index };
+      })
       .filter((a) => a.index >= 0)
       .sort((a, b) => a.index - b.index);
 

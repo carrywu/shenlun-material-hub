@@ -43,6 +43,7 @@ export async function collectBilibili(
   const errors: string[] = [];
   let discoveredCount = 0;
   let importedCount = 0;
+  let filteredCount = 0;
 
   // Create CollectorRun record
   const runRecord = await db.collectorRun.create({
@@ -57,10 +58,13 @@ export async function collectBilibili(
     // Trigger crawl on MediaCrawler sidecar
     const { runId } = await crawlBilibili(userId, params);
 
-    // Poll until completion (simple loop with back-off)
+    // Poll until completion — P1-9 fix: add absolute 5-minute wall-clock timeout
+    const MAX_POLL_MS = 5 * 60 * 1000;
+    const pollStart = Date.now();
     let items: CrawlResultItem[] = [];
     let status = "running";
     for (let attempt = 0; attempt < 60 && status === "running"; attempt++) {
+      if (Date.now() - pollStart > MAX_POLL_MS) break;
       await new Promise((r) =>
         setTimeout(r, Math.min(2000 * Math.pow(1.3, attempt), 15_000))
       );
@@ -71,7 +75,7 @@ export async function collectBilibili(
     }
 
     if (status === "running") {
-      throw new Error("MediaCrawler crawl timed out");
+      throw new Error("MediaCrawler B站采集超时（5 分钟上限）");
     }
 
     // Sort: articles first, then videos
@@ -93,6 +97,13 @@ export async function collectBilibili(
         const fullText = item.content ?? null;
         const excerpt = fullText?.slice(0, 200) ?? null;
         const contentType = item.type === "article" ? "article" : "video";
+
+        // P1-8 fix: quality gate — skip items with insufficient text
+        const effectiveTextLength = fullText ? fullText.replace(/\s/g, "").length : 0;
+        if (effectiveTextLength < 300) {
+          filteredCount++;
+          continue;
+        }
 
         // Attempt to find linked original URL (for reprinted content)
         const linkedOriginalUrl = await traceOriginalUrl(

@@ -493,7 +493,7 @@ export async function assessRelevance(
 
   return {
     decision: data.decision === "accept" ? "accept" : "reject",
-    contentGenre: validateContentGenre(data.contentGenre),
+    contentGenre: validateContentGenre(String(data.contentGenre ?? "")),
     reason: String(data.reason || "").slice(0, 200),
     categories: Array.isArray(data.categories) ? data.categories.slice(0, 5) : [],
     usableFor: Array.isArray(data.usableFor) ? data.usableFor.slice(0, 5) : [],

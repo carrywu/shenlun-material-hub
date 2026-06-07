@@ -417,6 +417,8 @@ export abstract class BaseCollector {
       });
 
       let articles: RawArticle[] = [];
+      // P1-7 fix: track which channel each article came from
+      const articleChannelMap = new Map<string, string>(); // article url -> channelId
 
       if (channels.length > 0) {
         // 使用栏目配置采集
@@ -433,7 +435,10 @@ export abstract class BaseCollector {
               },
               source
             );
-            articles.push(...channelArticles);
+            for (const art of channelArticles) {
+              articles.push(art);
+              articleChannelMap.set(art.url, channel.id);
+            }
 
             // 更新栏目采集时间
             await db.collectionChannel.update({
@@ -457,7 +462,8 @@ export abstract class BaseCollector {
 
       for (const article of articles) {
         try {
-          const channelId = channels.length > 0 ? channels[0].id : undefined;
+          // P1-7 fix: use the correct channel for each article
+          const channelId = articleChannelMap.get(article.url) ?? (channels.length > 0 ? channels[0].id : undefined);
           const { created } = await this.normalizeToContentItem(article, source, channelId);
           if (created) importedCount++;
         } catch (error) {
