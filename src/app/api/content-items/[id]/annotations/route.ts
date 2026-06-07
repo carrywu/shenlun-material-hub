@@ -89,6 +89,7 @@ export async function POST(
       const annotation = await db.articleAnnotation.create({
         data: {
           contentItemId: id,
+          userId: user.id,
           selectedText,
           comment: result.comment,
           cardType: cardType ?? null,
@@ -113,6 +114,7 @@ export async function POST(
     const annotation = await db.articleAnnotation.create({
       data: {
         contentItemId: id,
+        userId: user.id,
         selectedText,
         comment,
         cardType: cardType ?? null,
@@ -173,6 +175,7 @@ export async function PUT(
         db.articleAnnotation.create({
           data: {
             contentItemId: id,
+            userId: user.id,
             selectedText: a.selectedText,
             comment: a.comment,
             paragraph: a.paragraph,

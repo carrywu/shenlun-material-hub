@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth, unauthorizedResponse } from "@/lib/auth";
 
-// GET /api/explore — 待核验内容 / 关键词搜索
+// GET /api/explore — 待核验内容 / 关键词搜索（需认证）
 export async function GET(request: NextRequest) {
+  const user = await requireAuth(request);
+  if (!user) return unauthorizedResponse();
+
   try {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));

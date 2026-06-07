@@ -6,6 +6,7 @@ import {
   createSession,
   buildCookieHeader,
   ensureInitialAdmin,
+  cleanExpiredSessions,
 } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -168,6 +169,10 @@ export async function POST(req: NextRequest) {
     response.headers.append("Set-Cookie", buildCookieHeader(token));
 
     await logger.info(`User "${username}" (role: ${user.role}) logged in.`, "AUTH");
+
+    // P1-17: Clean up expired sessions periodically (fire-and-forget)
+    cleanExpiredSessions().catch(() => {});
+
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "未知错误";

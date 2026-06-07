@@ -39,6 +39,8 @@ vi.mock("@/lib/db", () => ({
     source: { count: mocks.countSources },
     asyncTask: { count: mocks.countTasks, findMany: mocks.findTasks },
     systemLog: { count: mocks.countErrors, findMany: mocks.findLogs },
+    // $queryRaw is called as a tagged template literal, mock it as a function
+    $queryRaw: vi.fn().mockResolvedValue([{ pg_database_size: BigInt(1048576) }]),
   },
 }));
 

@@ -24,10 +24,9 @@ test.describe('API 安全认证', () => {
     expect(res.status()).toBe(200);
   });
 
-  test('公开 API：explore 端点无需认证', async ({ request }) => {
+  test('受保护 API：explore 端点需认证', async ({ request }) => {
     const res = await request.get('/api/explore');
-    // NOTE: P1-6 将给 /api/explore 添加认证，届时此测试应断言 401
-    expect(res.status()).toBe(200);
+    expect(res.status()).toBe(401);
   });
 
   // ── 受保护 API：未认证返回 401 ──

@@ -2,14 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
 import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
+import { MATERIAL_TYPE_LABELS } from "@/lib/display-labels";
 
-const CARD_TYPE_LABELS: Record<string, string> = {
-  fact_summary: "案例素材",
-  argument_analysis: "论点分析",
-  data_highlight: "案例素材",
-  policy_compare: "政策对比",
-  case_study: "案例研究",
-};
+const CARD_TYPE_LABELS = MATERIAL_TYPE_LABELS;
 
 // GET /api/export - 导出素材卡为 Markdown
 export async function GET(request: NextRequest) {

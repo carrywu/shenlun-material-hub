@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
-import fs from "fs";
-import path from "path";
 import os from "os";
+import fs from "fs";
 
 function readDiskStats(): { percent: number; freeGb: number } {
   if (typeof fs.statfsSync !== "function") {
@@ -64,16 +63,17 @@ export async function GET(request: Request) {
       }
     });
 
-    // 2. 获取数据库文件大小
+    // 2. 获取数据库大小 — 使用 PostgreSQL 查询
     let dbSizeMb = 0;
     try {
-      const dbPath = path.resolve(process.cwd(), "prisma/dev.db");
-      if (fs.existsSync(dbPath)) {
-        const stats = fs.statSync(dbPath);
-        dbSizeMb = Number((stats.size / (1024 * 1024)).toFixed(2));
+      const result = await db.$queryRaw<Array<{ pg_database_size: bigint }>>`
+        SELECT pg_database_size(current_database()) as pg_database_size
+      `;
+      if (result[0]?.pg_database_size) {
+        dbSizeMb = Number((Number(result[0].pg_database_size) / (1024 * 1024)).toFixed(2));
       }
     } catch (e) {
-      console.error("Failed to read database file size:", e);
+      console.error("Failed to query database size:", e);
     }
 
     // 3. 获取硬件资源情况

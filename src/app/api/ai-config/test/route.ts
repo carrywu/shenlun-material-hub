@@ -16,14 +16,27 @@ export async function POST(request: NextRequest) {
   try {
     const result = await testAiConfig(user.id);
 
-    // 更新测试结果
-    await db.aiConfig.updateMany({
-      where: { name: "default" },
-      data: {
-        lastTestedAt: new Date(),
-        lastTestError: result.success ? null : (result.error ?? "测试失败"),
-      },
+    // 更新测试结果 — 写入用户的配置或全局配置
+    const userConfig = await db.aiConfig.findFirst({
+      where: { userId: user.id, isEnabled: true },
     });
+    if (userConfig) {
+      await db.aiConfig.update({
+        where: { id: userConfig.id },
+        data: {
+          lastTestedAt: new Date(),
+          lastTestError: result.success ? null : (result.error ?? "测试失败"),
+        },
+      });
+    } else {
+      await db.aiConfig.updateMany({
+        where: { name: "default" },
+        data: {
+          lastTestedAt: new Date(),
+          lastTestError: result.success ? null : (result.error ?? "测试失败"),
+        },
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error) {

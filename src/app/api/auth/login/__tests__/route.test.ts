@@ -30,6 +30,7 @@ vi.mock("@/lib/auth", () => ({
   unauthorizedResponse: mocks.unauthorizedResponse,
   forbiddenResponse: mocks.forbiddenResponse,
   validateSession: mocks.validateSession,
+  cleanExpiredSessions: vi.fn().mockResolvedValue(0),
 }));
 
 vi.mock("@/lib/db", () => ({
