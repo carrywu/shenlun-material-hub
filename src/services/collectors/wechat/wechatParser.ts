@@ -15,16 +15,34 @@ export async function parseWechatArticle(url: string): Promise<WeRssArticle> {
     throw err;
   }
 
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    },
-    signal: AbortSignal.timeout(15000),
-  });
+  // P2-12: add retry logic for transient network failures
+  const MAX_RETRIES = 3;
+  let lastError: Error | null = null;
+  let response: Response | null = null;
 
-  if (!response.ok) {
-    throw new Error(`无法访问文章链接: HTTP ${response.status}`);
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      response = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (response.ok) break;
+      // Retry on server errors (5xx) and rate limits (429)
+      if (response.status < 500 && response.status !== 429) break;
+      lastError = new Error(`无法访问文章链接: HTTP ${response.status}`);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+    }
+    if (attempt < MAX_RETRIES - 1) {
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
+    }
+  }
+
+  if (!response || !response.ok) {
+    throw lastError ?? new Error(`无法访问文章链接: HTTP ${response?.status ?? "unknown"}`);
   }
 
   const html = await response.text();

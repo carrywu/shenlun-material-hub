@@ -1,6 +1,6 @@
 import { BaseCollector, type RawArticle } from "../base";
 
-const BASE_URL = "http://opinion.people.com.cn";
+const BASE_URL = "https://opinion.people.com.cn";
 
 export class PeopleOpinionCollector extends BaseCollector {
   readonly collectorType = "people_opinion";

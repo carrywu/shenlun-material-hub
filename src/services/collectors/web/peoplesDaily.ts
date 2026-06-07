@@ -1,6 +1,6 @@
 import { BaseCollector, type RawArticle } from "../base";
 
-const BASE_URL = "http://paper.people.com.cn";
+const BASE_URL = "https://paper.people.com.cn";
 const TODAY_URL = `${BASE_URL}/rmrb/html`;
 
 export class PeoplesDailyCollector extends BaseCollector {

@@ -59,11 +59,13 @@ export class GuangdongOfficialCollector extends BaseCollector {
 
       // ── 发布时间 ──
       // 格式: "时间  :  2026-06-04 10:13:50" 或 "2026-06-04"
+      // P2-11: scope date extraction to content area + nearby metadata to avoid false matches
       let publishedAt: Date | undefined;
-      const fullPageText = $.html();
+      const contentAreaText = contentEl.text() + " " +
+        ($(".article-date").text() || $(".pub-date").text() || $(".info").text() || "");
 
       // 先尝试完整日期时间
-      const timeMatch = fullPageText.match(
+      const timeMatch = contentAreaText.match(
         /时间\s*[：:]\s*(\d{4})[-年/](\d{1,2})[-月/](\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/
       );
       if (timeMatch) {
@@ -76,8 +78,8 @@ export class GuangdongOfficialCollector extends BaseCollector {
           timeMatch[6] ? parseInt(timeMatch[6]) : 0
         );
       } else {
-        // fallback: 仅日期
-        const dateMatch = fullPageText.match(
+        // fallback: 仅日期（from content area, not full page）
+        const dateMatch = contentAreaText.match(
           /(\d{4})[-年/](\d{1,2})[-月/](\d{1,2})/
         );
         if (dateMatch) {
