@@ -15,6 +15,7 @@ import {
   ListTodo,
   LogOut,
   LucideIcon,
+  Loader2,
   Menu,
   Rss,
   Settings,
@@ -52,7 +53,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
   const { isAdmin } = useAuth();
+
+  // Only ADMIN can access admin backend — show full nav
+  const visibleNavItems = navItems;
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +72,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         if (!cancelled && data.username) {
           setAdminUser(data.username);
+          // Non-admin users must not access admin backend
+          if (data.role !== "ADMIN") {
+            router.push("/");
+            return;
+          }
+          setAuthorized(true);
         }
       } catch {
         if (!cancelled) {
@@ -88,7 +99,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
       if (res.ok) {
-        router.push("/admin/login");
+        router.push("/");
         router.refresh();
       }
     } catch (error) {
@@ -96,6 +107,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     } finally {
       setLoggingOut(false);
     }
+  }
+
+  // Block rendering until role check confirms ADMIN
+  if (!authorized) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
@@ -153,7 +173,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-6">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
             const Icon = item.icon;
 
@@ -217,7 +237,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <main className="flex h-full flex-1 flex-col overflow-hidden bg-background">
         <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-card px-8">
           <h1 className="text-sm font-semibold tracking-wide text-foreground">
-            {navItems.find((item) => item.href === pathname || (item.href !== "/admin" && pathname.startsWith(item.href)))?.name || "控制台"}
+            {visibleNavItems.find((item) => item.href === pathname || (item.href !== "/admin" && pathname.startsWith(item.href)))?.name || "控制台"}
           </h1>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>系统状态: <strong className="font-medium text-emerald-600">正常运行</strong></span>

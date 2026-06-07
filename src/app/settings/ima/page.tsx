@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 interface ImaTarget {
   id: string;
@@ -21,6 +22,8 @@ interface ImaTarget {
 
 export default function ImaSettingsPage() {
   const router = useRouter();
+  const { isAdmin, user } = useAuth();
+  const isVerified = isAdmin || user?.role === "VERIFIED_USER";
 
   const [targets, setTargets] = useState<ImaTarget[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,10 +66,24 @@ export default function ImaSettingsPage() {
     setError("");
   };
 
+  // Role guard — redirect non-verified users
+  if (user && !isVerified) {
+    router.push("/settings");
+    return null;
+  }
+
   const handleCreate = async () => {
-    if (!name || !baseUrl || !clientId || !apiKey || !knowledgeBaseId) {
-      setError("请填写所有字段");
-      return;
+    // Non-admin only needs clientId and apiKey; admin needs all fields
+    if (isAdmin) {
+      if (!name || !baseUrl || !clientId || !apiKey || !knowledgeBaseId) {
+        setError("请填写所有字段");
+        return;
+      }
+    } else {
+      if (!clientId || !apiKey) {
+        setError("请填写 Client ID 和 API Key");
+        return;
+      }
     }
 
     setSaving(true);
@@ -149,8 +166,12 @@ export default function ImaSettingsPage() {
                       {target.isEnabled ? "启用" : "禁用"}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">{target.baseUrl}</p>
-                  <p className="text-xs text-muted-foreground">知识库 ID: {target.knowledgeBaseId}</p>
+                  {isAdmin && (
+                    <>
+                      <p className="text-xs text-muted-foreground">{target.baseUrl}</p>
+                      <p className="text-xs text-muted-foreground">知识库 ID: {target.knowledgeBaseId}</p>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-8" onClick={() => handleDelete(target.id)}>
@@ -175,14 +196,18 @@ export default function ImaSettingsPage() {
             <CardTitle className="text-base">添加新的 IMA 目标</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">名称</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：我的 IMA 知识库" className="h-9" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">API Base URL</label>
-              <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.ima.qq.com" className="h-9" />
-            </div>
+            {isAdmin && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">名称</label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：我的 IMA 知识库" className="h-9" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">API Base URL</label>
+                  <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.ima.qq.com" className="h-9" />
+                </div>
+              </>
+            )}
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">Client ID</label>
               <Input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="您的 Client ID" className="h-9" />
@@ -191,10 +216,12 @@ export default function ImaSettingsPage() {
               <label className="block text-xs font-medium text-muted-foreground mb-1">API Key</label>
               <Input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="您的 API Key" className="h-9" />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">知识库 ID</label>
-              <Input value={knowledgeBaseId} onChange={(e) => setKnowledgeBaseId(e.target.value)} placeholder="目标知识库 ID" className="h-9" />
-            </div>
+            {isAdmin && (
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">知识库 ID</label>
+                <Input value={knowledgeBaseId} onChange={(e) => setKnowledgeBaseId(e.target.value)} placeholder="目标知识库 ID" className="h-9" />
+              </div>
+            )}
             <div className="flex items-center gap-2 pt-2">
               <Button onClick={handleCreate} disabled={saving} size="sm">
                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}

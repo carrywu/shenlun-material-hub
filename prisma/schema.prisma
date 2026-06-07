@@ -285,9 +285,9 @@ model AiConfig {
   id            String   @id @default(cuid())
   name          String                     // 配置名称（如 default）
   userId        String?                    // Phase 3: 用户级配置（null = 全局）
-  baseUrl       String   @default("https://api.openai.com/v1")
+  baseUrl       String   @default("https://api.deepseek.com/v1")
   encryptedKey  String                     // 加密后的 API Key
-  model         String   @default("gpt-4o")
+  model         String   @default("deepseek-chat")
   temperature   Float    @default(0.3)
   isEnabled     Boolean  @default(true)
   lastTestedAt  DateTime?

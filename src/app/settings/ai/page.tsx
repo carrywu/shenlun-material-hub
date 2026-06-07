@@ -22,7 +22,10 @@ interface AiConfigData {
 
 export default function UserAiSettingsPage() {
   const router = useRouter();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+
+  // Only VERIFIED_USER and ADMIN can access this page
+  const isVerified = isAdmin || user?.role === "VERIFIED_USER";
 
   const [config, setConfig] = useState<AiConfigData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,9 +35,9 @@ export default function UserAiSettingsPage() {
   const [error, setError] = useState("");
 
   // Form state
-  const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
+  const [baseUrl, setBaseUrl] = useState("https://api.deepseek.com/v1");
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("gpt-4o");
+  const [model, setModel] = useState("deepseek-chat");
   const [temperature, setTemperature] = useState(0.3);
 
   useEffect(() => {
@@ -45,8 +48,8 @@ export default function UserAiSettingsPage() {
         if (!cancelled && data) {
           setConfig(data);
           if (data.configured) {
-            setBaseUrl(data.baseUrl || "https://api.openai.com/v1");
-            setModel(data.model || "gpt-4o");
+            setBaseUrl(data.baseUrl || "https://api.deepseek.com/v1");
+            setModel(data.model || "deepseek-chat");
             setTemperature(data.temperature ?? 0.3);
           }
         }
@@ -78,8 +81,8 @@ export default function UserAiSettingsPage() {
         const data = await res2.json();
         setConfig(data);
         if (data.configured) {
-          setBaseUrl(data.baseUrl || "https://api.openai.com/v1");
-          setModel(data.model || "gpt-4o");
+          setBaseUrl(data.baseUrl || "https://api.deepseek.com/v1");
+          setModel(data.model || "deepseek-chat");
           setTemperature(data.temperature ?? 0.3);
         }
       }
@@ -96,8 +99,8 @@ export default function UserAiSettingsPage() {
       const res = await fetch("/api/settings/ai-config", { method: "DELETE" });
       if (res.ok) {
         setConfig(null);
-        setBaseUrl("https://api.openai.com/v1");
-        setModel("gpt-4o");
+        setBaseUrl("https://api.deepseek.com/v1");
+        setModel("deepseek-chat");
         setTemperature(0.3);
         setApiKey("");
         setTestResult(null);
@@ -120,6 +123,12 @@ export default function UserAiSettingsPage() {
       setTesting(false);
     }
   };
+
+  // Role guard — redirect non-verified users
+  if (user && !isVerified) {
+    router.push("/settings");
+    return null;
+  }
 
   if (loading) {
     return (
@@ -171,7 +180,7 @@ export default function UserAiSettingsPage() {
             <Input
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="https://api.openai.com/v1"
+              placeholder="https://api.deepseek.com/v1"
               className="h-9"
             />
           </div>
@@ -193,7 +202,7 @@ export default function UserAiSettingsPage() {
             <Input
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              placeholder="gpt-4o"
+              placeholder="deepseek-chat"
               className="h-9"
             />
           </div>

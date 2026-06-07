@@ -41,9 +41,9 @@ export default function AiConfigPage() {
   const [promptSavingKey, setPromptSavingKey] = useState<string | null>(null);
 
   // 表单状态
-  const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
+  const [baseUrl, setBaseUrl] = useState("https://api.deepseek.com/v1");
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("gpt-4o");
+  const [model, setModel] = useState("deepseek-chat");
   const [temperature, setTemperature] = useState(0.3);
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null);
 
@@ -58,8 +58,8 @@ export default function AiConfigPage() {
       const data = await res.json();
       setConfig(data);
       if (data.configured) {
-        setBaseUrl(data.baseUrl || "https://api.openai.com/v1");
-        setModel(data.model || "gpt-4o");
+        setBaseUrl(data.baseUrl || "https://api.deepseek.com/v1");
+        setModel(data.model || "deepseek-chat");
         setTemperature(data.temperature ?? 0.3);
       }
     } catch (err) {
@@ -137,8 +137,8 @@ export default function AiConfigPage() {
       await fetch("/api/ai-config", { method: "DELETE" });
       setConfig(null);
       setApiKey("");
-      setBaseUrl("https://api.openai.com/v1");
-      setModel("gpt-4o");
+      setBaseUrl("https://api.deepseek.com/v1");
+      setModel("deepseek-chat");
       setTemperature(0.3);
       toast.success("AI 配置已删除");
     } catch {
@@ -276,10 +276,10 @@ export default function AiConfigPage() {
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                placeholder="https://api.openai.com/v1"
+                placeholder="https://api.deepseek.com/v1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                OpenAI: https://api.openai.com/v1 | Deepseek: https://api.deepseek.com/v1
+                Deepseek: https://api.deepseek.com/v1 | OpenAI: https://api.openai.com/v1
               </p>
             </div>
 
@@ -314,7 +314,7 @@ export default function AiConfigPage() {
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                   className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                  placeholder="gpt-4o"
+                  placeholder="deepseek-chat"
                 />
               </div>
               <div>

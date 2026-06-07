@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardHeader,
@@ -29,6 +30,7 @@ const ROLE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
 
 export default function AccountSettingsPage() {
   const { user } = useAuth();
+  const router = useRouter();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -65,13 +67,13 @@ export default function AccountSettingsPage() {
 
       if (!res.ok) {
         setError(data.error || "密码修改失败");
+        toast.error(data.error || "密码修改失败");
         return;
       }
 
-      toast.success("密码修改成功");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      toast.success("密码修改成功，请重新登录");
+      // Password change invalidates all sessions — redirect to login
+      router.push("/admin/login");
     } catch {
       setError("网络错误，请稍后重试");
     } finally {

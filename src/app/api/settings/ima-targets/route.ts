@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encrypt, decrypt, hasEncryptionKey } from "@/lib/crypto";
-import { requireAuth, unauthorizedResponse } from "@/lib/auth";
+import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // GET /api/settings/ima-targets — 获取当前用户的 IMA 目标列表
 export async function GET(request: NextRequest) {
-  const user = await requireAuth(request);
-  if (!user) return unauthorizedResponse();
+  const user = await requireVerifiedUser(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
+    return forbiddenResponse();
+  }
 
   try {
     const targets = await db.imaTarget.findMany({
@@ -46,8 +50,12 @@ export async function GET(request: NextRequest) {
 
 // POST /api/settings/ima-targets — 创建新的 IMA 目标
 export async function POST(request: NextRequest) {
-  const user = await requireAuth(request);
-  if (!user) return unauthorizedResponse();
+  const user = await requireVerifiedUser(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
+    return forbiddenResponse();
+  }
 
   try {
     // 检查加密密钥是否配置
@@ -61,21 +69,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, baseUrl, clientId, apiKey, knowledgeBaseId } = body;
 
-    if (!name || !baseUrl || !clientId || !apiKey || !knowledgeBaseId) {
-      return NextResponse.json(
-        { error: "请填写所有必填字段：名称、Base URL、Client ID、API Key、知识库 ID" },
-        { status: 400 }
-      );
+    // 非管理员只需提供 clientId 和 apiKey，其他字段使用默认值
+    const isAdmin = user.role === "ADMIN";
+    if (isAdmin) {
+      if (!name || !baseUrl || !clientId || !apiKey || !knowledgeBaseId) {
+        return NextResponse.json(
+          { error: "请填写所有必填字段：名称、Base URL、Client ID、API Key、知识库 ID" },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (!clientId || !apiKey) {
+        return NextResponse.json(
+          { error: "请填写 Client ID 和 API Key" },
+          { status: 400 }
+        );
+      }
     }
 
     const target = await db.imaTarget.create({
       data: {
         userId: user.id,
-        name: name.trim(),
-        baseUrl: baseUrl.trim(),
+        name: (name || "IMA 知识库").trim(),
+        baseUrl: (baseUrl || "https://api.ima.qq.com").trim(),
         clientId: clientId.trim(),
         encryptedApiKey: encrypt(apiKey.trim()),
-        knowledgeBaseId: knowledgeBaseId.trim(),
+        knowledgeBaseId: (knowledgeBaseId || "default").trim(),
       },
     });
 

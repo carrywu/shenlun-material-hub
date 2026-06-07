@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assessRelevanceWithRetry } from "@/services/ai";
+import { assessRelevanceWithRetry, AiServiceError } from "@/services/ai";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 
@@ -91,6 +91,12 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof AiServiceError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.status ?? 500 }
+      );
+    }
     const msg = error instanceof Error ? error.message : "评估失败";
     console.error("Reassess error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });

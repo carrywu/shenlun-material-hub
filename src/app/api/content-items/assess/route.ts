@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
-import { assessRelevanceWithRetry } from "@/services/ai";
+import { assessRelevanceWithRetry, AiServiceError } from "@/services/ai";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 const DEFAULT_CONCURRENCY = 3;
@@ -203,6 +203,12 @@ export async function POST(request: NextRequest) {
       { status: 202 }
     );
   } catch (error) {
+    if (error instanceof AiServiceError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.status ?? 500 }
+      );
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "评估执行失败" },
       { status: 500 }

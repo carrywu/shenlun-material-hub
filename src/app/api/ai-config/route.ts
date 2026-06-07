@@ -84,9 +84,9 @@ export async function POST(request: NextRequest) {
       await db.aiConfig.update({
         where: { id: existing.id },
         data: {
-          baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.openai.com/v1",
+          baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.deepseek.com/v1",
           ...(encryptedKey ? { encryptedKey } : {}),
-          model: typeof model === "string" && model.trim() ? model.trim() : "gpt-4o",
+          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-chat",
           temperature: temperature ?? 0.3,
           lastTestError: null, // 重置测试错误
         },
@@ -98,9 +98,9 @@ export async function POST(request: NextRequest) {
       await db.aiConfig.create({
         data: {
           name: "default",
-          baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.openai.com/v1",
+          baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.deepseek.com/v1",
           encryptedKey: encrypt(trimmedApiKey),
-          model: typeof model === "string" && model.trim() ? model.trim() : "gpt-4o",
+          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-chat",
           temperature: temperature ?? 0.3,
         },
       });

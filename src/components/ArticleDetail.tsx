@@ -276,12 +276,12 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm space-y-1">
                 <p>{errorInfo.message}</p>
                 {errorInfo.code === "AI_CONFIG_MISSING" && (
-                  <Link href="/admin/settings/ai" className="underline text-xs block">
+                  <Link href="/settings/ai" className="underline text-xs block">
                     去配置 AI
                   </Link>
                 )}
                 {errorInfo.code === "AI_CONFIG_DECRYPT_FAILED" && (
-                  <Link href="/admin/settings/ai" className="underline text-xs block">
+                  <Link href="/settings/ai" className="underline text-xs block">
                     去重新配置 AI（删除旧配置）
                   </Link>
                 )}

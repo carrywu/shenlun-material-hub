@@ -22,6 +22,7 @@ export default async function SettingsPage() {
   }
 
   const isAdmin = currentUser.role === "ADMIN";
+  const isVerifiedUser = currentUser.role === "VERIFIED_USER" || isAdmin;
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
@@ -31,7 +32,9 @@ export default async function SettingsPage() {
           个人设置
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          管理你的 AI 配置、IMA 同步目标和集成设置
+          {isVerifiedUser
+            ? "管理你的 AI 配置、IMA 同步目标和集成设置"
+            : "查看账号信息和修改密码"}
         </p>
       </div>
 
@@ -54,7 +57,8 @@ export default async function SettingsPage() {
           </div>
         </Link>
 
-        {/* AI Configuration */}
+        {/* AI Configuration — VERIFIED_USER and ADMIN only */}
+        {isVerifiedUser && (
         <Link
           href="/settings/ai"
           className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 hover:bg-muted/50 transition-all group"
@@ -71,8 +75,10 @@ export default async function SettingsPage() {
             </div>
           </div>
         </Link>
+        )}
 
-        {/* IMA Sync */}
+        {/* IMA Sync — VERIFIED_USER and ADMIN only */}
+        {isVerifiedUser && (
         <Link
           href="/settings/ima"
           className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 hover:bg-muted/50 transition-all group"
@@ -89,25 +95,26 @@ export default async function SettingsPage() {
             </div>
           </div>
         </Link>
+        )}
 
-        {/* Integrations — admin only for now */}
-        {isAdmin && (
-          <Link
-            href="/admin/integrations/wewe-rss"
-            className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 hover:bg-muted/50 transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md">
-                <LinkIcon className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-sm group-hover:text-primary transition-colors">外部集成</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  WeWe RSS、外部 WeRSS 等集成配置。
-                </p>
-              </div>
+        {/* Integrations — VERIFIED_USER and ADMIN only */}
+        {isVerifiedUser && (
+        <Link
+          href="/settings/integrations"
+          className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 hover:bg-muted/50 transition-all group"
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md">
+              <LinkIcon className="w-5 h-5" />
             </div>
-          </Link>
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm group-hover:text-primary transition-colors">外部集成</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                WeWe RSS 等集成配置，用于微信公众号内容采集。
+              </p>
+            </div>
+          </div>
+        </Link>
         )}
 
         {/* Account info summary */}

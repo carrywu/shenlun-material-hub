@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encrypt, decrypt, hasEncryptionKey } from "@/lib/crypto";
 import { resetAiConfigCache } from "@/services/ai";
-import { requireAuth, unauthorizedResponse } from "@/lib/auth";
+import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // GET /api/settings/ai-config — 获取当前用户的 AI 配置
 export async function GET(request: NextRequest) {
-  const user = await requireAuth(request);
-  if (!user) return unauthorizedResponse();
+  const user = await requireVerifiedUser(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
+    return forbiddenResponse();
+  }
 
   try {
     const config = await db.aiConfig.findFirst({
@@ -45,8 +49,12 @@ export async function GET(request: NextRequest) {
 
 // POST /api/settings/ai-config — 创建或更新当前用户的 AI 配置
 export async function POST(request: NextRequest) {
-  const user = await requireAuth(request);
-  if (!user) return unauthorizedResponse();
+  const user = await requireVerifiedUser(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
+    return forbiddenResponse();
+  }
 
   try {
     // 检查加密密钥是否配置
@@ -72,9 +80,9 @@ export async function POST(request: NextRequest) {
       await db.aiConfig.update({
         where: { id: existing.id },
         data: {
-          baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.openai.com/v1",
+          baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.deepseek.com/v1",
           ...(encryptedKey ? { encryptedKey } : {}),
-          model: typeof model === "string" && model.trim() ? model.trim() : "gpt-4o",
+          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-chat",
           temperature: temperature ?? 0.3,
         },
       });
@@ -86,9 +94,9 @@ export async function POST(request: NextRequest) {
         data: {
           name: `user-${user.id}`,
           userId: user.id,
-          baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.openai.com/v1",
+          baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.deepseek.com/v1",
           encryptedKey: encrypt(trimmedApiKey),
-          model: typeof model === "string" && model.trim() ? model.trim() : "gpt-4o",
+          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-chat",
           temperature: temperature ?? 0.3,
         },
       });
@@ -106,8 +114,12 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/settings/ai-config — 删除当前用户的 AI 配置
 export async function DELETE(request: NextRequest) {
-  const user = await requireAuth(request);
-  if (!user) return unauthorizedResponse();
+  const user = await requireVerifiedUser(request);
+  if (!user) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
+    return forbiddenResponse();
+  }
 
   try {
     await db.aiConfig.deleteMany({ where: { userId: user.id } });

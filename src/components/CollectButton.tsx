@@ -12,9 +12,10 @@ interface CollectButtonProps {
 
 export function CollectButton({ onComplete }: CollectButtonProps) {
   const [open, setOpen] = useState(false);
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const isVerifiedUser = isAdmin || user?.role === "VERIFIED_USER";
 
-  if (!isAdmin) return null;
+  if (!isVerifiedUser) return null;
 
   return (
     <>

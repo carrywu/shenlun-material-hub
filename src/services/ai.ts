@@ -98,10 +98,9 @@ async function resolveAiRuntimeConfig(userId?: string): Promise<{
   cacheKey: string;
 }> {
   try {
-    // Phase 3: If userId provided, try user-specific config first
-    let config = null;
+    // Phase 3: If userId provided, require user-specific config (no fallback)
     if (userId) {
-      config = await db.aiConfig.findFirst({
+      const config = await db.aiConfig.findFirst({
         where: { userId, isEnabled: true },
         select: {
           id: true,
@@ -111,21 +110,67 @@ async function resolveAiRuntimeConfig(userId?: string): Promise<{
           updatedAt: true,
         },
       });
+
+      if (!config) {
+        throw new AiServiceError(
+          "AI_CONFIG_MISSING",
+          "您尚未配置 AI 服务。请前往「设置 → AI 配置」填写您的 API Key",
+          400,
+          { source: "db" }
+        );
+      }
+
+      if (!process.env.AI_CONFIG_ENCRYPTION_KEY) {
+        throw new AiServiceError(
+          "AI_ENCRYPTION_KEY_MISSING",
+          "AI_CONFIG_ENCRYPTION_KEY 环境变量未设置，无法解密数据库中的 API Key",
+          500,
+          { source: "db" }
+        );
+      }
+
+      let apiKey: string;
+      try {
+        apiKey = decrypt(config.encryptedKey);
+      } catch {
+        throw new AiServiceError(
+          "AI_CONFIG_DECRYPT_FAILED",
+          "数据库中的 AI 配置解密失败，可能是密钥不匹配。请删除旧配置后重新保存",
+          500,
+          { source: "db", baseURL: config.baseUrl, model: config.model }
+        );
+      }
+
+      const trimmedApiKey = trimConfigValue(apiKey);
+      if (!trimmedApiKey) {
+        throw new AiServiceError(
+          "AI_CONFIG_MISSING",
+          "您的 AI 配置中的 API Key 为空，请重新保存配置",
+          400,
+          { source: "db", baseURL: config.baseUrl, model: config.model }
+        );
+      }
+
+      return {
+        apiKey: trimmedApiKey,
+        model: trimConfigValue(config.model) ?? "deepseek-chat",
+        source: "db",
+        baseURL: trimConfigValue(config.baseUrl),
+        cacheKey: `db:${config.id}:${config.updatedAt.toISOString()}`,
+      };
     }
 
-    // Fall back to global config
-    if (!config) {
-      config = await db.aiConfig.findFirst({
-        where: { name: "default", isEnabled: true, userId: null },
-        select: {
-          id: true,
-          encryptedKey: true,
-          baseUrl: true,
-          model: true,
-          updatedAt: true,
-        },
-      });
-    }
+    // System-level (no userId): use global config → env fallback
+    const config = await db.aiConfig.findFirst({
+      where: { name: "default", isEnabled: true, userId: null },
+      select: {
+        id: true,
+        encryptedKey: true,
+        baseUrl: true,
+        model: true,
+        updatedAt: true,
+      },
+    });
 
     if (config) {
       if (!process.env.AI_CONFIG_ENCRYPTION_KEY) {
@@ -161,7 +206,7 @@ async function resolveAiRuntimeConfig(userId?: string): Promise<{
 
       return {
         apiKey: trimmedApiKey,
-        model: trimConfigValue(config.model) ?? "gpt-4o",
+        model: trimConfigValue(config.model) ?? "deepseek-chat",
         source: "db",
         baseURL: trimConfigValue(config.baseUrl),
         cacheKey: `db:${config.id}:${config.updatedAt.toISOString()}`,
@@ -174,7 +219,7 @@ async function resolveAiRuntimeConfig(userId?: string): Promise<{
 
   const envApiKey = trimConfigValue(process.env.AI_API_KEY) ?? trimConfigValue(process.env.OPENAI_API_KEY);
   const envBaseURL = trimConfigValue(process.env.AI_BASE_URL);
-  const envModel = trimConfigValue(process.env.AI_MODEL) ?? trimConfigValue(process.env.OPENAI_MODEL) ?? "gpt-4o";
+  const envModel = trimConfigValue(process.env.AI_MODEL) ?? trimConfigValue(process.env.OPENAI_MODEL) ?? "deepseek-chat";
 
   if (!envApiKey) {
     throw new AiServiceError(

@@ -87,10 +87,6 @@ async function runGenerateCardTask(id: string, cardType: CardType, requestId: st
       },
     });
 
-    if (error instanceof AiServiceError) {
-      throw new Error(error.message);
-    }
-
     throw error;
   }
 }
@@ -192,6 +188,9 @@ export async function POST(
       { status: 202 }
     );
   } catch (error) {
+    if (error instanceof AiServiceError) {
+      return errorResponse(error.code as ErrorCode, error.message, error.status ?? 500, { requestId });
+    }
     const errorMessage = error instanceof Error ? error.message : "素材卡生成失败";
     return errorResponse("AI_API_CALL_FAILED", errorMessage, 500, { requestId });
   }

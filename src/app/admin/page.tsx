@@ -15,6 +15,21 @@ import {
   Clock
 } from "lucide-react";
 
+const TASK_TYPE_LABELS: Record<string, string> = {
+  WEB_CRAWL: "网页爬取",
+  WEWE_RSS_SYNC: "微信RSS同步",
+  AI_ASSESS: "AI评估",
+  CARD_GENERATE: "卡片生成",
+};
+
+const LOG_CATEGORY_LABELS: Record<string, string> = {
+  CRAWLER: "采集器",
+  AI: "AI服务",
+  SYSTEM: "系统",
+  AUTH: "认证",
+  BACKUP: "备份",
+};
+
 interface MetricsData {
   dbStats: {
     totalArticles: number;
@@ -318,7 +333,7 @@ export default function AdminDashboardPage() {
                   {recentTasks.map((task) => (
                     <tr key={task.id} className="hover:bg-muted/50">
                       <td className="py-3 font-mono font-medium text-xs text-primary">
-                        {task.type}
+                        {TASK_TYPE_LABELS[task.type] || task.type}
                       </td>
                       <td className="py-3 text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-muted-foreground" />
@@ -373,8 +388,8 @@ export default function AdminDashboardPage() {
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded uppercase">
-                      {log.category}
+                    <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded">
+                      {LOG_CATEGORY_LABELS[log.category] || log.category}
                     </span>
                     <span className="text-xs font-medium text-foreground">{log.message}</span>
                   </div>

@@ -38,6 +38,20 @@ const STATUS_COLORS: Record<string, string> = {
   FAILED: "destructive",
 };
 
+const TASK_TYPE_LABELS: Record<string, string> = {
+  WEB_CRAWL: "网页爬取",
+  WEWE_RSS_SYNC: "微信RSS同步",
+  AI_ASSESS: "AI评估",
+  CARD_GENERATE: "卡片生成",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "排队中",
+  RUNNING: "运行中",
+  COMPLETED: "已完成",
+  FAILED: "失败",
+};
+
 /** Safe JSON parse — returns original string if invalid */
 function safeJsonParse(str: string | null): string {
   if (!str) return "-";
@@ -172,20 +186,20 @@ export default function AdminTasksPage() {
             <SelectTrigger aria-label="任务状态"><SelectValue placeholder="状态" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部状态</SelectItem>
-              <SelectItem value="PENDING">PENDING</SelectItem>
-              <SelectItem value="RUNNING">RUNNING</SelectItem>
-              <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-              <SelectItem value="FAILED">FAILED</SelectItem>
+              <SelectItem value="PENDING">排队中</SelectItem>
+              <SelectItem value="RUNNING">运行中</SelectItem>
+              <SelectItem value="COMPLETED">已完成</SelectItem>
+              <SelectItem value="FAILED">失败</SelectItem>
             </SelectContent>
           </Select>
           <Select value={type} onValueChange={(value) => setType(value ?? "all")}>
             <SelectTrigger aria-label="任务类型"><SelectValue placeholder="类型" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
-              <SelectItem value="WEB_CRAWL">WEB_CRAWL</SelectItem>
-              <SelectItem value="WEWE_RSS_SYNC">WEWE_RSS_SYNC</SelectItem>
-              <SelectItem value="AI_ASSESS">AI_ASSESS</SelectItem>
-              <SelectItem value="CARD_GENERATE">CARD_GENERATE</SelectItem>
+              <SelectItem value="WEB_CRAWL">网页爬取</SelectItem>
+              <SelectItem value="WEWE_RSS_SYNC">微信RSS同步</SelectItem>
+              <SelectItem value="AI_ASSESS">AI评估</SelectItem>
+              <SelectItem value="CARD_GENERATE">卡片生成</SelectItem>
             </SelectContent>
           </Select>
           <Select value={selectedUserId} onValueChange={(value) => setSelectedUserId(value ?? "all")}>
@@ -233,10 +247,10 @@ export default function AdminTasksPage() {
                       onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
                     >
                       <TableCell className="font-mono text-xs">{task.id}</TableCell>
-                      <TableCell>{task.type}</TableCell>
+                      <TableCell>{TASK_TYPE_LABELS[task.type] || task.type}</TableCell>
                       <TableCell>
                         <Badge variant={(STATUS_COLORS[task.status] as "default" | "secondary" | "outline" | "destructive") ?? "secondary"}>
-                          {task.status}
+                          {STATUS_LABELS[task.status] || task.status}
                         </Badge>
                       </TableCell>
                       <TableCell>{new Date(task.createdAt).toLocaleString("zh-CN")}</TableCell>

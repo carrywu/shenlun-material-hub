@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { scoreContentItem } from "@/services/ai";
+import { scoreContentItem, AiServiceError } from "@/services/ai";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // POST /api/content-items/[id]/score
@@ -65,6 +65,12 @@ export async function POST(
     });
   } catch (error) {
     console.error("Failed to score content item:", error);
+    if (error instanceof AiServiceError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.status ?? 500 }
+      );
+    }
     return NextResponse.json(
       {
         error: `AI 评分失败: ${error instanceof Error ? error.message : "未知错误"}`,

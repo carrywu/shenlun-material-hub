@@ -165,3 +165,4 @@ config/server.config.local.json
 
 /src/generated/prisma
 prisma/dev.db.pre-pg-migration
+.playwright-mcp/
