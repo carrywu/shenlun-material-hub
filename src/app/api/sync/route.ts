@@ -24,10 +24,14 @@ export async function POST(request: NextRequest) {
     if (cardId && !cardIds) {
       const card = await db.materialCard.findUnique({
         where: { id: cardId },
-        select: { id: true, confirmed: true },
+        select: { id: true, confirmed: true, ownerUserId: true },
       });
       if (!card) {
         return NextResponse.json({ error: "素材卡不存在" }, { status: 404 });
+      }
+      // P1-13: ownership check — only owner or admin can sync
+      if (card.ownerUserId && card.ownerUserId !== user.id && user.role !== "ADMIN") {
+        return forbiddenResponse("无权同步此素材卡");
       }
       if (!card.confirmed) {
         return NextResponse.json({ error: "素材卡尚未确认，请先确认后再同步" }, { status: 400 });
@@ -48,7 +52,7 @@ export async function POST(request: NextRequest) {
 
       const existingCards = await db.materialCard.findMany({
         where: { id: { in: cardIds } },
-        select: { id: true, confirmed: true },
+        select: { id: true, confirmed: true, ownerUserId: true },
       });
 
       const existingIds = new Set(existingCards.map((c) => c.id));
@@ -59,6 +63,14 @@ export async function POST(request: NextRequest) {
           { error: `以下素材卡不存在: ${invalidIds.join(", ")}` },
           { status: 404 }
         );
+      }
+
+      // P1-13: ownership check for batch
+      if (user.role !== "ADMIN") {
+        const unauthorized = existingCards.filter(c => c.ownerUserId && c.ownerUserId !== user.id);
+        if (unauthorized.length > 0) {
+          return forbiddenResponse("无权同步部分素材卡");
+        }
       }
 
       const unconfirmedIds = existingCards

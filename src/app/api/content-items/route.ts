@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
 import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
@@ -93,6 +94,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // P1-12: sourceId 必须是有效 ID 或不传（不传时尝试匹配或创建默认）
+    if (sourceId === "") {
+      return NextResponse.json(
+        { error: "sourceId 不能为空字符串，请传入有效的来源 ID 或不传" },
+        { status: 400 }
+      );
+    }
+
     // Check duplicate URL
     const existing = await db.contentItem.findUnique({
       where: { originalUrl },
@@ -124,12 +133,16 @@ export async function POST(request: NextRequest) {
         title,
         originalUrl,
         ownerUserId: user.id,
+        visibility: "public",
         platform: resolvedPlatform,
         contentType: resolvedContentType,
         trustLevel: resolvedTrustLevel,
         excerpt: excerpt ?? null,
         fullText: fullText ?? null,
         fullTextStored: !!fullText,
+        effectiveTextLength: fullText ? fullText.length : 0,
+        contentHash: fullText ? createHash("sha256").update(fullText).digest("hex").slice(0, 16) : null,
+        discoveryChannel: "manual",
         topicTags: topicTags ? JSON.stringify(topicTags) : "[]",
         regionScopes: regionScopes ? JSON.stringify(regionScopes) : "[]",
         processingStatus: fullText ? "fetched" : "pending",
