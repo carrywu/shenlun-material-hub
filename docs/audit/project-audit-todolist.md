@@ -9,11 +9,11 @@
 
 ## 阶段 0：测试可信度修复（前置）
 
-- [ ] T0-1：修复 `e2e/admin.spec.ts` 永真断言
-- [ ] T0-2：修复 `e2e/wewe-rss.spec.ts` 永真断言
-- [ ] T0-3：修复 `e2e/ai-config.spec.ts` 永真断言
-- [ ] T0-4：修复 `e2e/middleware.spec.ts` 受保护页面测试继承 admin cookie
-- [ ] T0-5：修复 `e2e/api-security.spec.ts` 公开 API 断言不一致
+- [x] T0-1：修复 `e2e/admin.spec.ts` 永真断言 ✅ `397cb6c`
+- [x] T0-2：修复 `e2e/wewe-rss.spec.ts` 永真断言 ✅ `397cb6c`
+- [x] T0-3：修复 `e2e/ai-config.spec.ts` 永真断言 ✅ `397cb6c`
+- [x] T0-4：修复 `e2e/middleware.spec.ts` 受保护页面测试继承 admin cookie ✅ `397cb6c`
+- [x] T0-5：修复 `e2e/api-security.spec.ts` 公开 API 断言不一致 ✅ `397cb6c`
 
 ## 阶段 1：P0 安全问题（部署前必须完成）
 

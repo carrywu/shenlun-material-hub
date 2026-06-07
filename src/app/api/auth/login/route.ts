@@ -10,8 +10,80 @@ import {
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
+// ─── Brute-force rate limiting ────────────────────────────────────────────
+const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+const CLEANUP_INTERVAL = 100; // Clean up stale entries every N requests
+let cleanupCounter = 0;
+
+function getClientKey(req: NextRequest): string {
+  // Use IP from headers (behind proxy) or fallback
+  const forwarded = req.headers.get("x-forwarded-for");
+  const ip = forwarded?.split(",")[0]?.trim() || "unknown";
+  return `login:${ip}`;
+}
+
+function checkRateLimit(key: string): { allowed: boolean; retryAfterMs: number } {
+  const entry = loginAttempts.get(key);
+  if (!entry) return { allowed: true, retryAfterMs: 0 };
+
+  if (entry.lockedUntil && Date.now() < entry.lockedUntil) {
+    return { allowed: false, retryAfterMs: entry.lockedUntil - Date.now() };
+  }
+
+  // Lockout expired, reset
+  if (entry.lockedUntil) {
+    loginAttempts.delete(key);
+    return { allowed: true, retryAfterMs: 0 };
+  }
+
+  if (entry.count >= MAX_ATTEMPTS) {
+    entry.lockedUntil = Date.now() + LOCKOUT_MS;
+    return { allowed: false, retryAfterMs: LOCKOUT_MS };
+  }
+
+  return { allowed: true, retryAfterMs: 0 };
+}
+
+function recordFailedAttempt(key: string): void {
+  const entry = loginAttempts.get(key) || { count: 0, lockedUntil: 0 };
+  entry.count++;
+  loginAttempts.set(key, entry);
+}
+
+function recordSuccess(key: string): void {
+  loginAttempts.delete(key);
+}
+
+function cleanupStaleEntries(): void {
+  cleanupCounter++;
+  if (cleanupCounter < CLEANUP_INTERVAL) return;
+  cleanupCounter = 0;
+  const now = Date.now();
+  for (const [key, entry] of loginAttempts.entries()) {
+    if (entry.lockedUntil && now > entry.lockedUntil) {
+      loginAttempts.delete(key);
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
+    cleanupStaleEntries();
+
+    // Rate limit check
+    const clientKey = getClientKey(req);
+    const rateLimit = checkRateLimit(clientKey);
+    if (!rateLimit.allowed) {
+      const retryMinutes = Math.ceil(rateLimit.retryAfterMs / 60000);
+      await logger.warn(`Login rate limited for ${clientKey}`, "AUTH");
+      return NextResponse.json(
+        { error: `登录尝试过于频繁，请 ${retryMinutes} 分钟后再试` },
+        { status: 429 }
+      );
+    }
+
     // Ensure at least one admin exists (idempotent)
     await ensureInitialAdmin();
 
@@ -28,6 +100,7 @@ export async function POST(req: NextRequest) {
     const user = await db.user.findUnique({ where: { username } });
 
     if (!user) {
+      recordFailedAttempt(clientKey);
       await logger.warn(
         `Failed login attempt: Unknown user "${username}"`,
         "AUTH"
@@ -53,6 +126,7 @@ export async function POST(req: NextRequest) {
     const result = await verifyPassword(password, user.passwordHash);
 
     if (!result.valid) {
+      recordFailedAttempt(clientKey);
       await logger.warn(
         `Failed login attempt: Incorrect password for user "${username}"`,
         "AUTH"
@@ -78,6 +152,7 @@ export async function POST(req: NextRequest) {
 
     // Create DB session
     const token = await createSession(user.id);
+    recordSuccess(clientKey);
 
     // Set token in cookie
     const response = NextResponse.json({
@@ -115,7 +190,7 @@ export async function GET(req: NextRequest) {
       authenticated: true,
       username: user.username,
       role: user.role,
-      displayName: user.username,
+      displayName: user.username, // Will be enhanced with displayName from DB in future
     });
   } catch (_error) {
     return NextResponse.json({ authenticated: false }, { status: 500 });

@@ -1,4 +1,7 @@
 import { db } from "@/lib/db";
+import { cookies } from "next/headers";
+import { validateSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -22,6 +25,28 @@ import { CONTENT_TYPE_LABELS } from "@/lib/display-labels";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  // Server-side auth check — redirect unauthenticated users
+  let currentUser = null;
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    if (token) {
+      currentUser = await validateSession(token);
+    }
+  } catch {
+    // ignore
+  }
+
+  if (!currentUser) {
+    redirect("/admin/login?redirect=/");
+  }
+
+  const isAdmin = currentUser.role === "ADMIN";
+
+  // Data isolation: non-admin users only see their own data for owned models
+  // Source is a shared/global entity — no ownerUserId field
+  const ownerFilter = isAdmin ? {} : { ownerUserId: currentUser.id };
+
   const [
     totalItems,
     totalCards,
@@ -32,13 +57,14 @@ export default async function DashboardPage() {
     recentItems,
     cardsByType,
   ] = await Promise.all([
-    db.contentItem.count(),
-    db.materialCard.count(),
-    db.materialCard.count({ where: { confirmed: false } }),
-    db.materialCard.count({ where: { confirmed: true } }),
+    db.contentItem.count({ where: ownerFilter }),
+    db.materialCard.count({ where: ownerFilter }),
+    db.materialCard.count({ where: { ...ownerFilter, confirmed: false } }),
+    db.materialCard.count({ where: { ...ownerFilter, confirmed: true } }),
     db.source.count(),
     db.source.count({ where: { verificationStatus: "verified" } }),
     db.contentItem.findMany({
+      where: ownerFilter,
       orderBy: { createdAt: "desc" },
       take: 6,
       include: {
@@ -48,6 +74,7 @@ export default async function DashboardPage() {
     }),
     db.materialCard.groupBy({
       by: ["cardType"],
+      where: ownerFilter,
       _count: { id: true },
     }),
   ]);

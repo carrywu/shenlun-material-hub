@@ -144,10 +144,20 @@ export function buildClearCookieHeader(): string {
 
 // ─── Legacy JWT support (for migration period) ──────────────────────────────
 
-const DEFAULT_JWT_SECRET = "shenlun-material-hub-super-secret-jwt-key";
-
 function getLegacyJwtSecret(): string {
-  return process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    // In production, JWT_SECRET is mandatory. In dev/test, use a fallback.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "[AUTH] JWT_SECRET environment variable is required in production. " +
+          "Set it to a cryptographically random string (e.g., openssl rand -hex 32)."
+      );
+    }
+    // Dev/test fallback — never use in production
+    return "dev-only-jwt-secret-do-not-use-in-production";
+  }
+  return secret;
 }
 
 const encoder = new TextEncoder();
