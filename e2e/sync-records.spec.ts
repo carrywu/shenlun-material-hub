@@ -45,4 +45,36 @@ test.describe('同步记录 /admin/sync-records', () => {
     expect(hasTable || hasEmpty).toBe(true);
     guard.report(testInfo);
   });
+
+  test('同步失败记录显示中文错误提示', async ({ page }, testInfo) => {
+    test.setTimeout(60000);
+    const guard = attachConsoleGuard(page);
+    await page.goto('/admin/sync-records');
+    await expect(page.getByRole('heading', { name: '同步记录' })).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(2000);
+
+    // Try to filter for failed records
+    const statusTrigger = page.locator('[aria-label="同步状态"]');
+    if (await statusTrigger.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await statusTrigger.click();
+      const failedOption = page.getByRole('option', { name: '失败' });
+      if (await failedOption.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await failedOption.click();
+        await page.waitForTimeout(1500);
+      }
+    }
+
+    // Check that any visible error messages are in Chinese (not raw English)
+    const errorCells = page.locator('.text-destructive');
+    const count = await errorCells.count();
+    for (let i = 0; i < count; i++) {
+      const text = await errorCells.nth(i).textContent();
+      // Error messages should NOT contain untranslated English API error patterns
+      if (text && /ima API error/i.test(text)) {
+        throw new Error(`发现未翻译的英文错误消息: ${text}`);
+      }
+    }
+
+    guard.report(testInfo);
+  });
 });

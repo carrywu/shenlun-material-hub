@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -240,9 +240,8 @@ export default function AdminTasksPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map((task) => (
-                  <>
+                  <Fragment key={task.id}>
                     <TableRow
-                      key={task.id}
                       className="cursor-pointer"
                       onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
                     >
@@ -260,7 +259,7 @@ export default function AdminTasksPage() {
                       </TableCell>
                     </TableRow>
                     {expandedTask === task.id && (
-                      <TableRow key={`${task.id}-detail`}>
+                      <TableRow>
                         <TableCell colSpan={6} className="bg-muted/30">
                           <div className="space-y-2 p-3">
                             <div>
@@ -279,7 +278,7 @@ export default function AdminTasksPage() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>

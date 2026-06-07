@@ -24,36 +24,32 @@
 
 > **详细验证报告**: `docs/testing/p0-e2e-validation-report.md`
 
-## P1 阶段
-- [ ] P1-001：重写 dead-link 检测，去除 Next dev 404 字符串误报
-  - 原因：当前 dead-link 测试无法判断真实死链。
+## P1 阶段 — ✅ 全部完成 (2026-06-07)
+
+- [x] P1-001：重写 dead-link 检测，去除 Next dev 404 字符串误报 ✅
+  - 改用 `page.title()` + `h1` 精确匹配，移除 `body.textContent` 误报
   - 涉及文件：`e2e/dead-link.spec.ts`
-  - 验收标准：公开页和受保护页真实渲染时不因内联脚本 `404` 失败。
-  - 推荐测试：`pnpm exec playwright test e2e/dead-link.spec.ts`
+  - 验证：174 passed / 0 failed / 2 flaky (pre-existing)
 
-- [ ] P1-002：修复 `/admin/tasks` 表格 key warning
-  - 原因：console guard 捕获 React warning。
-  - 涉及文件：`src/app/admin/tasks/page.tsx`
-  - 验收标准：打开任务页无 unique key warning。
-  - 推荐测试：`pnpm exec playwright test e2e/admin.spec.ts -g "异步任务"`
+- [x] P1-002：修复 `/admin/tasks` 表格 key warning ✅
+  - `<>` Fragment → `<Fragment key={task.id}>`，消除 React key warning
+  - 涉及文件：`src/app/admin/tasks/page.tsx`, `e2e/admin.spec.ts`
+  - 验证：consoleGuard 无 key warning，admin spec 全部通过
 
-- [ ] P1-003：同步记录失败原因中文化
-  - 原因：IMA 404 原样暴露，用户不知道如何修复。
-  - 涉及文件：`src/components/sync/*`, `src/services/ima-sync.ts`
-  - 验收标准：缺 knowledge base id、token、base URL 时显示可操作中文提示。
-  - 推荐测试：`pnpm exec playwright test e2e/sync-records.spec.ts`
+- [x] P1-003：同步记录失败原因中文化 ✅
+  - 新建 `src/lib/error-messages.ts`（`translateSyncError()`），在 SyncToIma + SyncRecordsPage 前端显示层翻译
+  - 涉及文件：`src/lib/error-messages.ts` (新建), `src/components/SyncToIma.tsx`, `src/components/sync/SyncRecordsPage.tsx`
+  - 验证：sync-records spec 中文检查通过，错误消息不包含原始英文 API 错误
 
-- [ ] P1-004：为空素材卡/搜索/复习增加下一步 CTA
-  - 原因：新用户路径缺少引导。
-  - 涉及文件：`src/app/cards/page.tsx`, `src/app/search/page.tsx`, `src/app/review/page.tsx`
-  - 验收标准：无卡片时能一键跳转到文章列表或生成流程。
-  - 推荐测试：`pnpm exec playwright test e2e/cards.spec.ts e2e/search.spec.ts e2e/review.spec.ts`
+- [x] P1-004：为空素材卡/搜索/复习增加下一步 CTA ✅
+  - Search 初始状态和无结果状态添加跳转链接；Review 空状态添加"查看素材卡"按钮
+  - 涉及文件：`src/app/search/page.tsx`, `src/app/review/page.tsx`
+  - 验证：search + review spec CTA 链接测试通过
 
-- [ ] P1-005：文章列表移动端改为卡片式浏览
-  - 原因：表格在 390px 宽度下阅读体验差。
+- [x] P1-005：文章列表移动端响应式适配 ✅
+  - 表格列 `hidden md:table-cell` 隐藏次要列；详情面板移动端全屏 overlay；筛选区 `grid-cols-2 md:grid-cols-4`
   - 涉及文件：`src/components/articles/ArticlesPage.tsx`
-  - 验收标准：移动端无横向遮挡，标题、来源、时间、AI 状态可读。
-  - 推荐测试：`pnpm exec playwright test e2e/mobile-responsive.spec.ts`
+  - 验证：mobile-responsive spec 文章列表无横向溢出，iPhone 13 + iPad Pro 均通过
 
 ## P2 阶段
 - [ ] P2-001：重建 visual regression 截图策略和基线

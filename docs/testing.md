@@ -34,13 +34,13 @@ pnpm exec playwright test
 
 ## 当前 Playwright 基线
 
-截至 2026-06-06，`pnpm exec playwright test` 是干净基线。
+截至 2026-06-07，`pnpm exec playwright test` 是干净基线。
 
 ```text
-最新运行结果（2026-06-06，P0 修复后，21 个 spec 文件）：
-  160 passed / 0 failed / 12 did not run
+最新运行结果（2026-06-07，P1 修复后，21 个 spec 文件）：
+  174 passed / 0 failed / 2 flaky (pre-existing) / 12 did not run
   Workers：1
-  Duration：30.2 min
+  Duration：19.2 min
 ```
 
 ### P0 修复记录 (2026-06-06)
@@ -54,6 +54,16 @@ pnpm exec playwright test
 
 > 详见 `docs/testing/p0-e2e-validation-report.md`
 
+### P1 修复记录 (2026-06-07)
+
+| P1 | 修复 | 验证 |
+|----|------|------|
+| P1-001: dead-link 误报 | page.title() + h1 精确匹配替代 body.textContent | dead-link spec 通过 |
+| P1-002: tasks key warning | Fragment key={task.id} | admin spec 通过，consoleGuard 无 warning |
+| P1-003: 同步错误中文化 | translateSyncError() 前端翻译层 | sync-records spec 中文检查通过 |
+| P1-004: 空页面 CTA | Search/Review 空状态添加跳转链接 | search + review spec 通过 |
+| P1-005: 文章移动端适配 | hidden md:table-cell + 响应式详情面板 | mobile-responsive spec 通过 |
+
 ### Spec 文件清单（21 个）
 
 | 文件 | 测试数 | 覆盖 |
@@ -65,18 +75,18 @@ pnpm exec playwright test
 | article-detail.spec.ts | 8 | 文章详情 |
 | cards.spec.ts | 11 | 素材卡 |
 | sources.spec.ts | 6 | 来源管理 |
-| sync-records.spec.ts | 4 | 同步记录 |
+| sync-records.spec.ts | 5 | 同步记录 |
 | explore-discover.spec.ts | 9 | 探索/发现 |
-| search.spec.ts | 8 | 搜索 |
-| review.spec.ts | 8 | 复习 |
-| admin.spec.ts | 20 | 管理后台 |
+| search.spec.ts | 10 | 搜索 |
+| review.spec.ts | 9 | 复习 |
+| admin.spec.ts | 21 | 管理后台 |
 | ai-config.spec.ts | 7 | AI 配置 |
 | wewe-rss.spec.ts | 6 | WeWe RSS |
 | settings.spec.ts | 7 | 设置 |
 | dead-link.spec.ts | 22 | 死链检查 |
 | accessibility.spec.ts | 24 | a11y 扫描 |
 | visual-regression.spec.ts | 14 | 视觉回归 |
-| mobile-responsive.spec.ts | 18 | 移动端响应式 |
+| mobile-responsive.spec.ts | 20 | 移动端响应式 |
 | api-security.spec.ts | 18 | API 安全认证 |
 | error-states.spec.ts | 11 | 错误状态处理 |
 

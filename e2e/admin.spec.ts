@@ -120,6 +120,18 @@ test.describe('Admin Tasks', () => {
 
     guard.report(testInfo);
   });
+
+  test('异步任务页无 React key warning', async ({ page }, testInfo) => {
+    test.setTimeout(60000);
+    const guard = attachConsoleGuard(page);
+
+    await page.goto('/admin/tasks');
+    await expect(page.getByText('异步任务').first()).toBeVisible({ timeout: 10000 });
+    // Wait for table data to load and render
+    await page.waitForTimeout(3000);
+    // consoleGuard will detect any React key warnings and fail the test
+    guard.report(testInfo);
+  });
 });
 
 test.describe('Admin Logs', () => {

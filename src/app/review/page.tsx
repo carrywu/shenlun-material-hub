@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -257,14 +258,20 @@ export default function ReviewPage() {
               <CheckCircle2 className="h-10 w-10 mb-3 text-green-500 opacity-50" />
               <p className="text-lg font-medium">太棒了！</p>
               <p className="text-sm">当前没有需要复习的素材卡</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={handleRefresh}
-              >
-                <RefreshCw className="h-4 w-4 mr-1.5" />
-                换一批
-              </Button>
+              <div className="flex items-center gap-3 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleRefresh}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1.5" />
+                  换一批
+                </Button>
+                <Link href="/cards">
+                  <Button variant="default" size="sm">
+                    查看素材卡
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         ) : (

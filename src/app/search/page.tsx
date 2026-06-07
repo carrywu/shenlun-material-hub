@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { MaterialCardView } from "@/components/MaterialCard";
 import type { CardType } from "@/types";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 interface SearchCard {
@@ -313,6 +314,11 @@ export default function SearchPage() {
                       清空所有筛选条件
                     </Button>
                   )}
+                  <div className="flex gap-4 mt-3">
+                    <Link href="/articles" className="text-sm text-primary hover:underline">
+                      前往文章库浏览 →
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
@@ -387,6 +393,14 @@ export default function SearchPage() {
               <p className="text-sm">
                 输入关键词后按 Enter 或点击搜索按钮
               </p>
+              <div className="flex gap-4 mt-4">
+                <Link href="/cards" className="text-sm text-primary hover:underline">
+                  浏览全部素材卡 →
+                </Link>
+                <Link href="/articles" className="text-sm text-primary hover:underline">
+                  前往文章库 →
+                </Link>
+              </div>
             </CardContent>
           </Card>
         )}

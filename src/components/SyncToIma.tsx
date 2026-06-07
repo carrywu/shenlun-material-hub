@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Loader2, CheckCircle2, XCircle, RefreshCw, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { translateSyncError } from "@/lib/error-messages";
 
 interface SyncResult {
   success: boolean;
@@ -141,7 +142,7 @@ export function SyncToIma({
           ) : (
             <>
               <XCircle className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-destructive">{lastResult.error}</span>
+              <span className="text-destructive">{translateSyncError(lastResult.error)}</span>
             </>
           )}
         </div>
@@ -251,7 +252,7 @@ export function BatchSyncToIma({
                       className="flex items-center gap-2 text-xs text-destructive"
                     >
                       <XCircle className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{r.error}</span>
+                      <span className="truncate">{translateSyncError(r.error)}</span>
                     </div>
                   ))}
               </div>
@@ -310,7 +311,7 @@ function SyncStatusCard({ syncRecordId }: { syncRecordId: string }) {
     <div className="text-xs text-muted-foreground space-y-1">
       <p>状态：{record.status === "success" ? "成功" : record.status === "failed" ? "失败" : "待同步"}</p>
       {record.remoteDocumentId && <p>文档 ID：{record.remoteDocumentId}</p>}
-      {record.errorMessage && <p className="text-destructive">{record.errorMessage}</p>}
+      {record.errorMessage && <p className="text-destructive">{translateSyncError(record.errorMessage)}</p>}
       <p>时间：{new Date(record.syncedAt).toLocaleString("zh-CN")}</p>
     </div>
   );

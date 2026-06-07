@@ -599,7 +599,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
 
         {/* 高级筛选展开项 */}
         {showAdvancedFilters && (
-          <div className="mt-3 pt-3 border-t border-dashed border-border/60 grid grid-cols-4 gap-3 tw-animate-css fade-in">
+          <div className="mt-3 pt-3 border-t border-dashed border-border/60 grid grid-cols-2 md:grid-cols-4 gap-3 tw-animate-css fade-in">
             {/* 栏目 */}
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">栏目</label>
@@ -647,7 +647,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
               </Select>
             </div>
 
-            <div className="col-span-4 grid grid-cols-4 gap-3 mt-1">
+            <div className="col-span-2 md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-3 mt-1">
               {/* 文章发布时间 */}
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">文章发布时间（起）</label>
@@ -776,10 +776,10 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                     )}
                     <TableHead>标题</TableHead>
                     <TableHead className="w-24">来源</TableHead>
-                    <TableHead className="w-32">文章发布时间</TableHead>
-                    <TableHead className="w-32">采集时间</TableHead>
+                    <TableHead className="w-32 hidden md:table-cell">文章发布时间</TableHead>
+                    <TableHead className="w-32 hidden md:table-cell">采集时间</TableHead>
                     <TableHead className="w-16">AI</TableHead>
-                    <TableHead className="w-14">字数</TableHead>
+                    <TableHead className="w-14 hidden md:table-cell">字数</TableHead>
                     {showDebugCols && <TableHead className="w-24">Owner</TableHead>}
                     {showDebugCols && <TableHead className="w-20">可见性</TableHead>}
                   </TableRow>
@@ -799,7 +799,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                           />
                         </TableCell>
                       )}
-                      <TableCell className="font-medium max-w-[280px] truncate">
+                      <TableCell className="font-medium max-w-[180px] md:max-w-[280px] truncate">
                         <button
                           className="hover:underline text-left w-full truncate font-semibold text-foreground/85 hover:text-primary transition-colors"
                           onClick={(e) => {
@@ -815,10 +815,10 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                           {item.source?.name ?? item.platform ?? "未知来源"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
                         {formatDateTime(item.publishedAt)}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
                         {formatDateTime(item.createdAt)}
                       </TableCell>
                       <TableCell>
@@ -840,7 +840,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
                         {item.effectiveTextLength ?? "-"}
                       </TableCell>
                       {showDebugCols && (
@@ -878,7 +878,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
 
         {/* Detail panel */}
         {detailItem && (
-          <div className="w-1/2 border-l overflow-hidden">
+          <div className="w-full md:w-1/2 border-l overflow-hidden fixed md:relative inset-0 md:inset-auto z-50 md:z-auto bg-background">
             <ArticleDetail
               article={detailItem}
               managementMode={managementMode}

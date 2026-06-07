@@ -37,6 +37,34 @@ const protectedPages = [
 
 for (const viewport of MOBILE_VIEWPORTS) {
   test.describe(`移动端响应式 — ${viewport.name} (${viewport.width}×${viewport.height})`, () => {
+    // P1-005: 文章列表移动端无横向溢出
+    test('文章列表移动端无横向溢出', async ({ page }, testInfo) => {
+      test.setTimeout(60000);
+      const guard = attachConsoleGuard(page);
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.goto('/articles');
+      await expect(page.locator('h1, h2, h3, main').first()).toBeVisible({ timeout: 10000 });
+      await page.waitForTimeout(2000);
+
+      // body scrollWidth 不应超出 viewport 宽度的 120%
+      const overflow = await page.evaluate((vw: number) => {
+        return document.body.scrollWidth > vw * 1.2;
+      }, viewport.width);
+      expect(overflow, `文章列表在 ${viewport.width}px 下横向溢出`).toBe(false);
+
+      // 发布时间、采集时间、字数列应在移动端隐藏
+      const headerCells = page.locator('th');
+      const count = await headerCells.count();
+      let visibleCount = 0;
+      for (let i = 0; i < count; i++) {
+        const isVisible = await headerCells.nth(i).isVisible();
+        if (isVisible) visibleCount++;
+      }
+      expect(visibleCount, `移动端可见列数 ${visibleCount} 超过预期`).toBeLessThanOrEqual(5);
+
+      guard.report(testInfo);
+    });
+
     // 公开页面
     test.describe('公开页面', () => {
       test.use({ storageState: { cookies: [], origins: [] } });

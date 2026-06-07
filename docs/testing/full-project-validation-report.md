@@ -31,7 +31,7 @@
 | **硬阻塞** | 0 项 |
 | **已知问题** | 2 项（a11y 违规，不阻塞部署） |
 | **P0 修复** | ✅ 4/4 完成（详见 `docs/testing/p0-e2e-validation-report.md`） |
-| **E2E 结果** | 160 passed / 0 failed / 12 did not run (30.2 min) |
+| **E2E 结果** | 174 passed / 0 failed / 12 did not run (19.2 min) |
 | **风险等级** | 🟢 低风险 |
 
 ---
@@ -283,3 +283,43 @@
 ### 复验结论
 
 当前复验结论调整为：**不建议直接部署给普通用户**。应先处理 P0：Playwright admin 认证门禁、`/cards` 请求失败、文章详情稳定性、AI/IMA 设置 500。
+
+---
+
+## 10. 2026-06-07 P1 修复更新
+
+> P0 全部完成后，P1 阶段 5 项功能完善任务已全部实施并验证通过。
+
+### 环境
+
+- Branch：`main`
+- Node：`v24.14.0`
+- pnpm：`11.4.0`
+- Base URL：`http://localhost:3001`
+
+### 命令结果
+
+| Command | Result | Notes |
+|---|---|---|
+| `pnpm lint` | PASS | 0 errors, 11 warnings (pre-existing) |
+| `pnpm build` | PASS | Next.js 构建成功 |
+| `pnpm exec playwright test` | PASS | **174 passed** / 0 failed / 2 flaky / 12 did not run (19.2 min) |
+
+### P1 修复摘要
+
+| P1 | 修复内容 | 涉及文件 |
+|----|---------|---------|
+| P1-001: dead-link 误报 | `page.title()` + `h1` 精确匹配替代 `body.textContent` | `e2e/dead-link.spec.ts` |
+| P1-002: tasks key warning | `<>` → `<Fragment key={task.id}>` | `src/app/admin/tasks/page.tsx`, `e2e/admin.spec.ts` |
+| P1-003: 同步错误中文化 | `translateSyncError()` 前端翻译层 | `src/lib/error-messages.ts` (新建), `SyncToIma.tsx`, `SyncRecordsPage.tsx`, `e2e/sync-records.spec.ts` |
+| P1-004: 空页面 CTA | Search/Review 空状态添加跳转链接 | `src/app/search/page.tsx`, `src/app/review/page.tsx`, `e2e/search.spec.ts`, `e2e/review.spec.ts` |
+| P1-005: 文章移动端适配 | `hidden md:table-cell` + 响应式详情面板 + 筛选区响应式 | `src/components/articles/ArticlesPage.tsx`, `e2e/mobile-responsive.spec.ts` |
+
+### P1 结论
+
+P0 + P1 全部完成后，项目质量进一步提升：
+
+- **E2E 测试**：从 160 → 174 passed（新增 14 个测试覆盖 P1 修复）
+- **用户体验**：空页面引导、中文错误提示、移动端适配均已到位
+- **代码质量**：无 React key warning、无英文错误暴露、dead-link 无误报
+- **建议**：可进入 P2 阶段（visual regression 基线、onboarding checklist、危险操作 profile）

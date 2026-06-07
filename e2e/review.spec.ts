@@ -178,6 +178,24 @@ test.describe('复习页', () => {
     guard.report(testInfo);
   });
 
+  test('复习页空状态有跳转按钮', async ({ page }, testInfo) => {
+    test.setTimeout(60000);
+    const guard = attachConsoleGuard(page);
+    await page.goto('/review');
+    await expect(page.getByRole('heading', { name: '复习模式' })).toBeVisible();
+    await page.waitForTimeout(3000);
+
+    // 空状态时应有"查看素材卡"链接
+    const cardsLink = page.locator('a', { hasText: '查看素材卡' });
+    const emptyState = page.getByText('当前没有需要复习的素材卡');
+
+    if (await emptyState.isVisible()) {
+      // 空状态下应有 CTA 跳转链接
+      await expect(cardsLink).toBeVisible();
+    }
+    guard.report(testInfo);
+  });
+
   test('复习页：加载中状态后数据出现', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
     // Slow down API

@@ -31,6 +31,7 @@ import {
   Check,
 } from "lucide-react";
 import { SYNC_STATUSES, DOCUMENT_ROLES } from "@/types";
+import { translateSyncError } from "@/lib/error-messages";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "待同步",
@@ -356,7 +357,7 @@ export default function SyncRecordsPage() {
                         </div>
                         {record.errorMessage && (
                           <div className="text-xs text-destructive mt-1 max-w-48 truncate" title={record.errorMessage}>
-                            {record.errorMessage}
+                            {translateSyncError(record.errorMessage)}
                           </div>
                         )}
                       </TableCell>

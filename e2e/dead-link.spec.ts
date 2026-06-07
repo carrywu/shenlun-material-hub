@@ -14,10 +14,15 @@ test.describe('Dead Link / Empty Page 检查', () => {
       await expect(
         page.locator('h1, h2, h3, main, form').first()
       ).toBeVisible({ timeout: 10000 });
-      // Should NOT have NEXT_NOT_FOUND or 404
-      const body = await page.textContent('body');
-      expect(body).not.toContain('NEXT_NOT_FOUND');
-      expect(body).not.toContain('404');
+      // Check page title does not indicate 404
+      const title = await page.title();
+      expect(title).not.toMatch(/404|Not Found/i);
+      // Check h1 heading for 404 indicators
+      const h1Locator = page.locator('h1');
+      if (await h1Locator.count() > 0) {
+        const h1Text = await h1Locator.first().textContent();
+        expect(h1Text).not.toMatch(/404|not.?found/i);
+      }
     });
   }
 
@@ -36,9 +41,15 @@ test.describe('Dead Link / Empty Page 检查', () => {
       await expect(
         page.locator('h1, h2, h3, main, form, table').first()
       ).toBeVisible({ timeout: 10000 });
-      const body = await page.textContent('body');
-      expect(body).not.toContain('NEXT_NOT_FOUND');
-      expect(body).not.toContain('404');
+      // Check page title does not indicate 404
+      const title = await page.title();
+      expect(title).not.toMatch(/404|Not Found/i);
+      // Check h1 heading for 404 indicators
+      const h1Locator = page.locator('h1');
+      if (await h1Locator.count() > 0) {
+        const h1Text = await h1Locator.first().textContent();
+        expect(h1Text).not.toMatch(/404|not.?found/i);
+      }
     });
   }
 });

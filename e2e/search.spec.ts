@@ -140,6 +140,27 @@ test.describe('搜索页', () => {
     guard.report(testInfo);
   });
 
+  test('搜索页初始状态有跳转链接', async ({ page }, testInfo) => {
+    test.setTimeout(60000);
+    const guard = attachConsoleGuard(page);
+    await page.goto('/search');
+    // 初始状态应显示跳转链接
+    await expect(page.locator('a', { hasText: '浏览全部素材卡' })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('a', { hasText: '前往文章库' })).toBeVisible();
+    guard.report(testInfo);
+  });
+
+  test('搜索页无结果有文章库跳转链接', async ({ page }, testInfo) => {
+    test.setTimeout(60000);
+    const guard = attachConsoleGuard(page);
+    await page.goto('/search');
+    await page.getByPlaceholder('输入关键词搜索素材卡...').fill('不存在的关键词xyz789');
+    await page.getByRole('button', { name: '搜索' }).click();
+    await expect(page.getByText('未找到匹配的素材卡')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('a', { hasText: '前往文章库浏览' })).toBeVisible();
+    guard.report(testInfo);
+  });
+
   test('搜索页：加载中状态后数据出现', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
     await page.route('**/api/search**', async route => {
