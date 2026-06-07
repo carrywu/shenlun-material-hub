@@ -70,12 +70,18 @@
 
 ## 阶段 4：P3 代码质量
 
-- [ ] P3-1：修复 CSS 拼写 bg-amber-505
-- [ ] P3-2：提取共享 CARD_TYPE_CONFIG
-- [ ] P3-3：提取共享 renderContent/COLOR_THEMES
-- [ ] P3-4：修复 display-labels "背景背景"
-- [ ] P3-5：RootNav 变量名修正
-- [ ] P3-6：backup.ts 避免重复解压
-- [ ] P3-7：改密码保留当前会话
-- [ ] P3-8：SyncToIma 权限扩展 VERIFIED_USER
-- [ ] P3-9：注册页用 Input 组件
+- [x] P3-1：修复 CSS 拼写 bg-amber-505 ✅ `6523417`
+- [ ] P3-2：提取共享 CARD_TYPE_CONFIG（重构，风险较高，延后处理）
+- [ ] P3-3：提取共享 renderContent/COLOR_THEMES（重构，风险较高，延后处理）
+- [x] P3-4：修复 display-labels "背景背景" ✅ `6523417`
+- [x] P3-5：RootNav 变量名修正 ✅ `6523417`
+- [x] P3-6：WechatImportDialog alert→toast ✅ `6523417`
+- [x] P3-7：ChannelManager alert→toast ✅ `6523417`
+- [x] P3-8：backup.ts 避免重复解压 ✅ `6523417`
+- [x] P3-9：SHA-256 比较消除长度泄露 ✅ `6523417`
+- [x] P3-10：改密码保留当前会话 ✅ `6523417`
+- [x] P3-11：永真断言修复（admin.spec.ts）✅ `397cb6c`（T0 已完成）
+- [x] P3-12：永真断言修复（wewe-rss.spec.ts）✅ `397cb6c`（T0 已完成）
+- [x] P3-13：受保护页面测试继承 admin cookie ✅ `397cb6c`（T0 已完成）
+- [x] P3-14：SyncToIma 权限扩展 VERIFIED_USER ✅ `6523417`
+- [x] P3-15：注册页用 Input 组件 ✅ `6523417`

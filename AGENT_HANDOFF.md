@@ -25,14 +25,22 @@ git log --oneline -20
 
 ## 当前活跃任务
 
-全项目质量审计已完成（2026-06-06）。无活跃开发任务。
+**2026-06-08 全量代码审查修复已完成**（分支 `fix/code-review-2026-06-07`）。
 
-若需开始新任务，请：
-1. 在 `tasks/` 下创建新目录
-2. 按照本文件和 `tasks/README.md` 的流程操作
+修复概要：
+- **T0 测试可信度**：5 项永真断言/cookie 继承修复
+- **P0 安全**：5 项（暴力破解保护、JWT 硬编码移除、Dashboard 鉴权+数据隔离、health 端点信息分离）
+- **P1 核心**：17 项（AI token 优化、parseAiJson 统一、标注归属、explore 认证、采集器 channelId/质量/超时、标注定位、数据完整性、所有权检查、PostgreSQL 查询、Session 清理）
+- **P2 稳定性**：22 项（加密密钥校验、Docker 默认密码、env 验证、originalUrl 空字符串、审计日志脱敏、401/403 区分、用户名校验、temperature 范围、HTTP→HTTPS、日期提取、微信重试、parseInt NaN、visibility 兼容、标签搜索、fullText 派生字段、API Key 掩码、卡片按钮权限、书签持久化、Dockerfile pg 模块、selectedText 限制）
+- **P3 代码质量**：13 项（CSS 拼写、display-labels、变量名、alert→toast、gunzip 去重、timing-safe、密码改后保会话、VERIFIED_USER 权限、Input 组件）
+- **未修复（低风险重构）**：P3-2 CARD_TYPE_CONFIG 提取、P3-3 renderContent/COLOR_THEMES 提取
+
+详细修复记录见：`docs/audit/project-audit-todolist.md`
 
 ## 必读支撑文档
 
+- `docs/audit/project-audit-todolist.md`：代码审查修复清单（含 commit hash）
+- `docs/audit/full-code-review-2026-06-07.md`：全量代码审查报告
 - `tasks/README.md`：个人开发任务工作流。
 - `docs/testing.md`：验证命令和 Playwright 当前基线。
 - `docs/handover/RBAC_RESUME_PROMPT.md`：RBAC 接管上下文。
@@ -40,16 +48,15 @@ git log --oneline -20
 
 ## 当前已知基线
 
-- `pnpm lint`：✅ 通过，零错误。
-- `pnpm test`：✅ 通过，36 个测试文件 / 249 个测试。
+- `pnpm lint`：✅ 通过，0 errors / 16 warnings。
+- `pnpm test`：✅ 通过，36 个测试文件 / 259 个测试。
 - `pnpm build`：✅ 通过。
-- `pnpm exec playwright test`：✅ 干净基线，210+ passed / 0 failed / 12 did-not-run。
-  - 21 个 spec 文件，覆盖 29 页面、62 API 路由。
-  - 已知 a11y 违规 2 个（button-name + color-contrast），不阻塞测试。
-  - 详见 `docs/testing.md` 和 `docs/testing/playwright-coverage-report.md`。
+- `pnpm exec playwright test`：✅ 174 passed / 1 flaky / 16 did-not-run（9.8m）。
 
 ## 质量审计文档
 
+- `docs/audit/full-code-review-2026-06-07.md` — 全量代码审查报告（2026-06-07）
+- `docs/audit/project-audit-todolist.md` — 修复清单与进度
 - `docs/testing/project-quality-assessment.md` — 项目质量评估（综合评分 4.6/5.0）
 - `docs/testing/full-project-test-todolist.md` — 168 项验收检查清单
 - `docs/testing/full-project-validation-report.md` — 最终验收报告
@@ -76,3 +83,8 @@ git log --oneline -20
   - MCP 工具：已重写为 PostgreSQL 版本。
   - `better-sqlite3` 保留仅供 WeWe RSS sidecar 只读访问。
   - 迁移详情：`scripts/migrate-sqlite-to-postgres.ts`，662 行数据已验证迁移。
+
+- ✅ **已完成全量代码审查修复**（2026-06-08，分支 `fix/code-review-2026-06-07`）。
+  - 修复 57 项问题（5 P0 + 17 P1 + 22 P2 + 13 P3），2 项低风险重构延后。
+  - 关键安全加固：暴力破解保护、JWT 硬编码移除、加密密钥校验、Docker 密码强制。
+  - 数据隔离：Dashboard/文章/搜索/同步 全链路 ownerUserId 过滤。
