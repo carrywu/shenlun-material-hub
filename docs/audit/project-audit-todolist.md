@@ -65,7 +65,7 @@
 - [x] P2-18：卡片列表页非管理员按钮隐藏 ✅ `56467f9`
 - [x] P2-19：发现页书签/已读状态持久化 ✅ `a7d956d`
 - [x] P2-20：Dockerfile standalone pg 模块 ✅ `a7d956d`
-- [x] P2-21：配置文件端口统一 ✅ `a7d956d`
+- [x] P2-21：配置文件端口统一 ✅ 已验证非问题（dev config=3001, Docker PORT env=3000，互不影响）
 - [x] P2-22：selectedText 长度限制 ✅ `a7d956d`
 
 ## 阶段 4：P3 代码质量

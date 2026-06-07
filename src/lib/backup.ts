@@ -134,7 +134,8 @@ export async function createBackupArchive({
 // ─── Parse ───────────────────────────────────────────────────────────────────
 
 export async function parseBackupArchive(input: Buffer): Promise<BackupManifest> {
-  const raw = JSON.parse(gunzipSync(input).toString("utf8")) as { version: number };
+  const decompressed = gunzipSync(input).toString("utf8");
+  const raw = JSON.parse(decompressed) as { version: number };
   const version = raw.version;
 
   if (version === 1) {
@@ -148,8 +149,9 @@ export async function parseBackupArchive(input: Buffer): Promise<BackupManifest>
     throw new Error(`不支持的备份版本: ${version}`);
   }
 
-  return gunzipSync(input).toString("utf8").length > 0
-    ? (JSON.parse(gunzipSync(input).toString("utf8")) as BackupManifestV2)
+  // P3-8: reuse already-decompressed data instead of gunzipping again
+  return decompressed.length > 0
+    ? (JSON.parse(decompressed) as BackupManifestV2)
     : ({} as BackupManifestV2);
 }
 

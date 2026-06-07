@@ -43,10 +43,10 @@ export function SyncToIma({
 }: SyncToImaProps) {
   const [syncing, setSyncing] = useState(false);
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
-  const { isAdmin } = useAuth();
+  const { user } = useAuth();
 
-  // Only admins can sync to IMA
-  if (!isAdmin) return null;
+  // P3-14: VERIFIED_USER and ADMIN can sync to IMA
+  if (!user || (user.role !== "ADMIN" && user.role !== "VERIFIED_USER")) return null;
 
   async function handleSync() {
     setSyncing(true);

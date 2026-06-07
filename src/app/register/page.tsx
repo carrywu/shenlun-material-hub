@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
 
 function RegisterForm() {
   const [username, setUsername] = useState("");
@@ -68,13 +69,13 @@ function RegisterForm() {
         <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="username">
           账号
         </label>
-        <input
+        <Input
           id="username"
           type="text"
           placeholder="请输入账号（至少 3 个字符）"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="w-full px-4 py-3 bg-background border border-input rounded-xl text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200"
+          className="py-3 rounded-xl"
           disabled={loading}
         />
       </div>
@@ -83,13 +84,13 @@ function RegisterForm() {
         <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="password">
           密码
         </label>
-        <input
+        <Input
           id="password"
           type="password"
           placeholder="请输入密码（至少 6 个字符）"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full px-4 py-3 bg-background border border-input rounded-xl text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200"
+          className="py-3 rounded-xl"
           disabled={loading}
         />
       </div>
@@ -98,13 +99,13 @@ function RegisterForm() {
         <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="invitationCode">
           邀请码
         </label>
-        <input
+        <Input
           id="invitationCode"
           type="text"
           placeholder="请输入邀请码"
           value={invitationCode}
           onChange={(e) => setInvitationCode(e.target.value)}
-          className="w-full px-4 py-3 bg-background border border-input rounded-xl text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200"
+          className="py-3 rounded-xl"
           disabled={loading}
         />
       </div>

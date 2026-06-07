@@ -47,11 +47,11 @@ export async function verifyPassword(
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  // Timing-safe comparison
-  if (inputHash.length !== storedHash.length) return { valid: false };
-  let result = 0;
-  for (let i = 0; i < inputHash.length; i++) {
-    result |= inputHash.charCodeAt(i) ^ storedHash.charCodeAt(i);
+  // Timing-safe comparison — P3-9: don't early-return on length mismatch
+  const maxLen = Math.max(inputHash.length, storedHash.length);
+  let result = inputHash.length ^ storedHash.length; // length diff encoded in result
+  for (let i = 0; i < maxLen; i++) {
+    result |= (inputHash.charCodeAt(i) || 0) ^ (storedHash.charCodeAt(i) || 0);
   }
   if (result === 0) {
     return { valid: true, needsUpgrade: true };

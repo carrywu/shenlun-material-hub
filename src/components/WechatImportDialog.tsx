@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface WechatImportDialogProps {
   sourceId: string;
@@ -43,12 +44,12 @@ export function WechatImportDialog({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "导入失败");
       
-      alert(`导入成功！发现 ${data.discoveredCount} 篇，导入 ${data.importedCount} 篇`);
+      toast.success(`导入成功！发现 ${data.discoveredCount} 篇，导入 ${data.importedCount} 篇`);
       setUrl("");
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "导入失败");
+      toast.error("导入失败", { description: err instanceof Error ? err.message : "请稍后重试" });
     } finally {
       setLoading(false);
     }

@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Channel {
   id: string;
@@ -110,7 +111,7 @@ export function ChannelManager({ sourceId, sourceName }: ChannelManagerProps) {
 
   async function handleSave() {
     if (!form.name.trim() || !form.listUrl.trim()) {
-      alert("栏目名称和列表页 URL 不能为空");
+      toast.error("栏目名称和列表页 URL 不能为空");
       return;
     }
 
@@ -141,7 +142,7 @@ export function ChannelManager({ sourceId, sourceName }: ChannelManagerProps) {
       setShowForm(false);
       void fetchChannels();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "保存失败");
+      toast.error("保存失败", { description: err instanceof Error ? err.message : "请稍后重试" });
     } finally {
       setSaving(false);
     }
@@ -156,7 +157,7 @@ export function ChannelManager({ sourceId, sourceName }: ChannelManagerProps) {
       if (!res.ok) throw new Error("删除失败");
       void fetchChannels();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "删除失败");
+      toast.error("删除失败", { description: err instanceof Error ? err.message : "请稍后重试" });
     }
   }
 
@@ -170,7 +171,7 @@ export function ChannelManager({ sourceId, sourceName }: ChannelManagerProps) {
       if (!res.ok) throw new Error("操作失败");
       void fetchChannels();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "操作失败");
+      toast.error("操作失败", { description: err instanceof Error ? err.message : "请稍后重试" });
     }
   }
 

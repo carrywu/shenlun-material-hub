@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, unauthorizedResponse, verifyPassword, hashPassword, revokeAllUserSessions } from "@/lib/auth";
+import { requireAuth, unauthorizedResponse, verifyPassword, hashPassword, AUTH_COOKIE_NAME } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
@@ -32,8 +32,19 @@ export async function POST(req: NextRequest) {
     data: { passwordHash: newHash },
   });
 
-  // Revoke all other sessions (keep current one)
-  await revokeAllUserSessions(user.id);
+  // P3-10: Revoke all sessions except current (identified by cookie token)
+  const cookieHeader = req.headers.get("cookie") || "";
+  const tokenMatch = cookieHeader.match(/(?:^|;\s*)auth_token=([^;]+)/);
+  const currentToken = tokenMatch?.[1];
+  const allSessions = await db.session.findMany({
+    where: { userId: user.id },
+    select: { id: true, token: true },
+  });
+  for (const session of allSessions) {
+    if (session.token !== currentToken) {
+      await db.session.delete({ where: { id: session.id } }).catch(() => {});
+    }
+  }
 
   await logger.info(`User "${user.username}" changed their password.`, "AUTH");
 

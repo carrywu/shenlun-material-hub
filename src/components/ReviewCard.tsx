@@ -108,7 +108,7 @@ function renderContent(content: string) {
 const COLOR_THEMES: Record<string, { border: string; bg: string; text: string; bar: string }> = {
   "来源快照": { border: "border-blue-100 dark:border-blue-900/40", bg: "bg-blue-50/40 dark:bg-blue-950/10", text: "text-blue-900 dark:text-blue-200", bar: "bg-blue-500" },
   "原始事实": { border: "border-slate-200 dark:border-slate-800", bg: "bg-slate-50/50 dark:bg-slate-900/10", text: "text-slate-900 dark:text-slate-200", bar: "bg-slate-500" },
-  "亮点建议": { border: "border-amber-100 dark:border-amber-900/40", bg: "bg-amber-50/40 dark:bg-amber-950/10", text: "text-amber-900 dark:text-amber-200", bar: "bg-amber-505 bg-amber-500" },
+  "亮点建议": { border: "border-amber-100 dark:border-amber-900/40", bg: "bg-amber-50/40 dark:bg-amber-950/10", text: "text-amber-900 dark:text-amber-200", bar: "bg-amber-500" },
   "迁移建议": { border: "border-purple-100 dark:border-purple-900/40", bg: "bg-purple-50/40 dark:bg-purple-950/10", text: "text-purple-900 dark:text-purple-200", bar: "bg-purple-500" },
   "默认": { border: "border-gray-200 dark:border-gray-800", bg: "bg-gray-50/40 dark:bg-gray-900/10", text: "text-gray-900 dark:text-gray-200", bar: "bg-gray-500" },
 };

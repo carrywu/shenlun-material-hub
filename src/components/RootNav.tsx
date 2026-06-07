@@ -35,7 +35,6 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
   }
 
   const isAdmin = currentUser?.role === "ADMIN";
-  const isAdminOrVerified = isAdmin;
   const roleInfo = currentUser ? roleLabels[currentUser.role] ?? roleLabels.USER : null;
 
   const handleLogout = async () => {
@@ -76,7 +75,7 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
                   {roleInfo.label}
                 </span>
               )}
-              {isAdminOrVerified && (
+              {isAdmin && (
                 <Link
                   href="/admin"
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"

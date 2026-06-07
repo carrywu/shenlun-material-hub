@@ -112,7 +112,7 @@ export const AI_FIELD_LABELS: Record<string, string> = {
   aiSummary: "AI 摘要",
   mainPoint: "核心要点",
   structure: "文章结构",
-  background: "背景背景",
+  background: "背景",
   problem: "问题",
   cause: "原因",
   solution: "对策",
