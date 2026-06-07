@@ -72,6 +72,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { baseUrl, apiKey, model, temperature } = body;
 
+    // P2-8: validate temperature range
+    const temp = typeof temperature === "number" ? temperature : 0.3;
+    if (temp < 0 || temp > 2) {
+      return NextResponse.json(
+        { error: "temperature 必须在 0-2 之间" },
+        { status: 400 }
+      );
+    }
+
     let encryptedKey: string | undefined;
     const trimmedApiKey = typeof apiKey === "string" ? apiKey.trim() : "";
     if (trimmedApiKey) {
@@ -87,7 +96,7 @@ export async function POST(request: NextRequest) {
           baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.deepseek.com/v1",
           ...(encryptedKey ? { encryptedKey } : {}),
           model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-chat",
-          temperature: temperature ?? 0.3,
+          temperature: temp,
           lastTestError: null, // 重置测试错误
         },
       });
@@ -101,7 +110,7 @@ export async function POST(request: NextRequest) {
           baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.deepseek.com/v1",
           encryptedKey: encrypt(trimmedApiKey),
           model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-chat",
-          temperature: temperature ?? 0.3,
+          temperature: temp,
         },
       });
     }

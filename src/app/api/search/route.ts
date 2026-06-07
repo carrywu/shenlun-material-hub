@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth, unauthorizedResponse } from "@/lib/auth";
+import { requireAuth, authErrorResponse } from "@/lib/auth";
 import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
 
 // GET /api/search - 全文搜索素材卡
 export async function GET(request: NextRequest) {
   const user = await requireAuth(request);
-  if (!user) return unauthorizedResponse();
+  if (!user) return authErrorResponse(request);
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q") ?? "";

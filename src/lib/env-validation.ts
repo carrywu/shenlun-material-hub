@@ -68,8 +68,8 @@ export function validateEnv(): Array<{ key: string; issue: string }> {
 
     if (!adminPasswordHash && !adminPassword) {
       issues.push({
-        key: "ADMIN_PASSWORD",
-        issue: "生产环境必须设置 ADMIN_PASSWORD 或 ADMIN_PASSWORD_HASH",
+        key: "ADMIN_PASSWORD_HASH",
+        issue: "生产环境必须设置 ADMIN_PASSWORD_HASH（bcrypt）或 ADMIN_PASSWORD（明文，将自动哈希）",
       });
     }
 

@@ -3,7 +3,8 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: shenlun
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shenlun_dev}
+      # ⚠️ 生产环境务必通过 .env 设置 POSTGRES_PASSWORD，不要使用默认值
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 中设置 POSTGRES_PASSWORD}
       POSTGRES_DB: shenlun_material_hub
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -27,7 +28,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://shenlun:${POSTGRES_PASSWORD:-shenlun_dev}@postgres:5432/shenlun_material_hub?schema=public
+      DATABASE_URL: postgresql://shenlun:${POSTGRES_PASSWORD:?请在 .env 中设置 POSTGRES_PASSWORD}@postgres:5432/shenlun_material_hub?schema=public
     volumes:
       - ./data/uploads:/app/public/uploads
     depends_on:

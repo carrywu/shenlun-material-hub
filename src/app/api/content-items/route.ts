@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
-import { requireAuth, unauthorizedResponse } from "@/lib/auth";
+import { requireAuth, authErrorResponse } from "@/lib/auth";
 import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
 
 // GET /api/content-items — 分页 + 筛选
 export async function GET(request: NextRequest) {
   const user = await requireAuth(request);
-  if (!user) return unauthorizedResponse();
+  if (!user) return authErrorResponse(request);
   try {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 // POST /api/content-items — 手动导入
 export async function POST(request: NextRequest) {
   const user = await requireAuth(request);
-  if (!user) return unauthorizedResponse();
+  if (!user) return authErrorResponse(request);
   try {
     const body = await request.json();
     const {
@@ -90,6 +90,15 @@ export async function POST(request: NextRequest) {
     if (!title || !originalUrl) {
       return NextResponse.json(
         { error: "title 和 originalUrl 为必填项" },
+        { status: 400 }
+      );
+    }
+
+    // P2-4: originalUrl must be a non-empty valid URL (unique constraint)
+    const trimmedUrl = String(originalUrl).trim();
+    if (!trimmedUrl) {
+      return NextResponse.json(
+        { error: "originalUrl 不能为空字符串" },
         { status: 400 }
       );
     }

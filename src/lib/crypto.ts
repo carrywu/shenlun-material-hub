@@ -13,15 +13,14 @@ function getKey(): Buffer {
   if (!key) {
     throw new Error("AI_CONFIG_ENCRYPTION_KEY 环境变量未设置");
   }
-  // 确保密钥为 32 字节
   const keyBuffer = Buffer.from(key, "utf-8");
-  if (keyBuffer.length >= 32) {
-    return keyBuffer.subarray(0, 32);
+  if (keyBuffer.length < 32) {
+    throw new Error(
+      `AI_CONFIG_ENCRYPTION_KEY 长度不足：需要 32 字节，当前 ${keyBuffer.length} 字节。` +
+        "请使用 openssl rand -hex 32 生成。"
+    );
   }
-  // 不足 32 字节则填充
-  const padded = Buffer.alloc(32);
-  keyBuffer.copy(padded);
-  return padded;
+  return keyBuffer.subarray(0, 32);
 }
 
 export function encrypt(plaintext: string): string {

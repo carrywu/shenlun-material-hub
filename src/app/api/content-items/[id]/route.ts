@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth, requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireAuth, requireAdmin, unauthorizedResponse, forbiddenResponse, authErrorResponse } from "@/lib/auth";
 import { canAccessResource, canModifyResource } from "@/lib/data-isolation";
 
 // GET /api/content-items/[id]
@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await requireAuth(request);
-  if (!user) return unauthorizedResponse();
+  if (!user) return authErrorResponse(request);
   try {
     const { id } = await params;
     const item = await db.contentItem.findUnique({

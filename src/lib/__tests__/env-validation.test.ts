@@ -43,7 +43,7 @@ describe("env-validation — production checks", () => {
     delete process.env.ADMIN_PASSWORD_HASH;
     const { validateEnv } = await import("@/lib/env-validation");
     const issues = validateEnv();
-    expect(issues.some((i: { key: string }) => i.key === "ADMIN_PASSWORD")).toBe(true);
+    expect(issues.some((i: { key: string }) => i.key === "ADMIN_PASSWORD_HASH")).toBe(true);
   });
 
   it("should accept valid bcrypt hash in production", async () => {

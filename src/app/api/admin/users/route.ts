@@ -54,6 +54,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "用户名长度应在 3-32 个字符之间" }, { status: 400 });
   }
 
+  // P2-7: validate username format (same as registration route)
+  if (!/^[a-zA-Z0-9_一-龥]+$/.test(username)) {
+    return NextResponse.json({ error: "用户名只能包含字母、数字、下划线和中文" }, { status: 400 });
+  }
+
   if (password.length < 6) {
     return NextResponse.json({ error: "密码长度不能少于 6 个字符" }, { status: 400 });
   }

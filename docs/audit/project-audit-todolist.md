@@ -25,23 +25,23 @@
 
 ## 阶段 2：P1 核心问题
 
-- [ ] P1-1：AI 调用重复发送内容
-- [ ] P1-2：统一使用 parseAiJson
-- [ ] P1-3：ai-config/test 写入正确配置
-- [ ] P1-4：getTemperature 读取用户配置
-- [ ] P1-5：标注创建设置 userId
-- [ ] P1-6：`/api/explore` 添加认证
-- [ ] P1-7：base.ts channelId 正确分配
-- [ ] P1-8：MediaCrawler 添加质量门槛
-- [ ] P1-9：MediaCrawler 轮询添加最大超时
-- [ ] P1-10：文章详情页标注定位修复
-- [ ] P1-11：POST content-items 数据完整性
-- [ ] P1-12：POST content-items sourceId 校验
-- [ ] P1-13：`/api/sync` POST 所有权检查
-- [ ] P1-14：`/api/sync` GET 所有权检查
-- [ ] P1-15：管理员数据库大小用 PostgreSQL 查询
-- [ ] P1-16：导出路由类型映射更新
-- [ ] P1-17：Session 过期清理机制
+- [x] P1-1：AI 调用重复发送内容 ✅ `6c39536`
+- [x] P1-2：统一使用 parseAiJson ✅ `6c39536`
+- [x] P1-3：ai-config/test 写入正确配置 ✅ `c05800f`
+- [x] P1-4：getTemperature 读取用户配置 ✅ `6c39536`
+- [x] P1-5：标注创建设置 userId ✅ `c05800f`
+- [x] P1-6：`/api/explore` 添加认证 ✅ `c05800f`
+- [x] P1-7：base.ts channelId 正确分配 ✅ `81a9c5b`
+- [x] P1-8：MediaCrawler 添加质量门槛 ✅ `81a9c5b`
+- [x] P1-9：MediaCrawler 轮询添加最大超时 ✅ `81a9c5b`
+- [x] P1-10：文章详情页标注定位修复 ✅ `81a9c5b`
+- [x] P1-11：POST content-items 数据完整性 ✅ `26dd196`
+- [x] P1-12：POST content-items sourceId 校验 ✅ `26dd196`
+- [x] P1-13：`/api/sync` POST 所有权检查 ✅ `26dd196`
+- [x] P1-14：`/api/sync` GET 所有权检查 ✅ `26dd196`
+- [x] P1-15：管理员数据库大小用 PostgreSQL 查询 ✅ `c05800f`
+- [x] P1-16：导出路由类型映射更新 ✅ `c05800f`
+- [x] P1-17：Session 过期清理机制 ✅ `c05800f`
 
 ## 阶段 3：P2 稳定性/体验/校验问题
 

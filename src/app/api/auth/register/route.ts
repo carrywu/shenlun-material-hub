@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     // Create session
     const token = await createSession(result.user.id);
 
-    // Audit log
+    // Audit log — P2-5: mask invitation code to avoid plaintext logging
     await auditLog({
       userId: result.user.id,
       action: "create",
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         username: result.user.username,
         role: result.user.role,
         invitationId: invitation.id,
-        invitationCode,
+        invitationCode: invitationCode.slice(0, 2) + "****",
       },
       ip,
     });

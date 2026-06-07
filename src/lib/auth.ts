@@ -297,6 +297,16 @@ export function forbiddenResponse(message = "权限不足") {
   return Response.json({ error: message }, { status: 403 });
 }
 
+/**
+ * P2-6: Return 401 (no cookie) or 403 (has cookie but insufficient role).
+ * Usage: `const user = await requireAuth(request); if (!user) return authErrorResponse(request);`
+ */
+export function authErrorResponse(request: Request): Response {
+  const cookieHeader = request.headers.get("cookie") || "";
+  if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
+  return forbiddenResponse();
+}
+
 // ─── User management utilities ──────────────────────────────────────────────
 
 /** Ensure at least one admin exists. Idempotent — safe to call multiple times. */

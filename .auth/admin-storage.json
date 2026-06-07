@@ -2,10 +2,10 @@
   "cookies": [
     {
       "name": "auth_token",
-      "value": "db97412d5ab8363fec90d16bd3e9a4108e54ae7821d8c13f60616ab0aae4e33d9896501ac39be3b3ae9876adbcfac1bd",
+      "value": "0e607c86f564046fb8a7accb1a3e17410a5ebe0570ab4f2c9497c4e545f20aaaf44f5637c259ced1d7e9d89aa650d02c",
       "domain": "localhost",
       "path": "/",
-      "expires": 1780843649.706913,
+      "expires": 1780926133.709817,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Strict"
