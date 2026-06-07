@@ -45,28 +45,28 @@
 
 ## 阶段 3：P2 稳定性/体验/校验问题
 
-- [ ] P2-1：加密密钥长度校验
-- [ ] P2-2：Docker 默认密码警告
-- [ ] P2-3：env-validation ADMIN_PASSWORD vs ADMIN_PASSWORD_HASH
-- [ ] P2-4：originalUrl 空字符串处理
-- [ ] P2-5：审计日志不记录明文邀请码
-- [ ] P2-6：requireAuth 区分 401/403
-- [ ] P2-7：管理员创建用户验证用户名
-- [ ] P2-8：temperature 范围验证
-- [ ] P2-9：采集器 HTTP 改 HTTPS
-- [ ] P2-10：API parseInt NaN 处理
-- [ ] P2-11：匿名用户 visibility:null 兼容
-- [ ] P2-12：搜索标签假阳性修复
-- [ ] P2-13：更新 fullText 重算派生字段
-- [ ] P2-14：API Key 掩码减少泄露
-- [ ] P2-15：卡片列表页非管理员按钮隐藏
-- [ ] P2-16：发现页书签/已读状态持久化
-- [ ] P2-17：Dockerfile standalone pg 模块
-- [ ] P2-18：配置文件端口统一
-- [ ] P2-19：selectedText 长度限制
-- [ ] P2-20：admin dashboard 双重 fetch
-- [ ] P2-21：WechatImportDialog 用 toast 替换 alert
-- [ ] P2-22：ChannelManager 用 toast 替换 alert
+- [x] P2-1：加密密钥长度校验 ✅ `84d4dd1`
+- [x] P2-2：Docker 默认密码警告 ✅ `84d4dd1`
+- [x] P2-3：env-validation ADMIN_PASSWORD vs ADMIN_PASSWORD_HASH ✅ `84d4dd1`
+- [x] P2-4：originalUrl 空字符串处理 ✅ `84d4dd1`
+- [x] P2-5：审计日志不记录明文邀请码 ✅ `84d4dd1`
+- [x] P2-6：requireAuth 区分 401/403 ✅ `84d4dd1`
+- [x] P2-7：管理员创建用户验证用户名 ✅ `84d4dd1`
+- [x] P2-8：temperature 范围验证 ✅ `84d4dd1`
+- [x] P2-9：采集器 HTTP 改 HTTPS ✅ `4cb885b`
+- [x] P2-10：硬编码 HTTP scheme 修复 ✅ `4cb885b`
+- [x] P2-11：日期提取限定到内容区域 ✅ `4cb885b`
+- [x] P2-12：wechatParser 添加重试逻辑 ✅ `4cb885b`
+- [x] P2-13：articles API parseInt NaN 防护 ✅ `56467f9`
+- [x] P2-14：匿名用户 visibility:null 兼容 ✅ `56467f9`
+- [x] P2-15：搜索标签假阳性修复 ✅ `56467f9`
+- [x] P2-16：更新 fullText 重算派生字段 ✅ `56467f9`
+- [x] P2-17：API Key 掩码减少泄露 ✅ `56467f9`
+- [x] P2-18：卡片列表页非管理员按钮隐藏 ✅ `56467f9`
+- [x] P2-19：发现页书签/已读状态持久化 ✅ `a7d956d`
+- [x] P2-20：Dockerfile standalone pg 模块 ✅ `a7d956d`
+- [x] P2-21：配置文件端口统一 ✅ `a7d956d`
+- [x] P2-22：selectedText 长度限制 ✅ `a7d956d`
 
 ## 阶段 4：P3 代码质量
 

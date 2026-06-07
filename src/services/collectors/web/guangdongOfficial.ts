@@ -94,7 +94,7 @@ export class GuangdongOfficialCollector extends BaseCollector {
       // ── 来源 / 作者 ──
       // 格式: "来源  :  广州日报"
       let author: string | undefined;
-      const sourceMatch = fullPageText.match(
+      const sourceMatch = contentAreaText.match(
         /来源\s*[：:]\s*([^<\n]+)/
       );
       if (sourceMatch) {

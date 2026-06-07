@@ -18,6 +18,8 @@ export async function generateAnnotation(
   const runtime = await getAiRuntime(userId);
   const systemPrompt = await getPromptTemplate("annotation_selected");
 
+  // P2-22: limit selectedText to 2000 chars to avoid exceeding token limits
+  const trimmedSelectedText = selectedText.slice(0, 2000);
   const contextSnippet = articleContent.slice(0, 3000);
 
   const userPrompt = `【文章标题】${articleTitle}
@@ -26,7 +28,7 @@ export async function generateAnnotation(
 ${contextSnippet}
 
 【选中的文本】
-${selectedText}
+${trimmedSelectedText}
 ${cardType ? `\n【关联素材卡类型】${cardType}` : ""}
 
 请对选中的文本进行申论备考角度的批注分析。`;

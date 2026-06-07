@@ -36,6 +36,8 @@ interface DiscoverItem {
   excerpt: string | null;
   publishedAt: string | null;
   topicTags: string;
+  bookmarked: boolean | null;
+  read: boolean | null;
   source: {
     id: string;
     name: string;
@@ -120,6 +122,15 @@ export default function DiscoverPage() {
       setItems(json.data);
       setTotal(json.total);
       setTotalPages(json.totalPages);
+      // P2-19: initialize bookmarked/read state from API data
+      const savedBookmarks = new Set<string>();
+      const savedRead = new Set<string>();
+      for (const item of json.data) {
+        if (item.bookmarked) savedBookmarks.add(item.id);
+        if (item.read) savedRead.add(item.id);
+      }
+      setBookmarked(savedBookmarks);
+      setMarkedRead(savedRead);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
@@ -137,22 +148,56 @@ export default function DiscoverPage() {
     setPage(1);
   }, [platform, contentType, trustLevel]);
 
-  function toggleBookmark(id: string) {
+  async function toggleBookmark(id: string) {
+    const isCurrentlyBookmarked = bookmarked.has(id);
+    // Optimistic update
     setBookmarked((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    try {
+      await fetch(`/api/content-items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookmarked: !isCurrentlyBookmarked }),
+      });
+    } catch {
+      // Revert on failure
+      setBookmarked((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    }
   }
 
-  function toggleMarkRead(id: string) {
+  async function toggleMarkRead(id: string) {
+    const isCurrentlyRead = markedRead.has(id);
+    // Optimistic update
     setMarkedRead((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    try {
+      await fetch(`/api/content-items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ read: !isCurrentlyRead }),
+      });
+    } catch {
+      // Revert on failure
+      setMarkedRead((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    }
   }
 
   // Group items by source
