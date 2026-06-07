@@ -24,6 +24,7 @@ import {
   PLATFORMS,
   TRUST_LEVELS,
 } from "@/types";
+import { CONTENT_TYPE_LABELS as CONTENT_TYPE_LABELS_CENTRALIZED, PLATFORM_LABELS as PLATFORM_LABELS_CENTRALIZED } from "@/lib/display-labels";
 
 interface DiscoverItem {
   id: string;
@@ -82,26 +83,6 @@ const TRUST_LEVEL_CONFIG: Record<
     variant: "outline",
     className: "text-muted-foreground",
   },
-};
-
-const CONTENT_TYPE_LABELS: Record<string, string> = {
-  policy_analysis: "政策解读",
-  social_issue: "社会问题",
-  economic_trend: "经济趋势",
-  cultural_heritage: "文化传承",
-  ecological_protection: "生态保护",
-  legal_regulation: "法治法规",
-  tech_innovation: "科技创新",
-  education_reform: "教育改革",
-  livelihood_welfare: "民生福祉",
-  international_affairs: "国际事务",
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  website: "网站",
-  wechat: "微信",
-  bilibili: "B站",
-  xiaohongshu: "小红书",
 };
 
 export default function DiscoverPage() {
@@ -218,14 +199,14 @@ export default function DiscoverPage() {
           <Select value={platform} onValueChange={(v) => { if (v) setPlatform(v); }}>
             <SelectTrigger className="w-32 h-8" aria-label="平台">
               <SelectValue>
-                {platform === "all" ? "全部平台" : (PLATFORM_LABELS[platform] ?? platform)}
+                {platform === "all" ? "全部平台" : (PLATFORM_LABELS_CENTRALIZED[platform] ?? platform)}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部平台</SelectItem>
               {PLATFORMS.map((p) => (
                 <SelectItem key={p} value={p}>
-                  {PLATFORM_LABELS[p] ?? p}
+                  {PLATFORM_LABELS_CENTRALIZED[p] ?? p}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -234,14 +215,14 @@ export default function DiscoverPage() {
           <Select value={contentType} onValueChange={(v) => { if (v) setContentType(v); }}>
             <SelectTrigger className="w-36 h-8" aria-label="内容类型">
               <SelectValue>
-                {contentType === "all" ? "全部类型" : (CONTENT_TYPE_LABELS[contentType] ?? contentType)}
+                {contentType === "all" ? "全部类型" : (CONTENT_TYPE_LABELS_CENTRALIZED[contentType] ?? contentType)}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
               {CONTENT_TYPES.map((t) => (
                 <SelectItem key={t} value={t}>
-                  {CONTENT_TYPE_LABELS[t] ?? t}
+                  {CONTENT_TYPE_LABELS_CENTRALIZED[t] ?? t}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -300,7 +281,7 @@ export default function DiscoverPage() {
                         {trustConfig.label}
                       </Badge>
                       <Badge variant="outline" className="text-[10px]">
-                        {PLATFORM_LABELS[source.platform] ?? source.platform}
+                        {PLATFORM_LABELS_CENTRALIZED[source.platform] ?? source.platform}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {sourceItems.length} 条内容
@@ -349,13 +330,15 @@ export default function DiscoverPage() {
                                   >
                                     {itemTrust.label}
                                   </Badge>
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-[10px]"
-                                  >
-                                    {CONTENT_TYPE_LABELS[item.contentType] ??
-                                      item.contentType}
-                                  </Badge>
+                                  {item.contentType && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-[10px]"
+                                    >
+                                      {CONTENT_TYPE_LABELS_CENTRALIZED[item.contentType] ??
+                                        item.contentType}
+                                    </Badge>
+                                  )}
                                   {item.publishedAt && (
                                     <span className="text-[10px] text-muted-foreground">
                                       {new Date(

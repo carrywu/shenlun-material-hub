@@ -28,6 +28,7 @@ import {
 import type { CardType } from "@/types";
 import { formatApiErrorMessage, type ApiErrorPayload } from "@/lib/api-error";
 import { waitForAdminTask } from "@/lib/client-admin-task";
+import { CONTENT_TYPE_LABELS, translateTag, parseTopicTags } from "@/lib/display-labels";
 
 interface ContentItemDetailProps {
   article: {
@@ -74,9 +75,7 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
     originalFacts: string | null;
   } | null>(null);
 
-  const tags = article.topicTags
-    ? (() => { try { return JSON.parse(article.topicTags); } catch { return []; } })()
-    : [];
+  const tags = parseTopicTags(article.topicTags);
 
   const scoreDetail = article.aiScoreDetail
     ? (() => { try { return JSON.parse(article.aiScoreDetail); } catch { return null; } })()
@@ -146,7 +145,9 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
               </>
             )}
             <span>·</span>
-            <Badge variant="secondary">{article.contentType}</Badge>
+            {article.contentType && (
+              <Badge variant="secondary">{CONTENT_TYPE_LABELS[article.contentType] ?? article.contentType}</Badge>
+            )}
             {article.aiScore !== null && (
               <Badge
                 variant="outline"
@@ -191,7 +192,7 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
           <div className="flex flex-wrap gap-1.5">
             {tags.map((tag: string) => (
               <Badge key={tag} variant="outline" className="text-xs">
-                {tag}
+                {translateTag(tag)}
               </Badge>
             ))}
           </div>

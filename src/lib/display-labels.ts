@@ -139,6 +139,53 @@ export const MATERIAL_TYPE_OPTIONS = [
 
 export const MATERIAL_TYPE_VALUES = MATERIAL_TYPE_OPTIONS.map((option) => option.value);
 
+export const CONTENT_GENRE_LABELS: Record<string, string> = {
+  commentary: "评论",
+  policy_interpretation: "政策解读",
+  case_practice: "案例实践",
+  ordinary_news: "普通新闻",
+  meeting_news: "会议新闻",
+  notice: "通知公告",
+  other: "其他",
+};
+
+/** 所有标签映射查找优先级列表 */
+const ALL_TAG_MAPS: Record<string, string>[] = [
+  TRUST_LEVEL_LABELS,
+  CONTENT_TYPE_LABELS,
+  CONTENT_GENRE_LABELS,
+  MATERIAL_TYPE_LABELS,
+  VERIFICATION_LABELS,
+];
+
+/**
+ * 安全解析 topicTags JSON 字符串为标签数组。
+ * 处理 null/undefined、无效 JSON、非数组结果、非字符串元素、去重。
+ */
+export function parseTopicTags(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed.filter((t): t is string => typeof t === "string" && t.length > 0))];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 翻译标签原始值为中文显示文本。
+ * 按优先级依次查找所有标签映射，找不到则返回原始值。
+ * 对 null/undefined/空字符串安全返回空字符串。
+ */
+export function translateTag(tag: string | null | undefined): string {
+  if (!tag || typeof tag !== "string") return "";
+  for (const map of ALL_TAG_MAPS) {
+    if (tag in map) return map[tag];
+  }
+  return tag;
+}
+
 export function getSafeDisplayLabel(
   value: string | null | undefined,
   map: Record<string, string>,

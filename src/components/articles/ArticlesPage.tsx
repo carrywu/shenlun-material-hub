@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { waitForAdminTask } from "@/lib/client-admin-task";
+import { CONTENT_GENRE_LABELS } from "@/lib/display-labels";
 
 interface ContentItemData {
   id: string;
@@ -87,16 +88,6 @@ const AI_DECISION_OPTIONS = [
   { value: "accept", label: "已通过" },
   { value: "reject", label: "已拒绝" },
 ];
-
-const CONTENT_GENRE_LABELS: Record<string, string> = {
-  commentary: "评论",
-  policy_interpretation: "政策解读",
-  case_practice: "案例实践",
-  ordinary_news: "普通新闻",
-  meeting_news: "会议新闻",
-  notice: "通知公告",
-  other: "其他",
-};
 
 const GENRE_BADGE_COLORS: Record<string, string> = {
   commentary: "bg-blue-100 text-blue-700",

@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import { useAuth } from "@/lib/auth-context";
+import { CONTENT_TYPE_LABELS, CONTENT_GENRE_LABELS, translateTag, parseTopicTags } from "@/lib/display-labels";
 
 interface Annotation {
   id: string;
@@ -98,16 +99,6 @@ const CARD_TYPE_CONFIG: Record<string, { label: string }> = {
   data_highlight: { label: "案例素材" },
   policy_compare: { label: "政策表述" },
   case_study: { label: "案例素材" },
-};
-
-const CONTENT_GENRE_LABELS: Record<string, string> = {
-  commentary: "评论",
-  policy_interpretation: "政策解读",
-  case_practice: "案例实践",
-  ordinary_news: "普通新闻",
-  meeting_news: "会议新闻",
-  notice: "通知公告",
-  other: "其他",
 };
 
 function cleanHtmlClientSide(html: string): string {
@@ -610,9 +601,7 @@ export default function ArticleDetailPage() {
     );
   }
 
-  const tags = article.topicTags
-    ? (() => { try { return JSON.parse(article.topicTags); } catch { return []; } })()
-    : [];
+  const tags = parseTopicTags(article.topicTags);
 
   const scoreDetail = article.aiScoreDetail
     ? (() => { try { return JSON.parse(article.aiScoreDetail); } catch { return null; } })()
@@ -709,7 +698,7 @@ export default function ArticleDetailPage() {
               <div className="flex flex-wrap gap-1.5">
                 {tags.map((tag: string) => (
                   <Badge key={tag} variant="outline" className="text-xs">
-                    {tag}
+                    {translateTag(tag)}
                   </Badge>
                 ))}
               </div>
@@ -1061,7 +1050,7 @@ export default function ArticleDetailPage() {
               </CardHeader>
               <CardContent className="space-y-1 text-xs text-muted-foreground">
                 <p>来源：{article.source?.name ?? article.platform}</p>
-                <p>类型：{article.contentType}</p>
+                <p>类型：{article.contentType ? (CONTENT_TYPE_LABELS[article.contentType] ?? article.contentType) : "未分类"}</p>
                 <p>字数：{article.effectiveTextLength}</p>
                 <p>AI 状态：{article.aiDecision === "accept" ? "已接受" : article.aiDecision === "reject" ? "已拒绝" : "待评估"}</p>
                 <Separator className="my-2" />

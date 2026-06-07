@@ -4,6 +4,10 @@ import {
   getSafeDisplayLabel,
   MATERIAL_TYPE_LABELS,
   MATERIAL_TYPE_OPTIONS,
+  translateTag,
+  parseTopicTags,
+  CONTENT_TYPE_LABELS,
+  TRUST_LEVEL_LABELS,
 } from "../display-labels";
 
 describe("display labels", () => {
@@ -20,5 +24,61 @@ describe("display labels", () => {
 
   it("does not fall back to unknown internal values in user display", () => {
     expect(getSafeDisplayLabel("unexpected_internal_code", MATERIAL_TYPE_LABELS)).toBe("未分类");
+  });
+});
+
+describe("translateTag", () => {
+  it("translates known contentType tags", () => {
+    // official_primary exists in both TRUST_LEVEL_LABELS ("官方一手") and CONTENT_TYPE_LABELS ("核心官媒")
+    // translateTag searches TRUST_LEVEL first, so it returns "官方一手"
+    expect(translateTag("official_primary")).toBe("官方一手");
+    expect(translateTag("policy_analysis")).toBe("政策解读");
+    expect(translateTag("local_official")).toBe("地方政务");
+  });
+
+  it("translates known trustLevel tags", () => {
+    expect(translateTag("official_repost")).toBe("官方转载");
+    expect(translateTag("unverified")).toBe("未验证");
+  });
+
+  it("returns original value for unknown tags", () => {
+    expect(translateTag("some_future_tag")).toBe("some_future_tag");
+  });
+
+  it("returns empty string for null/undefined/empty", () => {
+    expect(translateTag(null)).toBe("");
+    expect(translateTag(undefined)).toBe("");
+    expect(translateTag("")).toBe("");
+  });
+});
+
+describe("parseTopicTags", () => {
+  it("parses valid JSON array of strings", () => {
+    expect(parseTopicTags('["政策","经济"]')).toEqual(["政策", "经济"]);
+  });
+
+  it("returns empty array for null/undefined/empty", () => {
+    expect(parseTopicTags(null)).toEqual([]);
+    expect(parseTopicTags(undefined)).toEqual([]);
+    expect(parseTopicTags("")).toEqual([]);
+  });
+
+  it("returns empty array for invalid JSON", () => {
+    expect(parseTopicTags("not json")).toEqual([]);
+    expect(parseTopicTags("{bad")).toEqual([]);
+  });
+
+  it("returns empty array for non-array JSON", () => {
+    expect(parseTopicTags('"hello"')).toEqual([]);
+    expect(parseTopicTags("42")).toEqual([]);
+    expect(parseTopicTags('{"key":"val"}')).toEqual([]);
+  });
+
+  it("filters out non-string elements", () => {
+    expect(parseTopicTags('["a", 123, true, "b"]')).toEqual(["a", "b"]);
+  });
+
+  it("filters out empty strings and deduplicates", () => {
+    expect(parseTopicTags('["a", "", "a", "b"]')).toEqual(["a", "b"]);
   });
 });
