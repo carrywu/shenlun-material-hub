@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { requireAuth, requireAdmin, unauthorizedResponse, forbiddenResponse, authErrorResponse } from "@/lib/auth";
 import { canAccessResource, canModifyResource } from "@/lib/data-isolation";
@@ -67,7 +68,13 @@ export async function PUT(
       where: { id },
       data: {
         ...(processingStatus !== undefined && { processingStatus }),
-        ...(fullText !== undefined && { fullText, fullTextStored: !!fullText }),
+        ...(fullText !== undefined && {
+          fullText,
+          fullTextStored: !!fullText,
+          // P2-16: recalculate derived fields when fullText changes
+          effectiveTextLength: fullText ? fullText.replace(/<[^>]+>/g, "").replace(/\s+/g, "").trim().length : 0,
+          contentHash: fullText ? createHash("sha256").update(fullText).digest("hex").slice(0, 16) : null,
+        }),
         ...(excerpt !== undefined && { excerpt }),
         ...(topicTags !== undefined && { topicTags: JSON.stringify(topicTags) }),
         ...(regionScopes !== undefined && { regionScopes: JSON.stringify(regionScopes) }),

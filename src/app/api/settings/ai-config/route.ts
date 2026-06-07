@@ -22,11 +22,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ configured: false });
     }
 
-    // 返回时隐藏完整 key
+    // 返回时隐藏完整 key（P2-17: 只显示前 4 位）
     let maskedKey = "****";
     try {
       const decrypted = decrypt(config.encryptedKey);
-      maskedKey = decrypted.slice(0, 8) + "****";
+      maskedKey = decrypted.slice(0, 4) + "****";
     } catch {
       // 解密失败，返回 masked
     }

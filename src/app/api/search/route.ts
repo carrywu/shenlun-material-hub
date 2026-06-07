@@ -37,8 +37,13 @@ export async function GET(request: NextRequest) {
     if (tags) {
       const tagList = tags.split(",").filter(Boolean);
       if (tagList.length > 0) {
+        // P2-15: search tags in title + aiSummary + originalFacts, not sourceSnapshot (false positives)
         where.AND = tagList.map((tag) => ({
-          sourceSnapshot: { contains: tag.trim() },
+          OR: [
+            { title: { contains: tag.trim() } },
+            { aiSummary: { contains: tag.trim() } },
+            { originalFacts: { contains: tag.trim() } },
+          ],
         }));
       }
     }

@@ -56,16 +56,22 @@ describe("GET /api/articles route handler", () => {
     mocks.count.mockResolvedValue(0);
   });
 
-  it("should add visibility=public for anonymous users", async () => {
+  it("should add visibility filter for anonymous users (public + legacy null)", async () => {
     authMocks.getUserFromRequest.mockResolvedValue(null);
     const req = new NextRequest("http://localhost/api/articles");
     const res = await GET(req);
     expect(res.status).toBe(200);
-    expect(mocks.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ visibility: "public" }),
-      })
+    // P2-14: anonymous users see public + legacy (visibility:null) via mergeWhere
+    const { mergeWhere } = await import("@/lib/data-isolation");
+    expect(mergeWhere).toHaveBeenCalled();
+    // Check that mergeWhere was called with a visibility OR filter
+    const lastMergeCall = (mergeWhere as ReturnType<typeof vi.fn>).mock.calls.find(
+      (call: unknown[]) => {
+        const filter = call[1] as Record<string, unknown> | undefined;
+        return filter && typeof filter === "object" && "OR" in filter;
+      }
     );
+    expect(lastMergeCall).toBeDefined();
   });
 
   it("should apply visibility filter for authenticated regular user", async () => {

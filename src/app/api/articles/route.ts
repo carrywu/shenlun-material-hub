@@ -6,8 +6,14 @@ import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
-    const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20")));
+    // P2-13: safe parseInt with NaN guard
+    const safeParseInt = (val: string | null, fallback: number): number => {
+      if (!val) return fallback;
+      const n = parseInt(val, 10);
+      return Number.isNaN(n) ? fallback : n;
+    };
+    const page = Math.max(1, safeParseInt(searchParams.get("page"), 1));
+    const pageSize = Math.min(100, Math.max(1, safeParseInt(searchParams.get("pageSize"), 20)));
 
     // 筛选参数
     const keyword = searchParams.get("keyword") ?? searchParams.get("search");
@@ -103,12 +109,20 @@ export async function GET(request: NextRequest) {
       orderBy = [{ createdAt: "desc" }, { id: "desc" }];
     }
 
-    // Visibility: authenticated users see public+own+legacy; anonymous see public only
+    // Visibility: authenticated users see public+own+legacy; anonymous see public+legacy(null) only
     const user = await getUserFromRequest(request);
     if (user) {
       where = mergeWhere(where, contentVisibilityWhere(user));
     } else {
-      where.visibility = "public";
+      // P2-14: include legacy articles with visibility:null for anonymous users
+      // Use AND to combine visibility filter with existing keyword OR
+      const visibilityFilter = {
+        OR: [
+          { visibility: "public" },
+          { visibility: null },
+        ],
+      };
+      where = mergeWhere(where, visibilityFilter);
     }
 
     const [data, total] = await Promise.all([

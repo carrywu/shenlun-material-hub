@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/lib/auth-context";
 import { MaterialCardView } from "@/components/MaterialCard";
 import { BatchSyncToIma } from "@/components/SyncToIma";
 import { toast } from "sonner";
@@ -67,6 +68,7 @@ const CARD_TYPE_TABS: { value: CardType | "all"; label: string; icon: React.Elem
 
 export default function CardsPage() {
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [cards, setCards] = useState<CardItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -350,8 +352,8 @@ export default function CardsPage() {
                     transferSuggestions={card.transferSuggestions}
                     contentItemTitle={card.contentItem.title}
                     sourceName={card.contentItem.source?.name}
-                    onDelete={handleDelete}
-                    onConfirm={handleConfirm}
+                    onDelete={isAdmin ? handleDelete : undefined}
+                    onConfirm={isAdmin ? handleConfirm : undefined}
                   />
                 </div>
               </div>
