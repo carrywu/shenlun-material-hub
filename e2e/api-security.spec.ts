@@ -20,13 +20,14 @@ test.describe('API 安全认证', () => {
 
   test('公开 API：discover 端点无需认证', async ({ request }) => {
     const res = await request.get('/api/discover');
-    // discover 是公开的，但可能返回空数据
-    expect([200, 401]).toContain(res.status());
+    // NOTE: P1-6 将给 /api/discover 添加认证，届时此测试应断言 401
+    expect(res.status()).toBe(200);
   });
 
   test('公开 API：explore 端点无需认证', async ({ request }) => {
     const res = await request.get('/api/explore');
-    expect([200, 401]).toContain(res.status());
+    // NOTE: P1-6 将给 /api/explore 添加认证，届时此测试应断言 401
+    expect(res.status()).toBe(200);
   });
 
   // ── 受保护 API：未认证返回 401 ──

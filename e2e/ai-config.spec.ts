@@ -113,11 +113,12 @@ test.describe('Admin AI Config', () => {
       await testBtn.click();
       // Wait for result to appear
       await page.waitForTimeout(5000);
-      // After testing, either a success/failure badge appears or the button is re-enabled
-      const resultBadge = page.locator('text=/连接成功|失败/');
-      const hasResult = await resultBadge.isVisible().catch(() => false);
-      // Result may or may not appear depending on config state
-      expect(typeof hasResult).toBe('boolean');
+      // After testing, verify a result appeared — success/failure badge or button re-enabled
+      const resultBadge = page.locator('text=/连接成功|失败|测试失败/');
+      const badgeVisible = await resultBadge.isVisible().catch(() => false);
+      const btnReEnabled = await testBtn.isEnabled();
+      // At least one of these must be true: badge visible or button re-enabled
+      expect(badgeVisible || btnReEnabled).toBe(true);
     }
     // If button is disabled (no config saved), test passes — button visibility confirmed
 

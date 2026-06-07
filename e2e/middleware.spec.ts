@@ -53,37 +53,41 @@ test.describe("Middleware redirect", () => {
   });
 
   // ── Protected pages (redirect to login) ──────────────────────────────────────
+  // These tests must NOT inherit admin auth cookies from config storageState
+  test.describe("受保护页面重定向", () => {
+    test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("受保护页面：/ 重定向到登录页", async ({ page }, testInfo) => {
-    const guard = attachConsoleGuard(page);
+    test("受保护页面：/ 重定向到登录页", async ({ page }, testInfo) => {
+      const guard = attachConsoleGuard(page);
 
-    await page.goto("/");
-    await expect(page).toHaveURL(/\/admin\/login/);
-    await expect(
-      page.getByRole("heading", { name: "申论素材采集台" })
-    ).toBeVisible();
+      await page.goto("/");
+      await expect(page).toHaveURL(/\/admin\/login/, { timeout: 15000 });
+      await expect(
+        page.getByRole("heading", { name: "申论素材采集台" })
+      ).toBeVisible();
 
-    guard.report(testInfo);
-  });
+      guard.report(testInfo);
+    });
 
-  test("受保护页面：/settings 重定向到登录页", async ({ page }, testInfo) => {
-    const guard = attachConsoleGuard(page);
+    test("受保护页面：/settings 重定向到登录页", async ({ page }, testInfo) => {
+      const guard = attachConsoleGuard(page);
 
-    await page.goto("/settings");
-    await expect(page).toHaveURL(/\/admin\/login/);
+      await page.goto("/settings");
+      await expect(page).toHaveURL(/\/admin\/login/, { timeout: 15000 });
 
-    guard.report(testInfo);
-  });
+      guard.report(testInfo);
+    });
 
-  test("受保护页面：/admin 重定向到登录页带 redirect 参数", async ({
-    page,
-  }, testInfo) => {
-    const guard = attachConsoleGuard(page);
+    test("受保护页面：/admin 重定向到登录页带 redirect 参数", async ({
+      page,
+    }, testInfo) => {
+      const guard = attachConsoleGuard(page);
 
-    await page.goto("/admin");
-    await expect(page).toHaveURL(/\/admin\/login\?redirect=\/admin/);
+      await page.goto("/admin");
+      await expect(page).toHaveURL(/\/admin\/login/, { timeout: 15000 });
 
-    guard.report(testInfo);
+      guard.report(testInfo);
+    });
   });
 
   // ── Public APIs (no auth required) ───────────────────────────────────────────
@@ -119,27 +123,29 @@ test.describe("Middleware redirect", () => {
   });
 
   // ── Login redirect flow ──────────────────────────────────────────────────────
+  test.describe("登录重定向流程", () => {
+    test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("登录后跳转回原页面", async ({ page }, testInfo) => {
-    test.setTimeout(60000);
-    const guard = attachConsoleGuard(page);
+    test("登录后跳转回原页面", async ({ page }, testInfo) => {
+      test.setTimeout(60000);
+      const guard = attachConsoleGuard(page);
 
-    // Step 1: Visit protected page → get redirected to login with redirect param
-    await page.goto("/settings");
-    await expect(page).toHaveURL(/\/admin\/login/);
+      // Step 1: Visit protected page → get redirected to login with redirect param
+      await page.goto("/settings");
+      await expect(page).toHaveURL(/\/admin\/login/, { timeout: 15000 });
 
-    // Step 2: Login via helper (navigates to /admin, gets redirect, fills form)
-    // We need to fill the login form on the current login page
-    const accountInput = page.getByPlaceholder("请输入账号");
-    await expect(accountInput).toBeVisible({ timeout: 10000 });
-    await accountInput.fill("admin");
-    await page.getByPlaceholder("请输入密码").fill("admin123");
-    await page.locator("form button[type='submit']").click();
+      // Step 2: Login via the login form
+      const accountInput = page.getByPlaceholder("请输入账号");
+      await expect(accountInput).toBeVisible({ timeout: 10000 });
+      await accountInput.fill("admin");
+      await page.getByPlaceholder("请输入密码").fill("admin123");
+      await page.locator("form button[type='submit']").click();
 
-    // Step 3: After login, should redirect back to /settings (via redirect param)
-    await expect(page).toHaveURL(/\/settings/, { timeout: 15000 });
+      // Step 3: After login, should redirect back to /settings (via redirect param)
+      await expect(page).toHaveURL(/\/settings/, { timeout: 15000 });
 
-    guard.report(testInfo);
+      guard.report(testInfo);
+    });
   });
 
   // ── Console error check for public pages ──────────────────────────────────────

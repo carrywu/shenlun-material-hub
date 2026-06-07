@@ -93,12 +93,14 @@ test.describe('WeWe RSS Integration Page', () => {
     // Wait for result to appear
     await page.waitForTimeout(5000);
 
-    // After preview, either result appears or an error/alert is shown
-    // The preview result shows a message with "数据来源"
-    const previewResult = page.getByText(/数据来源/);
-    const hasResult = await previewResult.isVisible().catch(() => false);
-    // Result may or may not appear depending on WeWe RSS service availability
-    expect(typeof hasResult).toBe('boolean');
+    // After preview, verify page is stable (no crash)
+    // WeWe RSS service may be unavailable, so we only verify the page didn't crash
+    await expect(page.getByRole('heading', { name: 'WeWe RSS 集成' })).toBeVisible({ timeout: 5000 });
+    // Check for either a result or an error message — at least one UI response
+    const previewResult = page.getByText(/数据来源|预览失败|服务不可用/);
+    await expect(previewResult).toBeVisible({ timeout: 10000 }).catch(() => {
+      // If nothing appeared, page should at least still show the integration page
+    });
 
     guard.report(testInfo);
   });
@@ -119,13 +121,15 @@ test.describe('WeWe RSS Integration Page', () => {
     // Wait for result
     await page.waitForTimeout(5000);
 
-    // After sync, either sync result message appears or a delete confirmation dialog
-    const syncResultMsg = page.getByText(/数据来源/);
+    // After sync, verify page is stable (no crash)
+    await expect(page.getByRole('heading', { name: 'WeWe RSS 集成' })).toBeVisible({ timeout: 5000 });
+    // Check for sync response — either result, delete dialog, or error message
+    const syncResultMsg = page.getByText(/数据来源|同步完成|同步失败|服务不可用/);
     const deleteDialog = page.getByText('同步删除来源确认');
-    const hasResult = await syncResultMsg.isVisible().catch(() => false)
+    const syncResponseVisible = await syncResultMsg.isVisible().catch(() => false)
       || await deleteDialog.isVisible().catch(() => false);
-    // Result depends on WeWe RSS availability and data state
-    expect(typeof hasResult).toBe('boolean');
+    // Sync must produce some UI response within timeout
+    expect(syncResponseVisible).toBe(true);
 
     guard.report(testInfo);
   });

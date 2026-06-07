@@ -475,13 +475,13 @@ test.describe('Admin Clean', () => {
       await expect(page.getByText('确认数据清洗')).toBeVisible({ timeout: 5000 });
       // Click confirm
       await page.getByRole('button', { name: '确认清洗' }).click();
-      // Wait for result or error
+      // Wait for result or error — check for completion or page stability
       await page.waitForTimeout(3000);
-      // Either results card appears or page remains stable
-      const cleanComplete = page.getByText('清洗完成');
-      const hasResults = await cleanComplete.isVisible().catch(() => false);
-      // Test passes whether results appear or not (depends on data state)
-      expect(hasResults === true || hasResults === false).toBe(true);
+      // Verify: page didn't crash (no error overlay), clean page still renders
+      const errorOverlay = page.locator('#__next-route-announcer ~ [role="alert"]');
+      await expect(errorOverlay).not.toBeVisible();
+      // Page is still functional — heading visible
+      await expect(page.getByRole('heading', { name: /管理/ })).toBeVisible({ timeout: 5000 });
     }
 
     guard.report(testInfo);
