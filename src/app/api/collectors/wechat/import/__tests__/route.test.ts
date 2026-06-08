@@ -232,6 +232,36 @@ describe("POST /api/collectors/wechat/import", () => {
     );
   });
 
+  it("应该在创建 CollectorRun 后发生异常时标记为 failed", async () => {
+    mockDb.source.findUnique.mockResolvedValue(SOURCE_RECORD);
+    mockParseWechatArticle.mockResolvedValue({
+      id: "art-1",
+      title: "文章",
+      url: "https://mp.weixin.qq.com/s/test",
+      content: "内容",
+    });
+    mockNormalize.mockRejectedValueOnce(new Error("标准化失败"));
+
+    const req = makeRequest({
+      urls: ["https://mp.weixin.qq.com/s/test"],
+      sourceId: "src-wechat-001",
+    });
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.error).toBe("导入执行失败");
+    expect(mockDb.collectorRun.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "run-import-001" },
+        data: expect.objectContaining({
+          status: "failed",
+          errorSummary: "标准化失败",
+        }),
+      })
+    );
+  });
+
   it("应该正确更新 CollectorRun 状态（partial）", async () => {
     mockDb.source.findUnique.mockResolvedValue(SOURCE_RECORD);
     mockParseWechatArticle

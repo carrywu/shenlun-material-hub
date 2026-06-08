@@ -13,7 +13,7 @@
 - [x] P1-002：`/api/discover` 可见性过滤边界
 - [x] P1-003：注册接口输入类型、邀请码审计脱敏和并发消耗边界
 - [x] P1-004：分页参数 NaN / 极值统一解析
-- [ ] P2-001：微信手动导入 CollectorRun 异常终态
+- [x] P2-001：微信手动导入 CollectorRun 异常终态
 - [ ] P2-002：异步任务归属与任务可见性扫尾
 - [ ] P2-003：相关 UI 错误态、重复点击和失败恢复
 - [ ] P3-001：交叉审计扫尾
@@ -163,9 +163,15 @@
 - 复现/确认步骤：阅读 route，确认创建 running run 后若后续异常进入 outer catch，可能不更新 failed。
 - 根因：CollectorRun 生命周期无 finally/catch 兜底。
 - 修复计划：outer scope 保存 runRecordId；catch 中更新 failed/finishedAt/errorSummary。
-- 测试计划：模拟 run 创建后失败，断言 update failed。
-- 状态：`[ ]` 未开始。
-- Commit：待提交。
+- 已完成修复：
+  - `POST /api/collectors/wechat/import` 在 outer scope 保存 `runRecordId`。
+  - run 创建后若 parser/normalizer/后续流程抛错，outer catch 将 CollectorRun 更新为 `failed`，写入 `finishedAt` 和 `errorSummary`。
+  - failed 更新自身失败时只记录 console error，不遮蔽原始 500 响应。
+- 测试结果：
+  - `pnpm exec vitest run src/app/api/collectors/wechat/import/__tests__/route.test.ts`：PASS，1 file / 11 tests。
+  - `pnpm lint`：PASS，0 errors / 16 warnings（warnings 为既有 unused 变量）。
+- 状态：`[x]` 已完成。
+- Commit：本次 P2-001 修复提交。
 
 ### P2-002：异步任务归属与任务可见性扫尾
 

@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     }
     return forbiddenResponse();
   }
+  let runRecordId: string | null = null;
   try {
     const body = await request.json();
     const { urls, sourceId } = body as { urls: string[]; sourceId: string };
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
         status: "running",
       },
     });
+    runRecordId = runRecord.id;
 
     const parsedArticles = [];
     const errors: string[] = [];
@@ -101,7 +103,24 @@ export async function POST(request: NextRequest) {
       errors: allErrors.length > 0 ? allErrors : undefined,
     });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "导入执行失败";
     console.error("WeChat manual import error:", error);
+
+    if (runRecordId) {
+      try {
+        await db.collectorRun.update({
+          where: { id: runRecordId },
+          data: {
+            status: "failed",
+            finishedAt: new Date(),
+            errorSummary: errorMessage,
+          },
+        });
+      } catch (updateError) {
+        console.error("Failed to mark WeChat manual import run as failed:", updateError);
+      }
+    }
+
     return NextResponse.json(
       { error: "导入执行失败" },
       { status: 500 }

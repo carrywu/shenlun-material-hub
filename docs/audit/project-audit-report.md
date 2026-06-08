@@ -152,7 +152,7 @@
 | P1-002 | P1 | `/api/discover` 未合并 visibility/ownerUserId 过滤 | 已完成 | discover API / public feed | 本次 P1-002 修复提交 |
 | P1-003 | P1 | 注册接口未校验 JSON 字段类型，部分审计路径记录明文邀请码 | 已完成 | register API / audit log | 本次 P1-003 修复提交 |
 | P1-004 | P1 | 多个 API 使用 unsafe `parseInt`，malformed pagination 可能导致 Prisma NaN | 已完成 | API pagination | 本次 P1-004 修复提交 |
-| P2-001 | P2 | 微信手动导入异常后 CollectorRun 可能停留 running | 未开始 | wechat import API | 待提交 |
+| P2-001 | P2 | 微信手动导入异常后 CollectorRun 可能停留 running | 已完成 | wechat import API | 本次 P2-001 修复提交 |
 | P2-002 | P2 | 异步任务归属和可见性需全局扫尾 | 未开始 | async task / admin tasks | 待提交 |
 | P2-003 | P2 | 新增边界错误需在 UI 中有可读错误态与重复点击保护 | 未开始 | affected components | 待提交 |
 | P3-001 | P3 | 交叉审计扫尾 | 未开始 | whole codebase | 待提交 |
