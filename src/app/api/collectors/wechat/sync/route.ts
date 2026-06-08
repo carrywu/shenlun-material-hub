@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       sourceId: source.id,
       sourceName: source.name,
       werssSourceId: werssSourceId ?? null,
-    });
+    }, user.id);
 
     enqueueAsyncTask(task, () =>
       runWechatSyncTask({

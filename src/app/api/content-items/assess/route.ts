@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
       retryFailed,
       concurrency,
       itemCount: count,
-    });
+    }, user.id);
 
     enqueueAsyncTask(task, () => runAssessTask(ids, retryFailed, concurrency, user.id));
 

@@ -75,7 +75,8 @@ describe("POST /api/collectors/wechat/sync", () => {
       expect.objectContaining({
         sourceId: "src-wechat-001",
         sourceName: "测试公众号",
-      })
+      }),
+      "test-admin"
     );
     expect(mockEnqueueAsyncTask).toHaveBeenCalledTimes(1);
   });

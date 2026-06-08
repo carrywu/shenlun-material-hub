@@ -358,6 +358,8 @@ P0 + P1 全部完成后，项目质量进一步提升：
 | P1 | `pnpm test` + targeted Playwright | NOT RUN | 待所有 P1 修复后执行 |
 | P2-001 | `pnpm exec vitest run src/app/api/collectors/wechat/import/__tests__/route.test.ts` | PASS | 1 file / 11 tests passed，覆盖 run 创建后异常时标记 failed |
 | P2-001 | `pnpm lint` | PASS | 0 errors / 16 warnings；warnings 为既有 unused 变量 |
+| P2-002 | `pnpm exec vitest run src/app/api/content-items/assess/__tests__/route.test.ts src/app/api/collectors/wechat/sync/__tests__/route.test.ts` | PASS | 2 files / 5 tests passed，覆盖 user-triggered async tasks 绑定 userId |
+| P2-002 | `pnpm lint` | PASS | 0 errors / 16 warnings；warnings 为既有 unused 变量 |
 | Final | `pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build && pnpm exec playwright test` | NOT RUN | 待全部修复后执行 |
 
 ### 当前结论

@@ -14,7 +14,7 @@
 - [x] P1-003：注册接口输入类型、邀请码审计脱敏和并发消耗边界
 - [x] P1-004：分页参数 NaN / 极值统一解析
 - [x] P2-001：微信手动导入 CollectorRun 异常终态
-- [ ] P2-002：异步任务归属与任务可见性扫尾
+- [x] P2-002：异步任务归属与任务可见性扫尾
 - [ ] P2-003：相关 UI 错误态、重复点击和失败恢复
 - [ ] P3-001：交叉审计扫尾
 - [ ] P3-002：全量验证与最终交接
@@ -179,9 +179,16 @@
 - 影响范围：所有 `createAsyncTask(` 调用点、admin task API。
 - 复现/确认步骤：搜索 async task 创建调用，分类 user-triggered vs admin/system。
 - 修复计划：user-triggered task 传 userId；确认 task result 不泄漏 secrets。
-- 测试计划：依改动补 targeted tests。
-- 状态：`[ ]` 未开始。
-- Commit：待提交。
+- 交叉审计发现：
+  - `src/app/api/content-items/assess/route.ts` 批量 AI 评估任务未传 `user.id`。
+  - `src/app/api/collectors/wechat/sync/route.ts` WeWe RSS 同步任务未传 `user.id`。
+  - `generate-card`、`reassess`、`web collect` 已传 `user.id`。
+- 已完成修复：以上两个 user-triggered `createAsyncTask` 调用补充第三参数 `user.id`。
+- 测试结果：
+  - `pnpm exec vitest run src/app/api/content-items/assess/__tests__/route.test.ts src/app/api/collectors/wechat/sync/__tests__/route.test.ts`：PASS，2 files / 5 tests。
+  - `pnpm lint`：PASS，0 errors / 16 warnings（warnings 为既有 unused 变量）。
+- 状态：`[x]` 已完成。
+- Commit：本次 P2-002 扫尾提交。
 
 ### P2-003：相关 UI 错误态、重复点击和失败恢复
 
