@@ -3,14 +3,33 @@ import { hashPassword, createSession, buildCookieHeader } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { auditLog } from "@/lib/audit-logger";
 
+function maskInvitationCode(code: string): string {
+  return `${code.slice(0, 2)}****`;
+}
+
 /** POST /api/auth/register — register with invitation code */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { username, password, invitationCode } = body;
 
+    if (
+      typeof username !== "string" ||
+      typeof password !== "string" ||
+      typeof invitationCode !== "string"
+    ) {
+      return NextResponse.json(
+        { error: "用户名、密码和邀请码必须为字符串" },
+        { status: 400 }
+      );
+    }
+
+    const normalizedUsername = username.trim();
+    const normalizedInvitationCode = invitationCode.trim();
+    const maskedInvitationCode = maskInvitationCode(normalizedInvitationCode);
+
     // Validate required fields
-    if (!username || !password || !invitationCode) {
+    if (!normalizedUsername || !password || !normalizedInvitationCode) {
       return NextResponse.json(
         { error: "用户名、密码和邀请码不能为空" },
         { status: 400 }
@@ -18,14 +37,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate username
-    if (username.length < 3 || username.length > 32) {
+    if (normalizedUsername.length < 3 || normalizedUsername.length > 32) {
       return NextResponse.json(
         { error: "用户名长度应在 3-32 个字符之间" },
         { status: 400 }
       );
     }
 
-    if (!/^[a-zA-Z0-9_一-龥]+$/.test(username)) {
+    if (!/^[a-zA-Z0-9_一-龥]+$/.test(normalizedUsername)) {
       return NextResponse.json(
         { error: "用户名只能包含字母、数字、下划线和中文" },
         { status: 400 }
@@ -42,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Validate invitation code
     const invitation = await db.invitation.findUnique({
-      where: { code: invitationCode },
+      where: { code: normalizedInvitationCode },
     });
 
     if (!invitation) {
@@ -60,8 +79,8 @@ export async function POST(request: NextRequest) {
         detail: {
           reason: "invitation_expired",
           invitationId: invitation.id,
-          invitationCode,
-          attemptedUsername: username,
+          invitationCode: maskedInvitationCode,
+          attemptedUsername: normalizedUsername,
         },
       });
       return NextResponse.json(
@@ -78,8 +97,8 @@ export async function POST(request: NextRequest) {
         detail: {
           reason: "invitation_exhausted",
           invitationId: invitation.id,
-          invitationCode,
-          attemptedUsername: username,
+          invitationCode: maskedInvitationCode,
+          attemptedUsername: normalizedUsername,
         },
       });
       return NextResponse.json(
@@ -89,7 +108,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for duplicate username
-    const existingUser = await db.user.findUnique({ where: { username } });
+    const existingUser = await db.user.findUnique({ where: { username: normalizedUsername } });
     if (existingUser) {
       return NextResponse.json(
         { error: "用户名已存在" },
@@ -120,7 +139,7 @@ export async function POST(request: NextRequest) {
       const passwordHash = await hashPassword(password);
       const newUser = await tx.user.create({
         data: {
-          username,
+          username: normalizedUsername,
           passwordHash,
           role: "USER",
           status: "ACTIVE",
@@ -157,7 +176,7 @@ export async function POST(request: NextRequest) {
         username: result.user.username,
         role: result.user.role,
         invitationId: invitation.id,
-        invitationCode: invitationCode.slice(0, 2) + "****",
+        invitationCode: maskedInvitationCode,
       },
       ip,
     });

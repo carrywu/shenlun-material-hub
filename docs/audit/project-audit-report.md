@@ -150,7 +150,7 @@
 | P0-002 | P0 | `/api/sync` 状态/历史查询未按 owner scope 限制 | 已完成 | sync API / ima-sync service | 本次 P0-002 修复提交 |
 | P1-001 | P1 | 手动内容导入 `sourceId` 缺失/无效会触发外键 500 | 已完成 | content-items API | 本次 P1-001 修复提交 |
 | P1-002 | P1 | `/api/discover` 未合并 visibility/ownerUserId 过滤 | 已完成 | discover API / public feed | 本次 P1-002 修复提交 |
-| P1-003 | P1 | 注册接口未校验 JSON 字段类型，部分审计路径记录明文邀请码 | 未开始 | register API / audit log | 待提交 |
+| P1-003 | P1 | 注册接口未校验 JSON 字段类型，部分审计路径记录明文邀请码 | 已完成 | register API / audit log | 本次 P1-003 修复提交 |
 | P1-004 | P1 | 多个 API 使用 unsafe `parseInt`，malformed pagination 可能导致 Prisma NaN | 未开始 | API pagination | 待提交 |
 | P2-001 | P2 | 微信手动导入异常后 CollectorRun 可能停留 running | 未开始 | wechat import API | 待提交 |
 | P2-002 | P2 | 异步任务归属和可见性需全局扫尾 | 未开始 | async task / admin tasks | 待提交 |

@@ -11,7 +11,7 @@
 - [x] P0-002：同步状态与同步历史 owner scope 边界
 - [x] P1-001：手动内容导入 `sourceId` 外键与输入边界
 - [x] P1-002：`/api/discover` 可见性过滤边界
-- [ ] P1-003：注册接口输入类型、邀请码审计脱敏和并发消耗边界
+- [x] P1-003：注册接口输入类型、邀请码审计脱敏和并发消耗边界
 - [ ] P1-004：分页参数 NaN / 极值统一解析
 - [ ] P2-001：微信手动导入 CollectorRun 异常终态
 - [ ] P2-002：异步任务归属与任务可见性扫尾
@@ -126,9 +126,16 @@
 - 复现/确认步骤：阅读 route，确认 JSON body 字段未校验类型即 `.length`/regex/`.slice`；expired/exhausted 审计记录明文 code。
 - 根因：注册接口沿用 happy-path string 假设，未覆盖恶意/异常 JSON 类型。
 - 修复计划：字段必须为 string；normalize username/code；所有审计路径脱敏；稳定处理 exhausted invitation。
-- 测试计划：number/object/null body 400；trim duplicate；audit mask；exhausted 400。
-- 状态：`[ ]` 未开始。
-- Commit：待提交。
+- 已完成修复：
+  - `username/password/invitationCode` 必须为 string，否则返回 400，避免 `.length`/regex 触发 500。
+  - `username` 和 `invitationCode` trim 后用于校验、邀请码查找、用户名查重和用户创建；password 不 trim。
+  - expired/exhausted/success 审计路径统一记录 `invitationCode: maskedInvitationCode`，不再记录明文 code。
+  - transaction-level `INVITATION_EXHAUSTED` 继续稳定映射为 400。
+- 测试结果：
+  - `pnpm exec vitest run src/app/api/auth/register/__tests__/route.test.ts`：PASS，1 file / 4 tests。
+  - `pnpm lint`：PASS，0 errors / 16 warnings（warnings 为既有 unused 变量）。
+- 状态：`[x]` 已完成。
+- Commit：本次 P1-003 修复提交。
 
 ### P1-004：分页参数 NaN / 极值统一解析
 
