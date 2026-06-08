@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { parsePaginationParams } from "@/lib/api-params";
 
 // GET /api/sources - 获取来源列表（分页筛选 + contentItems 计数）
 export async function GET(request: NextRequest) {
@@ -14,11 +15,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
-    const pageSize = Math.min(
-      100,
-      Math.max(1, parseInt(searchParams.get("pageSize") ?? "20"))
-    );
+    const { page, pageSize } = parsePaginationParams(searchParams);
 
     const platform = searchParams.get("platform");
     const contentType = searchParams.get("contentType");

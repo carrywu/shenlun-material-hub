@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSyncRecords } from "@/services/ima-sync";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
 import { ownerScopeWhere } from "@/lib/data-isolation";
+import { parsePaginationParams } from "@/lib/api-params";
 
 // GET /api/sync-records - 同步历史查询（支持筛选）
 export async function GET(request: NextRequest) {
@@ -14,8 +15,7 @@ export async function GET(request: NextRequest) {
     const documentRole = searchParams.get("documentRole") ?? undefined;
     const dateFrom = searchParams.get("dateFrom") ?? undefined;
     const dateTo = searchParams.get("dateTo") ?? undefined;
-    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
-    const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20")));
+    const { page, pageSize } = parsePaginationParams(searchParams);
 
     // Multi-user data isolation: restrict to own sync records
     const ownerFilter = ownerScopeWhere(user, "userId");

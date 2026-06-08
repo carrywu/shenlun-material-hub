@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
+import { parsePaginationParams } from "@/lib/api-params";
 
 // GET /api/explore — 待核验内容 / 关键词搜索（需认证）
 export async function GET(request: NextRequest) {
@@ -9,11 +10,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
-    const pageSize = Math.min(
-      100,
-      Math.max(1, parseInt(searchParams.get("pageSize") ?? "20"))
-    );
+    const { page, pageSize } = parsePaginationParams(searchParams);
     const query = searchParams.get("q") ?? "";
     const platform = searchParams.get("platform");
     const contentType = searchParams.get("contentType");

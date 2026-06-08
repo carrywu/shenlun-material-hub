@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
 import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
+import { parsePositiveIntParam } from "@/lib/api-params";
 
 // GET /api/review - 获取复习用的素材卡
 export async function GET(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get("mode") ?? "random";
     const cardType = searchParams.get("category");
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "10")));
+    const limit = parsePositiveIntParam(searchParams.get("limit"), 10, 50);
 
     const where: Record<string, unknown> = {};
     if (cardType) where.cardType = cardType;

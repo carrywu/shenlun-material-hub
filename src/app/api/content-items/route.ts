@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { requireAuth, authErrorResponse } from "@/lib/auth";
 import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
+import { parsePaginationParams } from "@/lib/api-params";
 
 // GET /api/content-items — 分页 + 筛选
 export async function GET(request: NextRequest) {
@@ -10,8 +11,7 @@ export async function GET(request: NextRequest) {
   if (!user) return authErrorResponse(request);
   try {
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
-    const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20")));
+    const { page, pageSize } = parsePaginationParams(searchParams);
     const sourceId = searchParams.get("sourceId");
     const platform = searchParams.get("platform");
     const processingStatus = searchParams.get("processingStatus");

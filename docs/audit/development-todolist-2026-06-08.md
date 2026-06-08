@@ -12,7 +12,7 @@
 - [x] P1-001：手动内容导入 `sourceId` 外键与输入边界
 - [x] P1-002：`/api/discover` 可见性过滤边界
 - [x] P1-003：注册接口输入类型、邀请码审计脱敏和并发消耗边界
-- [ ] P1-004：分页参数 NaN / 极值统一解析
+- [x] P1-004：分页参数 NaN / 极值统一解析
 - [ ] P2-001：微信手动导入 CollectorRun 异常终态
 - [ ] P2-002：异步任务归属与任务可见性扫尾
 - [ ] P2-003：相关 UI 错误态、重复点击和失败恢复
@@ -144,9 +144,15 @@
 - 复现/确认步骤：搜索 `Math.max(1, parseInt(...))`，确认 malformed input 会产生 NaN。
 - 根因：多路由复制本地 parseInt 模式，缺少共享边界 helper。
 - 修复计划：新增 helper；替换暴露 API 的 page/pageSize/limit 解析。
-- 测试计划：helper 单测 + 代表 route malformed 参数回归。
-- 状态：`[ ]` 未开始。
-- Commit：待提交。
+- 已完成修复：
+  - 新增 `src/lib/api-params.ts`，提供 `parsePositiveIntParam` 和 `parsePaginationParams`。
+  - 替换 `content-items`、`sync-records`、`material-cards`、`sources`、`explore`、`search`、`review` 的 unsafe parseInt。
+  - 复查 `grep -R "Math.max(1, parseInt\|parseInt(searchParams" src/app/api src/lib` 已无命中。
+- 测试结果：
+  - `pnpm exec vitest run src/lib/__tests__/api-params.test.ts src/app/api/content-items/__tests__/route.test.ts src/app/api/sync-records/__tests__/route.test.ts src/app/api/review/__tests__/route.test.ts`：PASS，4 files / 17 tests。
+  - `pnpm lint`：PASS，0 errors / 16 warnings（warnings 为既有 unused 变量）。
+- 状态：`[x]` 已完成。
+- Commit：本次 P1-004 修复提交。
 
 ## P2：可靠性与 UI 边界
 
