@@ -211,6 +211,8 @@
   - running CollectorRun 创建点已抽查：手动导入已修；WeChat sync/confirm 和 base collector/MediaCrawler 有 failed 更新路径。
 - FINAL-001 新发现：全量 Playwright 暴露 `/api/articles` 与 `/api/discover` 匿名 legacy 过滤使用 `{ visibility: null }`，但 Prisma schema 中 `visibility` 为必填 String，导致运行时 500。已改为 `{ ownerUserId: null }` 保持 legacy public 兼容。
 - FINAL-001 测试：`pnpm exec vitest run src/app/api/articles/__tests__/route.test.ts src/app/api/discover/__tests__/route.test.ts`：PASS，2 files / 13 tests。
+- FINAL-002 新发现：全量 Playwright 暴露 `/api/admin/clean` raw SQL 使用未加引号的 `ContentItem`/`MaterialCard`/camelCase 字段，PostgreSQL 折叠为小写后报 `relation "contentitem" does not exist`。已修复为 quoted identifiers（如 `"ContentItem"`、`"MaterialCard"`、`mc."contentItemId"`）并给子查询加 alias。
+- FINAL-002 测试：`pnpm exec vitest run src/app/api/admin/clean/__tests__/route.test.ts`：PASS，1 file / 2 tests；`pnpm lint`：PASS，0 errors / 16 warnings。
 - 状态：`[~]` 进行中；等待全量验证完成后关闭。
 
 ### P3-002：全量验证与最终交接

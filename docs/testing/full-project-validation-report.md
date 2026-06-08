@@ -362,7 +362,10 @@ P0 + P1 全部完成后，项目质量进一步提升：
 | P2-002 | `pnpm lint` | PASS | 0 errors / 16 warnings；warnings 为既有 unused 变量 |
 | FINAL-001 | `pnpm exec playwright test` | FAIL | 发现真实运行时问题：`/api/articles` 与 `/api/discover` 匿名 legacy filter 使用 `{ visibility: null }` 查询必填 String 字段，Prisma 报 `Argument visibility is missing`；已停止该轮 Playwright 并修复为 `{ ownerUserId: null }` |
 | FINAL-001 | `pnpm exec vitest run src/app/api/articles/__tests__/route.test.ts src/app/api/discover/__tests__/route.test.ts` | PASS | 2 files / 13 tests passed，验证 articles/discover legacy visibility filter 回归 |
-| Final | `pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build && pnpm exec playwright test` | NOT RUN | 待 FINAL-001 提交后重新执行 |
+| FINAL-002 | `pnpm exec playwright test` | FAIL | 第二轮 Playwright 发现 `/api/admin/clean` preview raw SQL 在 PostgreSQL 下表名大小写错误：`relation "contentitem" does not exist`；已停止该轮并修复 quoted identifiers |
+| FINAL-002 | `pnpm exec vitest run src/app/api/admin/clean/__tests__/route.test.ts` | PASS | 1 file / 2 tests passed，验证 clean preview / cleanup raw SQL 使用 quoted PostgreSQL identifiers |
+| FINAL-002 | `pnpm lint` | PASS | 0 errors / 16 warnings；warnings 为既有 unused 变量 |
+| Final | `pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build && pnpm exec playwright test` | NOT RUN | 待 FINAL-002 提交后重新执行 |
 
 ### 当前结论
 
