@@ -323,3 +323,29 @@ P0 + P1 全部完成后，项目质量进一步提升：
 - **用户体验**：空页面引导、中文错误提示、移动端适配均已到位
 - **代码质量**：无 React key warning、无英文错误暴露、dead-link 无误报
 - **建议**：可进入 P2 阶段（visual regression 基线、onboarding checklist、危险操作 profile）
+
+---
+
+## 11. 2026-06-08 边界审计验证记录
+
+> 本节记录新的边界问题持续修复循环。与历史报告冲突时，以本节、`docs/audit/project-audit-report.md` 第 13 节、`docs/audit/development-todolist-2026-06-08.md` 为准。
+
+### 环境
+
+- Branch：`audit/boundary-hardening-2026-06-08`
+- Base branch 状态：从 `main...origin/main [ahead 14]` 创建，初始工作区干净。
+- Node / pnpm：待本轮命令实际执行后记录。
+
+### 当前验证状态
+
+| 阶段 | Command | Result | Notes |
+|---|---|---|---|
+| SETUP-001 | 文档初始化 | PASS | 创建本轮开发 todolist，并在审计报告、测试报告、交接文档登记执行状态；文档变更无需运行代码测试 |
+| P0-001 | targeted Vitest / lint / typecheck | NOT RUN | 待素材卡生成权限修复后执行 |
+| P0-002 | targeted Vitest / sync E2E | NOT RUN | 待同步查询 owner scope 修复后执行 |
+| P1 | `pnpm test` + targeted Playwright | NOT RUN | 待 P1 修复后执行 |
+| Final | `pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build && pnpm exec playwright test` | NOT RUN | 待全部修复后执行 |
+
+### 当前结论
+
+本轮尚处于追踪文档初始化阶段，未执行代码修复，也未执行新的测试命令。项目暂不应因本轮审计被判定为可交付；需完成 P0/P1 修复与全量验证后重新评估。

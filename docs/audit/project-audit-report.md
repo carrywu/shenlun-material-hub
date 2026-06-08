@@ -126,3 +126,45 @@
 
 ## 12. 结论
 当前最应该先做的是恢复“可测试的核心学习闭环”：修复 E2E 认证门禁、文章详情和素材卡 API/空状态。
+
+---
+
+## 13. 2026-06-08 边界审计执行记录
+
+> 本节记录新的持续执行目标：完整审查并修复前端、后端、接口、权限、采集流程、AI 流程、页面交互、异常处理、状态管理、测试体系中的边界问题。执行原则为先审查、分级，再按 P0 → P1 → P2 → P3 闭环修复。
+
+### 13.1 当前执行状态
+
+- 当前分支：`audit/boundary-hardening-2026-06-08`
+- 初始工作区：干净；基于 `main...origin/main [ahead 14]` 创建专项分支。
+- 当前交付结论：**未达到可交付标准**；P0/P1 边界问题仍待修复和验证。
+- 追踪文档：`docs/audit/development-todolist-2026-06-08.md`
+- 测试报告：`docs/testing/full-project-validation-report.md` 的 2026-06-08 章节。
+
+### 13.2 问题总览
+
+| ID | 优先级 | 问题 | 状态 | 影响范围 | Commit |
+|---|---|---|---|---|---|
+| SETUP-001 | P0 前置 | 建立审计报告、开发 todolist、交接文档、测试报告追踪 | 已完成 | docs / handoff | 本次文档初始化提交 |
+| P0-001 | P0 | 素材卡生成缺少内容访问校验、重复判断未按 owner 隔离、异步任务未绑定 userId | 未开始 | generate-card API / async task | 待提交 |
+| P0-002 | P0 | `/api/sync` 状态/历史查询未按 owner scope 限制 | 未开始 | sync API / ima-sync service | 待提交 |
+| P1-001 | P1 | 手动内容导入 `sourceId` 缺失/无效会触发外键 500 | 未开始 | content-items API | 待提交 |
+| P1-002 | P1 | `/api/discover` 未合并 visibility/ownerUserId 过滤 | 未开始 | discover API / public feed | 待提交 |
+| P1-003 | P1 | 注册接口未校验 JSON 字段类型，部分审计路径记录明文邀请码 | 未开始 | register API / audit log | 待提交 |
+| P1-004 | P1 | 多个 API 使用 unsafe `parseInt`，malformed pagination 可能导致 Prisma NaN | 未开始 | API pagination | 待提交 |
+| P2-001 | P2 | 微信手动导入异常后 CollectorRun 可能停留 running | 未开始 | wechat import API | 待提交 |
+| P2-002 | P2 | 异步任务归属和可见性需全局扫尾 | 未开始 | async task / admin tasks | 待提交 |
+| P2-003 | P2 | 新增边界错误需在 UI 中有可读错误态与重复点击保护 | 未开始 | affected components | 待提交 |
+| P3-001 | P3 | 交叉审计扫尾 | 未开始 | whole codebase | 待提交 |
+| P3-002 | P3 | 全量验证与最终交接 | 未开始 | validation / docs | 待提交 |
+
+### 13.3 风险说明
+
+- `/api/discover` 的产品语义按安全默认处理：保持公开 feed，但匿名只能看到 public/legacy 内容。
+- legacy `ownerUserId: null` 数据沿用既有 helper 视为可访问，避免破坏历史数据；如需收紧，需要单独数据迁移和确认。
+- 异步任务必须在入队前和执行时双重校验权限，避免延迟执行时出现边界漂移。
+- Playwright 可能依赖本地数据库、种子数据和 sidecar；若环境导致失败，必须记录为环境/数据问题，不得声明通过。
+
+### 13.4 当前交付结论
+
+本轮仅完成计划和追踪文档初始化，尚未进入代码修复。项目当前仍需完成 P0/P1 修复、补充自动化回归、执行全量验证后，才能重新判断是否可交付。

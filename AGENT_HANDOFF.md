@@ -25,7 +25,23 @@ git log --oneline -20
 
 ## 当前活跃任务
 
-**2026-06-08 全量代码审查修复已完成**（分支 `fix/code-review-2026-06-07`）。
+**2026-06-08 边界审计与修复进行中**（分支 `audit/boundary-hardening-2026-06-08`）。
+
+目标：按 P0 → P1 → P2 → P3 自主审查并修复边界问题，覆盖权限、数据隔离、接口输入、采集/AI/同步流程、UI 错误态、测试与文档闭环。
+
+当前执行顺序：
+1. `SETUP-001`：创建审计追踪文档、开发 todolist、测试报告和交接记录。
+2. `P0-001`：修复素材卡生成权限、owner-scoped duplicate、异步任务归属。
+3. `P0-002`：修复同步状态/历史查询 owner scope。
+4. `P1-001` ~ `P1-004`：内容导入 source、discover visibility、注册输入、分页解析。
+5. `P2/P3`：CollectorRun 终态、异步任务扫尾、UI 错误态、全量验证与最终交接。
+
+关键追踪文档：
+- `docs/audit/development-todolist-2026-06-08.md`
+- `docs/audit/project-audit-report.md` 第 13 节
+- `docs/testing/full-project-validation-report.md` 的 2026-06-08 章节
+
+**上一轮全量代码审查修复已完成**（分支 `fix/code-review-2026-06-07`）。
 
 修复概要：
 - **T0 测试可信度**：5 项永真断言/cookie 继承修复

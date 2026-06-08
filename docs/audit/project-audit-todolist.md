@@ -4,6 +4,8 @@
 > 基于：full-code-review-2026-06-07.md 审查报告
 > 分支：fix/code-review-2026-06-07
 > 旧版 todolist（2026-06-06 审计）已全部完成，归档于 git history
+>
+> 2026-06-08 边界审计新增执行清单见：`docs/audit/development-todolist-2026-06-08.md`
 
 ---
 
