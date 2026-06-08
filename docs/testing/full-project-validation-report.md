@@ -341,7 +341,9 @@ P0 + P1 全部完成后，项目质量进一步提升：
 | 阶段 | Command | Result | Notes |
 |---|---|---|---|
 | SETUP-001 | 文档初始化 | PASS | 创建本轮开发 todolist，并在审计报告、测试报告、交接文档登记执行状态；文档变更无需运行代码测试 |
-| P0-001 | targeted Vitest / lint / typecheck | NOT RUN | 待素材卡生成权限修复后执行 |
+| P0-001 | `pnpm exec vitest run 'src/app/api/content-items/[id]/generate-card/__tests__/route.test.ts'` | PASS | 1 test file / 7 tests passed，覆盖越权 403、public 内容可生成、owner-scoped duplicate、rate limit、task userId |
+| P0-001 | `pnpm lint` | PASS | 0 errors / 16 warnings；warnings 为既有 unused 变量，与本次修复无关 |
+| P0-001 | `pnpm exec tsc --noEmit` | FAIL | 失败来自既有测试类型问题：`NODE_ENV` readonly、旧测试 `Request` vs `NextRequest`、backup test 重复属性等；未指向本次 generate-card 修改 |
 | P0-002 | targeted Vitest / sync E2E | NOT RUN | 待同步查询 owner scope 修复后执行 |
 | P1 | `pnpm test` + targeted Playwright | NOT RUN | 待 P1 修复后执行 |
 | Final | `pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build && pnpm exec playwright test` | NOT RUN | 待全部修复后执行 |

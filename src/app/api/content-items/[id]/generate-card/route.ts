@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateCardForContentItem, AiServiceError } from "@/services/ai";
-import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
+import { createAsyncTask, enqueueAsyncTask, checkTaskRateLimit } from "@/lib/async-task";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { canAccessResource } from "@/lib/data-isolation";
+import type { AuthUser } from "@/lib/auth";
 import type { CardType, ErrorCode } from "@/types";
 
 function newRequestId(): string {
@@ -10,7 +12,7 @@ function newRequestId(): string {
 }
 
 function errorResponse(
-  code: ErrorCode,
+  code: ErrorCode | "CONTENT_ITEM_FORBIDDEN" | "TASK_RATE_LIMITED",
   message: string,
   status: number,
   extra?: Record<string, unknown>
@@ -18,7 +20,7 @@ function errorResponse(
   return NextResponse.json({ error: code, code, message, status, ...extra }, { status });
 }
 
-async function runGenerateCardTask(id: string, cardType: CardType, requestId: string, ownerUserId: string) {
+async function runGenerateCardTask(id: string, cardType: CardType, requestId: string, user: AuthUser) {
   const item = await db.contentItem.findUnique({
     where: { id },
     include: {
@@ -26,12 +28,20 @@ async function runGenerateCardTask(id: string, cardType: CardType, requestId: st
     },
   });
 
-  if (!item?.fullText) {
+  if (!item) {
+    throw new Error("内容条目不存在");
+  }
+
+  if (!canAccessResource(user, item.ownerUserId, item.visibility ?? undefined)) {
+    throw new Error("无权为该内容生成素材卡");
+  }
+
+  if (!item.fullText) {
     throw new Error("该内容条目没有全文，无法生成素材卡");
   }
 
   const existingCard = await db.materialCard.findFirst({
-    where: { contentItemId: id, cardType },
+    where: { contentItemId: id, cardType, ownerUserId: user.id },
   });
   if (existingCard) {
     return {
@@ -48,7 +58,7 @@ async function runGenerateCardTask(id: string, cardType: CardType, requestId: st
       item.source?.name ?? "未知来源",
       item.fullText,
       cardType,
-      ownerUserId
+      user.id
     );
 
     const card = await db.materialCard.create({
@@ -61,7 +71,7 @@ async function runGenerateCardTask(id: string, cardType: CardType, requestId: st
         aiSummary: aiData.aiSummary,
         highlightSuggestions: aiData.highlightSuggestions,
         transferSuggestions: aiData.transferSuggestions,
-        ownerUserId,
+        ownerUserId: user.id,
       },
     });
 
@@ -142,6 +152,10 @@ export async function POST(
       return errorResponse("CONTENT_ITEM_NOT_FOUND", "内容条目不存在", 404, { requestId });
     }
 
+    if (!canAccessResource(user, item.ownerUserId, item.visibility ?? undefined)) {
+      return errorResponse("CONTENT_ITEM_FORBIDDEN", "无权为该内容生成素材卡", 403, { requestId });
+    }
+
     if (!item.fullText) {
       return errorResponse("NO_FULL_TEXT", "该内容条目没有全文，无法生成素材卡", 400, { requestId });
     }
@@ -156,7 +170,7 @@ export async function POST(
     }
 
     const existingCard = await db.materialCard.findFirst({
-      where: { contentItemId: id, cardType },
+      where: { contentItemId: id, cardType, ownerUserId: user.id },
     });
     if (existingCard) {
       return errorResponse(
@@ -167,13 +181,23 @@ export async function POST(
       );
     }
 
+    const rateLimit = await checkTaskRateLimit(user.id);
+    if (!rateLimit.allowed) {
+      return errorResponse(
+        "TASK_RATE_LIMITED",
+        rateLimit.reason ?? "后台任务创建过于频繁，请稍后再试",
+        429,
+        { requestId }
+      );
+    }
+
     const task = await createAsyncTask("CARD_GENERATE", {
       contentItemId: id,
       cardType,
       requestId,
-    });
+    }, user.id);
 
-    enqueueAsyncTask(task, () => runGenerateCardTask(id, cardType, requestId, user.id));
+    enqueueAsyncTask(task, () => runGenerateCardTask(id, cardType, requestId, user));
 
     return NextResponse.json(
       {

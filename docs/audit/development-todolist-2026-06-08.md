@@ -7,7 +7,7 @@
 ## 总进度
 
 - [x] SETUP-001：创建边界审计追踪文档（报告 / todolist / handoff / validation）
-- [ ] P0-001：素材卡生成权限、重复判断、异步任务归属边界
+- [x] P0-001：素材卡生成权限、重复判断、异步任务归属边界
 - [ ] P0-002：同步状态与同步历史 owner scope 边界
 - [ ] P1-001：手动内容导入 `sourceId` 外键与输入边界
 - [ ] P1-002：`/api/discover` 可见性过滤边界
@@ -45,9 +45,18 @@
   4. 确认 `createAsyncTask` 未传 `user.id`，`checkTaskRateLimit` 未使用。
 - 根因：异步任务引入后只校验登录/verified 身份，未复用项目已有 data isolation helper。
 - 修复计划：入队前和任务执行时校验访问权；owner-scoped duplicate；任务限流；任务记录 userId。
-- 测试计划：补 route tests 覆盖 401/403、他人私有内容、public 内容、owner-scoped duplicate、rate limit、task userId。
-- 状态：`[ ]` 未开始。
-- Commit：待提交。
+- 已完成修复：
+  - 入队前使用 `canAccessResource(user, item.ownerUserId, item.visibility)` 拦截他人私有内容。
+  - 异步执行函数接收 `AuthUser` 并再次校验访问权。
+  - 重复卡查询改为 `{ contentItemId, cardType, ownerUserId: user.id }`，避免跨用户互相阻塞。
+  - 调用 `checkTaskRateLimit(user.id)`，超限返回 429 且不入队。
+  - `createAsyncTask(..., user.id)` 记录任务归属。
+- 测试结果：
+  - `pnpm exec vitest run 'src/app/api/content-items/[id]/generate-card/__tests__/route.test.ts'`：PASS，1 file / 7 tests。
+  - `pnpm lint`：PASS，0 errors / 16 warnings（warnings 为既有 unused 变量）。
+  - `pnpm exec tsc --noEmit`：FAIL，失败来自既有测试类型问题（`NODE_ENV` readonly、旧测试 `Request` vs `NextRequest`、backup test 重复属性等），未指向本次修改文件；已记录到测试报告。
+- 状态：`[x]` 已完成。
+- Commit：本次 P0-001 修复提交。
 
 ### P0-002：同步状态与同步历史 owner scope 边界
 
