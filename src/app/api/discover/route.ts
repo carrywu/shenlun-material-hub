@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const user = await getUserFromRequest(request);
     const visibilityFilter = user
       ? contentVisibilityWhere(user)
-      : { OR: [{ visibility: "public" }, { visibility: null }] };
+      : { OR: [{ visibility: "public" }, { ownerUserId: null }] };
     const mergedWhere = mergeWhere(where, visibilityFilter);
 
     const [data, total] = await Promise.all([

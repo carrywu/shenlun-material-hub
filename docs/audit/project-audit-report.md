@@ -155,7 +155,7 @@
 | P2-001 | P2 | 微信手动导入异常后 CollectorRun 可能停留 running | 已完成 | wechat import API | 本次 P2-001 修复提交 |
 | P2-002 | P2 | 异步任务归属和可见性需全局扫尾 | 已完成 | async task / admin tasks | 本次 P2-002 扫尾提交 |
 | P2-003 | P2 | 新增边界错误需在 UI 中有可读错误态与重复点击保护 | 未开始 | affected components | 待提交 |
-| P3-001 | P3 | 交叉审计扫尾 | 未开始 | whole codebase | 待提交 |
+| P3-001 | P3 | 交叉审计扫尾 | 进行中 | whole codebase | 已提交部分扫尾；FINAL-001 待提交 |
 | P3-002 | P3 | 全量验证与最终交接 | 未开始 | validation / docs | 待提交 |
 
 ### 13.3 风险说明

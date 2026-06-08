@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
       const visibilityFilter = {
         OR: [
           { visibility: "public" },
-          { visibility: null },
+          { ownerUserId: null },
         ],
       };
       where = mergeWhere(where, visibilityFilter);

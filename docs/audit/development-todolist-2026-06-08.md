@@ -16,7 +16,7 @@
 - [x] P2-001：微信手动导入 CollectorRun 异常终态
 - [x] P2-002：异步任务归属与任务可见性扫尾
 - [ ] P2-003：相关 UI 错误态、重复点击和失败恢复
-- [ ] P3-001：交叉审计扫尾
+- [~] P3-001：交叉审计扫尾
 - [ ] P3-002：全量验证与最终交接
 
 ## SETUP：追踪与流程
@@ -204,7 +204,14 @@
 ### P3-001：交叉审计扫尾
 
 - 搜索范围：unscoped `findUnique/findFirst`、auth route 缺少 data isolation、unsafe parseInt、async task ownership、raw HTML sink、running collector run。
-- 状态：`[ ]` 未开始。
+- 已完成检查：
+  - unsafe pagination grep 无剩余命中。
+  - async task ownership 扫尾发现并修复 `content-items/assess` 与 `collectors/wechat/sync` 未传 `user.id`。
+  - HTML sink 仅发现文章详情页 `dangerouslySetInnerHTML`，且实际调用 `sanitizeWechatHtml(article.rawHtml)`。
+  - running CollectorRun 创建点已抽查：手动导入已修；WeChat sync/confirm 和 base collector/MediaCrawler 有 failed 更新路径。
+- FINAL-001 新发现：全量 Playwright 暴露 `/api/articles` 与 `/api/discover` 匿名 legacy 过滤使用 `{ visibility: null }`，但 Prisma schema 中 `visibility` 为必填 String，导致运行时 500。已改为 `{ ownerUserId: null }` 保持 legacy public 兼容。
+- FINAL-001 测试：`pnpm exec vitest run src/app/api/articles/__tests__/route.test.ts src/app/api/discover/__tests__/route.test.ts`：PASS，2 files / 13 tests。
+- 状态：`[~]` 进行中；等待全量验证完成后关闭。
 
 ### P3-002：全量验证与最终交接
 

@@ -44,7 +44,7 @@ describe("GET /api/discover", () => {
           isEnabled: true,
           archivedAt: null,
         },
-        OR: [{ visibility: "public" }, { visibility: null }],
+        OR: [{ visibility: "public" }, { ownerUserId: null }],
       },
     }));
   });
