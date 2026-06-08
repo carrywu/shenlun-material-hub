@@ -9,7 +9,7 @@
 - [x] SETUP-001：创建边界审计追踪文档（报告 / todolist / handoff / validation）
 - [x] P0-001：素材卡生成权限、重复判断、异步任务归属边界
 - [x] P0-002：同步状态与同步历史 owner scope 边界
-- [ ] P1-001：手动内容导入 `sourceId` 外键与输入边界
+- [x] P1-001：手动内容导入 `sourceId` 外键与输入边界
 - [ ] P1-002：`/api/discover` 可见性过滤边界
 - [ ] P1-003：注册接口输入类型、邀请码审计脱敏和并发消耗边界
 - [ ] P1-004：分页参数 NaN / 极值统一解析
@@ -88,9 +88,17 @@
 - 复现/确认步骤：阅读 POST route，确认缺失 sourceId 会写入 `sourceId: sourceId ?? ""`，无效 sourceId 未返回控制错误。
 - 根因：API 注释与实现不一致；Prisma 外键必填但 route 未强制解析有效 source。
 - 修复计划：sourceId 必填且存在；title/originalUrl 类型和 trim；duplicate check 使用 trimmed URL；数组字段类型保护。
-- 测试计划：缺失/空/无效 sourceId、有效 source、trimmed duplicate。
-- 状态：`[ ]` 未开始。
-- Commit：待提交。
+- 已完成修复：
+  - `title` / `originalUrl` 必须为字符串且 trim 后非空。
+  - `sourceId` 必填、trim 后非空，且必须能查到 `Source`；缺失/空值返回 400，无效 ID 返回 404。
+  - duplicate URL 检查与 create 均使用 trimmed URL。
+  - create 写入真实 `source.id`，并从 source 派生 `platform/contentType/trustLevel`，避免客户端伪造或外键 500。
+  - `topicTags` / `regionScopes` 仅接受数组，否则回退 `[]`；非字符串 `excerpt/fullText` 做 null 处理。
+- 测试结果：
+  - `pnpm exec vitest run src/app/api/content-items/__tests__/route.test.ts`：PASS，1 file / 5 tests。
+  - `pnpm lint`：PASS，0 errors / 16 warnings（warnings 为既有 unused 变量）。
+- 状态：`[x]` 已完成。
+- Commit：本次 P1-001 修复提交。
 
 ### P1-002：`/api/discover` 可见性过滤边界
 

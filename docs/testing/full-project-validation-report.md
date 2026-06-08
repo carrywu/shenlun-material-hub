@@ -346,7 +346,9 @@ P0 + P1 全部完成后，项目质量进一步提升：
 | P0-001 | `pnpm exec tsc --noEmit` | FAIL | 失败来自既有测试类型问题：`NODE_ENV` readonly、旧测试 `Request` vs `NextRequest`、backup test 重复属性等；未指向本次 generate-card 修改 |
 | P0-002 | `pnpm exec vitest run src/app/api/sync/__tests__/route.test.ts src/services/__tests__/ima-sync-ownership.test.ts` | PASS | 2 files / 9 tests passed，覆盖 route 用户传递、limit fallback/cap、404，以及 service owner-scoped where 条件 |
 | P0-002 | `pnpm lint` | PASS | 0 errors / 16 warnings；warnings 为既有 unused 变量 |
-| P1 | `pnpm test` + targeted Playwright | NOT RUN | 待 P1 修复后执行 |
+| P1-001 | `pnpm exec vitest run src/app/api/content-items/__tests__/route.test.ts` | PASS | 1 file / 5 tests passed，覆盖 missing/empty/invalid sourceId、trimmed duplicate、valid source 派生字段写入 |
+| P1-001 | `pnpm lint` | PASS | 0 errors / 16 warnings；warnings 为既有 unused 变量 |
+| P1 | `pnpm test` + targeted Playwright | NOT RUN | 待所有 P1 修复后执行 |
 | Final | `pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build && pnpm exec playwright test` | NOT RUN | 待全部修复后执行 |
 
 ### 当前结论

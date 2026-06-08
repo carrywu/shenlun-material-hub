@@ -148,7 +148,7 @@
 | SETUP-001 | P0 前置 | 建立审计报告、开发 todolist、交接文档、测试报告追踪 | 已完成 | docs / handoff | 本次文档初始化提交 |
 | P0-001 | P0 | 素材卡生成缺少内容访问校验、重复判断未按 owner 隔离、异步任务未绑定 userId | 已完成 | generate-card API / async task | 本次 P0-001 修复提交 |
 | P0-002 | P0 | `/api/sync` 状态/历史查询未按 owner scope 限制 | 已完成 | sync API / ima-sync service | 本次 P0-002 修复提交 |
-| P1-001 | P1 | 手动内容导入 `sourceId` 缺失/无效会触发外键 500 | 未开始 | content-items API | 待提交 |
+| P1-001 | P1 | 手动内容导入 `sourceId` 缺失/无效会触发外键 500 | 已完成 | content-items API | 本次 P1-001 修复提交 |
 | P1-002 | P1 | `/api/discover` 未合并 visibility/ownerUserId 过滤 | 未开始 | discover API / public feed | 待提交 |
 | P1-003 | P1 | 注册接口未校验 JSON 字段类型，部分审计路径记录明文邀请码 | 未开始 | register API / audit log | 待提交 |
 | P1-004 | P1 | 多个 API 使用 unsafe `parseInt`，malformed pagination 可能导致 Prisma NaN | 未开始 | API pagination | 待提交 |

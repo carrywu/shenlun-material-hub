@@ -78,42 +78,48 @@ export async function POST(request: NextRequest) {
       sourceId,
       title,
       originalUrl,
-      contentType,
-      platform,
-      trustLevel,
       excerpt,
       fullText,
       topicTags,
       regionScopes,
     } = body;
 
-    if (!title || !originalUrl) {
+    if (typeof title !== "string" || typeof originalUrl !== "string") {
+      return NextResponse.json(
+        { error: "title 和 originalUrl 必须为字符串" },
+        { status: 400 }
+      );
+    }
+
+    const trimmedTitle = title.trim();
+    const trimmedUrl = originalUrl.trim();
+    if (!trimmedTitle || !trimmedUrl) {
       return NextResponse.json(
         { error: "title 和 originalUrl 为必填项" },
         { status: 400 }
       );
     }
 
-    // P2-4: originalUrl must be a non-empty valid URL (unique constraint)
-    const trimmedUrl = String(originalUrl).trim();
-    if (!trimmedUrl) {
+    if (typeof sourceId !== "string" || !sourceId.trim()) {
       return NextResponse.json(
-        { error: "originalUrl 不能为空字符串" },
+        { error: "sourceId 为必填项，请传入有效的来源 ID" },
         { status: 400 }
       );
     }
 
-    // P1-12: sourceId 必须是有效 ID 或不传（不传时尝试匹配或创建默认）
-    if (sourceId === "") {
+    const normalizedSourceId = sourceId.trim();
+
+    const source = await db.source.findUnique({ where: { id: normalizedSourceId } });
+    if (!source) {
       return NextResponse.json(
-        { error: "sourceId 不能为空字符串，请传入有效的来源 ID 或不传" },
-        { status: 400 }
+        { error: "来源不存在，请传入有效的来源 ID" },
+        { status: 404 }
       );
     }
 
     // Check duplicate URL
     const existing = await db.contentItem.findUnique({
-      where: { originalUrl },
+      where: { originalUrl: trimmedUrl },
     });
     if (existing) {
       return NextResponse.json(
@@ -122,39 +128,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Resolve source info if sourceId provided
-    let resolvedPlatform = platform ?? "website";
-    let resolvedContentType = contentType ?? "policy_analysis";
-    let resolvedTrustLevel = trustLevel ?? "unverified";
-
-    if (sourceId) {
-      const source = await db.source.findUnique({ where: { id: sourceId } });
-      if (source) {
-        resolvedPlatform = source.platform;
-        resolvedContentType = source.contentType;
-        resolvedTrustLevel = source.trustLevel;
-      }
-    }
+    const normalizedTopicTags = Array.isArray(topicTags) ? topicTags : [];
+    const normalizedRegionScopes = Array.isArray(regionScopes) ? regionScopes : [];
+    const normalizedFullText = typeof fullText === "string" ? fullText : null;
+    const normalizedExcerpt = typeof excerpt === "string" ? excerpt : null;
 
     const item = await db.contentItem.create({
       data: {
-        sourceId: sourceId ?? "",
-        title,
-        originalUrl,
+        sourceId: source.id,
+        title: trimmedTitle,
+        originalUrl: trimmedUrl,
         ownerUserId: user.id,
         visibility: "public",
-        platform: resolvedPlatform,
-        contentType: resolvedContentType,
-        trustLevel: resolvedTrustLevel,
-        excerpt: excerpt ?? null,
-        fullText: fullText ?? null,
-        fullTextStored: !!fullText,
-        effectiveTextLength: fullText ? fullText.length : 0,
-        contentHash: fullText ? createHash("sha256").update(fullText).digest("hex").slice(0, 16) : null,
+        platform: source.platform,
+        contentType: source.contentType,
+        trustLevel: source.trustLevel,
+        excerpt: normalizedExcerpt,
+        fullText: normalizedFullText,
+        fullTextStored: !!normalizedFullText,
+        effectiveTextLength: normalizedFullText ? normalizedFullText.length : 0,
+        contentHash: normalizedFullText ? createHash("sha256").update(normalizedFullText).digest("hex").slice(0, 16) : null,
         discoveryChannel: "manual",
-        topicTags: topicTags ? JSON.stringify(topicTags) : "[]",
-        regionScopes: regionScopes ? JSON.stringify(regionScopes) : "[]",
-        processingStatus: fullText ? "fetched" : "pending",
+        topicTags: JSON.stringify(normalizedTopicTags),
+        regionScopes: JSON.stringify(normalizedRegionScopes),
+        processingStatus: normalizedFullText ? "fetched" : "pending",
       },
       include: {
         source: { select: { id: true, name: true, platform: true } },
