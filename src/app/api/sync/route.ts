@@ -3,6 +3,12 @@ import { db } from "@/lib/db";
 import { syncToIma, syncBatchToIma, getSyncStatus, getSyncHistory } from "@/services/ima-sync";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
+function parsePositiveInt(value: string | null, fallback: number, max: number): number {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(max, parsed);
+}
+
 // POST /api/sync - 同步素材卡到 ima 知识库
 export async function POST(request: NextRequest) {
   const user = await requireVerifiedUser(request);
@@ -118,17 +124,14 @@ export async function GET(request: NextRequest) {
 
     // Query specific sync record status
     if (syncRecordId) {
-      const record = await getSyncStatus(syncRecordId);
+      const record = await getSyncStatus(syncRecordId, user);
       return NextResponse.json(record);
     }
 
     // Query sync history for a card
     if (cardId) {
-      const limit = Math.min(
-        100,
-        Math.max(1, parseInt(searchParams.get("limit") ?? "20"))
-      );
-      const records = await getSyncHistory(cardId, limit);
+      const limit = parsePositiveInt(searchParams.get("limit"), 20, 100);
+      const records = await getSyncHistory(cardId, user, limit);
       return NextResponse.json(records);
     }
 
@@ -137,6 +140,10 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     );
   } catch (error) {
+    const message = error instanceof Error ? error.message : "查询同步状态失败";
+    if (message === "同步记录不存在" || message === "素材卡不存在") {
+      return NextResponse.json({ error: message }, { status: 404 });
+    }
     console.error("Query sync status failed:", error);
     return NextResponse.json(
       { error: "查询同步状态失败" },

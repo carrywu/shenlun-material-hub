@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
+import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
+import type { AuthUser } from "@/lib/auth";
 import type { MaterialCardStructuredContent } from "@/types";
 
 const IMA_API_BASE = process.env.IMA_API_BASE ?? "https://api.ima.qq.com";
@@ -352,9 +354,10 @@ export async function syncBatchToIma(
   };
 }
 
-export async function getSyncStatus(syncRecordId: string) {
-  const record = await db.syncRecord.findUnique({
-    where: { id: syncRecordId },
+export async function getSyncStatus(syncRecordId: string, user: AuthUser) {
+  const where = mergeWhere({ id: syncRecordId }, ownerScopeWhere(user, "userId"));
+  const record = await db.syncRecord.findFirst({
+    where,
     include: {
       materialCard: {
         select: { id: true, title: true },
@@ -371,10 +374,21 @@ export async function getSyncStatus(syncRecordId: string) {
 
 export async function getSyncHistory(
   cardId: string,
+  user: AuthUser,
   limit: number = 20
 ) {
+  const card = await db.materialCard.findFirst({
+    where: mergeWhere({ id: cardId }, ownerScopeWhere(user, "ownerUserId")),
+    select: { id: true },
+  });
+
+  if (!card) {
+    throw new Error("素材卡不存在");
+  }
+
+  const where = mergeWhere({ materialCardId: cardId }, ownerScopeWhere(user, "userId"));
   return db.syncRecord.findMany({
-    where: { materialCardId: cardId },
+    where,
     orderBy: { syncedAt: "desc" },
     take: limit,
   });

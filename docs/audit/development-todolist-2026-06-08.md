@@ -8,7 +8,7 @@
 
 - [x] SETUP-001：创建边界审计追踪文档（报告 / todolist / handoff / validation）
 - [x] P0-001：素材卡生成权限、重复判断、异步任务归属边界
-- [ ] P0-002：同步状态与同步历史 owner scope 边界
+- [x] P0-002：同步状态与同步历史 owner scope 边界
 - [ ] P1-001：手动内容导入 `sourceId` 外键与输入边界
 - [ ] P1-002：`/api/discover` 可见性过滤边界
 - [ ] P1-003：注册接口输入类型、邀请码审计脱敏和并发消耗边界
@@ -68,9 +68,16 @@
   3. 对比 `/api/sync-records` 已使用 `ownerScopeWhere(user, "userId")`。
 - 根因：列表接口已加 owner scope，但详情/历史快捷查询未同步加固。
 - 修复计划：服务函数接收用户并 owner-scope 查询；他人记录返回 404/403；limit 安全解析。
-- 测试计划：user A/B/admin/legacy null-owner 记录；malformed limit 不 500。
-- 状态：`[ ]` 未开始。
-- Commit：待提交。
+- 已完成修复：
+  - `getSyncStatus(syncRecordId, user)` 改为 `findFirst` 并合并 `ownerScopeWhere(user, "userId")`。
+  - `getSyncHistory(cardId, user, limit)` 先按 `ownerScopeWhere(user, "ownerUserId")` 校验素材卡访问权，再按 sync record `userId` 过滤历史。
+  - `/api/sync` GET 传入当前 user，malformed/超大 limit 使用安全解析回退或 cap。
+  - 不存在或不可访问的 sync record/card history 返回 404，避免 500 和资源存在性泄漏。
+- 测试结果：
+  - `pnpm exec vitest run src/app/api/sync/__tests__/route.test.ts src/services/__tests__/ima-sync-ownership.test.ts`：PASS，2 files / 9 tests。
+  - `pnpm lint`：PASS，0 errors / 16 warnings（warnings 为既有 unused 变量）。
+- 状态：`[x]` 已完成。
+- Commit：本次 P0-002 修复提交。
 
 ## P1：主要边界缺陷
 
