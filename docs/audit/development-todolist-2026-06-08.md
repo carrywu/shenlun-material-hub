@@ -10,7 +10,7 @@
 - [x] P0-001：素材卡生成权限、重复判断、异步任务归属边界
 - [x] P0-002：同步状态与同步历史 owner scope 边界
 - [x] P1-001：手动内容导入 `sourceId` 外键与输入边界
-- [ ] P1-002：`/api/discover` 可见性过滤边界
+- [x] P1-002：`/api/discover` 可见性过滤边界
 - [ ] P1-003：注册接口输入类型、邀请码审计脱敏和并发消耗边界
 - [ ] P1-004：分页参数 NaN / 极值统一解析
 - [ ] P2-001：微信手动导入 CollectorRun 异常终态
@@ -107,9 +107,17 @@
 - 复现/确认步骤：阅读 route，确认只过滤 verified source，未合并 `visibility` / `ownerUserId` 条件。
 - 根因：discover public feed 未复用 `/api/articles` 的匿名/登录可见性策略。
 - 修复计划：保持 public feed；anonymous 仅 public+legacy；authenticated 使用 `contentVisibilityWhere`；admin all；safe pagination。
-- 测试计划：anonymous/user/admin 可见性矩阵、malformed page/pageSize。
-- 状态：`[ ]` 未开始。
-- Commit：待提交。
+- 已完成修复：
+  - 保持 `/api/discover` public，不要求登录。
+  - anonymous 合并 `{ visibility: "public" }` 与 legacy `{ visibility: null }`。
+  - authenticated users 复用 `contentVisibilityWhere(user)`；admin helper 返回 `{}`，可见全部 verified source 内容。
+  - page/pageSize 改为安全整数解析，malformed 参数回退默认值。
+- 测试结果：
+  - `pnpm exec vitest run src/app/api/discover/__tests__/route.test.ts`：PASS，1 file / 4 tests。
+  - `pnpm lint`：PASS，0 errors / 16 warnings（warnings 为既有 unused 变量）。
+  - `pnpm exec playwright test e2e/api-security.spec.ts --workers=1`：FAIL，未进入测试，失败于 Playwright `global-setup.ts` 登录等待超时；记录为当前 E2E 环境/认证 bootstrap 问题，非本次 discover 断言失败。
+- 状态：`[x]` 已完成。
+- Commit：本次 P1-002 修复提交。
 
 ### P1-003：注册接口输入类型、邀请码审计脱敏和并发消耗边界
 

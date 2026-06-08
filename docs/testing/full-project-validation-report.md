@@ -348,6 +348,9 @@ P0 + P1 全部完成后，项目质量进一步提升：
 | P0-002 | `pnpm lint` | PASS | 0 errors / 16 warnings；warnings 为既有 unused 变量 |
 | P1-001 | `pnpm exec vitest run src/app/api/content-items/__tests__/route.test.ts` | PASS | 1 file / 5 tests passed，覆盖 missing/empty/invalid sourceId、trimmed duplicate、valid source 派生字段写入 |
 | P1-001 | `pnpm lint` | PASS | 0 errors / 16 warnings；warnings 为既有 unused 变量 |
+| P1-002 | `pnpm exec vitest run src/app/api/discover/__tests__/route.test.ts` | PASS | 1 file / 4 tests passed，覆盖 anonymous/user/admin visibility 与 malformed pagination fallback |
+| P1-002 | `pnpm lint` | PASS | 0 errors / 16 warnings；warnings 为既有 unused 变量 |
+| P1-002 | `pnpm exec playwright test e2e/api-security.spec.ts --workers=1` | FAIL | Playwright global setup 登录等待超时，未进入测试；记录为 E2E 环境/认证 bootstrap 问题，非 discover 断言失败 |
 | P1 | `pnpm test` + targeted Playwright | NOT RUN | 待所有 P1 修复后执行 |
 | Final | `pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build && pnpm exec playwright test` | NOT RUN | 待全部修复后执行 |
 
