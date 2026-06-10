@@ -53,7 +53,7 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/src/generated/prisma ./src/generated/prisma
 
 RUN mkdir -p /app/public/uploads /app/.next/cache \
-  && chown -R nextjs:nodejs /app/public/uploads /app/.next/cache
+  && chown -R nextjs:nodejs /app/public/uploads /app/.next/cache /app/node_modules
 
 USER nextjs
 
