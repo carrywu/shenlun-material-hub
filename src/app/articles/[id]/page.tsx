@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import { useAuth } from "@/lib/auth-context";
+import { useMissingConfigDialog } from "@/hooks/use-missing-config-dialog";
 import { CONTENT_TYPE_LABELS, CONTENT_GENRE_LABELS, translateTag, parseTopicTags } from "@/lib/display-labels";
 
 interface Annotation {
@@ -293,7 +294,8 @@ export default function ArticleDetailPage() {
   const params = useParams();
   const router = useRouter();
   const articleId = params.id as string;
-  const { isAdmin } = useAuth();
+  const { isAdmin, isVerifiedUser } = useAuth();
+  const { dialogElement, showAiDialog, showRoleDialog } = useMissingConfigDialog();
 
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -411,7 +413,7 @@ export default function ArticleDetailPage() {
       }
       fetchArticle();
     } catch {
-      toast.error("自动批注失败", { description: "请检查 AI 配置或稍后重试" });
+      showAiDialog();
     } finally {
       setAutoAnnotating(false);
     }
@@ -632,6 +634,7 @@ export default function ArticleDetailPage() {
 
   return (
     <div className="flex flex-col h-full">
+      {dialogElement}
       {/* Header */}
       <div className="border-b px-6 py-4">
         <div className="flex items-center justify-between">
@@ -895,7 +898,7 @@ export default function ArticleDetailPage() {
                 ) : (
                   <div className="space-y-2">
                     <Button
-                      onClick={handleAssess}
+                      onClick={isVerifiedUser ? handleAssess : showRoleDialog}
                       disabled={assessing}
                       variant="outline"
                       size="sm"

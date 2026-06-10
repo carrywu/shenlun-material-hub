@@ -29,6 +29,7 @@ import {
   Trash2,
   Eye,
 } from "lucide-react";
+import { useMissingConfigDialog } from "@/hooks/use-missing-config-dialog";
 
 interface StatusResult {
   success: boolean;
@@ -68,6 +69,7 @@ interface FeedItem {
 }
 
 export default function WeweRssIntegrationPage() {
+  const { dialogElement, showWeweRssDialog } = useMissingConfigDialog();
   const [baseUrl, setBaseUrl] = useState("");
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
   const [dbPath, setDbPath] = useState("infra/wechat-rss/wewe-rss/data/wewe-rss.db");
@@ -216,6 +218,7 @@ export default function WeweRssIntegrationPage() {
 
   return (
     <div className="container mx-auto py-8 max-w-2xl">
+      {dialogElement}
       <div className="flex items-center gap-3 mb-6">
         <Rss className="h-6 w-6" />
         <div>
@@ -299,7 +302,7 @@ export default function WeweRssIntegrationPage() {
                 onClick={(event) => {
                   if (!publicUrl) {
                     event.preventDefault();
-                    alert("未配置 WeWeRSS 公网访问地址");
+                    showWeweRssDialog();
                   }
                 }}
               >

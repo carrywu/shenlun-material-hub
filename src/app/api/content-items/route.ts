@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { requireAuth, authErrorResponse } from "@/lib/auth";
-import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
+import { contentVisibilityWhere, subscriptionVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
 import { parsePaginationParams } from "@/lib/api-params";
 
 // GET /api/content-items — 分页 + 筛选
@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
     if (processingStatus) where.processingStatus = processingStatus;
     if (contentType) where.contentType = contentType;
 
-    // Multi-user data isolation: restrict to visible content
-    const visibilityFilter = contentVisibilityWhere(user);
+    // Multi-user data isolation: restrict to subscribed content
+    const visibilityFilter = subscriptionVisibilityWhere(user);
 
     if (search) {
       where.OR = [

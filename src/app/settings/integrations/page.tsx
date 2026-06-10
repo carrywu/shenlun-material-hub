@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, TestTube, Trash2, Rss, CheckCircle, XCircle, Loader2, Power, PowerOff } from "lucide-react";
+import { ArrowLeft, Save, TestTube, Trash2, Rss, CheckCircle, Loader2, Power, PowerOff } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +52,7 @@ export default function UserWeWeRssSettingsPage() {
       .then((data) => {
         if (!cancelled && data) {
           setConfig(data);
-          if (data.configured) {
+          if (data.configured && data.baseUrl !== undefined) {
             setBaseUrl(data.baseUrl || "");
             setDbPath(data.dbPath || "");
           }
@@ -184,7 +184,7 @@ export default function UserWeWeRssSettingsPage() {
               WeWe RSS 集成
             </h1>
             <p className="text-sm text-muted-foreground">
-              配置你的 WeWe RSS 服务连接，用于微信公众号内容采集
+              公众号采集配置
             </p>
           </div>
         </div>
@@ -216,98 +216,113 @@ export default function UserWeWeRssSettingsPage() {
             )}
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
-                {testing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <TestTube className="h-4 w-4 mr-1" />}
-                测试连接
-              </Button>
-              {config?.configured && (
-                <Button variant="outline" size="sm" onClick={handleToggle}>
-                  {config.isEnabled ? (
-                    <>
-                      <PowerOff className="h-4 w-4 mr-1" /> 禁用
-                    </>
-                  ) : (
-                    <>
-                      <Power className="h-4 w-4 mr-1" /> 启用
-                    </>
-                  )}
+            {isAdmin ? (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
+                  {testing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <TestTube className="h-4 w-4 mr-1" />}
+                  测试连接
                 </Button>
-              )}
-              {testResult && (
-                <Badge variant={testResult.success ? "default" : "destructive"}>
-                  {testResult.success
-                    ? `连接成功（${testResult.feedCount ?? 0} 个公众号）`
-                    : `失败: ${testResult.message}`}
-                </Badge>
-              )}
-            </div>
+                {config?.configured && (
+                  <Button variant="outline" size="sm" onClick={handleToggle}>
+                    {config.isEnabled ? (
+                      <>
+                        <PowerOff className="h-4 w-4 mr-1" /> 禁用
+                      </>
+                    ) : (
+                      <>
+                        <Power className="h-4 w-4 mr-1" /> 启用
+                      </>
+                    )}
+                  </Button>
+                )}
+                {testResult && (
+                  <Badge variant={testResult.success ? "default" : "destructive"}>
+                    {testResult.success
+                      ? `连接成功（${testResult.feedCount ?? 0} 个公众号）`
+                      : `失败: ${testResult.message}`}
+                  </Badge>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {config?.configured && config.isEnabled
+                  ? "系统已启用 WeWe RSS 公众号采集服务。"
+                  : "管理员尚未启用 WeWe RSS 服务，暂时无法使用公众号采集功能。"}
+              </p>
+            )}
           </CardContent>
         </Card>
 
-        {/* 配置表单 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">服务配置</CardTitle>
-            <CardDescription>
-              填写你本地部署的 WeWe RSS 服务地址，用于采集微信公众号文章
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">WeWe RSS 服务地址</label>
-              <Input
-                type="text"
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-                className="mt-1"
-                placeholder="https://你的域名/wewerss 或 http://47.119.182.210/wewerss"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                你的 WeWe RSS 实例公网地址；当前无域名时可使用 http://47.119.182.210/wewerss
-              </p>
-            </div>
+        {/* 管理员配置表单 */}
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">服务配置（仅管理员可见）</CardTitle>
+              <CardDescription>
+                填写 WeWe RSS 服务地址，用于采集微信公众号文章
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">WeWe RSS 服务地址</label>
+                <Input
+                  type="text"
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
+                  className="mt-1"
+                  placeholder="https://你的域名/wewerss 或 http://47.119.182.210/wewerss"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  WeWe RSS 实例公网地址
+                </p>
+              </div>
 
-            <div>
-              <label className="text-sm font-medium">SQLite 数据库路径（可选）</label>
-              <Input
-                type="text"
-                value={dbPath}
-                onChange={(e) => setDbPath(e.target.value)}
-                className="mt-1"
-                placeholder="infra/wechat-rss/wewe-rss/data/wewe-rss.db"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                当 API 不可用时，系统会尝试读取 SQLite 数据库作为备用数据源
-              </p>
-            </div>
+              <div>
+                <label className="text-sm font-medium">SQLite 数据库路径（可选）</label>
+                <Input
+                  type="text"
+                  value={dbPath}
+                  onChange={(e) => setDbPath(e.target.value)}
+                  className="mt-1"
+                  placeholder="infra/wechat-rss/wewe-rss/data/wewe-rss.db"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  当 API 不可用时，系统会尝试读取 SQLite 数据库作为备用数据源
+                </p>
+              </div>
 
-            <div className="flex gap-2 pt-2">
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-                {saving ? "保存中..." : "保存配置"}
-              </Button>
-              {config?.configured && (
-                <Button variant="destructive" size="sm" onClick={handleDelete}>
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  删除配置
+              <div className="flex gap-2 pt-2">
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                  {saving ? "保存中..." : "保存配置"}
                 </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                {config?.configured && (
+                  <Button variant="destructive" size="sm" onClick={handleDelete}>
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    删除配置
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* 使用说明 */}
+        {/* 模式说明 */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">使用说明</CardTitle>
+            <CardTitle className="text-base">公众号采集说明</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>1. 部署并启动你的 WeWe RSS 实例（<a href="https://github.com/cooderl/wewe-rss" target="_blank" rel="noopener noreferrer" className="underline">GitHub</a>）</p>
-            <p>2. 在 WeWe RSS 中订阅你感兴趣的微信公众号</p>
-            <p>3. 在此页面配置 WeWe RSS 的访问地址并保存</p>
-            <p>4. 系统将定期从 WeWe RSS 同步你订阅的公众号文章</p>
-            <p>5. 同步的文章仅你自己可见，其他用户无法访问</p>
+            {!config?.configured || !config.isEnabled ? (
+              <p>管理员尚未启用 WeWe RSS 服务，暂时无法使用公众号采集功能。</p>
+            ) : (
+              <>
+                <p>当前为系统共享采集账号模式，公众号采集使用管理员配置的 WeWe RSS 账号。</p>
+                <p>1. 在 WeWe RSS 中订阅你感兴趣的微信公众号</p>
+                <p>2. 回到申论项目，在&ldquo;我的订阅&rdquo;页面同步并关注公众号</p>
+                <p>3. 系统将定期从 WeWe RSS 同步你关注的公众号文章</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

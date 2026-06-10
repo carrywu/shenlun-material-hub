@@ -37,6 +37,12 @@ vi.mock("@/lib/data-isolation", () => ({
       return { OR: [{ visibility: "public" }, { ownerUserId: user.id }, { ownerUserId: null }] };
     }
   ),
+  subscriptionVisibilityWhere: vi.fn().mockImplementation(
+    (user: { role: string; id: string }) => {
+      if (user.role === "ADMIN") return {};
+      return { OR: [{ ownerUserId: user.id }, { ownerUserId: null }] };
+    }
+  ),
   mergeWhere: vi.fn().mockImplementation(
     (base: Record<string, unknown>, filter: Record<string, unknown>) => {
       if (!Object.keys(filter).length) return base;
@@ -79,9 +85,9 @@ describe("GET /api/articles route handler", () => {
     const req = new NextRequest("http://localhost/api/articles");
     const res = await GET(req);
     expect(res.status).toBe(200);
-    // Should have called contentVisibilityWhere and mergeWhere
-    const { contentVisibilityWhere, mergeWhere } = await import("@/lib/data-isolation");
-    expect(contentVisibilityWhere).toHaveBeenCalledWith(USERS.USER_A);
+    // Should have called subscriptionVisibilityWhere and mergeWhere
+    const { subscriptionVisibilityWhere, mergeWhere } = await import("@/lib/data-isolation");
+    expect(subscriptionVisibilityWhere).toHaveBeenCalledWith(USERS.USER_A);
     expect(mergeWhere).toHaveBeenCalled();
   });
 

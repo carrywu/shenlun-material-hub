@@ -70,6 +70,24 @@ export function canModifyResource(
 }
 
 /**
+ * Build a Prisma where clause for subscription-based content visibility.
+ * - ADMIN sees everything
+ * - Other users see: their subscribed sources + their own content + system shared (null owner)
+ */
+export function subscriptionVisibilityWhere(user: AuthUser) {
+  if (user.role === "ADMIN") {
+    return {}; // Admin sees all
+  }
+  return {
+    OR: [
+      { source: { weweSubscriptions: { some: { userId: user.id, status: "active" } } } },
+      { ownerUserId: user.id },
+      { ownerUserId: null }, // System shared / legacy public data
+    ],
+  };
+}
+
+/**
  * Safely merge two Prisma where clauses, avoiding OR key collisions.
  * When both sides have OR, wraps them in AND to preserve both conditions.
  */

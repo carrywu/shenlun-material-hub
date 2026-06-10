@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Loader2, Save, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useMissingConfigDialog } from "@/hooks/use-missing-config-dialog";
 
 interface AiConfigData {
   configured: boolean;
@@ -23,6 +24,7 @@ interface AiConfigData {
 export default function UserAiSettingsPage() {
   const router = useRouter();
   const { isAdmin, user } = useAuth();
+  const { dialogElement, showRoleDialog } = useMissingConfigDialog();
 
   // Only VERIFIED_USER and ADMIN can access this page
   const isVerified = isAdmin || user?.role === "VERIFIED_USER";
@@ -124,10 +126,21 @@ export default function UserAiSettingsPage() {
     }
   };
 
-  // Role guard — redirect non-verified users
-  if (user && !isVerified) {
-    router.push("/settings");
-    return null;
+  // Role guard — show role dialog for non-verified users, then redirect
+  const roleGuardActive = user && !isVerified;
+
+  useEffect(() => {
+    if (roleGuardActive) {
+      showRoleDialog();
+    }
+  }, [roleGuardActive, showRoleDialog]);
+
+  if (roleGuardActive) {
+    return (
+      <>
+        {dialogElement}
+      </>
+    );
   }
 
   if (loading) {

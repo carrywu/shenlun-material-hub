@@ -58,6 +58,15 @@ export async function checkHealth(
       };
     }
 
+    // 检查 content-type 防止 HTML 响应导致 JSON.parse 崩溃
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      return {
+        reachable: false,
+        message: "WeWe RSS 返回了非 JSON 响应，请检查服务地址是否正确",
+      };
+    }
+
     const feeds: WeweRssFeed[] = await res.json();
     return {
       reachable: true,
@@ -79,6 +88,12 @@ export async function listFeeds(baseUrl: string): Promise<WeweRssFeed[]> {
 
   if (!res.ok) {
     throw new Error(`获取订阅列表失败: HTTP ${res.status}`);
+  }
+
+  // 检查 content-type 防止 HTML 响应导致 JSON.parse 崩溃
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error("WeWe RSS 返回了非 JSON 响应，请检查服务地址");
   }
 
   return res.json();

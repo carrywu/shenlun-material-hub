@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireVerifiedUser, requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
-// GET /api/settings/integrations/wewe-rss — 获取当前用户的 WeWe RSS 配置
+// GET /api/settings/integrations/wewe-rss — 获取 WeWe RSS 配置状态
+// 管理员看到完整配置，认证用户只看到状态
 export async function GET(request: NextRequest) {
   const user = await requireVerifiedUser(request);
   if (!user) {
@@ -24,26 +25,35 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ configured: false });
   }
 
-  const config = integration.config as {
-    baseUrl?: string;
-    dbPath?: string;
-    syncMode?: string;
-  };
+  // 管理员看到完整配置（baseUrl, dbPath, syncMode）
+  if (user.role === "ADMIN") {
+    const config = integration.config as {
+      baseUrl?: string;
+      dbPath?: string;
+      syncMode?: string;
+    };
 
+    return NextResponse.json({
+      configured: true,
+      id: integration.id,
+      isEnabled: integration.isEnabled,
+      baseUrl: config.baseUrl ?? "",
+      dbPath: config.dbPath ?? "",
+      syncMode: config.syncMode ?? "auto",
+      updatedAt: integration.updatedAt,
+    });
+  }
+
+  // 认证用户只看到状态
   return NextResponse.json({
     configured: true,
-    id: integration.id,
     isEnabled: integration.isEnabled,
-    baseUrl: config.baseUrl ?? "",
-    dbPath: config.dbPath ?? "",
-    syncMode: config.syncMode ?? "auto",
-    updatedAt: integration.updatedAt,
   });
 }
 
-// POST /api/settings/integrations/wewe-rss — 创建或更新 WeWe RSS 配置
+// POST /api/settings/integrations/wewe-rss — 创建或更新 WeWe RSS 配置（仅管理员）
 export async function POST(request: NextRequest) {
-  const user = await requireVerifiedUser(request);
+  const user = await requireAdmin(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
@@ -93,9 +103,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE /api/settings/integrations/wewe-rss — 删除 WeWe RSS 配置
+// DELETE /api/settings/integrations/wewe-rss — 删除 WeWe RSS 配置（仅管理员）
 export async function DELETE(request: NextRequest) {
-  const user = await requireVerifiedUser(request);
+  const user = await requireAdmin(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
@@ -114,9 +124,9 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// PUT /api/settings/integrations/wewe-rss — 启用/禁用
+// PUT /api/settings/integrations/wewe-rss — 启用/禁用（仅管理员）
 export async function PUT(request: NextRequest) {
-  const user = await requireVerifiedUser(request);
+  const user = await requireAdmin(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
