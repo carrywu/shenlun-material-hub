@@ -211,7 +211,7 @@ export default function AiConfigPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-semibold">AI 配置</h1>
+            <h2 className="text-xl font-semibold">AI 配置</h2>
             <p className="text-sm text-muted-foreground">
               配置 AI 服务连接，用于内容评估和素材卡生成
             </p>

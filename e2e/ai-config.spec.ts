@@ -141,7 +141,7 @@ test.describe('User AI Settings', () => {
     // Test button visible (only when config is configured)
     // Delete button visible (only when config is configured)
     // At minimum the form is rendered
-    await expect(page.getByText('模型参数')).toBeVisible();
+    await expect(page.getByText('模型参数', { exact: true })).toBeVisible();
 
     guard.report(testInfo);
   });

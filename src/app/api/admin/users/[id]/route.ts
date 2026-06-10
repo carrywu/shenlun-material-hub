@@ -52,8 +52,11 @@ export async function PUT(request: Request, context: RouteContext) {
   }
 
   const { id } = await context.params;
-  const body = await request.json();
-  const { role, status, displayName, email, password } = body;
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "请求体必须是 JSON 对象" }, { status: 400 });
+  }
+  const { role, status, displayName, email, password } = body as Record<string, unknown>;
 
   const target = await db.user.findUnique({ where: { id } });
   if (!target) {
@@ -80,17 +83,23 @@ export async function PUT(request: Request, context: RouteContext) {
   }
 
   const updates: Record<string, unknown> = {};
-  if (role && ["ADMIN", "VERIFIED_USER", "USER"].includes(role)) {
+  if (typeof role === "string" && ["ADMIN", "VERIFIED_USER", "USER"].includes(role)) {
     updates.role = role;
   }
-  if (status && ["ACTIVE", "DISABLED"].includes(status)) {
+  if (typeof status === "string" && ["ACTIVE", "DISABLED"].includes(status)) {
     updates.status = status;
   }
   if (displayName !== undefined) updates.displayName = displayName;
   if (email !== undefined) updates.email = email || null;
 
   // Password reset
-  if (password) {
+  if (password !== undefined) {
+    if (typeof password !== "string") {
+      return NextResponse.json(
+        { error: "密码必须为字符串" },
+        { status: 400 }
+      );
+    }
     if (password.length < 6) {
       return NextResponse.json(
         { error: "密码长度不能少于 6 个字符" },

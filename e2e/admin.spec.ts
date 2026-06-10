@@ -86,9 +86,9 @@ test.describe('Admin Tasks', () => {
     await statusTrigger.click();
     // Verify select options are visible
     await expect(page.getByRole('option', { name: '全部状态' })).toBeVisible();
-    await expect(page.getByRole('option', { name: 'COMPLETED' })).toBeVisible();
+    await expect(page.getByRole('option', { name: '已完成' })).toBeVisible();
     // Select COMPLETED
-    await page.getByRole('option', { name: 'COMPLETED' }).click();
+    await page.getByRole('option', { name: '已完成' }).click();
     // The combobox value should reflect the selection
     await page.waitForTimeout(1000);
 
@@ -374,7 +374,7 @@ test.describe('Admin Clean', () => {
     await page.goto('/admin/clean');
     await expect(page.getByRole('heading', { name: '数据清洗', level: 1 })).toBeVisible({ timeout: 10000 });
     // Rule checkboxes visible (base-ui renders as button[role="checkbox"])
-    await expect(page.locator('button[role="checkbox"]').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('checkbox').first()).toBeVisible({ timeout: 10000 });
     // Execute button visible
     await expect(page.getByRole('button', { name: '执行清洗' })).toBeVisible();
 
@@ -391,7 +391,7 @@ test.describe('Admin Clean', () => {
     await page.waitForTimeout(2000);
 
     // Find a rule checkbox and click it
-    const checkboxes = page.locator('button[role="checkbox"]');
+    const checkboxes = page.getByRole('checkbox');
     const checkboxCount = await checkboxes.count();
 
     if (checkboxCount > 0) {
@@ -422,7 +422,7 @@ test.describe('Admin Clean', () => {
     await page.goto('/admin/clean');
     await page.waitForTimeout(1000);
     // Find and check a rule checkbox (base-ui renders as button[role="checkbox"])
-    const checkbox = page.locator('button[role="checkbox"]').first();
+    const checkbox = page.getByRole('checkbox').first();
     if (await checkbox.isVisible()) {
       const isChecked = await checkbox.getAttribute('data-checked');
       if (isChecked === null) {
@@ -454,7 +454,7 @@ test.describe('Admin Clean', () => {
     await page.waitForTimeout(2000);
 
     // Select all checkboxes by ensuring they are checked
-    const checkboxes = page.locator('button[role="checkbox"]');
+    const checkboxes = page.getByRole('checkbox');
     const checkboxCount = await checkboxes.count();
 
     // Make sure at least one checkbox is checked (base-ui uses data-checked attribute)
@@ -480,8 +480,8 @@ test.describe('Admin Clean', () => {
       // Verify: page didn't crash (no error overlay), clean page still renders
       const errorOverlay = page.locator('#__next-route-announcer ~ [role="alert"]');
       await expect(errorOverlay).not.toBeVisible();
-      // Page is still functional — heading visible
-      await expect(page.getByRole('heading', { name: /管理/ })).toBeVisible({ timeout: 5000 });
+      // Page is still functional — clean page heading remains visible
+      await expect(page.getByRole('heading', { name: '数据清洗', level: 1 })).toBeVisible({ timeout: 5000 });
     }
 
     guard.report(testInfo);
