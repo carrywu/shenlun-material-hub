@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
-import { checkHealth } from "@/services/integrations/wewe-rss-api";
 
 // GET /api/settings/integrations/wewe-rss — 获取当前用户的 WeWe RSS 配置
 export async function GET(request: NextRequest) {
@@ -35,7 +34,7 @@ export async function GET(request: NextRequest) {
     configured: true,
     id: integration.id,
     isEnabled: integration.isEnabled,
-    baseUrl: config.baseUrl ?? "http://localhost:4000",
+    baseUrl: config.baseUrl ?? "",
     dbPath: config.dbPath ?? "",
     syncMode: config.syncMode ?? "auto",
     updatedAt: integration.updatedAt,

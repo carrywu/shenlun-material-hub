@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { validateSession } from "./lib/auth";
 
-const PUBLIC_LOGIN_PAGE = "/admin/login";
+const FRONTEND_LOGIN_PAGE = "/login";
+const ADMIN_LOGIN_PAGE = "/admin/login";
 
 // Paths that never require authentication (login pages, auth endpoints)
 const ALWAYS_PUBLIC = [
+  "/login",
   "/admin/login",
   "/api/auth/login",
   "/api/auth/check",
@@ -51,13 +53,18 @@ export async function proxy(req: NextRequest) {
 
   // Skip always-public paths
   if (ALWAYS_PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    // Already logged in? Redirect login page to homepage
-    if (pathname === "/admin/login") {
+    // Already logged in? Redirect login pages to the matching entry point.
+    if (pathname === "/login" || pathname === "/admin/login") {
       const token = req.cookies.get("auth_token")?.value;
       if (token) {
         const user = await validateSession(token);
         if (user) {
-          return NextResponse.redirect(new URL("/", req.url));
+          if (pathname === "/admin/login" && user.role === "ADMIN") {
+            return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+          }
+          if (pathname === "/login") {
+            return NextResponse.redirect(new URL("/", req.url));
+          }
         }
       }
     }
@@ -106,9 +113,22 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── Admin pages: ADMIN only, with dedicated login route ────────────────────
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (!authenticatedUser) {
+      const loginUrl = new URL(ADMIN_LOGIN_PAGE, req.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (authenticatedUser.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    return NextResponse.next();
+  }
+
   // ── All page routes: redirect to login if unauthenticated ─────────────────
   if (!authenticatedUser) {
-    const loginUrl = new URL(PUBLIC_LOGIN_PAGE, req.url);
+    const loginUrl = new URL(FRONTEND_LOGIN_PAGE, req.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }

@@ -42,7 +42,7 @@ export default function UserWeWeRssSettingsPage() {
     feedCount?: number;
   } | null>(null);
 
-  const [baseUrl, setBaseUrl] = useState("http://localhost:4000");
+  const [baseUrl, setBaseUrl] = useState("");
   const [dbPath, setDbPath] = useState("");
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function UserWeWeRssSettingsPage() {
         if (!cancelled && data) {
           setConfig(data);
           if (data.configured) {
-            setBaseUrl(data.baseUrl || "http://localhost:4000");
+            setBaseUrl(data.baseUrl || "");
             setDbPath(data.dbPath || "");
           }
         }
@@ -126,7 +126,7 @@ export default function UserWeWeRssSettingsPage() {
       const res = await fetch("/api/settings/integrations/wewe-rss", { method: "DELETE" });
       if (res.ok) {
         setConfig({ configured: false });
-        setBaseUrl("http://localhost:4000");
+        setBaseUrl("");
         setDbPath("");
         setTestResult(null);
         toast.success("WeWe RSS 配置已删除");
@@ -261,10 +261,10 @@ export default function UserWeWeRssSettingsPage() {
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 className="mt-1"
-                placeholder="http://localhost:4000"
+                placeholder="https://你的域名/wewerss 或 http://47.119.182.210/wewerss"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                你的 WeWe RSS 实例地址，默认为本地部署的 http://localhost:4000
+                你的 WeWe RSS 实例公网地址；当前无域名时可使用 http://47.119.182.210/wewerss
               </p>
             </div>
 

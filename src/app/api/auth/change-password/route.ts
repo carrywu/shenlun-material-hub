@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, unauthorizedResponse, verifyPassword, hashPassword, AUTH_COOKIE_NAME } from "@/lib/auth";
+import { requireAuth, unauthorizedResponse, verifyPassword, hashPassword } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "请输入当前密码和新密码" }, { status: 400 });
   }
 
-  if (newPassword.length < 6) {
-    return NextResponse.json({ error: "新密码长度不能少于 6 个字符" }, { status: 400 });
+  if (newPassword.length < 6 || newPassword.length > 18) {
+    return NextResponse.json({ error: "新密码长度应为 6-18 位" }, { status: 400 });
   }
 
   const dbUser = await db.user.findUnique({ where: { id: user.id } });

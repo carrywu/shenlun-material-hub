@@ -420,8 +420,11 @@ model Invitation {
   createdBy   String                               // 创建者 userId
   maxUses     Int       @default(1)                // 最大使用次数
   usedCount   Int       @default(0)                // 已使用次数
+  isEnabled   Boolean   @default(true)             // 是否启用
+  note        String?                              // 管理备注
   expiresAt   DateTime?                            // 过期时间
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   creator     User      @relation("CreatedInvitations", fields: [createdBy], references: [id], onDelete: Cascade)
   uses        InvitationUse[]
@@ -462,4 +465,3 @@ model AuditLog {
   @@index([resource])
   @@index([createdAt])
 }
-

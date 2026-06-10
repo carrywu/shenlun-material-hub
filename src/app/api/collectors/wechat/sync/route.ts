@@ -4,6 +4,7 @@ import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 import { WeRssClient, fetchStandardRssArticles } from "@/services/collectors/wechat/weRssClient";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
 import { refreshFeed } from "@/services/integrations/wewe-rss-api";
+import { getWeweRssServerConfig } from "@/services/integrations/wewe-rss-config";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 interface WechatSyncTaskParams {
@@ -34,9 +35,11 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
       (targetUrl.startsWith("http://") || targetUrl.startsWith("https://"))
     ) {
       if (source.provider === "wewe-rss" && source.feedId) {
-        const weweBaseUrl = process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
+        const serverConfig = getWeweRssServerConfig();
         try {
-          await refreshFeed(weweBaseUrl, source.feedId);
+          if (serverConfig.configured) {
+            await refreshFeed(serverConfig.baseUrl, source.feedId);
+          }
         } catch (refreshErr) {
           const refreshMsg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
           console.warn(`WeWe RSS refresh failed for ${source.feedId}: ${refreshMsg}`);

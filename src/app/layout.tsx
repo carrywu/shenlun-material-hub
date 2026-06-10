@@ -28,8 +28,6 @@ export default async function RootLayout({
     // cookies() may throw in edge cases; treat as unauthenticated
   }
 
-  const isAdmin = currentUser?.role === "ADMIN";
-
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex flex-col">

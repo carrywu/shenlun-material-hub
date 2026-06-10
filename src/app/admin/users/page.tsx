@@ -113,7 +113,15 @@ export default function UsersPage() {
 
   async function handleCreate() {
     if (!newUsername.trim() || !newPassword.trim()) {
-      toast.error("用户名和密码不能为空");
+      toast.error("账号和密码不能为空");
+      return;
+    }
+    if (!/^\d+$/.test(newUsername.trim())) {
+      toast.error("账号只能包含数字");
+      return;
+    }
+    if (newPassword.length < 6 || newPassword.length > 18) {
+      toast.error("密码长度应为 6-18 位");
       return;
     }
     setCreating(true);

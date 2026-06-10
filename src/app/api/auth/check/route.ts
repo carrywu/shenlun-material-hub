@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       authenticated: true,
       username: user.username,
       role: user.role,
-      displayName: user.username,
+      displayName: user.displayName || user.username,
     });
   } catch (_error) {
     return NextResponse.json({ authenticated: false }, { status: 500 });

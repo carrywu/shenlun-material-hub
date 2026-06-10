@@ -87,7 +87,7 @@ describe("POST /api/auth/login", () => {
     mocks.buildCookieHeader.mockReturnValue("auth_token=session-token; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400");
     mocks.userFindUnique.mockResolvedValue({
       id: "user-1",
-      username: "admin",
+      username: "100001",
       passwordHash: "$2a$12$existinghash",
       role: "ADMIN",
       status: "ACTIVE",
@@ -101,7 +101,7 @@ describe("POST /api/auth/login", () => {
     process.env.NODE_ENV = "production";
     const { POST } = await import("../route");
 
-    const response = await POST(makeRequest({ username: "nonexistent", password: "secret" }));
+    const response = await POST(makeRequest({ username: "999999", password: "secret" }));
     const payload = await response.json();
 
     expect(response.status).toBe(401);
@@ -110,11 +110,22 @@ describe("POST /api/auth/login", () => {
     expect(mocks.createSession).not.toHaveBeenCalled();
   });
 
+  it("rejects non-alphanumeric account names before looking up the user", async () => {
+    const { POST } = await import("../route");
+
+    const response = await POST(makeRequest({ username: "用户甲", password: "admin123" }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toBe("账号只能包含数字和英文字母");
+    expect(mocks.userFindUnique).not.toHaveBeenCalled();
+  });
+
   it("rejects login when password is wrong", async () => {
     mocks.verifyPassword.mockResolvedValue({ valid: false });
     const { POST } = await import("../route");
 
-    const response = await POST(makeRequest({ username: "admin", password: "wrong" }));
+    const response = await POST(makeRequest({ username: "100001", password: "wrong" }));
     const payload = await response.json();
 
     expect(response.status).toBe(401);
@@ -125,11 +136,25 @@ describe("POST /api/auth/login", () => {
   it("logs in successfully and creates a session", async () => {
     const { POST } = await import("../route");
 
-    const response = await POST(makeRequest({ username: "admin", password: "admin123" }));
+    mocks.userFindUnique.mockResolvedValueOnce({
+      id: "user-1",
+      username: "100001",
+      passwordHash: "$2a$12$existinghash",
+      role: "VERIFIED_USER",
+      status: "ACTIVE",
+      displayName: "张三",
+    });
+
+    const response = await POST(makeRequest({ username: "100001", password: "admin123" }));
     const payload = await response.json();
 
     expect(response.status).toBe(200);
     expect(payload.success).toBe(true);
+    expect(payload.user).toMatchObject({
+      username: "100001",
+      role: "VERIFIED_USER",
+      displayName: "张三",
+    });
     expect(mocks.createSession).toHaveBeenCalledTimes(1);
     expect(mocks.buildCookieHeader).toHaveBeenCalledWith("session-token");
   });

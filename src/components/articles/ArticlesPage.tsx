@@ -21,7 +21,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { BatchActions } from "@/components/BatchActions";
-import { ArticleDetail } from "@/components/ArticleDetail";
 import { Pagination } from "@/components/ui/pagination";
 import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -164,9 +163,6 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
 
   // Selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  // Detail view
-  const [detailItem, setDetailItem] = useState<ContentItemData | null>(null);
 
   // Dev debug mode: show owner/visibility columns
   const [showDebugCols, setShowDebugCols] = useState(false);
@@ -722,7 +718,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
 
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
-        <div className={`flex-1 flex flex-col overflow-hidden ${detailItem ? "w-1/2" : "w-full"}`}>
+        <div className="flex-1 flex flex-col overflow-hidden w-full">
           {/* Batch actions (only show when items are selected) */}
           {managementMode && selected.size > 0 && (
             <div className="px-6 py-2.5 border-b bg-muted/10 tw-animate-css slide-in-down">
@@ -780,7 +776,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                     <TableRow
                       key={item.id}
                       className="cursor-pointer"
-                      onClick={() => setDetailItem(item)}
+                      onClick={() => router.push(`/articles/${item.id}`)}
                     >
                       {managementMode && (
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -795,7 +791,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                           className="hover:underline text-left w-full truncate font-semibold text-foreground/85 hover:text-primary transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDetailItem(item);
+                            router.push(`/articles/${item.id}`);
                           }}
                         >
                           {item.title}
@@ -866,17 +862,6 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
             }}
           />
         </div>
-
-        {/* Detail panel */}
-        {detailItem && (
-          <div className="w-full md:w-1/2 border-l overflow-hidden fixed md:relative inset-0 md:inset-auto z-50 md:z-auto bg-background">
-            <ArticleDetail
-              article={detailItem}
-              managementMode={managementMode}
-              onClose={() => setDetailItem(null)}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

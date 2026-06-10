@@ -44,6 +44,7 @@ const navItems: SidebarItem[] = [
   { name: "数据备份", href: "/admin/backup", icon: Database },
   { name: "数据清洗", href: "/admin/clean", icon: Terminal },
   { name: "用户管理", href: "/admin/users", icon: User },
+  { name: "邀请码", href: "/admin/invitations", icon: Shield },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -71,7 +72,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
         const data = await res.json();
         if (!cancelled && data.username) {
-          setAdminUser(data.username);
+          setAdminUser(data.displayName || data.username);
           // Non-admin users must not access admin backend
           if (data.role !== "ADMIN") {
             router.push("/");

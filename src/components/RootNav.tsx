@@ -29,8 +29,8 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
   const pathname = usePathname();
   const router = useRouter();
 
-  // Hide navigation on login page
-  if (pathname === "/admin/login") {
+  // Hide navigation on auth/admin pages
+  if (pathname === "/login" || pathname === "/register" || pathname.startsWith("/admin")) {
     return null;
   }
 
@@ -85,7 +85,7 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
                 </Link>
               )}
               <span className="text-xs text-muted-foreground">
-                {currentUser.username}
+                {currentUser.displayName || currentUser.username}
               </span>
               <button
                 onClick={handleLogout}
@@ -96,7 +96,7 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
             </>
           ) : (
             <Link
-              href="/admin/login"
+              href="/login"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               登录

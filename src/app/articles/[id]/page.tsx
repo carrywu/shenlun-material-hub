@@ -520,7 +520,7 @@ export default function ArticleDetailPage() {
 
   // Render text with annotation highlights
   function renderAnnotatedText() {
-    if (!article?.fullText) return "暂无正文，请重新采集或查看原文";
+    if (!article?.fullText) return "暂无正文内容";
 
     const isDirtyHtml = !!(article.fullText.startsWith("<!DOCTYPE html") || article.fullText.includes("<html") || article.fullText.includes("<head>"));
     const text = isDirtyHtml ? cleanHtmlClientSide(article.fullText) : article.fullText;

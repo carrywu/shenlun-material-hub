@@ -278,7 +278,7 @@ test.describe('注册页', () => {
     await page.goto('/register');
 
     // Wait for Suspense to resolve
-    await expect(page.getByPlaceholder('请输入账号（至少 3 个字符）')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('请输入账号（数字或英文字母）')).toBeVisible({ timeout: 10000 });
     await expect(page.getByPlaceholder('请输入密码（至少 6 个字符）')).toBeVisible();
     await expect(page.getByPlaceholder('请输入邀请码')).toBeVisible();
 
@@ -297,7 +297,7 @@ test.describe('注册页', () => {
     await page.goto('/register');
 
     // Wait for form to render
-    await expect(page.getByPlaceholder('请输入账号（至少 3 个字符）')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('请输入账号（数字或英文字母）')).toBeVisible({ timeout: 10000 });
 
     // Click submit without filling any fields
     await page.getByRole('button', { name: '注 册' }).click();
@@ -318,9 +318,9 @@ test.describe('注册页表单校验', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/register');
-    await expect(page.getByPlaceholder('请输入账号（至少 3 个字符）')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('请输入账号（数字或英文字母）')).toBeVisible({ timeout: 10000 });
 
-    await page.getByPlaceholder('请输入账号（至少 3 个字符）').fill('ab');
+    await page.getByPlaceholder('请输入账号（数字或英文字母）').fill('ab');
     await page.getByPlaceholder('请输入密码（至少 6 个字符）').fill('test123');
     await page.getByPlaceholder('请输入邀请码').fill('test');
     await page.getByRole('button', { name: '注 册' }).click();
@@ -334,9 +334,9 @@ test.describe('注册页表单校验', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/register');
-    await expect(page.getByPlaceholder('请输入账号（至少 3 个字符）')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('请输入账号（数字或英文字母）')).toBeVisible({ timeout: 10000 });
 
-    await page.getByPlaceholder('请输入账号（至少 3 个字符）').fill('testuser');
+    await page.getByPlaceholder('请输入账号（数字或英文字母）').fill('testuser');
     await page.getByPlaceholder('请输入密码（至少 6 个字符）').fill('12345');
     await page.getByPlaceholder('请输入邀请码').fill('test');
     await page.getByRole('button', { name: '注 册' }).click();
@@ -350,9 +350,9 @@ test.describe('注册页表单校验', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/register');
-    await expect(page.getByPlaceholder('请输入账号（至少 3 个字符）')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('请输入账号（数字或英文字母）')).toBeVisible({ timeout: 10000 });
 
-    await page.getByPlaceholder('请输入账号（至少 3 个字符）').fill('testuser');
+    await page.getByPlaceholder('请输入账号（数字或英文字母）').fill('testuser');
     await page.getByPlaceholder('请输入密码（至少 6 个字符）').fill('test123');
     // Leave invitation code empty
     await page.getByRole('button', { name: '注 册' }).click();

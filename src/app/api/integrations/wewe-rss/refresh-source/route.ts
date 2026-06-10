@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { refreshFeed, normalizeBaseUrl } from "@/services/integrations/wewe-rss-api";
+import { getWeweRssServerConfig, weweRssMissingConfigResponse } from "@/services/integrations/wewe-rss-config";
 import { fetchStandardRssArticles } from "@/services/collectors/wechat/weRssClient";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
@@ -43,8 +44,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. 先刷新 WeWe RSS feed
-    const weweBaseUrl =
-      process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
+    const serverConfig = getWeweRssServerConfig();
+    if (!serverConfig.configured) {
+      return weweRssMissingConfigResponse();
+    }
+    const weweBaseUrl = serverConfig.baseUrl;
     try {
       await refreshFeed(weweBaseUrl, source.feedId);
     } catch (refreshErr) {

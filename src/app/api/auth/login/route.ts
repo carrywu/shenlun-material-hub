@@ -97,8 +97,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (typeof username !== "string" || typeof password !== "string") {
+      return NextResponse.json(
+        { error: "账号和密码必须为字符串" },
+        { status: 400 }
+      );
+    }
+
+    const normalizedUsername = username.trim();
+    if (!/^[a-zA-Z0-9]+$/.test(normalizedUsername)) {
+      return NextResponse.json(
+        { error: "账号只能包含数字和英文字母" },
+        { status: 400 }
+      );
+    }
+
     // Find user in database
-    const user = await db.user.findUnique({ where: { username } });
+    const user = await db.user.findUnique({ where: { username: normalizedUsername } });
 
     if (!user) {
       recordFailedAttempt(clientKey);
@@ -168,7 +183,7 @@ export async function POST(req: NextRequest) {
 
     response.headers.append("Set-Cookie", buildCookieHeader(token));
 
-    await logger.info(`User "${username}" (role: ${user.role}) logged in.`, "AUTH");
+    await logger.info(`User "${normalizedUsername}" (role: ${user.role}) logged in.`, "AUTH");
 
     // P1-17: Clean up expired sessions periodically (fire-and-forget)
     cleanExpiredSessions().catch(() => {});
@@ -195,7 +210,7 @@ export async function GET(req: NextRequest) {
       authenticated: true,
       username: user.username,
       role: user.role,
-      displayName: user.username, // Will be enhanced with displayName from DB in future
+      displayName: user.displayName || user.username,
     });
   } catch (_error) {
     return NextResponse.json({ authenticated: false }, { status: 500 });

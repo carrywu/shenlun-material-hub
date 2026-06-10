@@ -9,7 +9,7 @@
  *
  * 环境变量：
  *   DATABASE_URL           — PostgreSQL 连接字符串
- *   ADMIN_USERNAME         — 管理员用户名（默认 admin）
+ *   ADMIN_USERNAME         — 管理员账号（默认 admin）
  *   ADMIN_PASSWORD         — 管理员密码（生产环境必须设置）
  */
 

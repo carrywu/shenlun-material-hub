@@ -32,11 +32,82 @@ export default function AccountSettingsPage() {
   const { user } = useAuth();
   const router = useRouter();
 
+  const [displayName, setDisplayName] = useState(user?.displayName || user?.username || "");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [invitationCode, setInvitationCode] = useState("");
+  const [upgrading, setUpgrading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  async function handleProfileSubmit(e: FormEvent) {
+    e.preventDefault();
+    setProfileError("");
+    const nickname = displayName.trim();
+    if (!nickname) {
+      setProfileError("昵称不能为空");
+      return;
+    }
+    if (nickname.length > 30) {
+      setProfileError("昵称不能超过 30 个字符");
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      const res = await fetch("/api/settings/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName: nickname }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setProfileError(data.error || "昵称修改失败");
+        return;
+      }
+      toast.success("昵称已更新");
+      router.refresh();
+    } catch {
+      setProfileError("网络错误，请稍后重试");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function handleUpgradeSubmit(e: FormEvent) {
+    e.preventDefault();
+    setUpgradeError("");
+    const code = invitationCode.trim();
+    if (!code) {
+      setUpgradeError("邀请码不能为空");
+      return;
+    }
+
+    setUpgrading(true);
+    try {
+      const res = await fetch("/api/settings/account/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invitationCode: code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setUpgradeError(data.error || "认证失败");
+        return;
+      }
+      toast.success("认证成功");
+      setInvitationCode("");
+      router.refresh();
+    } catch {
+      setUpgradeError("网络错误，请稍后重试");
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -47,8 +118,8 @@ export default function AccountSettingsPage() {
       setError("请填写所有字段");
       return;
     }
-    if (newPassword.length < 6) {
-      setError("新密码长度不能少于 6 个字符");
+    if (newPassword.length < 6 || newPassword.length > 18) {
+      setError("新密码长度应为 6-18 位");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -73,7 +144,7 @@ export default function AccountSettingsPage() {
 
       toast.success("密码修改成功，请重新登录");
       // Password change invalidates all sessions — redirect to login
-      router.push("/admin/login");
+      router.push("/login");
     } catch {
       setError("网络错误，请稍后重试");
     } finally {
@@ -112,8 +183,12 @@ export default function AccountSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">用户名</span>
+            <span className="text-sm text-muted-foreground">账号</span>
             <span className="text-sm font-medium">{user?.username}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">昵称</span>
+            <span className="text-sm font-medium">{user?.displayName || user?.username}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">角色</span>
@@ -123,6 +198,77 @@ export default function AccountSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Profile Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            修改昵称
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleProfileSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="displayName" className="text-sm font-medium">
+                昵称
+              </label>
+              <Input
+                id="displayName"
+                type="text"
+                placeholder="请输入昵称（1-30 个字符）"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                disabled={savingProfile}
+              />
+            </div>
+
+            {profileError && (
+              <p className="text-sm text-destructive">{profileError}</p>
+            )}
+
+            <Button type="submit" disabled={savingProfile}>
+              {savingProfile ? "保存中..." : "保存昵称"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {user?.role === "USER" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              升级为认证用户
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUpgradeSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="invitationCode" className="text-sm font-medium">
+                  邀请码
+                </label>
+                <Input
+                  id="invitationCode"
+                  type="text"
+                  placeholder="请输入邀请码"
+                  value={invitationCode}
+                  onChange={(e) => setInvitationCode(e.target.value)}
+                  disabled={upgrading}
+                />
+              </div>
+
+              {upgradeError && (
+                <p className="text-sm text-destructive">{upgradeError}</p>
+              )}
+
+              <Button type="submit" disabled={upgrading}>
+                {upgrading ? "认证中..." : "提交认证"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Change Password Card */}
       <Card>
@@ -155,7 +301,7 @@ export default function AccountSettingsPage() {
               <Input
                 id="newPassword"
                 type="password"
-                placeholder="请输入新密码（至少 6 个字符）"
+                placeholder="请输入新密码（6-18 位）"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 disabled={loading}

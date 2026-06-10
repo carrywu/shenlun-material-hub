@@ -12,6 +12,7 @@ export type UserStatus = "ACTIVE" | "DISABLED";
 export interface AuthUser {
   id: string;
   username: string;
+  displayName?: string;
   role: UserRole;
   status: UserStatus;
 }
@@ -104,6 +105,7 @@ export async function validateSession(token: string): Promise<AuthUser | null> {
   return {
     id: session.user.id,
     username: session.user.username,
+    displayName: session.user.displayName || session.user.username,
     role: session.user.role as UserRole,
     status: session.user.status as UserStatus,
   };
@@ -250,6 +252,7 @@ export async function getUserFromRequest(
         return {
           id: user.id,
           username: user.username,
+          displayName: user.displayName || user.username,
           role: user.role as UserRole,
           status: user.status as UserStatus,
         };
@@ -314,9 +317,6 @@ export function authErrorResponse(request: Request): Response {
 
 /** Ensure at least one admin exists. Idempotent — safe to call multiple times. */
 export async function ensureInitialAdmin(): Promise<void> {
-  const adminCount = await db.user.count({ where: { role: "ADMIN" } });
-  if (adminCount > 0) return;
-
   const username = process.env.ADMIN_USERNAME || "admin";
   const existingUser = await db.user.findUnique({ where: { username } });
 
@@ -328,6 +328,11 @@ export async function ensureInitialAdmin(): Promise<void> {
         data: { role: "ADMIN", status: "ACTIVE" },
       });
     }
+    return;
+  }
+
+  const adminCount = await db.user.count({ where: { role: "ADMIN" } });
+  if (adminCount > 0 && !process.env.ADMIN_USERNAME) {
     return;
   }
 

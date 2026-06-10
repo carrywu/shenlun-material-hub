@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { getWeweRssServerConfig, weweRssMissingConfigResponse } from "@/services/integrations/wewe-rss-config";
 
 // POST /api/integrations/wewe-rss/sync-sources — 从 WeWe RSS 同步公众号列表到 Source
 // 只创建和更新，不删除。缺失来源返回 toDelete 供前端确认。
@@ -15,7 +16,11 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json().catch(() => ({}));
-    const baseUrl = body.baseUrl ?? process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
+    const serverConfig = getWeweRssServerConfig();
+    if (!body.baseUrl && !serverConfig.configured) {
+      return weweRssMissingConfigResponse();
+    }
+    const baseUrl = body.baseUrl ?? (serverConfig.configured ? serverConfig.baseUrl : "");
     const dbPath = body.dbPath;
     const syncMode = body.syncMode ?? "auto";
     const { listFeedsAuto, buildFeedUrl } = await import("@/services/integrations/wewe-rss");

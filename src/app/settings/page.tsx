@@ -18,7 +18,7 @@ export default async function SettingsPage() {
   }
 
   if (!currentUser) {
-    redirect("/admin/login?redirect=/settings");
+    redirect("/login?redirect=/settings");
   }
 
   const isAdmin = currentUser.role === "ADMIN";
@@ -121,7 +121,8 @@ export default async function SettingsPage() {
         <div className="p-5 bg-muted/30 border border-dashed border-border rounded-xl">
           <h3 className="font-semibold text-sm text-muted-foreground">当前账号</h3>
           <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-            <p>用户名：{currentUser.username}</p>
+            <p>账号：{currentUser.username}</p>
+            <p>昵称：{currentUser.displayName || currentUser.username}</p>
             <p>角色：{currentUser.role === "ADMIN" ? "管理员" : currentUser.role === "VERIFIED_USER" ? "认证用户" : "普通用户"}</p>
           </div>
         </div>

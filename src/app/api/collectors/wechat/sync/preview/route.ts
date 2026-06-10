@@ -6,6 +6,7 @@ import {
 } from "@/services/collectors/wechat/weRssClient";
 import { computeArticlePreview } from "@/services/collectors/wechat/weRssNormalizer";
 import { refreshFeed } from "@/services/integrations/wewe-rss-api";
+import { getWeweRssServerConfig } from "@/services/integrations/wewe-rss-config";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // POST /api/collectors/wechat/sync/preview — 预览采集结果（不写库）
@@ -43,9 +44,11 @@ export async function POST(request: NextRequest) {
     ) {
       // WeWe RSS 来源：先刷新 feed 再预览
       if (source.provider === "wewe-rss" && source.feedId) {
-        const weweBaseUrl = process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
+        const serverConfig = getWeweRssServerConfig();
         try {
-          await refreshFeed(weweBaseUrl, source.feedId);
+          if (serverConfig.configured) {
+            await refreshFeed(serverConfig.baseUrl, source.feedId);
+          }
         } catch (refreshErr) {
           const refreshMsg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
           console.warn(`WeWe RSS refresh failed for ${source.feedId}: ${refreshMsg}`);

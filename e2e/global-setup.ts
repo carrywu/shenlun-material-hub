@@ -13,6 +13,8 @@ async function globalSetup(config: FullConfig) {
   const baseURL = config.projects[0].use.baseURL || 'http://localhost:3001';
   const browser = await chromium.launch();
   const page = await browser.newPage();
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
 
   // 导航到 /admin，middleware 重定向到登录页
   await page.goto(`${baseURL}/admin`);
@@ -22,8 +24,8 @@ async function globalSetup(config: FullConfig) {
   const accountInput = page.getByPlaceholder('请输入账号');
   await accountInput.waitFor({ state: 'visible', timeout: 15000 });
 
-  await accountInput.fill('admin');
-  await page.getByPlaceholder('请输入密码').fill('admin123');
+  await accountInput.fill(adminUsername);
+  await page.getByPlaceholder('请输入密码').fill(adminPassword);
   await page.locator("form button[type='submit']").click();
 
   // 等待登录成功——必须等待导航离开 /admin/login 页面

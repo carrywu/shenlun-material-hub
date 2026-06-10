@@ -33,9 +33,12 @@ import {
 interface StatusResult {
   success: boolean;
   baseUrl: string;
+  publicUrl?: string | null;
+  publicConfigured?: boolean;
   reachable: boolean;
   feedCount?: number;
   message: string;
+  code?: string;
 }
 
 interface SyncResult {
@@ -65,7 +68,8 @@ interface FeedItem {
 }
 
 export default function WeweRssIntegrationPage() {
-  const [baseUrl, setBaseUrl] = useState("http://localhost:4000");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [publicUrl, setPublicUrl] = useState<string | null>(null);
   const [dbPath, setDbPath] = useState("infra/wechat-rss/wewe-rss/data/wewe-rss.db");
   const [status, setStatus] = useState<StatusResult | null>(null);
   const [testing, setTesting] = useState(false);
@@ -88,10 +92,11 @@ export default function WeweRssIntegrationPage() {
         const data = await res.json();
         setStatus(data);
         if (data.baseUrl) setBaseUrl(data.baseUrl);
+        if (data.publicUrl) setPublicUrl(data.publicUrl);
       } catch {
         setStatus({
           success: false,
-          baseUrl: "http://localhost:4000",
+          baseUrl: "",
           reachable: false,
           message: "检查状态失败",
         });
@@ -241,7 +246,7 @@ export default function WeweRssIntegrationPage() {
         <CardContent className="space-y-3">
           <div className="flex gap-2">
             <Input
-              placeholder="http://localhost:4000"
+              placeholder="WEWERSS_BASE_URL，例如 http://wewerss:4000"
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
               className="flex-1"
@@ -285,8 +290,19 @@ export default function WeweRssIntegrationPage() {
               {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
               同步公众号列表
             </Button>
-            <Button variant="outline">
-              <a href="http://localhost:4000" target="_blank" rel="noopener noreferrer" className="flex items-center">
+            <Button variant="outline" disabled={!publicUrl}>
+              <a
+                href={publicUrl || undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center"
+                onClick={(event) => {
+                  if (!publicUrl) {
+                    event.preventDefault();
+                    alert("未配置 WeWeRSS 公网访问地址");
+                  }
+                }}
+              >
                 <ExternalLink className="h-4 w-4 mr-1" />
                 打开 WeWe 后台
               </a>

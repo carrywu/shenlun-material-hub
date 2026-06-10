@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { getWeweRssServerConfig, weweRssMissingConfigResponse } from "@/services/integrations/wewe-rss-config";
 
 // POST /api/integrations/wewe-rss/preview-sync — 预览同步结果（不写入）
 export async function POST(request: NextRequest) {
@@ -14,7 +15,11 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json().catch(() => ({}));
-    const baseUrl = body.baseUrl ?? process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
+    const serverConfig = getWeweRssServerConfig();
+    if (!body.baseUrl && !serverConfig.configured) {
+      return weweRssMissingConfigResponse();
+    }
+    const baseUrl = body.baseUrl ?? (serverConfig.configured ? serverConfig.baseUrl : "");
     const dbPath = body.dbPath;
     const syncMode = body.syncMode ?? "auto";
     const { listFeedsAuto, buildFeedUrl } = await import("@/services/integrations/wewe-rss");

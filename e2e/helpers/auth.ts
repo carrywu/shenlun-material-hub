@@ -12,6 +12,9 @@ import { expect, Page } from '@playwright/test';
  * 因为 regex 同时匹配 /admin/login，导致在 cookie 设置前就匹配成功。
  */
 export async function loginAsAdmin(page: Page): Promise<void> {
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+
   await page.goto('/admin');
   await page.waitForURL(/\/admin\/login/, { timeout: 10000 });
 
@@ -19,8 +22,8 @@ export async function loginAsAdmin(page: Page): Promise<void> {
   const accountInput = page.getByPlaceholder('请输入账号');
   await expect(accountInput).toBeVisible({ timeout: 10000 });
 
-  await accountInput.fill('admin');
-  await page.getByPlaceholder('请输入密码').fill('admin123');
+  await accountInput.fill(adminUsername);
+  await page.getByPlaceholder('请输入密码').fill(adminPassword);
   await page.locator("form button[type='submit']").click();
 
   // 等待登录成功——必须等待导航离开 /admin/login 页面
@@ -50,8 +53,10 @@ export async function loginAsAdmin(page: Page): Promise<void> {
 export async function loginAsAdminAPI(
   request: import('@playwright/test').APIRequestContext,
 ): Promise<void> {
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
   const res = await request.post('/api/auth/login', {
-    data: { username: 'admin', password: 'admin123' },
+    data: { username: adminUsername, password: adminPassword },
   });
   if (!res.ok()) {
     throw new Error(`API 登录失败：${res.status()} ${await res.text()}`);

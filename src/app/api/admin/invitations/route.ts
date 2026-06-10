@@ -48,10 +48,13 @@ export async function GET(request: NextRequest) {
     maxUses: inv.maxUses,
     usedCount: inv.usedCount,
     remainingUses: inv.maxUses - inv.usedCount,
+    isEnabled: inv.isEnabled,
+    note: inv.note,
     expiresAt: inv.expiresAt,
     isExpired: inv.expiresAt ? new Date() > inv.expiresAt : false,
     isExhausted: inv.usedCount >= inv.maxUses,
     createdAt: inv.createdAt,
+    updatedAt: inv.updatedAt,
     uses: inv.uses.map((u) => ({
       id: u.id,
       userId: u.userId,
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { maxUses, expiresAt } = body;
+  const { maxUses, expiresAt, isEnabled, note } = body;
 
   // Validate maxUses
   const uses = typeof maxUses === "number" ? Math.max(1, Math.floor(maxUses)) : 1;
@@ -126,6 +129,8 @@ export async function POST(request: NextRequest) {
       createdBy: user.id,
       maxUses: uses,
       expiresAt: expiry,
+      isEnabled: typeof isEnabled === "boolean" ? isEnabled : true,
+      note: typeof note === "string" && note.trim() ? note.trim() : null,
     },
     include: {
       creator: { select: { id: true, username: true, displayName: true } },
@@ -150,8 +155,11 @@ export async function POST(request: NextRequest) {
         maxUses: invitation.maxUses,
         usedCount: invitation.usedCount,
         remainingUses: invitation.maxUses - invitation.usedCount,
+        isEnabled: invitation.isEnabled,
+        note: invitation.note,
         expiresAt: invitation.expiresAt,
         createdAt: invitation.createdAt,
+        updatedAt: invitation.updatedAt,
       },
     },
     { status: 201 }

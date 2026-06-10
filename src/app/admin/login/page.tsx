@@ -13,8 +13,13 @@ function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
-      setError("请填写用户名和密码");
+    const account = username.trim();
+    if (!account || !password) {
+      setError("请填写账号和密码");
+      return;
+    }
+    if (!/^[a-zA-Z0-9]+$/.test(account)) {
+      setError("账号只能包含数字和英文字母");
       return;
     }
 
@@ -25,7 +30,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: account, password }),
       });
 
       const data = await res.json();
@@ -34,7 +39,7 @@ function LoginForm() {
       }
 
       // Redirect to the page user originally requested, or homepage
-      const redirect = searchParams.get("redirect") || "/";
+      const redirect = searchParams.get("redirect") || "/admin/dashboard";
       router.push(redirect);
       router.refresh();
     } catch (err) {

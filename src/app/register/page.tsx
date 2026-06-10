@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 
 function RegisterForm() {
   const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [invitationCode, setInvitationCode] = useState("");
   const [error, setError] = useState("");
@@ -18,16 +19,26 @@ function RegisterForm() {
     setError("");
 
     // Client-side validation
-    if (!username || username.length < 3) {
-      setError("账号至少需要 3 个字符");
+    const account = username.trim();
+    const nickname = displayName.trim();
+    if (!account) {
+      setError("请输入账号");
       return;
     }
-    if (!password || password.length < 6) {
-      setError("密码至少需要 6 个字符");
+    if (!/^[a-zA-Z0-9]+$/.test(account)) {
+      setError("账号只能包含数字和英文字母");
       return;
     }
-    if (!invitationCode) {
-      setError("邀请码不能为空");
+    if (!nickname) {
+      setError("昵称不能为空");
+      return;
+    }
+    if (nickname.length > 30) {
+      setError("昵称不能超过 30 个字符");
+      return;
+    }
+    if (!password || password.length < 6 || password.length > 18) {
+      setError("密码长度应为 6-18 位");
       return;
     }
 
@@ -37,7 +48,12 @@ function RegisterForm() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, invitationCode }),
+        body: JSON.stringify({
+          username: account,
+          displayName: nickname,
+          password,
+          invitationCode: invitationCode.trim() || undefined,
+        }),
       });
 
       const data = await res.json();
@@ -72,9 +88,24 @@ function RegisterForm() {
         <Input
           id="username"
           type="text"
-          placeholder="请输入账号（至少 3 个字符）"
+          placeholder="请输入账号（数字或英文字母）"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          className="py-3 rounded-xl"
+          disabled={loading}
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="displayName">
+          昵称
+        </label>
+        <Input
+          id="displayName"
+          type="text"
+          placeholder="请输入昵称（1-30 个字符）"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
           className="py-3 rounded-xl"
           disabled={loading}
         />
@@ -87,7 +118,7 @@ function RegisterForm() {
         <Input
           id="password"
           type="password"
-          placeholder="请输入密码（至少 6 个字符）"
+          placeholder="请输入密码（6-18 位）"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="py-3 rounded-xl"
@@ -97,12 +128,12 @@ function RegisterForm() {
 
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="invitationCode">
-          邀请码
+          邀请码（可选）
         </label>
         <Input
           id="invitationCode"
           type="text"
-          placeholder="请输入邀请码"
+          placeholder="有邀请码可填写，注册后成为认证用户"
           value={invitationCode}
           onChange={(e) => setInvitationCode(e.target.value)}
           className="py-3 rounded-xl"
@@ -165,7 +196,7 @@ export default function RegisterPage() {
           <p className="text-sm text-muted-foreground">
             已有账号？
             <Link
-              href="/admin/login"
+              href="/login"
               className="text-violet-600 hover:text-violet-500 font-medium transition-colors duration-200 ml-1"
             >
               前往登录

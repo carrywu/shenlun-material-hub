@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { checkHealth } from "@/services/integrations/wewe-rss-api";
+import {
+  getWeweRssPublicConfig,
+  getWeweRssServerConfig,
+  weweRssMissingConfigResponse,
+} from "@/services/integrations/wewe-rss-config";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // GET /api/integrations/wewe-rss/status — 检查 WeWe RSS 连接状态和各通道可用性
@@ -13,7 +18,12 @@ export async function GET(request: Request) {
     return forbiddenResponse();
   }
   try {
-    const baseUrl = process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
+    const serverConfig = getWeweRssServerConfig();
+    if (!serverConfig.configured) {
+      return weweRssMissingConfigResponse();
+    }
+    const publicConfig = getWeweRssPublicConfig();
+    const baseUrl = serverConfig.baseUrl;
     const apiResult = await checkHealth(baseUrl);
 
     // Check SQLite fallback availability
@@ -35,6 +45,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: apiResult.reachable,
       baseUrl,
+      publicUrl: publicConfig.configured ? publicConfig.publicUrl : null,
+      publicConfigured: publicConfig.configured,
       reachable: apiResult.reachable,
       feedCount: apiResult.feedCount,
       message: apiResult.message,

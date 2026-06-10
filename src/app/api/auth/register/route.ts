@@ -7,102 +7,72 @@ function maskInvitationCode(code: string): string {
   return `${code.slice(0, 2)}****`;
 }
 
-/** POST /api/auth/register — register with invitation code */
+/** POST /api/auth/register — register with an optional invitation code */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password, invitationCode } = body;
+    const { username, displayName, password, invitationCode } = body;
 
     if (
       typeof username !== "string" ||
+      typeof displayName !== "string" ||
       typeof password !== "string" ||
-      typeof invitationCode !== "string"
+      (invitationCode !== undefined && typeof invitationCode !== "string")
     ) {
       return NextResponse.json(
-        { error: "用户名、密码和邀请码必须为字符串" },
+        { error: "账号、昵称和密码必须为字符串" },
         { status: 400 }
       );
     }
 
     const normalizedUsername = username.trim();
-    const normalizedInvitationCode = invitationCode.trim();
-    const maskedInvitationCode = maskInvitationCode(normalizedInvitationCode);
+    const normalizedDisplayName = displayName.trim();
+    const normalizedInvitationCode = typeof invitationCode === "string" ? invitationCode.trim() : "";
+    const maskedInvitationCode = normalizedInvitationCode
+      ? maskInvitationCode(normalizedInvitationCode)
+      : null;
 
     // Validate required fields
-    if (!normalizedUsername || !password || !normalizedInvitationCode) {
+    if (!normalizedUsername || !password) {
       return NextResponse.json(
-        { error: "用户名、密码和邀请码不能为空" },
+        { error: "账号和密码不能为空" },
         { status: 400 }
       );
     }
 
-    // Validate username
+    // Validate account: user-facing account names must be alphanumeric.
+    if (!/^[a-zA-Z0-9]+$/.test(normalizedUsername)) {
+      return NextResponse.json(
+        { error: "账号只能包含数字和英文字母" },
+        { status: 400 }
+      );
+    }
+
     if (normalizedUsername.length < 3 || normalizedUsername.length > 32) {
       return NextResponse.json(
-        { error: "用户名长度应在 3-32 个字符之间" },
+        { error: "账号长度应在 3-32 位之间" },
         { status: 400 }
       );
     }
 
-    if (!/^[a-zA-Z0-9_一-龥]+$/.test(normalizedUsername)) {
+    if (!normalizedDisplayName) {
       return NextResponse.json(
-        { error: "用户名只能包含字母、数字、下划线和中文" },
+        { error: "昵称不能为空" },
+        { status: 400 }
+      );
+    }
+
+    if (normalizedDisplayName.length > 30) {
+      return NextResponse.json(
+        { error: "昵称不能超过 30 个字符" },
         { status: 400 }
       );
     }
 
     // Validate password
-    if (password.length < 6) {
+    if (password.length < 6 || password.length > 18) {
       return NextResponse.json(
-        { error: "密码长度不能少于 6 个字符" },
-        { status: 400 }
-      );
-    }
-
-    // Validate invitation code
-    const invitation = await db.invitation.findUnique({
-      where: { code: normalizedInvitationCode },
-    });
-
-    if (!invitation) {
-      return NextResponse.json(
-        { error: "邀请码无效" },
-        { status: 400 }
-      );
-    }
-
-    // Check if invitation is expired
-    if (invitation.expiresAt && new Date() > invitation.expiresAt) {
-      await auditLog({
-        action: "create",
-        resource: "User",
-        detail: {
-          reason: "invitation_expired",
-          invitationId: invitation.id,
-          invitationCode: maskedInvitationCode,
-          attemptedUsername: normalizedUsername,
-        },
-      });
-      return NextResponse.json(
-        { error: "邀请码已过期" },
-        { status: 400 }
-      );
-    }
-
-    // Check if invitation is exhausted
-    if (invitation.usedCount >= invitation.maxUses) {
-      await auditLog({
-        action: "create",
-        resource: "User",
-        detail: {
-          reason: "invitation_exhausted",
-          invitationId: invitation.id,
-          invitationCode: maskedInvitationCode,
-          attemptedUsername: normalizedUsername,
-        },
-      });
-      return NextResponse.json(
-        { error: "邀请码已被使用完" },
+        { error: "密码长度应为 6-18 位" },
         { status: 400 }
       );
     }
@@ -122,43 +92,104 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-real-ip") ||
       undefined;
 
-    // Create user and record invitation use in a transaction
-    const result = await db.$transaction(async (tx) => {
-      // Increment invitation usedCount
-      const updatedInvitation = await tx.invitation.update({
-        where: { id: invitation.id },
-        data: { usedCount: { increment: 1 } },
+    let invitation: Awaited<ReturnType<typeof db.invitation.findUnique>> = null;
+    if (normalizedInvitationCode) {
+      invitation = await db.invitation.findUnique({
+        where: { code: normalizedInvitationCode },
       });
 
-      // Double-check after increment (race condition safety)
-      if (updatedInvitation.usedCount > updatedInvitation.maxUses) {
-        throw new Error("INVITATION_EXHAUSTED");
+      if (!invitation) {
+        return NextResponse.json(
+          { error: "邀请码无效" },
+          { status: 400 }
+        );
       }
 
+      if ("isEnabled" in invitation && invitation.isEnabled === false) {
+        return NextResponse.json(
+          { error: "邀请码已被禁用" },
+          { status: 400 }
+        );
+      }
+
+      // Check if invitation is expired
+      if (invitation.expiresAt && new Date() > invitation.expiresAt) {
+        await auditLog({
+          action: "create",
+          resource: "User",
+          detail: {
+            reason: "invitation_expired",
+            invitationId: invitation.id,
+            invitationCode: maskedInvitationCode,
+            attemptedUsername: normalizedUsername,
+          },
+        });
+        return NextResponse.json(
+          { error: "邀请码已过期" },
+          { status: 400 }
+        );
+      }
+
+      // Check if invitation is exhausted
+      if (invitation.usedCount >= invitation.maxUses) {
+        await auditLog({
+          action: "create",
+          resource: "User",
+          detail: {
+            reason: "invitation_exhausted",
+            invitationId: invitation.id,
+            invitationCode: maskedInvitationCode,
+            attemptedUsername: normalizedUsername,
+          },
+        });
+        return NextResponse.json(
+          { error: "邀请码已被使用完" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Create user and optionally record invitation use in a transaction
+    const result = await db.$transaction(async (tx) => {
       // Create user
       const passwordHash = await hashPassword(password);
       const newUser = await tx.user.create({
         data: {
           username: normalizedUsername,
+          displayName: normalizedDisplayName,
           passwordHash,
-          role: "USER",
+          role: invitation ? "VERIFIED_USER" : "USER",
           status: "ACTIVE",
         },
         select: {
           id: true,
           username: true,
+          displayName: true,
           role: true,
           createdAt: true,
         },
       });
 
-      // Record invitation use
-      await tx.invitationUse.create({
-        data: {
-          invitationId: invitation.id,
-          userId: newUser.id,
-        },
-      });
+      if (invitation) {
+        // Increment invitation usedCount
+        const updatedInvitation = await tx.invitation.update({
+          where: { id: invitation.id },
+          data: { usedCount: { increment: 1 } },
+        });
+
+        // Double-check after increment (race condition safety)
+        if (updatedInvitation.usedCount > updatedInvitation.maxUses) {
+          throw new Error("INVITATION_EXHAUSTED");
+        }
+
+        // Record invitation use
+        await tx.invitationUse.create({
+          data: {
+            invitationId: invitation.id,
+            userId: newUser.id,
+          },
+        });
+      }
 
       return { user: newUser };
     });
@@ -174,8 +205,9 @@ export async function POST(request: NextRequest) {
       resourceId: result.user.id,
       detail: {
         username: result.user.username,
+        displayName: result.user.displayName,
         role: result.user.role,
-        invitationId: invitation.id,
+        invitationId: invitation?.id ?? null,
         invitationCode: maskedInvitationCode,
       },
       ip,
@@ -188,6 +220,7 @@ export async function POST(request: NextRequest) {
         message: "注册成功",
         user: {
           username: result.user.username,
+          displayName: result.user.displayName,
           role: result.user.role,
         },
       },
