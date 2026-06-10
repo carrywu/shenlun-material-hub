@@ -21,7 +21,7 @@ validate_env() {
     printf '%s still contains CHANGE_ME placeholders.\n' "$ENV_FILE" >&2
     exit 1
   fi
-  if ! grep -q '^ADMIN_PASSWORD_HASH=\$2' "$ENV_FILE"; then
+  if ! grep -Eq "^ADMIN_PASSWORD_HASH=['\"]?\\$2" "$ENV_FILE"; then
     printf 'ADMIN_PASSWORD_HASH must be set to a bcrypt hash in %s.\n' "$ENV_FILE" >&2
     exit 1
   fi
