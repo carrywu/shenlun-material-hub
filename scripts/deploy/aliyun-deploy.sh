@@ -21,10 +21,20 @@ validate_env() {
     printf '%s still contains CHANGE_ME placeholders.\n' "$ENV_FILE" >&2
     exit 1
   fi
-  if ! grep -Eq "^ADMIN_PASSWORD_HASH=['\"]?\\$2" "$ENV_FILE"; then
-    printf 'ADMIN_PASSWORD_HASH must be set to a bcrypt hash in %s.\n' "$ENV_FILE" >&2
-    exit 1
-  fi
+  local admin_hash_line admin_hash_value
+  admin_hash_line="$(grep -E '^ADMIN_PASSWORD_HASH=' "$ENV_FILE" | tail -n 1 || true)"
+  admin_hash_value="${admin_hash_line#ADMIN_PASSWORD_HASH=}"
+  admin_hash_value="${admin_hash_value%\"}"
+  admin_hash_value="${admin_hash_value#\"}"
+  admin_hash_value="${admin_hash_value%\'}"
+  admin_hash_value="${admin_hash_value#\'}"
+  case "$admin_hash_value" in
+    '$2'*) ;;
+    *)
+      printf 'ADMIN_PASSWORD_HASH must be set to a bcrypt hash in %s.\n' "$ENV_FILE" >&2
+      exit 1
+      ;;
+  esac
 }
 
 main() {
