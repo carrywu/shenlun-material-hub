@@ -2,6 +2,7 @@
   "name": "shenlun-material-hub",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.4.0",
   "scripts": {
     "dev": "node scripts/run-next.mjs dev",
     "build": "next build",
@@ -65,14 +66,5 @@
     "typescript": "^6.0.3",
     "vitest": "^4.1.7",
     "zod": "^4.4.3"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "msw",
-      "sharp",
-      "unrs-resolver",
-      "prisma",
-      "@prisma/engines"
-    ]
   }
 }

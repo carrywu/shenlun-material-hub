@@ -4,15 +4,19 @@ import { requireAdmin } from "@/lib/auth";
 
 /**
  * GET /api/health — public health check for Docker/load balancers.
- * Returns minimal status only: { status: "ok" }
+ * Returns minimal status only and verifies database connectivity.
  * Detailed system info requires admin auth via /api/health/detail
  */
 export async function GET() {
+  const timestamp = new Date().toISOString();
   try {
     await db.$queryRaw`SELECT 1`;
-    return NextResponse.json({ status: "ok" });
+    return NextResponse.json({ ok: true, timestamp, database: "ok" });
   } catch {
-    return NextResponse.json({ status: "error" }, { status: 503 });
+    return NextResponse.json(
+      { ok: false, timestamp, database: "error" },
+      { status: 503 }
+    );
   }
 }
 
