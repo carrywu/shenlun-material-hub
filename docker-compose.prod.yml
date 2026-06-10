@@ -18,10 +18,7 @@ services:
     restart: unless-stopped
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: shenlun-material-hub:latest
+    image: ccr.ccs.tencentyun.com/carrywu/shenlun:${IMAGE_TAG:-latest}
     env_file:
       - .env.production
     environment:

@@ -74,6 +74,7 @@ web_modules/
 .env.*
 !.env.example
 !.env.production.example
+!.env.deploy.example
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -171,3 +172,11 @@ prisma/dev.db.pre-pg-migration
 # Production deployment runtime data
 backups/
 data/uploads/
+
+# TCR deployment config (contains registry password)
+.env.deploy.local
+
+# SSL certificates
+*.pem
+*.key
+*.crt
