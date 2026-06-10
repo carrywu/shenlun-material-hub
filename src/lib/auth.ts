@@ -132,14 +132,17 @@ export async function cleanExpiredSessions(): Promise<number> {
 
 export const AUTH_COOKIE_NAME = "auth_token";
 
+function isHttps(): boolean {
+  const url = process.env.NEXT_PUBLIC_APP_URL || "";
+  return url.startsWith("https://");
+}
+
 export function buildCookieHeader(token: string, maxAge = 86400): string {
-  const isProd = process.env.NODE_ENV === "production";
-  return `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; ${isProd ? "Secure;" : ""} SameSite=Strict; Max-Age=${maxAge}`;
+  return `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; ${isHttps() ? "Secure;" : ""} SameSite=${isHttps() ? "Strict" : "Lax"}; Max-Age=${maxAge}`;
 }
 
 export function buildClearCookieHeader(): string {
-  const isProd = process.env.NODE_ENV === "production";
-  return `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; ${isProd ? "Secure;" : ""} SameSite=Strict; Max-Age=0`;
+  return `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; ${isHttps() ? "Secure;" : ""} SameSite=${isHttps() ? "Strict" : "Lax"}; Max-Age=0`;
 }
 
 // ─── Legacy JWT support (for migration period) ──────────────────────────────
