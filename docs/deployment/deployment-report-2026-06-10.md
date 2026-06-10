@@ -208,7 +208,31 @@ Homepage:         HTTP 307 (redirect to login)
 5. **ECS 规格**：如需在服务器上构建，建议升级到 4 vCPU / 8GB
 6. **部署脚本优化**：`aliyun-deploy.sh` 增加 `--no-build` 参数支持预构建镜像部署
 
-## 8. Git 提交记录
+## 8. 数据迁移 (14:55-15:01)
+
+### 迁移方式
+
+`pg_dump --data-only --column-inserts` → `scp` → `docker cp` + `psql -f` 恢复。
+使用 `SET session_replication_role = 'replica'` 跳过外键检查。
+
+### 迁移结果
+
+| 表 | 本地 | ECS | 状态 |
+|---|---|---|---|
+| ContentItem (文章) | 445 | 445 | ✅ |
+| Source (来源) | 31 | 31 | ✅ |
+| User (用户) | 18 | 18 | ✅ |
+| CollectorRun | 35 | 35 | ✅ |
+| ArticleAnnotation | 25 | 25 | ✅ |
+| CollectionChannel | 9 | 9 | ✅ |
+| MaterialCard (素材卡) | 11 | 11 | ✅ |
+| SyncRecord | 14 | 14 | ✅ |
+| AsyncTask | 3 | 1 | ✅ |
+| AiConfig | 2 | 0 | ⚠️ schema 差异 |
+
+**AiConfig 说明**：本地有 `userId` 列（额外 migration），ECS schema 不含此列。需在管理后台重新配置 AI。
+
+## 9. Git 提交记录
 
 ```
 735d409 Validate bcrypt hashes without shell interpolation
