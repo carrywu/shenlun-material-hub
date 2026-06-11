@@ -18,6 +18,7 @@ import {
   Play,
   CheckCircle,
   XCircle,
+  AlertTriangle,
   Globe,
   MessageSquare,
   Video,
@@ -57,6 +58,7 @@ interface CollectResult {
   discoveredCount?: number;
   importedCount?: number;
   skippedCount?: number;
+  blockedCount?: number;
   error?: string;
 }
 
@@ -204,6 +206,7 @@ export function CollectDialog({
             discoveredCount: result?.discoveredCount,
             importedCount: result?.importedCount,
             skippedCount: result?.skippedCount,
+            blockedCount: result?.blockedCount,
             error: undefined,
           });
           setIntermediateResults([...allResults]);
@@ -217,6 +220,7 @@ export function CollectDialog({
           discoveredCount: data.discoveredCount,
           importedCount: data.importedCount,
           skippedCount: data.skippedCount,
+          blockedCount: data.blockedCount,
           error: data.error,
         });
       } catch (err) {
@@ -242,6 +246,8 @@ export function CollectDialog({
     results?.reduce((sum, r) => sum + (r.importedCount ?? 0), 0) ?? 0;
   const totalSkipped =
     results?.reduce((sum, r) => sum + (r.skippedCount ?? 0), 0) ?? 0;
+  const totalBlocked =
+    results?.reduce((sum, r) => sum + (r.blockedCount ?? 0), 0) ?? 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -269,6 +275,12 @@ export function CollectDialog({
                   <span className="text-sm font-medium">{failCount} 失败</span>
                 </div>
               )}
+              {totalBlocked > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <span className="text-sm font-medium text-amber-600">{totalBlocked} 封禁</span>
+                </div>
+              )}
               <div className="text-sm text-muted-foreground">
                 共导入 {totalImported} 条
                 {totalSkipped > 0 && `，跳过 ${totalSkipped} 条`}
@@ -291,7 +303,7 @@ export function CollectDialog({
                   </div>
                   <div className="text-muted-foreground text-xs">
                     {r.success
-                      ? `发现 ${r.discoveredCount ?? 0}，导入 ${r.importedCount ?? 0}${(r.skippedCount ?? 0) > 0 ? `，跳过 ${r.skippedCount}` : ""}`
+                      ? `发现 ${r.discoveredCount ?? 0}，导入 ${r.importedCount ?? 0}${(r.blockedCount ?? 0) > 0 ? `，封禁 ${r.blockedCount}` : ""}${(r.skippedCount ?? 0) > 0 ? `，跳过 ${r.skippedCount}` : ""}`
                       : r.error ?? "失败"}
                   </div>
                 </div>

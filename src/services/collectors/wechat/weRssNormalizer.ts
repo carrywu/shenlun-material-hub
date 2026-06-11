@@ -32,6 +32,31 @@ export interface PreviewArticle {
 }
 
 /**
+ * 微信封禁/验证页面的特征关键词。
+ * 当 WeWe RSS 服务器被微信反爬封禁时，返回的文章内容为验证页面，
+ * 清洗后文本包含这些关键词。此时应明确提示"封禁"，而非当作"全文过短"跳过。
+ */
+const WECHAT_BLOCK_KEYWORDS = [
+  "环境异常",
+  "验证后即可继续",
+  "完成验证后即可继续",
+  "当前环境异常",
+  "频繁访问",
+  "请先验证",
+  "为你的访问安全",
+];
+
+/**
+ * 检测清洗后的文本是否为微信封禁/验证页面。
+ */
+export function detectWechatBlockPage(fullText: string | null): boolean {
+  if (!fullText) return false;
+  // 封禁页面特征：文本很短（< 200 字）且包含验证关键词
+  if (fullText.replace(/\s+/g, "").length > 200) return false;
+  return WECHAT_BLOCK_KEYWORDS.some((kw) => fullText.includes(kw));
+}
+
+/**
  * 清洗微信公众号文章 HTML，提取干净的正文文本和 HTML 片段。
  */
 export function cleanWechatHtml(html: string): { fullText: string; rawHtml: string } {
@@ -142,6 +167,23 @@ export async function computeArticlePreview(
     ? fullText.replace(/\s+/g, " ").trim().slice(0, 200)
     : "";
 
+  // 封禁检测：先于"全文过短"检查，明确区分封禁与正常短文
+  if (detectWechatBlockPage(fullText)) {
+    return {
+      id: article.id ?? originalUrl,
+      title: article.title ?? "(无标题)",
+      url: originalUrl,
+      author: article.author ?? article.accountName,
+      publishTime: article.publishTime,
+      cover: article.cover,
+      effectiveTextLength,
+      filtered: true,
+      filterReason: "微信封禁/验证页面，文章内容无法获取",
+      contentPreview,
+      isDuplicate,
+    };
+  }
+
   // 质量门控
   if (!fullText || effectiveTextLength < 300) {
     const reason = !fullText
@@ -233,6 +275,39 @@ export async function normalizeWeRssArticle(
   const effectiveTextLength = fullText
     ? fullText.replace(/\s+/g, "").trim().length
     : 0;
+
+  // 封禁检测：先于"全文过短"检查，明确区分封禁与正常短文
+  if (detectWechatBlockPage(fullText)) {
+    const reason = "微信封禁/验证页面，文章内容无法获取";
+    const item = await db.contentItem.create({
+      data: {
+        sourceId: options.sourceId,
+        title: article.title,
+        originalUrl,
+        platform: "wechat",
+        contentType: options.contentType ?? "policy_analysis",
+        trustLevel: options.trustLevel ?? "unverified",
+        authorOrAccount: article.author ?? article.accountName ?? null,
+        publishedAt,
+        section: null,
+        excerpt,
+        fullText,
+        rawHtml,
+        fullTextStored: !!fullText,
+        contentHash,
+        processingStatus: "blocked",
+        filterReason: reason,
+        qualityStatus: "blocked",
+        effectiveTextLength,
+        regionScopes: "[]",
+        topicTags: "[]",
+        discoveryChannel: "werss",
+        coverUrl: article.cover ?? null,
+      },
+    });
+
+    return { created: true, filtered: true, filterReason: reason, item };
+  }
 
   // 质量门控：无全文或全文过短（<300字）直接标记为 filtered
   if (!fullText || effectiveTextLength < 300) {
@@ -327,16 +402,19 @@ export async function normalizeWeRssArticle(
 export async function normalizeWeRssArticles(
   articles: WeRssArticle[],
   options: NormalizeOptions
-): Promise<{ discovered: number; imported: number; skipped: number; errors: string[] }> {
+): Promise<{ discovered: number; imported: number; skipped: number; blocked: number; errors: string[] }> {
   const errors: string[] = [];
   let imported = 0;
   let skipped = 0;
+  let blocked = 0;
 
   for (const article of articles) {
     try {
       const result = await normalizeWeRssArticle(article, options);
       if (result.created && !result.filtered) {
         imported++;
+      } else if (result.filterReason?.includes("封禁")) {
+        blocked++;
       } else {
         skipped++;
       }
@@ -346,5 +424,5 @@ export async function normalizeWeRssArticles(
     }
   }
 
-  return { discovered: articles.length, imported, skipped, errors };
+  return { discovered: articles.length, imported, skipped, blocked, errors };
 }
