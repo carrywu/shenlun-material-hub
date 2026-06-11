@@ -26,18 +26,23 @@ function RegisterForm() {
       setError("密码至少需要 6 个字符");
       return;
     }
-    if (!invitationCode) {
-      setError("邀请码不能为空");
-      return;
-    }
 
     setLoading(true);
 
     try {
+      // P8-T5: 邀请码可选——为空时不发送字段（后端创建 USER；填了则升级为 VERIFIED_USER）
+      const payload: { username: string; password: string; invitationCode?: string } = {
+        username,
+        password,
+      };
+      const trimmedCode = invitationCode.trim();
+      if (trimmedCode) {
+        payload.invitationCode = trimmedCode;
+      }
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, invitationCode }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -97,17 +102,20 @@ function RegisterForm() {
 
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="invitationCode">
-          邀请码
+          邀请码（可选）
         </label>
         <Input
           id="invitationCode"
           type="text"
-          placeholder="请输入邀请码"
+          placeholder="留空则注册为普通用户"
           value={invitationCode}
           onChange={(e) => setInvitationCode(e.target.value)}
           className="py-3 rounded-xl"
           disabled={loading}
         />
+        <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">
+          邀请码可选，填写后升级为认证用户（可生成素材卡）
+        </p>
       </div>
 
       <button
