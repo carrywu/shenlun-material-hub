@@ -66,6 +66,9 @@ describe("POST /api/auth/register (P8)", () => {
     mocks.invitationFindUnique.mockResolvedValue({
       id: "inv1", code: "CODE", usedCount: 0, maxUses: 5, expiresAt: null,
     });
+    mocks.invUpdate.mockResolvedValue({
+      id: "inv1", code: "CODE", usedCount: 1, maxUses: 5, expiresAt: null,
+    });
     mocks.userFindUnique.mockResolvedValue(null);
     mocks.userCreate.mockResolvedValue({
       id: "u2", username: "x", role: "VERIFIED_USER", createdAt: new Date(),

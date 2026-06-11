@@ -9,10 +9,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { username, password, invitationCode } = body;
 
-    // Validate required fields
-    if (!username || !password || !invitationCode) {
+    // Validate required fields — P8: invitation code is now optional
+    if (!username || !password) {
       return NextResponse.json(
-        { error: "用户名、密码和邀请码不能为空" },
+        { error: "用户名和密码不能为空" },
         { status: 400 }
       );
     }
@@ -40,52 +40,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate invitation code
-    const invitation = await db.invitation.findUnique({
-      where: { code: invitationCode },
-    });
-
-    if (!invitation) {
-      return NextResponse.json(
-        { error: "邀请码无效" },
-        { status: 400 }
-      );
-    }
-
-    // Check if invitation is expired
-    if (invitation.expiresAt && new Date() > invitation.expiresAt) {
-      await auditLog({
-        action: "create",
-        resource: "User",
-        detail: {
-          reason: "invitation_expired",
-          invitationId: invitation.id,
-          invitationCode,
-          attemptedUsername: username,
-        },
+    // P8: 邀请码可选——填了才校验
+    let invitation: {
+      id: string;
+      code: string;
+      usedCount: number;
+      maxUses: number;
+      expiresAt: Date | null;
+    } | null = null;
+    let willBeVerified = false;
+    if (invitationCode) {
+      invitation = await db.invitation.findUnique({
+        where: { code: invitationCode },
       });
-      return NextResponse.json(
-        { error: "邀请码已过期" },
-        { status: 400 }
-      );
-    }
+      if (!invitation) {
+        return NextResponse.json(
+          { error: "邀请码无效" },
+          { status: 400 }
+        );
+      }
 
-    // Check if invitation is exhausted
-    if (invitation.usedCount >= invitation.maxUses) {
-      await auditLog({
-        action: "create",
-        resource: "User",
-        detail: {
-          reason: "invitation_exhausted",
-          invitationId: invitation.id,
-          invitationCode,
-          attemptedUsername: username,
-        },
-      });
-      return NextResponse.json(
-        { error: "邀请码已被使用完" },
-        { status: 400 }
-      );
+      // Check if invitation is expired
+      if (invitation.expiresAt && new Date() > invitation.expiresAt) {
+        await auditLog({
+          action: "create",
+          resource: "User",
+          detail: {
+            reason: "invitation_expired",
+            invitationId: invitation.id,
+            attemptedUsername: username,
+          },
+        });
+        return NextResponse.json(
+          { error: "邀请码已过期" },
+          { status: 400 }
+        );
+      }
+
+      // Check if invitation is exhausted
+      if (invitation.usedCount >= invitation.maxUses) {
+        await auditLog({
+          action: "create",
+          resource: "User",
+          detail: {
+            reason: "invitation_exhausted",
+            invitationId: invitation.id,
+            attemptedUsername: username,
+          },
+        });
+        return NextResponse.json(
+          { error: "邀请码已被使用完" },
+          { status: 400 }
+        );
+      }
+
+      willBeVerified = true;
     }
 
     // Check for duplicate username
@@ -105,24 +114,30 @@ export async function POST(request: NextRequest) {
 
     // Create user and record invitation use in a transaction
     const result = await db.$transaction(async (tx) => {
-      // Increment invitation usedCount
-      const updatedInvitation = await tx.invitation.update({
-        where: { id: invitation.id },
-        data: { usedCount: { increment: 1 } },
-      });
+      let invitationId: string | null = null;
 
-      // Double-check after increment (race condition safety)
-      if (updatedInvitation.usedCount > updatedInvitation.maxUses) {
-        throw new Error("INVITATION_EXHAUSTED");
+      // Only consume the invitation when a valid code was supplied
+      if (invitation && willBeVerified) {
+        // Increment invitation usedCount
+        const updatedInvitation = await tx.invitation.update({
+          where: { id: invitation.id },
+          data: { usedCount: { increment: 1 } },
+        });
+
+        // Double-check after increment (race condition safety)
+        if (updatedInvitation.usedCount > updatedInvitation.maxUses) {
+          throw new Error("INVITATION_EXHAUSTED");
+        }
+        invitationId = invitation.id;
       }
 
-      // Create user
+      // Create user — role depends on whether a valid code was used
       const passwordHash = await hashPassword(password);
       const newUser = await tx.user.create({
         data: {
           username,
           passwordHash,
-          role: "USER",
+          role: willBeVerified ? "VERIFIED_USER" : "USER",
           status: "ACTIVE",
         },
         select: {
@@ -133,13 +148,15 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Record invitation use
-      await tx.invitationUse.create({
-        data: {
-          invitationId: invitation.id,
-          userId: newUser.id,
-        },
-      });
+      // Record invitation use only when an invitation was consumed
+      if (invitationId) {
+        await tx.invitationUse.create({
+          data: {
+            invitationId,
+            userId: newUser.id,
+          },
+        });
+      }
 
       return { user: newUser };
     });
@@ -147,7 +164,7 @@ export async function POST(request: NextRequest) {
     // Create session
     const token = await createSession(result.user.id);
 
-    // Audit log — P2-5: mask invitation code to avoid plaintext logging
+    // Audit log — P2-5: mask invitation code to avoid plaintext logging; P8: code may be absent
     await auditLog({
       userId: result.user.id,
       action: "create",
@@ -156,8 +173,8 @@ export async function POST(request: NextRequest) {
       detail: {
         username: result.user.username,
         role: result.user.role,
-        invitationId: invitation.id,
-        invitationCode: invitationCode.slice(0, 2) + "****",
+        invitationId: invitation?.id ?? null,
+        invitationCode: invitationCode ? invitationCode.slice(0, 2) + "****" : null,
       },
       ip,
     });
