@@ -22,6 +22,8 @@ model User {
   updatedAt    DateTime   @updatedAt
   sessions              Session[]
   ownedContentItems     ContentItem[]      @relation("ContentItemOwner")
+  reviewedContentItems  ContentItem[]      @relation("ContentItemAdminReviewer")
+  articleFavorites      ArticleFavorite[]
   ownedMaterialCards    MaterialCard[]     @relation("MaterialCardOwner")
   asyncTasks            AsyncTask[]
   syncRecords           SyncRecord[]
@@ -177,12 +179,22 @@ model ContentItem {
   ownerUserId         String?                // 所属用户 ID（null 表示公共数据）
   visibility          String   @default("public") // public / private
 
+  // 管理员审核流（P2 新增）
+  adminReviewStatus   String   @default("pending_ai") // pending_ai / pending_admin / approved / rejected
+  adminReviewedAt     DateTime?
+  adminReviewedBy     String?
+  adminReviewNote     String?
+  publicVisibleAt     DateTime?
+  featuredToday       Boolean  @default(false)  // 今日推荐标记
+
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   source        Source         @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   ownerUser     User?          @relation("ContentItemOwner", fields: [ownerUserId], references: [id])
+  adminReviewer User?          @relation("ContentItemAdminReviewer", fields: [adminReviewedBy], references: [id])
   materialCards MaterialCard[]
+  favoritedBy   ArticleFavorite[]
   syncRecords   SyncRecord[]
   annotations   ArticleAnnotation[]
 
@@ -200,6 +212,8 @@ model ContentItem {
   @@index([aiAssessedAt])
   @@index([ownerUserId])
   @@index([visibility])
+  @@index([adminReviewStatus])
+  @@index([featuredToday])
 }
 
 // AI 素材卡
@@ -231,6 +245,34 @@ model MaterialCard {
   @@index([confirmed])
   @@index([createdAt])
   @@index([ownerUserId])
+  // NOTE: 私有卡去重用 partial unique index（见 migration SQL），不在此声明
+  // CREATE UNIQUE INDEX materialcard_private_unique
+  //   ON "MaterialCard" ("contentItemId", "cardType", "ownerUserId")
+  //   WHERE "ownerUserId" IS NOT NULL;
+}
+
+// 文章收藏关系（P2 新增）——软收藏，文章本体只存一份
+model ArticleFavorite {
+  id            String   @id @default(cuid())
+  userId        String
+  contentItemId String
+  createdAt     DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentItemId])
+  @@index([userId])
+  @@index([contentItemId])
+}
+
+// 角色配额（P2 新增）——管理员后台配置每个角色的收藏上限
+model RoleQuota {
+  id            String   @id @default(cuid())
+  role          String   @unique // USER / VERIFIED_USER（ADMIN 不入库，代码硬编码不限）
+  favoriteLimit Int
+  updatedAt     DateTime @updatedAt
+  updatedBy     String?
 }
 
 // 同步记录
