@@ -29,6 +29,8 @@ import type { CardType } from "@/types";
 import { formatApiErrorMessage, type ApiErrorPayload } from "@/lib/api-error";
 import { waitForAdminTask } from "@/lib/client-admin-task";
 import { CONTENT_TYPE_LABELS, translateTag, parseTopicTags } from "@/lib/display-labels";
+import { useAuth } from "@/lib/auth-context";
+import { UpgradeButton } from "@/components/UpgradeButton";
 
 interface ContentItemDetailProps {
   article: {
@@ -66,6 +68,7 @@ const CARD_TYPE_OPTIONS: { value: CardType; label: string; icon: React.ElementTy
 ];
 
 export function ArticleDetail({ article, onClose, managementMode = false }: ContentItemDetailProps) {
+  const { user } = useAuth();
   const [cardType, setCardType] = useState<CardType>("golden_sentence");
   const [generating, setGenerating] = useState(false);
   const [errorInfo, setErrorInfo] = useState<{ message: string; code?: string } | null>(null);
@@ -231,7 +234,15 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
         </div>
 
         <Separator />
-        {managementMode ? (
+        {user?.role === "USER" ? (
+          <div className="border rounded p-4 bg-muted/40 flex items-center justify-between gap-3">
+            <div>
+              <p className="font-medium">🔒 升级为认证用户后可生成素材卡</p>
+              <p className="text-sm text-muted-foreground">使用你自己的 AI 配置，生成属于你的素材卡。</p>
+            </div>
+            <UpgradeButton />
+          </div>
+        ) : managementMode ? (
           <div className="space-y-3">
             <p className="text-sm font-medium">一键生成素材卡</p>
             <div className="flex items-center gap-2">
