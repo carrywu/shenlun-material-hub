@@ -30,6 +30,12 @@ const { authMocks, USERS } = vi.hoisted(() => {
 
 vi.mock("@/lib/auth", () => ({
   getUserFromRequest: authMocks.getUserFromRequest,
+  requireVerifiedUser: async (req: Request) => {
+    const u = await authMocks.getUserFromRequest(req);
+    if (!u) return null;
+    if (u.role !== "ADMIN" && u.role !== "VERIFIED_USER") return null;
+    return u;
+  },
   unauthorizedResponse: (msg = "未登录或会话已过期") =>
     Response.json({ error: msg }, { status: 401 }),
   forbiddenResponse: (msg = "权限不足") =>
