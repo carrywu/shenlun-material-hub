@@ -132,14 +132,22 @@ export async function cleanExpiredSessions(): Promise<number> {
 
 export const AUTH_COOKIE_NAME = "auth_token";
 
+// Secure cookie 判定：生产（HTTPS）启用，staging 走 HTTP 必须关闭，
+// 否则浏览器在 HTTP 下会丢弃 auth_token，导致登录后仍进不去后台。
+function shouldUseSecureCookie(): boolean {
+  if (process.env.NODE_ENV !== "production") return false;
+  if (process.env.APP_ENV === "staging") return false;
+  return true;
+}
+
 export function buildCookieHeader(token: string, maxAge = 86400): string {
-  const isProd = process.env.NODE_ENV === "production";
-  return `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; ${isProd ? "Secure;" : ""} SameSite=Strict; Max-Age=${maxAge}`;
+  const secure = shouldUseSecureCookie();
+  return `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; ${secure ? "Secure;" : ""} SameSite=Strict; Max-Age=${maxAge}`;
 }
 
 export function buildClearCookieHeader(): string {
-  const isProd = process.env.NODE_ENV === "production";
-  return `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; ${isProd ? "Secure;" : ""} SameSite=Strict; Max-Age=0`;
+  const secure = shouldUseSecureCookie();
+  return `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; ${secure ? "Secure;" : ""} SameSite=Strict; Max-Age=0`;
 }
 
 // ─── Legacy JWT support (for migration period) ──────────────────────────────
