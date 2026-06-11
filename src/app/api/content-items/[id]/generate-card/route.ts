@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateCardForContentItem, AiServiceError } from "@/services/ai";
-import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
+import { createAsyncTask, enqueueAsyncTask, checkTaskRateLimit } from "@/lib/async-task";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import type { CardType, ErrorCode } from "@/types";
 
@@ -31,7 +31,7 @@ async function runGenerateCardTask(id: string, cardType: CardType, requestId: st
   }
 
   const existingCard = await db.materialCard.findFirst({
-    where: { contentItemId: id, cardType },
+    where: { contentItemId: id, cardType, ownerUserId },
   });
   if (existingCard) {
     return {
@@ -104,32 +104,17 @@ export async function POST(
     }
     return forbiddenResponse();
   }
+  // P5: USER 不能生卡（防御层：requireVerifiedUser 理论上已拦截）
+  if (user.role === "USER") {
+    return forbiddenResponse("普通用户不能生成素材卡，请升级为认证用户");
+  }
   const requestId = newRequestId();
 
   try {
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
     const cardType = (body.cardType as CardType) ?? "golden_sentence";
-
-    const validTypes: CardType[] = [
-      "golden_sentence",
-      "standard_expression",
-      "case_material",
-      "countermeasure",
-      "problem_statement",
-      "reason_analysis",
-      "policy_expression",
-      "person_story",
-      "article_structure",
-    ];
-    if (!validTypes.includes(cardType)) {
-      return errorResponse(
-        "AI_RESPONSE_INVALID_JSON",
-        "无效的卡片类型，请在页面提供的中文素材类型中选择",
-        400,
-        { requestId }
-      );
-    }
+    const cardTypesRaw = body.cardTypes as CardType[] | undefined;
 
     const item = await db.contentItem.findUnique({
       where: { id },
@@ -146,45 +131,87 @@ export async function POST(
       return errorResponse("NO_FULL_TEXT", "该内容条目没有全文，无法生成素材卡", 400, { requestId });
     }
 
-    if (item.aiDecision !== "accept") {
+    // P5: 准入改为 adminReviewStatus = approved
+    if (item.adminReviewStatus !== "approved") {
       return errorResponse(
-        "AI_DECISION_NOT_ACCEPT",
-        "该内容尚未通过 AI 评估或已被拒绝，请先进行 AI 评估",
+        "NOT_APPROVED",
+        "该内容尚未通过管理员审核，无法生成素材卡",
         400,
-        { aiDecision: item.aiDecision, aiReason: item.aiReason, requestId }
+        { adminReviewStatus: item.adminReviewStatus, requestId }
       );
     }
 
-    const existingCard = await db.materialCard.findFirst({
-      where: { contentItemId: id, cardType },
-    });
-    if (existingCard) {
+    // P5: 用户级速率限制（在创建任务前统一拦截）
+    const rateLimit = await checkTaskRateLimit(user.id);
+    if (!rateLimit.allowed) {
       return errorResponse(
-        "MATERIAL_CARD_ALREADY_EXISTS",
-        "该内容已存在同类型素材卡",
-        409,
-        { existingCardId: existingCard.id, requestId }
+        "RATE_LIMITED",
+        rateLimit.reason ?? "任务数已达上限",
+        429,
+        { requestId }
       );
     }
 
-    const task = await createAsyncTask("CARD_GENERATE", {
-      contentItemId: id,
-      cardType,
-      requestId,
-    });
+    // P5: 卡包模式 vs 单类型
+    const validTypes: CardType[] = [
+      "golden_sentence",
+      "standard_expression",
+      "case_material",
+      "countermeasure",
+      "problem_statement",
+      "reason_analysis",
+      "policy_expression",
+      "person_story",
+      "article_structure",
+    ];
 
-    enqueueAsyncTask(task, () => runGenerateCardTask(id, cardType, requestId, user.id));
+    const requestedTypes: CardType[] = (
+      Array.isArray(cardTypesRaw) && cardTypesRaw.length > 0
+        ? cardTypesRaw
+        : [cardType]
+    ).filter((t) => validTypes.includes(t));
+
+    if (requestedTypes.length === 0) {
+      return errorResponse(
+        "AI_RESPONSE_INVALID_JSON",
+        "无效的卡片类型，请在页面提供的中文素材类型中选择",
+        400,
+        { requestId }
+      );
+    }
+
+    // 串行 enqueue（全局并发由 async-task 限流；同用户 rateLimit 已查）
+    const isBundleMode = Array.isArray(cardTypesRaw) && cardTypesRaw.length > 0;
+    const tasks: Array<Record<string, unknown>> = [];
+    for (const ct of requestedTypes) {
+      const dup = await db.materialCard.findFirst({
+        where: { contentItemId: id, cardType: ct, ownerUserId: user.id },
+      });
+      if (dup) {
+        // 单类型模式：直接 409，便于前端精准提示
+        if (!isBundleMode) {
+          return errorResponse(
+            "MATERIAL_CARD_ALREADY_EXISTS",
+            "您已为该内容生成过同类型素材卡",
+            409,
+            { existingCardId: dup.id, requestId }
+          );
+        }
+        // 卡包模式：跳过已存在类型，继续处理其余
+        tasks.push({ cardType: ct, duplicated: true, existingCardId: dup.id });
+        continue;
+      }
+      const task = await createAsyncTask(
+        "CARD_GENERATE",
+        { contentItemId: id, cardType: ct, requestId },
+        user.id
+      );
+      enqueueAsyncTask(task, () => runGenerateCardTask(id, ct, requestId, user.id));
+      tasks.push({ cardType: ct, taskId: task.id, duplicated: false });
+    }
 
     return NextResponse.json(
-      {
-        accepted: true,
-        taskId: task.id,
-        status: "PENDING",
-        contentItemId: id,
-        cardType,
-        requestId,
-        message: "已加入后台素材卡生成队列",
-      },
+      { accepted: true, requestId, contentItemId: id, tasks },
       { status: 202 }
     );
   } catch (error) {

@@ -11,7 +11,9 @@ export type ErrorCode =
   | 'CONTENT_ITEM_NOT_FOUND'
   | 'NO_FULL_TEXT'
   | 'AI_DECISION_NOT_ACCEPT'
-  | 'MATERIAL_CARD_ALREADY_EXISTS';
+  | 'MATERIAL_CARD_ALREADY_EXISTS'
+  | 'NOT_APPROVED'
+  | 'RATE_LIMITED';
 
 // ==================== 枚举 ====================
 
