@@ -62,11 +62,13 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
+      # ⚠️ node:20-bookworm-slim 无 wget，改用 node 探测（生产 Dockerfile 用 wget，
+      # 但 standalone slim 镜像没装 wget，这里 override 避免 healthcheck 永远失败）
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>{if(!r.ok)throw new Error(r.status);}).catch(e=>{console.error(e.message);process.exit(1)})"]
+      interval: 15s
       timeout: 5s
-      retries: 3
-      start_period: 15s
+      retries: 5
+      start_period: 20s
 
   # ---------- wewe-rss（微信 RSS 采集 sidecar）----------
   # inline 定义，不复用 extends（docker compose extends 对 volumes 是合并，
