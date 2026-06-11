@@ -85,7 +85,11 @@ fi
 log "Restarting app with image tag: ${IMAGE_TAG}"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-build app
 
-# Ensure caddy is running (it depends on app healthy, but force-check)
+# Ensure wewe-rss sidecar is running (first deploy pulls the image automatically)
+log "Ensuring wewe-rss sidecar is running"
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-build wewe-rss
+
+# Ensure caddy is running (it depends on app healthy + wewe-rss, but force-check)
 log "Ensuring caddy is running"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-build caddy
 
