@@ -25,6 +25,49 @@ git log --oneline -20
 
 ## 当前活跃任务
 
+**2026-06-11 Staging 测试环境部署（家里 Linux 测试机，已部署并验证）**。
+
+为 `carry-pc`（Tailscale `100.117.96.1`，Ubuntu 25.10 x86_64）搭建独立 staging 环境，与生产（ECS `47.119.182.210`）完全隔离。详细文档：`docs/deployment/staging-deployment.md`、`tasks/2026-06-11-staging-deployment/`。
+
+staging 当前状态：
+- 3 容器全部 healthy/running：`shenlun-staging-app`（3001）、`shenlun-staging-postgres`（5433，库 `shenlun_material_hub`）、`shenlun-staging-wewe`（4000）
+- 迁移 `0_init` 已应用；管理员 `admin`（ADMIN/ACTIVE）已创建
+- Mac Tailscale 访问验证通过：`http://100.117.96.1:3001/api/health` → `{"status":"ok"}`；登录 API 200 success
+- 部署目录：`/home/carry/shenlun-material-hub-staging`；ssh `carry@100.117.96.1`（公钥免密）
+
+本次新增（commit `a13c3ee` + `133ccab` + `5024ebb`）：
+1. `.env.staging.example` + `docker-compose.staging.yml`（独立 volumes `pgdata_staging` / `wewe_data_staging` / `data-staging/`）
+2. `scripts/deploy-staging.sh`（LOCAL+REMOTE 双模式）+ `scripts/check-staging.sh`
+3. `playwright.config.ts` webServer 条件化 + `package.json` 加 `test:e2e:staging`
+4. `docs/deployment/staging-deployment.md`
+
+部署过程修复的 5 个真实 bug（已固化进 deploy-staging.sh，详见 validation-report 第九节）：
+- A. compose 文件 `${VAR}` 插值需要 shell env（`source .env.staging`，不只靠 `--env-file`）
+- B. fresh clone 缺 `src/generated/prisma`（build 前 `prisma generate`）
+- C. standalone 镜像无 wget（compose healthcheck 改用 `node fetch`）
+- D. standalone 镜像无 tsx（seed-admin 改用容器内 `node+pg+bcryptjs` INSERT）
+- E. Docker Desktop 环境（`docker context use desktop-linux`）
+
+待人工执行 / 确认：
+- **wewe-rss 扫码配置**：Mac 浏览器开 `http://100.117.96.1:4000` 微信扫码登录，否则微信采集采不到数据（应用本身正常）。
+- **密码同源风险**：staging 管理员密码 = Linux 机密码 = 生产管理员密码同源，建议 staging 改独立值。
+- **E2E 全量未跑**：`e2e/global-setup.ts` 硬编码密码 `admin123`，staging 生产模式禁止，需改造 global-setup 读 `E2E_ADMIN_PASSWORD` 环境变量。连通性已由 curl 验证。
+
+常用命令：
+```bash
+# 从 Mac 远程部署
+LINUX_HOST=100.117.96.1 bash scripts/deploy-staging.sh
+# 远程健康检查
+LINUX_HOST=100.117.96.1 bash scripts/check-staging.sh
+# Mac 浏览器访问
+open http://100.117.96.1:3001   # staging 后台
+open http://100.117.96.1:4000   # wewe-rss 配置
+```
+
+⚠️ Docker Desktop 注意：Linux 机用的是 Docker Desktop（非 docker-ce），需手动启动 GUI，无 systemd 自启。若要开机自启/ssh 友好，建议改装 docker-ce。
+
+---
+
 **2026-06-11 采集可观测性 + 微信验证页误判修复 + admin/logs 进 git（已部署，待一次真实采集确认 + 清理脚本待人工执行）**。
 
 当前生产状态：
