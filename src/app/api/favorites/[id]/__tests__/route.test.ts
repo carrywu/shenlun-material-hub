@@ -11,15 +11,18 @@ vi.mock("@/lib/auth", () => ({
   forbiddenResponse: () => Response.json({ error: "x" }, { status: 403 }),
 }));
 
-const tx = vi.hoisted(() => ({ favDel: vi.fn(), cardDel: vi.fn() }));
-const dbMock = {
-  $transaction: vi.fn(async (fn: (t: unknown) => Promise<unknown>) =>
-    fn({
-      articleFavorite: { deleteMany: tx.favDel },
-      materialCard: { deleteMany: tx.cardDel },
-    })
-  ),
-};
+const { tx, dbMock } = vi.hoisted(() => {
+  const tx = { favDel: vi.fn(), cardDel: vi.fn() };
+  const dbMock = {
+    $transaction: vi.fn(async (fn: (t: unknown) => Promise<unknown>) =>
+      fn({
+        articleFavorite: { deleteMany: tx.favDel },
+        materialCard: { deleteMany: tx.cardDel },
+      })
+    ),
+  };
+  return { tx, dbMock };
+});
 vi.mock("@/lib/db", () => ({ db: dbMock }));
 
 import { DELETE } from "../route";

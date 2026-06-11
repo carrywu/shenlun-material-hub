@@ -22,21 +22,24 @@ vi.mock("@/lib/favorite-quota", () => ({
   getCurrentFavoriteCount: quota.count,
 }));
 
-const mocks = vi.hoisted(() => ({
-  txFindMany: vi.fn(),
-  txCreate: vi.fn(),
-  count: vi.fn(),
-  findMany: vi.fn(),
-}));
-const dbMock = {
-  $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
-    fn({
-      contentItem: { findMany: mocks.txFindMany },
-      articleFavorite: { create: mocks.txCreate },
-    })
-  ),
-  articleFavorite: { count: mocks.count, findMany: mocks.findMany },
-};
+const { mocks, dbMock } = vi.hoisted(() => {
+  const mocks = {
+    txFindMany: vi.fn(),
+    txCreate: vi.fn(),
+    count: vi.fn(),
+    findMany: vi.fn(),
+  };
+  const dbMock = {
+    $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn({
+        contentItem: { findMany: mocks.txFindMany },
+        articleFavorite: { create: mocks.txCreate },
+      })
+    ),
+    articleFavorite: { count: mocks.count, findMany: mocks.findMany },
+  };
+  return { mocks, dbMock };
+});
 vi.mock("@/lib/db", () => ({ db: dbMock }));
 
 import { GET, POST } from "../route";
@@ -75,10 +78,15 @@ describe("favorites route (P6)", () => {
   });
 
   it("未审核文章被过滤（skipped）", async () => {
-    mocks.txFindMany.mockResolvedValue([
+    // 模拟 Prisma findMany 尊重 where.adminReviewStatus 过滤
+    const rows = [
       { id: "c1", adminReviewStatus: "approved" },
       { id: "c2", adminReviewStatus: "pending_admin" },
-    ]);
+    ];
+    mocks.txFindMany.mockImplementation(async (args: { where?: { adminReviewStatus?: string } }) => {
+      const status = args?.where?.adminReviewStatus;
+      return status ? rows.filter((r) => r.adminReviewStatus === status) : rows;
+    });
     mocks.txCreate.mockResolvedValue({});
     const res = await POST(makeReq("POST", USERS.VERIFIED, { contentItemIds: ["c1", "c2"] }));
     expect(res.status).toBe(200);
