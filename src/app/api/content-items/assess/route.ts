@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 import { assessRelevanceWithRetry, AiServiceError } from "@/services/ai";
-import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 const DEFAULT_CONCURRENCY = 3;
 
@@ -46,6 +46,8 @@ async function assessSingleItem(
         aiAssessedAt: new Date(),
         aiAssessmentError: null,
         qualityStatus: result.decision === "accept" ? "accepted" : "filtered",
+        adminReviewStatus:
+          result.decision === "accept" ? "pending_admin" : "rejected",
         processingStatus:
           result.decision === "accept" ? "pending" : "filtered",
         filterReason:
@@ -63,6 +65,7 @@ async function assessSingleItem(
       data: {
         aiAssessmentError: msg,
         aiAssessedAt: new Date(),
+        adminReviewStatus: "pending_ai",
       },
     });
 
@@ -131,7 +134,7 @@ async function runAssessTask(
 
 // POST /api/content-items/assess — 批量 AI 评估内容条目
 export async function POST(request: NextRequest) {
-  const user = await requireVerifiedUser(request);
+  const user = await requireAdmin(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) {
