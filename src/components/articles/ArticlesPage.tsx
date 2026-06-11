@@ -92,8 +92,8 @@ const AI_DECISION_OPTIONS = [
 
 const ADMIN_REVIEW_STATUS_OPTIONS = [
   { value: "all", label: "全部" },
-  { value: "pending", label: "待AI" },
-  { value: "pending_review", label: "待审核" },
+  { value: "pending_ai", label: "待AI" },
+  { value: "pending_admin", label: "待审核" },
   { value: "approved", label: "已通过" },
   { value: "rejected", label: "已拒绝" },
 ];

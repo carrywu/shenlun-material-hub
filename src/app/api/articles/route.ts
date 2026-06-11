@@ -121,7 +121,9 @@ export async function GET(request: NextRequest) {
     } else {
       // P2-14: include legacy articles with visibility:null for anonymous users
       // Use AND to combine visibility filter with existing keyword OR
+      // P3-final: 匿名用户也只能看 adminReviewStatus=approved（防未审核泄露）
       const visibilityFilter = {
+        adminReviewStatus: "approved",
         OR: [
           { visibility: "public" },
           { visibility: null },
