@@ -45,6 +45,7 @@ interface ContentItemDetailProps {
     aiScore: number | null;
     aiScoreDetail: string | null;
     aiDecision: string | null;
+    adminReviewStatus: string | null;
     source?: { name: string } | null;
     _count?: { materialCards: number };
   };
@@ -262,7 +263,7 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
               <Button
                 size="sm"
                 onClick={handleGenerateCard}
-                disabled={generating || !article.fullText || article.aiDecision !== "accept"}
+                disabled={generating || !article.fullText || article.adminReviewStatus !== "approved"}
               >
                 {generating ? (
                   <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />

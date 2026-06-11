@@ -47,6 +47,7 @@ interface ContentItemData {
   filterReason: string | null;
   aiScore: number | null;
   aiDecision: string | null;
+  adminReviewStatus: string | null;
   aiReason: string | null;
   contentGenre: string | null;
   aiAssessedAt: string | null;
@@ -381,22 +382,23 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
   }
 
   async function handleGenerate() {
+    if (generating) return;
     if (selected.size === 0) return;
 
     setGenerating(true);
     const selectedItems = items.filter((item) => selected.has(item.id));
-    const acceptedItems = selectedItems.filter((item) => item.aiDecision === "accept");
+    const acceptedItems = selectedItems.filter((item) => item.adminReviewStatus === "approved");
     const skippedCount = selectedItems.length - acceptedItems.length;
     let queuedCount = 0;
     let existedCount = 0;
     let failedCount = 0;
 
-    setGenerateProgress(`正在为 ${acceptedItems.length} 篇已通过评估的文章生成素材卡...`);
+    setGenerateProgress(`正在为 ${acceptedItems.length} 篇已审核通过的文章生成素材卡...`);
 
     try {
       if (acceptedItems.length === 0) {
-        setGenerateProgress(`已跳过 ${skippedCount} 篇：需先通过 AI 评估`);
-        toast.warning("没有可生成的文章", { description: "请先选择已通过 AI 评估的文章" });
+        setGenerateProgress(`已跳过 ${skippedCount} 篇：需先审核通过`);
+        toast.warning("没有可生成的文章", { description: "请先选择已审核通过的文章" });
         return;
       }
 
