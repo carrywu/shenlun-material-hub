@@ -57,3 +57,29 @@ export async function loginAsAdminAPI(
     throw new Error(`API 登录失败：${res.status()} ${await res.text()}`);
   }
 }
+
+/**
+ * P8-T7: USER 角色 API 登录。
+ *
+ * 注意：Playwright 的 `request` fixture 默认携带 globalSetup 注入的 admin
+ * storageState，会让本次调用带上 admin cookie 造成污染。使用此 helper 的测试
+ * 必须用 `test.use({ storageState: { cookies: [], origins: [] } })` 覆盖项目级
+ * storageState，或通过 `playwright.request.newContext({ storageState: ... })`
+ * 创建独立 context。
+ *
+ * USER 账号需在 global-setup 或 seed 脚本里预创建；dev DB 暂缺该 fixture，
+ * 调用方应做好 try/catch 或 test.skip 兜底。
+ */
+export async function loginAsUserAPI(
+  request: import('@playwright/test').APIRequestContext,
+): Promise<void> {
+  const res = await request.post('/api/auth/login', {
+    data: {
+      username: process.env.E2E_USER_USERNAME ?? 'plainuser',
+      password: process.env.E2E_USER_PASSWORD ?? 'user-password',
+    },
+  });
+  if (!res.ok()) {
+    throw new Error(`USER API 登录失败：${res.status()} ${await res.text()}`);
+  }
+}
