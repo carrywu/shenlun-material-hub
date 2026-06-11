@@ -13,6 +13,7 @@ ENV_FILE="${ENV_FILE:-.env.production}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 KEEP_TAGS="${KEEP_REMOTE_IMAGE_TAGS:-3}"
 BACKUP_SCRIPT="scripts/deploy/aliyun-backup-db.sh"
+ROLLBACK_SCRIPT="scripts/deploy/rollback-tcr.sh"
 
 # ── Parse arguments ────────────────────────────────────────────────────────────
 
@@ -63,6 +64,11 @@ require_file "$ENV_FILE"
 command -v docker >/dev/null || die "docker is not installed"
 docker compose version >/dev/null 2>&1 || die "docker compose is not available"
 
+PREVIOUS_TAG=""
+if [ -f REVISION ]; then
+  PREVIOUS_TAG="$(awk -F= '$1 == "IMAGE_TAG" { print $2; exit }' REVISION)"
+fi
+
 # ── Pull new image ─────────────────────────────────────────────────────────────
 
 TCR_IMAGE="ccr.ccs.tencentyun.com/carrywu/shenlun"
@@ -78,6 +84,13 @@ if [ -f "$BACKUP_SCRIPT" ]; then
   bash "$BACKUP_SCRIPT" || log "WARNING: Backup failed, continuing anyway"
 else
   log "WARNING: Backup script not found at $BACKUP_SCRIPT, skipping backup"
+fi
+
+# ── Run migrations with the new image before restarting app ───────────────────
+
+log "Running database migrations with image tag: ${IMAGE_TAG}"
+if ! docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --no-deps app npx prisma migrate deploy; then
+  die "Database migration failed; app was not restarted"
 fi
 
 # ── Restart app ────────────────────────────────────────────────────────────────
@@ -122,6 +135,12 @@ else
   log "Health check FAILED after 120s"
   log "Recent app logs:"
   docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail=50 app
+  if [ -n "$PREVIOUS_TAG" ] && [ "$PREVIOUS_TAG" != "$IMAGE_TAG" ] && [ -f "$ROLLBACK_SCRIPT" ]; then
+    log "Rolling back to previous image tag: ${PREVIOUS_TAG}"
+    bash "$ROLLBACK_SCRIPT" --yes "$PREVIOUS_TAG"
+  else
+    log "No previous image tag available for automatic rollback"
+  fi
   exit 1
 fi
 

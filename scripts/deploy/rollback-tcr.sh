@@ -5,6 +5,7 @@
 #   bash scripts/deploy/rollback-tcr.sh                # list available tags
 #   bash scripts/deploy/rollback-tcr.sh a1b2c3d        # roll back to git sha tag
 #   bash scripts/deploy/rollback-tcr.sh 20260610-1530   # roll back to timestamp tag
+#   bash scripts/deploy/rollback-tcr.sh --yes 20260610-1530
 
 set -euo pipefail
 
@@ -14,19 +15,41 @@ BACKUP_SCRIPT="scripts/deploy/aliyun-backup-db.sh"
 
 TCR_IMAGE="ccr.ccs.tencentyun.com/carrywu/shenlun"
 DEPLOY_DIR="/opt/shenlun-material-hub"
+YES=false
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 log() { printf '[rollback-tcr] %s\n' "$*"; }
 die() { printf '[rollback-tcr] ERROR: %s\n' "$*" >&2; exit 1; }
 
+# ── Parse arguments ────────────────────────────────────────────────────────────
+
+TARGET_TAG=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --yes|-y)
+      YES=true
+      shift
+      ;;
+    --help|-h)
+      echo "Usage: $0 [--yes] <tag>"
+      exit 0
+      ;;
+    *)
+      if [ -n "$TARGET_TAG" ]; then
+        die "Unexpected argument: $1"
+      fi
+      TARGET_TAG="$1"
+      shift
+      ;;
+  esac
+done
+
 # ── Navigate to deploy dir ────────────────────────────────────────────────────
 
 cd "$DEPLOY_DIR" || die "Deploy directory not found: $DEPLOY_DIR"
 
 # ── No argument: show available tags ──────────────────────────────────────────
-
-TARGET_TAG="${1:-}"
 
 if [ -z "$TARGET_TAG" ]; then
   log "Available image tags for ${TCR_IMAGE}:"
@@ -38,6 +61,7 @@ if [ -z "$TARGET_TAG" ]; then
   echo "Usage: $0 <tag>"
   echo "Example: $0 a1b2c3d"
   echo "Example: $0 20260610-1530"
+  echo "Example: $0 --yes 20260610-1530"
   echo ""
   echo "Manual rollback:"
   echo "  cd ${DEPLOY_DIR}"
@@ -73,12 +97,16 @@ fi
 
 # ── Confirm rollback ──────────────────────────────────────────────────────────
 
-printf 'Roll back to tag "%s"? This will restart the app. [y/N] ' "$TARGET_TAG"
-read -r confirm
-case "$confirm" in
-  [yY]|[yY][eE][sS]) ;;
-  *) log "Aborted"; exit 0 ;;
-esac
+if [ "$YES" = true ]; then
+  log "Confirmation skipped by --yes"
+else
+  printf 'Roll back to tag "%s"? This will restart the app. [y/N] ' "$TARGET_TAG"
+  read -r confirm
+  case "$confirm" in
+    [yY]|[yY][eE][sS]) ;;
+    *) log "Aborted"; exit 0 ;;
+  esac
+fi
 
 # ── Backup database ────────────────────────────────────────────────────────────
 

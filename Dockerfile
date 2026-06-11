@@ -27,13 +27,11 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/src/generated ./src/generated
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-# P2-20: ensure pg module is available for Prisma PostgreSQL driver
-COPY --from=builder /app/node_modules/pg ./node_modules/pg
 
 RUN mkdir -p /app/prisma /app/public/uploads /home/nextjs && \
     chown -R nextjs:nodejs /app /home/nextjs && \
@@ -43,5 +41,4 @@ USER nextjs
 ENV HOME=/home/nextjs
 EXPOSE 3000
 
-# Run migrations before starting the server
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["node", "server.js"]
