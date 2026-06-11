@@ -34,8 +34,9 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 # P2-20: ensure pg module is available for Prisma PostgreSQL driver
 COPY --from=builder /app/node_modules/pg ./node_modules/pg
 
-RUN mkdir -p /app/prisma /app/public/uploads
-RUN chown -R nextjs:nodejs /app
+RUN mkdir -p /app/prisma /app/public/uploads /home/nextjs && \
+    chown -R nextjs:nodejs /app /home/nextjs && \
+    chown nextjs:nodejs /home/nextjs
 
 USER nextjs
 EXPOSE 3000
