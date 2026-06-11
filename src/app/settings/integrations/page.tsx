@@ -30,7 +30,15 @@ interface ConfigData {
 export default function UserWeWeRssSettingsPage() {
   const router = useRouter();
   const { isAdmin, user } = useAuth();
-  const isVerified = isAdmin || user?.role === "VERIFIED_USER";
+
+  // P1-T6: 非 admin 直访此 URL → 重定向回 /settings
+  // useAuth 无 loading 信号（AuthProvider 由服务端组件同步注入 user），
+  // 当 user 已解析（非 null）且非 admin 时才重定向，避免 admin 初次加载被误伤。
+  useEffect(() => {
+    if (user !== null && !isAdmin) {
+      router.replace("/settings");
+    }
+  }, [user, isAdmin, router]);
 
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,13 +164,8 @@ export default function UserWeWeRssSettingsPage() {
     }
   }
 
-  // Role guard — redirect non-verified users
-  if (user && !isVerified) {
-    router.push("/settings");
-    return null;
-  }
-
-  if (loading) {
+  // Auth still resolving (no user yet) — show loading until useEffect redirect fires
+  if (loading || user === null) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-muted-foreground">加载中...</p>
