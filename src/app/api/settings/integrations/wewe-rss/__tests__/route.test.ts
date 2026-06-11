@@ -30,6 +30,12 @@ const { authMocks, USERS } = vi.hoisted(() => {
 
 vi.mock("@/lib/auth", () => ({
   getUserFromRequest: authMocks.getUserFromRequest,
+  requireAdmin: async (req: Request) => {
+    const u = await authMocks.getUserFromRequest(req);
+    if (!u) return null;
+    if (u.role !== "ADMIN") return null;
+    return u;
+  },
   requireVerifiedUser: async (req: Request) => {
     const u = await authMocks.getUserFromRequest(req);
     if (!u) return null;

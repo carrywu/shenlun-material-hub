@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import { checkHealth } from "@/services/integrations/wewe-rss-api";
 
 // GET /api/settings/integrations/wewe-rss — 获取当前用户的 WeWe RSS 配置
 export async function GET(request: NextRequest) {
-  const user = await requireVerifiedUser(request);
+  const user = await requireAdmin(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/settings/integrations/wewe-rss — 创建或更新 WeWe RSS 配置
 export async function POST(request: NextRequest) {
-  const user = await requireVerifiedUser(request);
+  const user = await requireAdmin(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/settings/integrations/wewe-rss — 删除 WeWe RSS 配置
 export async function DELETE(request: NextRequest) {
-  const user = await requireVerifiedUser(request);
+  const user = await requireAdmin(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
@@ -117,7 +117,7 @@ export async function DELETE(request: NextRequest) {
 
 // PUT /api/settings/integrations/wewe-rss — 启用/禁用
 export async function PUT(request: NextRequest) {
-  const user = await requireVerifiedUser(request);
+  const user = await requireAdmin(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
