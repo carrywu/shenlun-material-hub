@@ -25,6 +25,44 @@ git log --oneline -20
 
 ## 当前活跃任务
 
+**2026-06-11 本地 Docker → TCR → ECS 部署已完成**。
+
+当前生产状态：
+- 服务器：`root@47.119.182.210:/opt/shenlun-material-hub`
+- 当前镜像：`ccr.ccs.tencentyun.com/carrywu/shenlun:20260611-1921`
+- 当前提交：`0548514`
+- 线上健康检查：`http://47.119.182.210/api/health` 返回 `{"status":"ok"}`
+- 服务器 `REVISION`：`IMAGE_TAG=20260611-1921`
+- 容器状态：`app` healthy，`postgres` healthy，`caddy` running，`wewe-rss` running
+
+本次部署修复：
+- GitHub Actions 改为仅手动触发，避免 push 后慢 CI 与本地部署抢状态。
+- Docker 镜像 runner 阶段复制 `prisma.config.ts`、完整 `node_modules`，Prisma migrate 改为部署脚本执行，容器启动只跑 `node server.js`。
+- Dockerfile 设置 `HOSTNAME=0.0.0.0`，避免 Next standalone 绑定容器 hostname 导致 `127.0.0.1:3000` 不通。
+- `server-pull-and-restart.sh` 回滚判定改为 Docker app container health，Caddy/public health 作为补充验证。
+- `deploy-tcr.sh` 和服务器脚本兼容两种 health body：`{"ok":true}` 与 `{"status":"ok"}`。
+
+常用命令：
+
+```bash
+# 本地优先部署
+bash scripts/deploy/deploy-tcr.sh --no-confirm
+
+# 生产状态
+ssh root@47.119.182.210 'cd /opt/shenlun-material-hub && cat REVISION && docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"'
+
+# 公网健康检查
+curl -i http://47.119.182.210/api/health
+
+# 回滚到指定旧 tag
+ssh root@47.119.182.210 'cd /opt/shenlun-material-hub && bash scripts/deploy/rollback-tcr.sh --yes <tag>'
+```
+
+已知非阻断警告：
+- `docker compose` 会提示 `PI1` 变量未设置；当前未阻断部署。
+- `npx prisma migrate deploy` 会提示无法检测 OpenSSL 版本并默认 `openssl-1.1.x`；本次迁移成功，后续可单独优化基础镜像或安装 OpenSSL，避免警告。
+- 服务器部署目录不是 git checkout；脚本变更需要 `scp` 同步到 `/opt/shenlun-material-hub/scripts/deploy/`。
+
 **2026-06-08 全量代码审查修复已完成**（分支 `fix/code-review-2026-06-07`）。
 
 修复概要：
