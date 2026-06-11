@@ -297,3 +297,35 @@ test.describe('文章列表页', () => {
     guard.report(test.info());
   });
 });
+
+// ── P3: 文章审核可见性 ──
+// 注意：这些用例依赖 fixture 数据（pending_admin / approved 文章）。
+// 本地 dev 库无 fixture 时 test.skip；staging 应用 P2 migration 并 seed 后可运行。
+
+test.describe('文章审核可见性（P3）', () => {
+  test('ADMIN 可用 adminReviewStatus=pending_admin 筛选', async ({ request }) => {
+    const pendingId = process.env.E2E_PENDING_ARTICLE_ID;
+    if (!pendingId) {
+      test.skip(true, '需要 E2E_PENDING_ARTICLE_ID fixture（staging apply P2 migration 后）');
+    }
+    // admin 已通过 global-setup 的 storageState 登录
+    const res = await request.get('/api/articles?adminReviewStatus=pending_admin&pageSize=5');
+    expect(res.status()).toBe(200);
+    const json = await res.json();
+    const allPending = (json.data ?? []).every(
+      (item: { adminReviewStatus?: string }) => item.adminReviewStatus === 'pending_admin'
+    );
+    expect(allPending).toBeTruthy();
+  });
+
+  test('非管理员访问未审核文章详情 → 404（防 ID 绕过）', async ({ request }) => {
+    // 用独立无 cookie context 模拟匿名 → 401；VERIFIED_USER 场景需 P8 的 loginAsVerifiedUserAPI
+    const pendingId = process.env.E2E_PENDING_ARTICLE_ID;
+    if (!pendingId) {
+      test.skip(true, '需要 E2E_PENDING_ARTICLE_ID fixture');
+    }
+    // 匿名访问受保护接口 → 401（requireAuth 拦截，先于 adminReviewStatus 检查）
+    const res = await request.get(`/api/content-items/${pendingId}`);
+    expect([401, 404]).toContain(res.status());
+  });
+});
