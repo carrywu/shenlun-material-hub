@@ -1,5 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// 当 PLAYWRIGHT_BASE_URL 指向非 localhost（如打已部署的 staging）
+// 时，跳过自带 dev server，直接打远端目标。
+const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001';
+const isRemoteTarget =
+  !baseUrl.includes('127.0.0.1') && !baseUrl.includes('localhost');
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 60 * 1000,
@@ -16,7 +22,7 @@ export default defineConfig({
   reporter: 'html',
   use: {
     actionTimeout: 0,
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001',
+    baseURL: baseUrl,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -30,10 +36,16 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'ADMIN_USERNAME=admin JWT_SECRET=playwright-test-secret AI_CONFIG_ENCRYPTION_KEY=test-encryption-key-32bytes pnpm dev',
-    port: 3001,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  // 打远端 staging 时不本地起 dev server；本地开发/CI 才起 dev server
+  ...(isRemoteTarget
+    ? {}
+    : {
+        webServer: {
+          command:
+            'ADMIN_USERNAME=admin JWT_SECRET=playwright-test-secret AI_CONFIG_ENCRYPTION_KEY=test-encryption-key-32bytes pnpm dev',
+          port: 3001,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120 * 1000,
+        },
+      }),
 });

@@ -1,0 +1,91 @@
+# ============================================================
+# Staging 测试环境编排
+# ============================================================
+#
+# 与生产 docker-compose.yml 的差异（intentional）：
+#   - name: shenlun-staging —— 隔离 compose project，避免与任何环境容器/volume 冲突
+#   - app:       3001:3000（生产是 3000:3000）；env_file .env.staging；挂 ./data-staging/uploads
+#   - postgres:  独立 volume pgdata_staging；库 shenlun_material_hub；宿主端口 5433:5432（避开生产 5432）
+#   - wewe-rss:  inline 定义（不用 extends，避免 volume 合并冲突）；独立 volume wewe_data_staging；4000:4000
+#   - 无 caddy（Tailscale 已端到端加密，staging 无域名）
+#
+# 使用：
+#   docker compose -f docker-compose.staging.yml --env-file .env.staging up -d --build
+#
+# ⚠️ 前置：Linux 机 4000 端口必须空闲（ss -lntp | grep :4000）
+
+name: shenlun-staging
+
+services:
+  # ---------- PostgreSQL ----------
+  postgres:
+    image: postgres:16
+    container_name: shenlun-staging-postgres
+    environment:
+      POSTGRES_USER: shenlun
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env.staging 中设置 POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-shenlun_material_hub}
+    volumes:
+      - pgdata_staging:/var/lib/postgresql/data
+    ports:
+      # 宿主机 5433 → 容器 5432；方便宿主机 pnpm seed:admin / 调试连接
+      # 避开生产 5432，防误连
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shenlun"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ---------- Next.js App ----------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shenlun-staging-app
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env.staging
+    environment:
+      NODE_ENV: production
+      APP_ENV: staging
+      PORT: 3000
+      # 覆盖 .env.staging 里的 DATABASE_URL，确保容器内连 compose 网络 postgres
+      DATABASE_URL: postgresql://shenlun:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shenlun_material_hub}?schema=public
+    volumes:
+      # 上传目录独立，不复用生产 ./data/uploads
+      - ./data-staging/uploads:/app/public/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ---------- wewe-rss（微信 RSS 采集 sidecar）----------
+  # inline 定义，不复用 extends（docker compose extends 对 volumes 是合并，
+  # 会导致 ./data 与 named volume 同时挂载 /app/data 冲突）
+  # 镜像与 infra/wechat-rss/wewe-rss/docker-compose.yml 一致：sqlite 版
+  wewe-rss:
+    image: cooderl/wewe-rss-sqlite:v2.6.1
+    container_name: shenlun-staging-wewe
+    ports:
+      # 用户坚持用 4000（与生产一致）；前置：4000 端口必须空闲
+      # Mac 浏览器开 http://100.117.96.1:4000 微信扫码配置
+      - "4000:4000"
+    environment:
+      - DATABASE_TYPE=sqlite
+    volumes:
+      # 独立 volume，不复用生产 wewe-rss 数据，不复用 infra/wechat-rss/wewe-rss/data
+      - wewe_data_staging:/app/data
+    restart: unless-stopped
+
+volumes:
+  pgdata_staging:
+  wewe_data_staging:

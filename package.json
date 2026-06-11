@@ -9,6 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:staging": "PLAYWRIGHT_BASE_URL=http://100.117.96.1:3001 playwright test",
     "seed:admin": "tsx src/scripts/seed-admin.ts",
     "seed:accounts": "tsx src/scripts/seed-accounts.ts",
     "seed:channels": "tsx src/scripts/seed-channels.ts",
