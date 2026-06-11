@@ -23,7 +23,7 @@ import {
 import { BatchActions } from "@/components/BatchActions";
 import { ArticleDetail } from "@/components/ArticleDetail";
 import { Pagination } from "@/components/ui/pagination";
-import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown } from "lucide-react";
+import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -90,6 +90,14 @@ const AI_DECISION_OPTIONS = [
   { value: "reject", label: "已拒绝" },
 ];
 
+const ADMIN_REVIEW_STATUS_OPTIONS = [
+  { value: "all", label: "全部" },
+  { value: "pending", label: "待AI" },
+  { value: "pending_review", label: "待审核" },
+  { value: "approved", label: "已通过" },
+  { value: "rejected", label: "已拒绝" },
+];
+
 const GENRE_BADGE_COLORS: Record<string, string> = {
   commentary: "bg-blue-100 text-blue-700",
   policy_interpretation: "bg-purple-100 text-purple-700",
@@ -144,6 +152,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
   const [section, setSection] = useState(searchParams.get("section") ?? "all");
   const [qualityStatus, setQualityStatus] = useState(searchParams.get("qualityStatus") ?? "all");
   const [aiDecision, setAiDecision] = useState(searchParams.get("aiDecision") ?? "all");
+  const [adminReviewStatus, setAdminReviewStatus] = useState(searchParams.get("adminReviewStatus") ?? "all");
   const [publishedStart, setPublishedStart] = useState(searchParams.get("publishedStart") ?? "");
   const [publishedEnd, setPublishedEnd] = useState(searchParams.get("publishedEnd") ?? "");
   const [collectedStart, setCollectedStart] = useState(searchParams.get("collectedStart") ?? "");
@@ -162,6 +171,9 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
   // AI assessment state
   const [assessing, setAssessing] = useState(false);
   const [assessProgress, setAssessProgress] = useState<string | null>(null);
+
+  // Batch review state
+  const [reviewing, setReviewing] = useState(false);
 
   // Selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -215,6 +227,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
       if (section && section !== "all") params.set("section", section);
       if (qualityStatus !== "all") params.set("qualityStatus", qualityStatus);
       if (aiDecision !== "all") params.set("aiDecision", aiDecision);
+      if (adminReviewStatus !== "all") params.set("adminReviewStatus", adminReviewStatus);
       if (publishedStart) params.set("publishedStart", publishedStart);
       if (publishedEnd) params.set("publishedEnd", publishedEnd);
       if (collectedStart) params.set("collectedStart", collectedStart);
@@ -232,7 +245,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, keyword, sourceType, sourceName, section, qualityStatus, aiDecision, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy]);
+  }, [page, pageSize, keyword, sourceType, sourceName, section, qualityStatus, aiDecision, adminReviewStatus, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy]);
 
   // 同步筛选条件到 URL
   const syncUrl = useCallback(() => {
@@ -243,6 +256,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     if (section && section !== "all") params.set("section", section);
     if (qualityStatus !== "all") params.set("qualityStatus", qualityStatus);
     if (aiDecision !== "all") params.set("aiDecision", aiDecision);
+    if (adminReviewStatus !== "all") params.set("adminReviewStatus", adminReviewStatus);
     if (publishedStart) params.set("publishedStart", publishedStart);
     if (publishedEnd) params.set("publishedEnd", publishedEnd);
     if (collectedStart) params.set("collectedStart", collectedStart);
@@ -250,7 +264,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     if (sortBy !== "createdAt") params.set("sortBy", sortBy);
     const qs = params.toString();
     router.replace(`/articles${qs ? `?${qs}` : ""}`, { scroll: false });
-  }, [keyword, sourceType, sourceName, section, qualityStatus, aiDecision, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy, router]);
+  }, [keyword, sourceType, sourceName, section, qualityStatus, aiDecision, adminReviewStatus, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy, router]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -272,6 +286,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     setSection("all");
     setQualityStatus("all");
     setAiDecision("all");
+    setAdminReviewStatus("all");
     setPublishedStart("");
     setPublishedEnd("");
     setCollectedStart("");
@@ -450,6 +465,66 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     }
   }
 
+  // 批量审核（通过/拒绝/强制通过）
+  async function handleBatchReview(action: "approve" | "reject", opts?: { force?: boolean }) {
+    if (reviewing) return;
+    if (selected.size === 0) {
+      toast.warning("请先选择文章");
+      return;
+    }
+    const selectedItems = Array.from(selected);
+    const note =
+      action === "approve" && opts?.force
+        ? prompt("强制通过理由（必填）") ?? ""
+        : prompt(action === "approve" ? "审核备注（可选）" : "拒绝原因（可选）") ?? "";
+    if (opts?.force && !note.trim()) {
+      toast.error("强制通过必须填写理由");
+      return;
+    }
+
+    setReviewing(true);
+    try {
+      const res = await fetch("/api/admin/content-items/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: selectedItems,
+          action,
+          note: note || undefined,
+          force: opts?.force,
+        }),
+      });
+      if (res.ok) {
+        toast.success(`已${action === "approve" ? "通过" : "拒绝"} ${selectedItems.length} 篇`);
+        setSelected(new Set());
+        fetchItems();
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j.error ?? "操作失败");
+      }
+    } catch {
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setReviewing(false);
+    }
+  }
+
+  // 推送单篇至今日推荐（仅审核通过）
+  async function pushFeature(id: string, title?: string) {
+    const res = await fetch("/api/admin/content-items/feature", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (res.ok) {
+      toast.success("已推送至今日推荐", { description: title });
+      fetchItems();
+    } else {
+      const j = await res.json().catch(() => ({}));
+      toast.error(j.error ?? "推送失败");
+    }
+  }
+
   const allSelected = items.length > 0 && items.every((a) => selected.has(a.id));
 
   return (
@@ -567,6 +642,25 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
               </SelectContent>
             </Select>
           </div>
+
+          {/* 审核状态 */}
+          {managementMode && (
+            <div className="w-36">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">审核状态</label>
+              <Select value={adminReviewStatus} onValueChange={(v) => { if (v) setAdminReviewStatus(v); }}>
+                <SelectTrigger className="h-8" aria-label="审核状态">
+                  <SelectValue>
+                    {ADMIN_REVIEW_STATUS_OPTIONS.find(o => o.value === adminReviewStatus)?.label ?? "全部"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {ADMIN_REVIEW_STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* 操作按钮 */}
           <div className="flex items-center gap-2 h-8">
@@ -733,10 +827,12 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                 totalCount={total}
                 allSelected={allSelected}
                 generating={generating}
+                reviewing={reviewing}
                 progress={generateProgress}
                 onSelectAll={selectAll}
                 onDeselectAll={deselectAll}
                 onGenerate={handleGenerate}
+                onReview={handleBatchReview}
               />
             </div>
           )}
@@ -772,6 +868,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                     <TableHead className="w-32 hidden md:table-cell">文章发布时间</TableHead>
                     <TableHead className="w-32 hidden md:table-cell">采集时间</TableHead>
                     <TableHead className="w-16">AI</TableHead>
+                    {managementMode && <TableHead className="w-24">操作</TableHead>}
                     <TableHead className="w-14 hidden md:table-cell">字数</TableHead>
                     {showDebugCols && <TableHead className="w-24">Owner</TableHead>}
                     {showDebugCols && <TableHead className="w-20">可见性</TableHead>}
@@ -833,6 +930,24 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                           )}
                         </div>
                       </TableCell>
+                      {managementMode && (
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          {item.adminReviewStatus === "approved" ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => pushFeature(item.id, item.title)}
+                              title="推送至今日推荐"
+                            >
+                              <Star className="mr-1 h-3.5 w-3.5" />
+                              推荐
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
                         {item.effectiveTextLength ?? "-"}
                       </TableCell>
