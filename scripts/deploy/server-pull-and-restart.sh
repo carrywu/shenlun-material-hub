@@ -49,6 +49,19 @@ require_file() {
   fi
 }
 
+app_health_status() {
+  local container_id
+  container_id="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q app 2>/dev/null || true)"
+  if [ -z "$container_id" ]; then
+    printf 'missing'
+    return 1
+  fi
+
+  docker inspect \
+    --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+    "$container_id" 2>/dev/null || printf 'unknown'
+}
+
 # ── Pre-flight checks ─────────────────────────────────────────────────────────
 
 DEPLOY_DIR="/opt/shenlun-material-hub"
@@ -117,21 +130,27 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 
 # ── Health check ───────────────────────────────────────────────────────────────
 
-HEALTH_URL="http://127.0.0.1/api/health"
-log "Running health check: ${HEALTH_URL}"
+log "Running app container health check"
 
 HEALTH_OK=false
 for i in $(seq 1 12); do
-  if curl -fsS "$HEALTH_URL" 2>/dev/null | grep -q '"ok".*true'; then
+  APP_HEALTH="$(app_health_status)"
+  log "  Attempt $i/12 app health: ${APP_HEALTH}"
+  if [ "$APP_HEALTH" = "healthy" ]; then
     HEALTH_OK=true
     break
   fi
-  log "  Attempt $i/12 failed, retrying in 10s..."
   sleep 10
 done
 
 if [ "$HEALTH_OK" = true ]; then
   log "Health check PASSED"
+  PUBLIC_HEALTH_URL="http://127.0.0.1/api/health"
+  if curl -fsS "$PUBLIC_HEALTH_URL" 2>/dev/null | grep -q '"ok".*true'; then
+    log "Local Caddy health check PASSED"
+  else
+    log "WARNING: Local Caddy health check did not pass immediately; deploy client will run external verification"
+  fi
 else
   log "Health check FAILED after 120s"
   log "Recent app logs:"
