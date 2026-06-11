@@ -20,7 +20,7 @@ test.describe('探索区 /explore', () => {
 
     // Either article cards or empty state should be visible
     const hasCards = await page.locator('div.border.rounded-lg.p-4').first().isVisible().catch(() => false);
-    const hasEmpty = await page.locator('text=暂无待核验内容').isVisible().catch(() => false);
+    const hasEmpty = await page.locator('text=暂无已审核文章').isVisible().catch(() => false);
     const hasNoResults = await page.locator('text=未找到匹配内容').isVisible().catch(() => false);
     expect(hasCards || hasEmpty || hasNoResults).toBe(true);
 

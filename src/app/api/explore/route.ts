@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
 
-// GET /api/explore — 待核验内容 / 关键词搜索（需认证）
+// GET /api/explore — 已审核通过的文章库 / 关键词搜索（需认证）
 export async function GET(request: NextRequest) {
   const user = await requireAuth(request);
   if (!user) return unauthorizedResponse();
@@ -18,8 +18,10 @@ export async function GET(request: NextRequest) {
     const platform = searchParams.get("platform");
     const contentType = searchParams.get("contentType");
 
-    // Build where clause — pending verification from unverified/disputed sources
-    const where: Record<string, unknown> = {};
+    // Build where clause — all admin-approved articles
+    const where: Record<string, unknown> = {
+      adminReviewStatus: "approved",
+    };
 
     if (query) {
       where.AND = [
@@ -32,20 +34,6 @@ export async function GET(request: NextRequest) {
           ],
         },
       ];
-    }
-
-    // Filter for pending verification content
-    const pendingFilter = {
-      OR: [
-        { source: { verificationStatus: { in: ["unverified", "disputed"] } } },
-        { processingStatus: "pending" },
-      ],
-    };
-
-    if (where.AND) {
-      (where.AND as Record<string, unknown>[]).push(pendingFilter);
-    } else {
-      where.AND = [pendingFilter];
     }
 
     if (platform) where.platform = platform;

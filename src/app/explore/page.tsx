@@ -191,7 +191,7 @@ export default function ExplorePage() {
           <div>
             <h1 className="text-xl font-semibold">探索区</h1>
             <p className="text-sm text-muted-foreground">
-              来自<strong>待核验来源</strong>的内容，可自行筛选后决定是否使用，与今日推荐（已核验来源）互为补充
+              全部已审核通过的文章，可按平台/类型筛选
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">共 {total} 条</p>
           </div>
@@ -270,11 +270,11 @@ export default function ExplorePage() {
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
             <ShieldQuestion className="h-8 w-8" />
-            <p>{debouncedQuery ? "未找到匹配内容" : "暂无待核验内容"}</p>
+            <p>{debouncedQuery ? "未找到匹配内容" : "暂无已审核文章"}</p>
             <p className="text-sm">
               {debouncedQuery
                 ? "请尝试其他关键词"
-                : "所有内容已核验完毕"}
+                : "暂无已审核通过的文章"}
             </p>
           </div>
         ) : (
