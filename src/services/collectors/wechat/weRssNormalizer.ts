@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import * as cheerio from "cheerio";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { runContentFilters } from "@/services/content-filter";
 import type { WeRssArticle } from "./weRssClient";
 
@@ -39,7 +40,7 @@ export interface PreviewArticle {
 const WECHAT_BLOCK_KEYWORDS = [
   "环境异常",
   "验证后即可继续",
-  "完成验证后即可继续",
+  "完成验证后即可继续访问",
   "当前环境异常",
   "频繁访问",
   "请先验证",
@@ -255,6 +256,12 @@ export async function normalizeWeRssArticle(
     where: { originalUrl },
   });
   if (existing) {
+    await logger.info("采集跳过：URL 已存在", "CRAWLER", {
+      sourceId: options.sourceId,
+      title: article.title,
+      url: originalUrl,
+      existingStatus: existing.processingStatus,
+    });
     return { created: false, item: existing };
   }
 
@@ -306,6 +313,12 @@ export async function normalizeWeRssArticle(
       },
     });
 
+    await logger.warn("采集封禁：微信验证页", "CRAWLER", {
+      sourceId: options.sourceId,
+      title: article.title,
+      url: originalUrl,
+      effectiveTextLength,
+    });
     return { created: true, filtered: true, filterReason: reason, item };
   }
 
@@ -342,6 +355,12 @@ export async function normalizeWeRssArticle(
       },
     });
 
+    await logger.info("采集跳过：全文过短", "CRAWLER", {
+      sourceId: options.sourceId,
+      title: article.title,
+      url: originalUrl,
+      effectiveTextLength,
+    });
     return { created: true, filtered: true, filterReason: reason, item };
   }
 
@@ -359,6 +378,21 @@ export async function normalizeWeRssArticle(
     // content filter 报错时记录但不阻塞入库
     const msg = err instanceof Error ? err.message : String(err);
     filterResult = { filtered: true, reason: `内容过滤器执行失败: ${msg}` };
+  }
+
+  // C2: 同批竞态兜底——若同 contentHash 的记录在过滤器运行期间刚被 create，
+  // 这里再查一次，避免重复入库（不同 URL 同正文的情况）。
+  if (!filterResult.filtered && contentHash) {
+    const dupByHash = await db.contentItem.findFirst({
+      where: { contentHash, id: { not: undefined } },
+      select: { id: true, title: true, originalUrl: true },
+    });
+    if (dupByHash && dupByHash.originalUrl !== originalUrl) {
+      filterResult = {
+        filtered: true,
+        reason: `与已有内容重复（hash: ${contentHash}，标题: ${dupByHash.title.slice(0, 30)}）`,
+      };
+    }
   }
 
   const item = await db.contentItem.create({
@@ -387,6 +421,23 @@ export async function normalizeWeRssArticle(
       coverUrl: article.cover ?? null,
     },
   });
+
+  if (filterResult.filtered) {
+    await logger.info(`采集跳过：${filterResult.reason ?? "过滤器命中"}`, "CRAWLER", {
+      sourceId: options.sourceId,
+      title: article.title,
+      url: originalUrl,
+      effectiveTextLength,
+    });
+  } else {
+    await logger.info("采集导入成功", "CRAWLER", {
+      sourceId: options.sourceId,
+      title: article.title,
+      url: originalUrl,
+      effectiveTextLength,
+      contentHash,
+    });
+  }
 
   return {
     created: true,

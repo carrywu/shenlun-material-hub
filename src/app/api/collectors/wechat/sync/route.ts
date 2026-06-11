@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
+import { logger } from "@/lib/logger";
 import { WeRssClient, fetchStandardRssArticles } from "@/services/collectors/wechat/weRssClient";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
 import { refreshFeed } from "@/services/integrations/wewe-rss-api";
@@ -23,6 +24,13 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
       collectorType: "werss",
       status: "running",
     },
+  });
+
+  const startedAtMs = Date.now();
+  await logger.info("采集任务开始", "CRAWLER", {
+    source: source.name,
+    sourceId: source.id,
+    collectorType: "werss",
   });
 
   try {
@@ -77,6 +85,16 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
       },
     });
 
+    await logger.info("采集任务完成", "CRAWLER", {
+      source: source.name,
+      sourceId: source.id,
+      discovered: result.discovered,
+      imported: result.imported,
+      skipped: result.skipped,
+      blocked: result.blocked,
+      durationMs: Date.now() - startedAtMs,
+    });
+
     return {
       success: result.errors.length === 0,
       discoveredCount: result.discovered,
@@ -88,6 +106,13 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
     };
   } catch (syncError) {
     const errorMsg = syncError instanceof Error ? syncError.message : String(syncError);
+
+    await logger.error("采集任务失败", "CRAWLER", {
+      source: source.name,
+      sourceId: source.id,
+      error: errorMsg,
+      durationMs: Date.now() - startedAtMs,
+    });
 
     await db.collectorRun.update({
       where: { id: runRecord.id },

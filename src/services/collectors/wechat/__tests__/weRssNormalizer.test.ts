@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WeRssArticle } from "../weRssClient";
 
 // Mock db - must use vi.hoisted for variables used in vi.mock
-const { mockFindUnique, mockCreate } = vi.hoisted(() => ({
+const { mockFindUnique, mockFindFirst, mockCreate } = vi.hoisted(() => ({
   mockFindUnique: vi.fn(),
+  mockFindFirst: vi.fn().mockResolvedValue(null),
   mockCreate: vi.fn(),
 }));
 
@@ -11,6 +12,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     contentItem: {
       findUnique: mockFindUnique,
+      findFirst: mockFindFirst,
       create: mockCreate,
     },
   },
@@ -23,6 +25,16 @@ const { mockRunContentFilters } = vi.hoisted(() => ({
 
 vi.mock("@/services/content-filter", () => ({
   runContentFilters: mockRunContentFilters,
+}));
+
+// Mock logger（normalizeWeRssArticle 各决策分支会写 SystemLog，这里拦截避免打到真实 db）
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn().mockResolvedValue(undefined),
+    warn: vi.fn().mockResolvedValue(undefined),
+    error: vi.fn().mockResolvedValue(undefined),
+    log: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 import { normalizeWeRssArticle, normalizeWeRssArticles, cleanWechatHtml, detectWechatBlockPage } from "../weRssNormalizer";
@@ -50,6 +62,7 @@ describe("normalizeWeRssArticle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRunContentFilters.mockResolvedValue({ filtered: false });
+    mockFindFirst.mockResolvedValue(null);
   });
 
   it("应该创建新文章并返回 created: true", async () => {
@@ -224,6 +237,7 @@ describe("normalizeWeRssArticles", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRunContentFilters.mockResolvedValue({ filtered: false });
+    mockFindFirst.mockResolvedValue(null);
   });
 
   it("应该批量处理多篇文章", async () => {
@@ -389,6 +403,7 @@ describe("normalizeWeRssArticle - 封禁页面检测", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRunContentFilters.mockResolvedValue({ filtered: false });
+    mockFindFirst.mockResolvedValue(null);
   });
 
   it("应该将微信封禁页面标记为 blocked（而非 filtered）", async () => {

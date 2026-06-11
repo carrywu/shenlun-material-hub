@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { runContentFilters } from "@/services/content-filter";
 import { parseRssUrl } from "@/lib/rss";
 
@@ -19,6 +20,7 @@ export interface CollectorResult {
   collectorType: string;
   discoveredCount: number;
   importedCount: number;
+  skippedCount?: number;
   errors: string[];
 }
 
@@ -296,6 +298,12 @@ export abstract class BaseCollector {
     });
 
     if (existing) {
+      await logger.info("采集跳过：URL 已存在", "CRAWLER", {
+        sourceId: source.id,
+        title: raw.title,
+        url: raw.url,
+        existingStatus: existing.processingStatus,
+      });
       return { created: false, item: existing };
     }
 
@@ -338,17 +346,38 @@ export abstract class BaseCollector {
         },
       });
 
+      await logger.info("采集跳过：全文过短", "CRAWLER", {
+        sourceId: source.id,
+        title: raw.title,
+        url: raw.url,
+        effectiveTextLength,
+      });
       return { created: true, item, filtered: true, filterReason: reason };
     }
 
     // Run content filters before creating
-    const filterResult = await runContentFilters(
+    let filterResult = await runContentFilters(
       raw.url,
       raw.title,
       fullText,
       excerpt,
       contentHash
     );
+
+    // C2: 同批竞态兜底——若同 contentHash 在过滤器运行期间刚被 create，
+    // 再查一次避免不同 URL 同正文重复入库。
+    if (!filterResult.filtered && contentHash) {
+      const dupByHash = await db.contentItem.findFirst({
+        where: { contentHash },
+        select: { id: true, title: true, originalUrl: true },
+      });
+      if (dupByHash && dupByHash.originalUrl !== raw.url) {
+        filterResult = {
+          filtered: true,
+          reason: `与已有内容重复（hash: ${contentHash}，标题: ${dupByHash.title.slice(0, 30)}）`,
+        };
+      }
+    }
 
     const item = await db.contentItem.create({
       data: {
@@ -378,6 +407,23 @@ export abstract class BaseCollector {
       },
     });
 
+    if (filterResult.filtered) {
+      await logger.info(`采集跳过：${filterResult.reason ?? "过滤器命中"}`, "CRAWLER", {
+        sourceId: source.id,
+        title: raw.title,
+        url: raw.url,
+        effectiveTextLength,
+      });
+    } else {
+      await logger.info("采集导入成功", "CRAWLER", {
+        sourceId: source.id,
+        title: raw.title,
+        url: raw.url,
+        effectiveTextLength,
+        contentHash,
+      });
+    }
+
     return {
       created: true,
       item,
@@ -401,6 +447,7 @@ export abstract class BaseCollector {
     const errors: string[] = [];
     let discoveredCount = 0;
     let importedCount = 0;
+    let skippedCount = 0;
 
     const runRecord = await db.collectorRun.create({
       data: {
@@ -408,6 +455,13 @@ export abstract class BaseCollector {
         collectorType: this.collectorType,
         status: "running",
       },
+    });
+
+    const startedAtMs = Date.now();
+    await logger.info("采集任务开始", "CRAWLER", {
+      source: source.name,
+      sourceId: source.id,
+      collectorType: this.collectorType,
     });
 
     try {
@@ -464,8 +518,12 @@ export abstract class BaseCollector {
         try {
           // P1-7 fix: use the correct channel for each article
           const channelId = articleChannelMap.get(article.url) ?? (channels.length > 0 ? channels[0].id : undefined);
-          const { created } = await this.normalizeToContentItem(article, source, channelId);
-          if (created) importedCount++;
+          const { created, filtered } = await this.normalizeToContentItem(article, source, channelId);
+          if (created && !filtered) {
+            importedCount++;
+          } else {
+            skippedCount++;
+          }
         } catch (error) {
           const msg =
             error instanceof Error ? error.message : String(error);
@@ -488,6 +546,15 @@ export abstract class BaseCollector {
         where: { id: source.id },
         data: { lastCollectedAt: new Date(), lastError: null },
       });
+
+      await logger.info("采集任务完成", "CRAWLER", {
+        source: source.name,
+        sourceId: source.id,
+        discovered: discoveredCount,
+        imported: importedCount,
+        skipped: skippedCount,
+        durationMs: Date.now() - startedAtMs,
+      });
     } catch (error) {
       const errorMsg =
         error instanceof Error ? error.message : String(error);
@@ -508,6 +575,13 @@ export abstract class BaseCollector {
         where: { id: source.id },
         data: { lastError: errorMsg },
       });
+
+      await logger.error("采集任务失败", "CRAWLER", {
+        source: source.name,
+        sourceId: source.id,
+        error: errorMsg,
+        durationMs: Date.now() - startedAtMs,
+      });
     }
 
     return {
@@ -515,6 +589,7 @@ export abstract class BaseCollector {
       collectorType: this.collectorType,
       discoveredCount,
       importedCount,
+      skippedCount,
       errors,
     };
   }

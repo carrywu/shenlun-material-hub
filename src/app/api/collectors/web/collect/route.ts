@@ -18,8 +18,9 @@ async function runAllEnabledWebsiteSourcesTask() {
 
   let totalDiscovered = 0;
   let totalImported = 0;
+  let totalSkipped = 0;
   const allErrors: string[] = [];
-  const results: Array<{ sourceName: string; discovered: number; imported: number; error?: string }> = [];
+  const results: Array<{ sourceName: string; discovered: number; imported: number; skipped?: number; error?: string }> = [];
 
   for (const source of sources) {
     const collector = getCollector({ name: source.name });
@@ -45,6 +46,7 @@ async function runAllEnabledWebsiteSourcesTask() {
 
       totalDiscovered += result.discoveredCount;
       totalImported += result.importedCount;
+      totalSkipped += result.skippedCount ?? 0;
       if (result.errors.length > 0) {
         allErrors.push(...result.errors);
       }
@@ -53,6 +55,7 @@ async function runAllEnabledWebsiteSourcesTask() {
         sourceName: source.name,
         discovered: result.discoveredCount,
         imported: result.importedCount,
+        skipped: result.skippedCount,
         error: result.errors.length > 0 ? result.errors[0] : undefined,
       });
     } catch (error) {
@@ -72,6 +75,7 @@ async function runAllEnabledWebsiteSourcesTask() {
     sourceCount: sources.length,
     discoveredCount: totalDiscovered,
     importedCount: totalImported,
+    skippedCount: totalSkipped,
     results,
     errors: allErrors.length > 0 ? allErrors : undefined,
   };
@@ -114,6 +118,7 @@ async function runSingleWebsiteSourceTask(params: WebCollectTaskParams) {
     sourceName: source.name,
     discoveredCount: result.discoveredCount,
     importedCount: result.importedCount,
+    skippedCount: result.skippedCount ?? 0,
     errors: result.errors.length > 0 ? result.errors : undefined,
   };
 }

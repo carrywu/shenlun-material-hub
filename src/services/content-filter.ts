@@ -175,7 +175,9 @@ export async function checkDuplicateFilter(
   const existing = await db.contentItem.findFirst({
     where: {
       contentHash,
-      processingStatus: { not: "filtered" },
+      // 纳入 blocked（验证页）参与查重，避免不同 URL 的同 hash 验证页重复入库；
+      // 仍排除 filtered，避免短文等误杀项污染查重库。
+      processingStatus: { notIn: ["filtered"] },
       ...(excludeId ? { id: { not: excludeId } } : {}),
     },
     select: { id: true, title: true },

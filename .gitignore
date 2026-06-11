@@ -1,5 +1,6 @@
 # Logs
-logs
+# 仅忽略根级 logs 目录与 *.log 文件，避免误伤 src/app/admin/logs 等业务目录
+/logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
