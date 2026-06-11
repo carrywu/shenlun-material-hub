@@ -15,7 +15,6 @@ export function contentVisibilityWhere(user: AuthUser) {
     OR: [
       { visibility: "public" },
       { ownerUserId: user.id },
-      { ownerUserId: null }, // Legacy public data without owner
     ],
   };
 }
@@ -82,7 +81,6 @@ export function subscriptionVisibilityWhere(user: AuthUser) {
     OR: [
       { source: { weweSubscriptions: { some: { userId: user.id, status: "active" } } } },
       { ownerUserId: user.id },
-      { ownerUserId: null }, // System shared / legacy public data
     ],
   };
 }

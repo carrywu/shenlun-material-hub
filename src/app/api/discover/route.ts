@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
-import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
+import { subscriptionVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
 
 function parsePositiveInt(value: string | null, fallback: number, max: number): number {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
 
     const user = await getUserFromRequest(request);
     const visibilityFilter = user
-      ? contentVisibilityWhere(user)
-      : { OR: [{ visibility: "public" }, { ownerUserId: null }] };
+      ? subscriptionVisibilityWhere(user)
+      : { visibility: "public" };
     const mergedWhere = mergeWhere(where, visibilityFilter);
 
     const [data, total] = await Promise.all([

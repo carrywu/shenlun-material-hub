@@ -31,7 +31,7 @@ describe("GET /api/discover", () => {
     dbMocks.count.mockResolvedValue(0);
   });
 
-  it("keeps the endpoint public but limits anonymous users to public and legacy content", async () => {
+  it("keeps the endpoint public but limits anonymous users to public content only", async () => {
     const { GET } = await import("../route");
 
     const response = await GET(new NextRequest("http://localhost/api/discover"));
@@ -44,12 +44,12 @@ describe("GET /api/discover", () => {
           isEnabled: true,
           archivedAt: null,
         },
-        OR: [{ visibility: "public" }, { ownerUserId: null }],
+        visibility: "public",
       },
     }));
   });
 
-  it("uses content visibility rules for authenticated users", async () => {
+  it("uses subscription visibility rules for authenticated users", async () => {
     dbMocks.getUserFromRequest.mockResolvedValueOnce(user);
     const { GET } = await import("../route");
 
@@ -65,9 +65,8 @@ describe("GET /api/discover", () => {
         },
         platform: "wechat",
         OR: [
-          { visibility: "public" },
+          { source: { weweSubscriptions: { some: { userId: "user-1", status: "active" } } } },
           { ownerUserId: "user-1" },
-          { ownerUserId: null },
         ],
       },
     }));

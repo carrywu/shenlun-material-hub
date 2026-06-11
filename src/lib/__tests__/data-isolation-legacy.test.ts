@@ -47,13 +47,12 @@ describe("Legacy null-owner data policy (ownerUserId=null)", () => {
       expect(where).toEqual({});
     });
 
-    it("regular user sees public, own, AND null-owner items", () => {
+    it("regular user sees public and own items only (no null-owner fallback)", () => {
       const where = contentVisibilityWhere(regularUser);
       expect(where).toEqual({
         OR: [
           { visibility: "public" },
           { ownerUserId: "user-a" },
-          { ownerUserId: null },
         ],
       });
     });

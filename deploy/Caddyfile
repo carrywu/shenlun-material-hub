@@ -1,4 +1,12 @@
 {$CADDY_SITE_ADDRESS::80} {
 	encode gzip zstd
+
+	# WeWe RSS 反代 — 公众号采集服务
+	handle_path /wewerss* {
+		strip_prefix /wewerss
+		reverse_proxy wewe-rss:4000
+	}
+
+	# 主应用
 	reverse_proxy app:3000
 }

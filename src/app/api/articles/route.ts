@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
-import { contentVisibilityWhere, subscriptionVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
+import { subscriptionVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
 
 export async function GET(request: NextRequest) {
   try {
@@ -109,18 +109,14 @@ export async function GET(request: NextRequest) {
       orderBy = [{ createdAt: "desc" }, { id: "desc" }];
     }
 
-    // Visibility: authenticated users see public+own+legacy; anonymous see public+legacy(null) only
+    // Visibility: authenticated users see subscribed sources + own content; anonymous see public only
     const user = await getUserFromRequest(request);
     if (user) {
       where = mergeWhere(where, subscriptionVisibilityWhere(user));
     } else {
-      // P2-14: include legacy articles with visibility:null for anonymous users
-      // Use AND to combine visibility filter with existing keyword OR
+      // Anonymous: only explicitly public content
       const visibilityFilter = {
-        OR: [
-          { visibility: "public" },
-          { ownerUserId: null },
-        ],
+        visibility: "public",
       };
       where = mergeWhere(where, visibilityFilter);
     }
