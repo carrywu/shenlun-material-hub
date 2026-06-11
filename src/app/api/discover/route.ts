@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// GET /api/discover — 已核验来源的内容，按 publishedAt 降序
+// GET /api/discover — 今日推荐（featuredToday + adminReviewStatus=approved），按 publishedAt 降序
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -15,11 +15,8 @@ export async function GET(request: NextRequest) {
     const trustLevel = searchParams.get("trustLevel");
 
     const where: Record<string, unknown> = {
-      source: {
-        verificationStatus: "verified",
-        isEnabled: true,
-        archivedAt: null,
-      },
+      featuredToday: true,
+      adminReviewStatus: "approved",
     };
 
     if (platform) where.platform = platform;

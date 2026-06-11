@@ -225,9 +225,9 @@ export default function DiscoverPage() {
       <div className="border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">今日推荐</h1>
+            <h1 className="text-xl font-semibold">今日推荐 · 管理员精选</h1>
             <p className="text-sm text-muted-foreground">
-              来自<strong>已核验来源</strong>的高质量内容，质量更有保障，适合直接阅读与整理素材
+              管理员精选并通过审核的高质量内容，质量更有保障，适合直接阅读与整理素材
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">共 {total} 条</p>
           </div>
@@ -304,8 +304,8 @@ export default function DiscoverPage() {
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
             <Shield className="h-8 w-8" />
-            <p>暂无已核验内容</p>
-            <p className="text-sm">请先核验来源或调整筛选条件</p>
+            <p>暂无今日推荐内容</p>
+            <p className="text-sm">请等待管理员精选或调整筛选条件</p>
           </div>
         ) : (
           <div className="space-y-8">
