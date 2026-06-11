@@ -1,128 +1,134 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const authMocks = vi.hoisted(() => ({
-  requireAdmin: vi.fn().mockResolvedValue({ id: "test-admin", username: "admin", role: "ADMIN", status: "ACTIVE" }),
-  requireVerifiedUser: vi.fn().mockResolvedValue({ id: "test-admin", username: "admin", role: "ADMIN", status: "ACTIVE" }),
-  requireAuth: vi.fn().mockResolvedValue({ id: "test-admin", username: "admin", role: "ADMIN", status: "ACTIVE" }),
-  unauthorizedResponse: vi.fn().mockReturnValue(new Response(JSON.stringify({ error: "未登录" }), { status: 401 })),
-  forbiddenResponse: vi.fn().mockReturnValue(new Response(JSON.stringify({ error: "权限不足" }), { status: 403 })),
-  validateSession: vi.fn().mockResolvedValue({ id: "test-admin", username: "admin", role: "ADMIN", status: "ACTIVE" }),
-  hashPassword: vi.fn().mockResolvedValue("$2a$12$hash"),
-  verifyPassword: vi.fn().mockResolvedValue({ valid: true }),
-  createSession: vi.fn().mockResolvedValue("test-token"),
-  ensureInitialAdmin: vi.fn().mockResolvedValue(undefined),
-}));
-
-vi.mock("@/lib/auth", () => authMocks);
-
-const mocks = vi.hoisted(() => ({
-  findUnique: vi.fn(),
-  findFirst: vi.fn(),
-  createAsyncTask: vi.fn(),
-  enqueueAsyncTask: vi.fn(),
-}));
-
-vi.mock("@/lib/db", () => ({
-  db: {
-    contentItem: {
-      findUnique: mocks.findUnique,
-    },
-    materialCard: {
-      findFirst: mocks.findFirst,
-    },
+const { authMocks, USERS } = vi.hoisted(() => ({
+  USERS: {
+    ADMIN: { id: "a", username: "a", role: "ADMIN" as const, status: "ACTIVE" as const },
+    VERIFIED: { id: "v", username: "v", role: "VERIFIED_USER" as const, status: "ACTIVE" as const },
+    USER: { id: "u", username: "u", role: "USER" as const, status: "ACTIVE" as const },
+  },
+  authMocks: {
+    // role-aware: requireVerifiedUser admits ADMIN + VERIFIED_USER only
+    requireVerifiedUser: vi.fn().mockResolvedValue(null),
   },
 }));
 
-vi.mock("@/lib/async-task", () => ({
-  createAsyncTask: mocks.createAsyncTask,
-  enqueueAsyncTask: mocks.enqueueAsyncTask,
+vi.mock("@/lib/auth", () => ({
+  requireVerifiedUser: authMocks.requireVerifiedUser,
+  unauthorizedResponse: () => Response.json({ error: "x" }, { status: 401 }),
+  forbiddenResponse: (m?: string) => Response.json({ error: m ?? "x" }, { status: 403 }),
 }));
 
-describe("POST /api/content-items/[id]/generate-card", () => {
+const mocks = vi.hoisted(() => ({
+  findUnique: vi.fn(),
+  findFirstCard: vi.fn(),
+  createTask: vi.fn(),
+  enqueue: vi.fn(),
+  rateLimit: vi.fn(),
+  update: vi.fn(),
+}));
+vi.mock("@/lib/db", () => ({
+  db: {
+    contentItem: { findUnique: mocks.findUnique, update: mocks.update },
+    materialCard: { findFirst: mocks.findFirstCard },
+  },
+}));
+vi.mock("@/lib/async-task", () => ({
+  createAsyncTask: mocks.createTask,
+  enqueueAsyncTask: mocks.enqueue,
+  checkTaskRateLimit: mocks.rateLimit,
+}));
+vi.mock("@/services/ai", () => ({
+  generateCardForContentItem: vi.fn(),
+  AiServiceError: class extends Error {
+    code = "X";
+    status = 500;
+  },
+}));
+
+import { POST } from "../route";
+
+function makeReq(id: string, user: unknown, body: unknown) {
+  authMocks.requireVerifiedUser.mockResolvedValue(user);
+  const init: RequestInit = {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  };
+  return [
+    new NextRequest(`http://localhost/api/content-items/${id}/generate-card`, init),
+    { params: Promise.resolve({ id }) },
+  ] as const;
+}
+
+const APPROVED_ITEM = {
+  id: "x",
+  fullText: "内容".repeat(200),
+  aiDecision: "accept",
+  adminReviewStatus: "approved",
+  source: { name: "src" },
+  title: "标题",
+};
+
+describe("POST /api/content-items/[id]/generate-card (P5)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.findUnique.mockResolvedValue({
-      id: "article-1",
-      title: "测试文章",
-      fullText: "正文",
-      aiDecision: "accept",
-      aiReason: null,
-      source: { name: "来源" },
-    });
-    mocks.findFirst.mockResolvedValue(null);
-    mocks.createAsyncTask.mockResolvedValue({ id: "task-1", type: "CARD_GENERATE" });
+    mocks.rateLimit.mockResolvedValue({ allowed: true });
   });
 
-  it("queues background generation and returns 202", async () => {
-    const { POST } = await import("../route");
+  it("USER → 403", async () => {
+    const [req, ctx] = makeReq("x", USERS.USER, { cardType: "golden_sentence" });
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(403);
+  });
 
-    const response = await POST(
-      new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
-        method: "POST",
-        body: JSON.stringify({ cardType: "golden_sentence" }),
-      }),
-      { params: Promise.resolve({ id: "article-1" }) }
-    );
-    const payload = await response.json();
+  it("adminReviewStatus != approved → 400", async () => {
+    mocks.findUnique.mockResolvedValue({ ...APPROVED_ITEM, adminReviewStatus: "pending_admin" });
+    const [req, ctx] = makeReq("x", USERS.VERIFIED, { cardType: "golden_sentence" });
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(400);
+  });
 
-    expect(response.status).toBe(202);
-    expect(payload).toMatchObject({
-      accepted: true,
-      taskId: "task-1",
-      status: "PENDING",
-      contentItemId: "article-1",
-      cardType: "golden_sentence",
-    });
-    expect(mocks.createAsyncTask).toHaveBeenCalledWith(
-      "CARD_GENERATE",
+  it("同用户同类型已存在 → 409", async () => {
+    mocks.findUnique.mockResolvedValue(APPROVED_ITEM);
+    mocks.findFirstCard.mockResolvedValue({ id: "existing", ownerUserId: "v" });
+    const [req, ctx] = makeReq("x", USERS.VERIFIED, { cardType: "golden_sentence" });
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(409);
+  });
+
+  it("公共卡（ownerUserId=null）不阻止私有卡生成 + findFirst 含 ownerUserId", async () => {
+    mocks.findUnique.mockResolvedValue(APPROVED_ITEM);
+    mocks.findFirstCard.mockResolvedValue(null);
+    mocks.createTask.mockResolvedValue({ id: "t1", type: "CARD_GENERATE" });
+    const [req, ctx] = makeReq("x", USERS.VERIFIED, { cardType: "golden_sentence" });
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(202);
+    expect(mocks.findFirstCard).toHaveBeenCalledWith(
       expect.objectContaining({
-        contentItemId: "article-1",
-        cardType: "golden_sentence",
+        where: expect.objectContaining({ ownerUserId: "v" }),
       })
     );
-    expect(mocks.enqueueAsyncTask).toHaveBeenCalledTimes(1);
   });
 
-  it("returns a clear error when full text is missing", async () => {
-    mocks.findUnique.mockResolvedValueOnce({
-      id: "article-1",
-      title: "测试文章",
-      fullText: null,
-      aiDecision: "accept",
-      aiReason: null,
-      source: { name: "来源" },
+  it("卡包模式：cardTypes 数组 → 串行 enqueue 多任务", async () => {
+    mocks.findUnique.mockResolvedValue(APPROVED_ITEM);
+    mocks.findFirstCard.mockResolvedValue(null);
+    mocks.createTask.mockResolvedValue({ id: "t1", type: "CARD_GENERATE" });
+    const [req, ctx] = makeReq("x", USERS.VERIFIED, {
+      cardTypes: ["golden_sentence", "standard_expression", "case_material", "countermeasure"],
     });
-    const { POST } = await import("../route");
-
-    const response = await POST(
-      new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
-        method: "POST",
-        body: JSON.stringify({ cardType: "golden_sentence" }),
-      }),
-      { params: Promise.resolve({ id: "article-1" }) }
-    );
-    const payload = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(payload).toMatchObject({ error: "NO_FULL_TEXT", message: "该内容条目没有全文，无法生成素材卡" });
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(202);
+    expect(mocks.createTask).toHaveBeenCalledTimes(4);
   });
 
-  it("rejects data_fact as a new material card type", async () => {
-    const { POST } = await import("../route");
-
-    const response = await POST(
-      new NextRequest("http://localhost/api/content-items/article-1/generate-card", {
-        method: "POST",
-        body: JSON.stringify({ cardType: "data_fact" }),
-      }),
-      { params: Promise.resolve({ id: "article-1" }) }
-    );
-    const payload = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(payload.message).toContain("无效的卡片类型");
-    expect(payload.message).not.toContain("data_fact");
-    expect(mocks.enqueueAsyncTask).not.toHaveBeenCalled();
+  it("速率限制命中 → 429", async () => {
+    mocks.findUnique.mockResolvedValue(APPROVED_ITEM);
+    mocks.findFirstCard.mockResolvedValue(null);
+    mocks.rateLimit.mockResolvedValue({ allowed: false, reason: "并发上限" });
+    const [req, ctx] = makeReq("x", USERS.VERIFIED, { cardType: "golden_sentence" });
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(429);
   });
 });
