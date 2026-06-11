@@ -14,22 +14,25 @@ vi.mock("@/lib/auth", () => ({
   forbiddenResponse: () => Response.json({ error: "x" }, { status: 403 }),
 }));
 
-const mocks = vi.hoisted(() => ({
-  invFindUnique: vi.fn(),
-  invUpdate: vi.fn(),
-  invUseCreate: vi.fn(),
-  userUpdate: vi.fn(),
-}));
-const dbMock = {
-  invitation: { findUnique: mocks.invFindUnique },
-  $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
-    fn({
-      invitation: { update: mocks.invUpdate },
-      user: { update: mocks.userUpdate },
-      invitationUse: { create: mocks.invUseCreate },
-    })
-  ),
-};
+const { mocks, dbMock } = vi.hoisted(() => {
+  const mocks = {
+    invFindUnique: vi.fn(),
+    invUpdate: vi.fn(),
+    invUseCreate: vi.fn(),
+    userUpdate: vi.fn(),
+  };
+  const dbMock = {
+    invitation: { findUnique: mocks.invFindUnique },
+    $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn({
+        invitation: { update: mocks.invUpdate },
+        user: { update: mocks.userUpdate },
+        invitationUse: { create: mocks.invUseCreate },
+      })
+    ),
+  };
+  return { mocks, dbMock };
+});
 vi.mock("@/lib/db", () => ({ db: dbMock }));
 vi.mock("@/lib/audit-logger", () => ({ auditLog: vi.fn().mockResolvedValue(undefined) }));
 
