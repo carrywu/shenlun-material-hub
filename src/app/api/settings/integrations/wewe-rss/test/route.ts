@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import { checkHealth } from "@/services/integrations/wewe-rss-api";
 
 // POST /api/settings/integrations/wewe-rss/test — 测试 WeWe RSS 连接
 export async function POST(request: NextRequest) {
-  const user = await requireVerifiedUser(request);
+  const user = await requireAdmin(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) return unauthorizedResponse();
