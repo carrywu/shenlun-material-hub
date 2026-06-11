@@ -63,7 +63,7 @@ services:
     restart: unless-stopped
 
   wewe-rss:
-    image: cooderl/wewe-rss-sqlite:v2.6.1
+    image: ccr.ccs.tencentyun.com/carrywu/wewe-rss:v2.6.1
     container_name: wewe-rss
     environment:
       - DATABASE_TYPE=sqlite
