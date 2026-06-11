@@ -25,7 +25,7 @@ vi.mock("@/services/content-filter", () => ({
   runContentFilters: mockRunContentFilters,
 }));
 
-import { normalizeWeRssArticle, normalizeWeRssArticles, cleanWechatHtml } from "../weRssNormalizer";
+import { normalizeWeRssArticle, normalizeWeRssArticles, cleanWechatHtml, detectWechatBlockPage } from "../weRssNormalizer";
 
 const BASE_OPTIONS = {
   sourceId: "source-001",
@@ -344,6 +344,106 @@ describe("normalizeWeRssArticles", () => {
     expect(result.discovered).toBe(1);
     expect(result.imported).toBe(0);
     expect(result.skipped).toBe(1); // 空正文 → filtered → skipped
+  });
+});
+
+describe("detectWechatBlockPage", () => {
+  it("应该检测包含'环境异常'的封禁页文本", () => {
+    expect(detectWechatBlockPage("环境异常 当前环境异常，完成验证后即可继续访问。")).toBe(true);
+  });
+
+  it("应该检测包含'验证后即可继续'的封禁页文本", () => {
+    expect(detectWechatBlockPage("请完成验证后即可继续访问微信文章")).toBe(true);
+  });
+
+  it("应该检测包含'频繁访问'的封禁页文本", () => {
+    expect(detectWechatBlockPage("检测到频繁访问，请先验证")).toBe(true);
+  });
+
+  it("应该检测包含'为你的访问安全'的封禁页文本", () => {
+    expect(detectWechatBlockPage("为你的访问安全，请先验证")).toBe(true);
+  });
+
+  it("对空文本应返回 false", () => {
+    expect(detectWechatBlockPage(null)).toBe(false);
+    expect(detectWechatBlockPage("")).toBe(false);
+  });
+
+  it("对正常长文章应返回 false", () => {
+    const normalText = "这是一篇正常的微信文章内容，".repeat(20) + "环境异常只是偶然出现的词";
+    // 超过 200 字 → 即使包含关键词也返回 false
+    expect(detectWechatBlockPage(normalText)).toBe(false);
+  });
+
+  it("对正常短文应返回 false", () => {
+    expect(detectWechatBlockPage("这是一篇短文")).toBe(false);
+  });
+
+  it("对实际线上封禁页清洗结果应返回 true", () => {
+    const realBlockedText = "环境异常 当前环境异常，完成验证后即可继续访问。 去验证";
+    expect(detectWechatBlockPage(realBlockedText)).toBe(true);
+  });
+});
+
+describe("normalizeWeRssArticle - 封禁页面检测", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRunContentFilters.mockResolvedValue({ filtered: false });
+  });
+
+  it("应该将微信封禁页面标记为 blocked（而非 filtered）", async () => {
+    mockFindUnique.mockResolvedValue(null);
+    mockCreate.mockResolvedValue({ id: "id", title: "t", originalUrl: "u" });
+
+    // 模拟真实封禁页 HTML → 清洗后为短文本含"环境异常"
+    const blockPageHtml = `<!DOCTYPE html><html><body><div class="weui-msg"><h2>环境异常</h2><p>当前环境异常，完成验证后即可继续访问。</p></div></body></html>`;
+
+    const result = await normalizeWeRssArticle(
+      makeArticle({ content: blockPageHtml }),
+      BASE_OPTIONS,
+    );
+
+    expect(result.filtered).toBe(true);
+    expect(result.filterReason).toContain("封禁");
+    const createCall = mockCreate.mock.calls[0][0];
+    expect(createCall.data.processingStatus).toBe("blocked");
+    expect(createCall.data.qualityStatus).toBe("blocked");
+  });
+
+  it("封禁文章不应计入 skipped，应计入 blocked", async () => {
+    mockFindUnique.mockResolvedValue(null);
+    mockCreate.mockResolvedValue({ id: "id", title: "t", originalUrl: "u" });
+
+    const blockPageHtml = `<div><h2>环境异常</h2><p>验证后即可继续访问</p></div>`;
+    const articles = [
+      makeArticle({ url: "https://mp.weixin.qq.com/s/blocked1", content: blockPageHtml, title: "封禁1" }),
+      makeArticle({ url: "https://mp.weixin.qq.com/s/blocked2", content: blockPageHtml, title: "封禁2" }),
+    ];
+
+    const result = await normalizeWeRssArticles(articles, BASE_OPTIONS);
+
+    expect(result.blocked).toBe(2);
+    expect(result.skipped).toBe(0);
+    expect(result.imported).toBe(0);
+  });
+
+  it("封禁 + 正常文章混合应正确分类计数", async () => {
+    mockFindUnique.mockResolvedValue(null);
+    mockCreate.mockResolvedValue({ id: "id", title: "t", originalUrl: "u" });
+
+    const blockPageHtml = `<div><h2>环境异常</h2><p>验证后即可继续访问</p></div>`;
+    const normalContent = "<p>" + "正常文章内容，足够长来通过所有检查。".repeat(30) + "</p>";
+
+    const articles = [
+      makeArticle({ url: "https://mp.weixin.qq.com/s/m1", content: blockPageHtml, title: "封禁" }),
+      makeArticle({ url: "https://mp.weixin.qq.com/s/m2", content: normalContent, title: "正常" }),
+    ];
+
+    const result = await normalizeWeRssArticles(articles, BASE_OPTIONS);
+
+    expect(result.blocked).toBe(1);
+    expect(result.imported).toBe(1);
+    expect(result.skipped).toBe(0);
   });
 });
 

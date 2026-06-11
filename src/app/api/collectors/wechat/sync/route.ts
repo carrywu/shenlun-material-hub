@@ -85,6 +85,7 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
       discoveredCount: result.discovered,
       importedCount: result.imported,
       skippedCount: result.skipped,
+      blockedCount: result.blocked,
       errors: result.errors.length > 0 ? result.errors : undefined,
       sourceName: source.name,
     };
