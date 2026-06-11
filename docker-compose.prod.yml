@@ -58,8 +58,6 @@ services:
     depends_on:
       app:
         condition: service_healthy
-      wewe-rss:
-        condition: service_started
     restart: unless-stopped
 
   wewe-rss:
@@ -68,14 +66,14 @@ services:
     environment:
       - DATABASE_TYPE=sqlite
       - AUTH_CODE=${WEWERSS_AUTH_CODE:-}
-      - SERVER_ORIGIN_URL=${NEXT_PUBLIC_APP_URL:-http://localhost}/wewerss
+      - SERVER_ORIGIN_URL=${NEXT_PUBLIC_APP_URL:-http://localhost}:4000
       - FEED_MODE=fulltext
       - CRON_EXPRESSION=35 5,17 * * *
       - MAX_REQUEST_PER_MINUTE=60
     volumes:
       - wewe_rss_data:/app/data
-    expose:
-      - "4000"
+    ports:
+      - "4000:4000"
     networks:
       - internal
     restart: unless-stopped

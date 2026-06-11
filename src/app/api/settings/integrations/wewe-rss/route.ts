@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireVerifiedUser, requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // GET /api/settings/integrations/wewe-rss — 获取 WeWe RSS 配置状态
-// 管理员看到完整配置，认证用户只看到状态
+// 管理员看到完整配置，认证用户只看到系统级状态（读取管理员的配置）
 export async function GET(request: NextRequest) {
   const user = await requireVerifiedUser(request);
   if (!user) {
@@ -12,21 +12,21 @@ export async function GET(request: NextRequest) {
     return forbiddenResponse();
   }
 
-  const integration = await db.userIntegration.findUnique({
-    where: {
-      userId_provider: {
-        userId: user.id,
-        provider: "wewe-rss",
-      },
-    },
-  });
-
-  if (!integration) {
-    return NextResponse.json({ configured: false });
-  }
-
-  // 管理员看到完整配置（baseUrl, dbPath, syncMode）
+  // 管理员读取自己的配置
   if (user.role === "ADMIN") {
+    const integration = await db.userIntegration.findUnique({
+      where: {
+        userId_provider: {
+          userId: user.id,
+          provider: "wewe-rss",
+        },
+      },
+    });
+
+    if (!integration) {
+      return NextResponse.json({ configured: false });
+    }
+
     const config = integration.config as {
       baseUrl?: string;
       dbPath?: string;
@@ -44,10 +44,22 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // 认证用户只看到状态
+  // 非 admin 用户：读取第一个 ADMIN 的配置状态（系统级配置）
+  const adminIntegration = await db.userIntegration.findFirst({
+    where: {
+      provider: "wewe-rss",
+      user: { role: "ADMIN", status: "ACTIVE" },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  if (!adminIntegration) {
+    return NextResponse.json({ configured: false });
+  }
+
   return NextResponse.json({
     configured: true,
-    isEnabled: integration.isEnabled,
+    isEnabled: adminIntegration.isEnabled,
   });
 }
 
