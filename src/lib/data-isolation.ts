@@ -12,6 +12,7 @@ export function contentVisibilityWhere(user: AuthUser) {
     return {}; // Admin sees all
   }
   return {
+    adminReviewStatus: "approved", // P3: 非 ADMIN 只看审核通过
     OR: [
       { visibility: "public" },
       { ownerUserId: user.id },

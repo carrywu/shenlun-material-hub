@@ -49,7 +49,9 @@ describe("Legacy null-owner data policy (ownerUserId=null)", () => {
 
     it("regular user sees public, own, AND null-owner items", () => {
       const where = contentVisibilityWhere(regularUser);
-      expect(where).toEqual({
+      // P3: contentVisibilityWhere now also injects adminReviewStatus="approved"
+      // for non-admin users, so use toMatchObject to allow extra fields.
+      expect(where).toMatchObject({
         OR: [
           { visibility: "public" },
           { ownerUserId: "user-a" },
