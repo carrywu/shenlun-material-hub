@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const section = searchParams.get("section") ?? searchParams.get("categoryName");
     const qualityStatus = searchParams.get("qualityStatus");
     const aiDecision = searchParams.get("aiDecision");
+    const adminReviewStatus = searchParams.get("adminReviewStatus");
     const sortBy = searchParams.get("sortBy") ?? "createdAt";
 
     // 时间范围筛选
@@ -113,6 +114,10 @@ export async function GET(request: NextRequest) {
     const user = await getUserFromRequest(request);
     if (user) {
       where = mergeWhere(where, contentVisibilityWhere(user));
+      // P3: ADMIN 可按审核状态筛选；非 ADMIN 由 contentVisibilityWhere 强制 approved
+      if (user.role === "ADMIN" && adminReviewStatus && adminReviewStatus !== "all") {
+        where.adminReviewStatus = adminReviewStatus;
+      }
     } else {
       // P2-14: include legacy articles with visibility:null for anonymous users
       // Use AND to combine visibility filter with existing keyword OR

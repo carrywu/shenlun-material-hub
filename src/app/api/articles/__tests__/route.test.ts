@@ -150,4 +150,38 @@ describe("GET /api/articles route handler", () => {
     expect(lastWhere).toHaveProperty("platform", "website");
     expect(lastWhere).toHaveProperty("sourceId", "src-1");
   });
+
+  it("ADMIN 传 adminReviewStatus=pending_admin → 应用到 where", async () => {
+    authMocks.getUserFromRequest.mockResolvedValue(USERS.ADMIN);
+    mocks.findMany.mockResolvedValue([]);
+    mocks.count.mockResolvedValue(0);
+    const req = new NextRequest(
+      "http://localhost/api/articles?adminReviewStatus=pending_admin"
+    );
+    await GET(req);
+    // 路由对 ADMIN 会把 adminReviewStatus 写进 where（contentVisibilityWhere 对 ADMIN 返回 {}）
+    expect(mocks.findMany).toHaveBeenCalled();
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("adminReviewStatus", "pending_admin");
+  });
+
+  it("VERIFIED_USER 传 adminReviewStatus=all → 不应用（强制 approved）", async () => {
+    const VERIFIED = {
+      id: "v",
+      username: "v",
+      role: "VERIFIED_USER" as const,
+      status: "ACTIVE" as const,
+    };
+    authMocks.getUserFromRequest.mockResolvedValue(VERIFIED);
+    mocks.findMany.mockResolvedValue([]);
+    mocks.count.mockResolvedValue(0);
+    const req = new NextRequest(
+      "http://localhost/api/articles?adminReviewStatus=all"
+    );
+    await GET(req);
+    expect(mocks.findMany).toHaveBeenCalled();
+    // 非 ADMIN：不能写入 where.adminReviewStatus（由 mock 的 contentVisibilityWhere 保证 approved）
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).not.toHaveProperty("adminReviewStatus");
+  });
 });
