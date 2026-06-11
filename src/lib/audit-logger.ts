@@ -10,6 +10,7 @@ export type AuditAction =
   | "import"
   | "sync"
   | "assess"
+  | "review"
   | "generate_card"
   | "change_password"
   | "role_change"

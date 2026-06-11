@@ -19,19 +19,22 @@ vi.mock("@/lib/auth", () => ({
   forbiddenResponse: () => Response.json({ error: "x" }, { status: 403 }),
 }));
 
-const tx = vi.hoisted(() => ({
-  findMany: vi.fn(),
-  updateMany: vi.fn(),
-  deleteMany: vi.fn(),
-}));
-const dbMock = {
-  $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
-    fn({
-      contentItem: { findMany: tx.findMany, updateMany: tx.updateMany },
-      materialCard: { deleteMany: tx.deleteMany },
-    })
-  ),
-};
+const { tx, dbMock } = vi.hoisted(() => {
+  const tx = {
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
+  };
+  const dbMock = {
+    $transaction: vi.fn(async (fn: (t: unknown) => Promise<unknown>) =>
+      fn({
+        contentItem: { findMany: tx.findMany, updateMany: tx.updateMany },
+        materialCard: { deleteMany: tx.deleteMany },
+      })
+    ),
+  };
+  return { tx, dbMock };
+});
 vi.mock("@/lib/db", () => ({ db: dbMock }));
 vi.mock("@/lib/audit-logger", () => ({ auditLog: vi.fn().mockResolvedValue(undefined) }));
 
