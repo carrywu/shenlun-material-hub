@@ -32,11 +32,15 @@ is_remote=0
 
 run() {
   if [[ "$is_remote" == "1" ]]; then
-    ssh -o BatchMode=yes "root@${LINUX_HOST}" "bash -s" <<EOF
+    ssh -o BatchMode=yes "carry@${LINUX_HOST}" "bash -s" <<EOF
+export PATH="\$HOME/.local/bin:\$PATH"
+docker context use desktop-linux >/dev/null 2>&1 || true
+cd ${REMOTE_DIR} 2>/dev/null || { echo "目录不存在"; exit 1; }
+set -a; source .env.staging 2>/dev/null || true; set +a
 $1
 EOF
   else
-    bash -c "$1"
+    bash -c "export PATH=\"\$HOME/.local/bin:\$PATH\"; docker context use desktop-linux >/dev/null 2>&1 || true; cd ${REMOTE_DIR} && set -a && source .env.staging 2>/dev/null || true && set +a && $1"
   fi
 }
 
