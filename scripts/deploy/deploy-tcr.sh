@@ -210,7 +210,7 @@ HEALTH_OK=false
 for i in $(seq 1 12); do
   HTTP_CODE="$(curl -fsS -o /dev/null -w '%{http_code}' "$HEALTHCHECK_URL" 2>/dev/null || echo '000')"
   BODY="$(curl -fsS "$HEALTHCHECK_URL" 2>/dev/null || echo '')"
-  if echo "$BODY" | grep -q '"ok".*true'; then
+  if printf '%s' "$BODY" | grep -Eq '"ok"[[:space:]]*:[[:space:]]*true|"status"[[:space:]]*:[[:space:]]*"ok"'; then
     HEALTH_OK=true
     break
   fi

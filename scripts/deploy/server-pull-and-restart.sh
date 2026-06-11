@@ -146,7 +146,8 @@ done
 if [ "$HEALTH_OK" = true ]; then
   log "Health check PASSED"
   PUBLIC_HEALTH_URL="http://127.0.0.1/api/health"
-  if curl -fsS "$PUBLIC_HEALTH_URL" 2>/dev/null | grep -q '"ok".*true'; then
+  PUBLIC_HEALTH_BODY="$(curl -fsS "$PUBLIC_HEALTH_URL" 2>/dev/null || true)"
+  if printf '%s' "$PUBLIC_HEALTH_BODY" | grep -Eq '"ok"[[:space:]]*:[[:space:]]*true|"status"[[:space:]]*:[[:space:]]*"ok"'; then
     log "Local Caddy health check PASSED"
   else
     log "WARNING: Local Caddy health check did not pass immediately; deploy client will run external verification"
