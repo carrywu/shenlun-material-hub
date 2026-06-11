@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   FileText, Home, Layers, CreditCard, Search,
   RotateCcw, Compass, Sparkles, Shield, Settings,
+  Bookmark,
 } from "lucide-react";
 import type { AuthUser } from "@/lib/auth";
 
@@ -12,6 +13,7 @@ const navItems = [
   { href: "/", label: "仪表板", icon: Home },
   { href: "/discover", label: "今日推荐", icon: Sparkles },
   { href: "/explore", label: "探索区", icon: Compass },
+  { href: "/my-articles", label: "我的文章", icon: Bookmark },
   { href: "/articles", label: "文章列表", icon: FileText },
   { href: "/cards", label: "素材卡", icon: CreditCard },
   { href: "/search", label: "检索", icon: Search },
