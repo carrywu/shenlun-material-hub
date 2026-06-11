@@ -12,7 +12,9 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm exec prisma generate
+# Prisma client is pre-generated locally (src/generated/prisma) to avoid segfault
+# under QEMU/Rosetta amd64 emulation on Apple Silicon.
+# If you need to regenerate, run `npx prisma generate` locally before building.
 RUN pnpm build
 
 FROM node:20-bookworm-slim AS runner
