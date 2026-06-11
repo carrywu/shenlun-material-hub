@@ -104,7 +104,8 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-build wewe-r
 
 # Ensure caddy is running (it depends on app healthy + wewe-rss, but force-check)
 log "Ensuring caddy is running"
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-build caddy
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-build caddy || \
+  log "WARNING: caddy did not start before app health check"
 
 # ── Wait and verify ────────────────────────────────────────────────────────────
 
