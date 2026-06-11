@@ -30,6 +30,11 @@ export async function GET(
       return NextResponse.json({ error: "无权访问该内容" }, { status: 403 });
     }
 
+    // P3: 非 ADMIN 只能访问 approved 文章（防 ID 绕过）
+    if (user.role !== "ADMIN" && item.adminReviewStatus !== "approved") {
+      return NextResponse.json({ error: "内容条目不存在" }, { status: 404 });
+    }
+
     return NextResponse.json(item);
   } catch (error) {
     console.error("Failed to fetch content item:", error);
