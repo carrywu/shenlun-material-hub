@@ -97,8 +97,8 @@ export default async function SettingsPage() {
         </Link>
         )}
 
-        {/* Integrations — VERIFIED_USER and ADMIN only */}
-        {isVerifiedUser && (
+        {/* Integrations — ADMIN only (P1-T5: hide WeWe RSS entry from non-admin users) */}
+        {isAdmin && (
         <Link
           href="/settings/integrations"
           className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 hover:bg-muted/50 transition-all group"
