@@ -25,6 +25,38 @@ git log --oneline -20
 
 ## 当前活跃任务
 
+**2026-06-11 采集可观测性 + 微信验证页误判修复 + admin/logs 进 git（已部署，待一次真实采集确认 + 清理脚本待人工执行）**。
+
+当前生产状态：
+- 当前镜像：`ccr.ccs.tencentyun.com/carrywu/shenlun:20260611-2042`
+- 当前提交：`7ccc6a7`
+- 服务器 `REVISION`：`IMAGE_TAG=20260611-2042`
+- 公网健康：`http://47.119.182.210/api/health` 返回 `{"status":"ok"}`
+
+本次改动（commit `7ccc6a7`，12 文件）：
+
+1. **采集全链路日志**（核心）：`weRssNormalizer.ts` / `base.ts` 的每个决策分支（URL 已存在 / 封禁 / 全文过短 / 过滤器命中 / 导入成功）都写 `SystemLog`（category=CRAWLER）；`wechat/sync/route.ts` 和 `base.ts run()` 写任务级开始/完成/失败汇总（含 discovered/imported/skipped/blocked/durationMs）。`/admin/logs` 选 CRAWLER 分类即可看到每条跳过/封禁的原因 + 标题 + URL。
+2. **`CollectorResult` 新增 `skippedCount`**，`web/collect/route.ts` 透传，website 源也能在采集弹窗显示"跳过 N"（之前只有 wechat 能显示）。
+3. **`/admin/logs` 页面增强**：新增关键词搜索（`q` 参数，对 message/detail ILIKE）、detail 单元格可点击展开看完整 JSON、顶部新增"采集日志 (CRAWLER)"计数卡片。
+4. **去重漏洞修复**：`content-filter.ts` 的 `checkDuplicateFilter` 把 `blocked` 纳入查重（`notIn: ["filtered"]`），堵住"不同 URL 同 contentHash 验证页"重复写入；`weRssNormalizer.ts` / `base.ts` 在 create 前追加 contentHash `findFirst` 兜底防同批竞态。
+5. **`detectWechatBlockPage` 关键词补全**：加 `"完成验证后即可继续访问"`。
+6. **`.gitignore` 修复**：原 `logs` 规则误伤 `src/app/admin/logs/` 和 `src/app/api/admin/logs/`，导致 `/admin/logs` 页面和接口**从未进 git、从未进生产镜像**。改为 `/logs/` + `*.log`，本次随提交一起上线。生产 `/admin/logs`（307 登录）和 `/api/admin/logs`（401）现在可达。
+
+待人工执行 / 确认：
+
+- **触发一次真实采集确认写入链路**：部署后已验证读取链路通（种子 CRAWLER 日志可见、路由可达），写入链路由 33 个 weRssNormalizer 单测证明；但生产 SystemLog 里目前 CRAWLER=1（仅种子记录），需你在后台"开始采集"点一次，之后 `/admin/logs` 选 CRAWLER 就能看到真实明细。
+- **清理脚本待人工执行**（本次未跑）：`scripts/ops/cleanup-collector-noise.sql` + `.md`。把历史"全文过短（26 字）+ 环境异常"的 10 条验证页从 filtered 改为 blocked，并删同 contentHash 的重复验证页。**先按 .md 跑 dry-run SELECT + pg_dump 备份再执行。** 历史记录不会自动重判，因 `originalUrl @unique` 让 `findUnique` 命中后直接返回，走不到 `detectWechatBlockPage`。
+
+排查"采集跳过/封禁"的标准动作：
+1. 后台 `/admin/logs`，分类选 CRAWLER，按时间倒序看"采集任务完成"汇总。
+2. 顶部"采集日志 (CRAWLER)"卡片看总数；搜索框输入来源名/标题/URL 可定位具体记录，点击 detail 列展开看完整 JSON。
+3. 含义：`采集封禁：微信验证页` → 上游 wewe-rss 被微信风控；`采集跳过：URL 已存在` → 正常去重；`采集跳过：全文过短` → 文章本身太短；`采集跳过：与已有内容重复` → contentHash 命中。
+
+wewe-rss 风控（非本系统 bug，根因答疑）：
+- 现象：采集弹窗显示"封禁 10"，库里 wechat 源正文是"环境异常/完成验证后即可继续访问"。
+- 确认是否风控：`curl -s 'http://<server>:4000/feeds/<feedId>.rss' | grep -c 'verify.html'`（>0 即被风控）；或从服务器直抓微信文章 `curl -s -A '<iPhone UA>' 'https://mp.weixin.qq.com/s/<id>' | grep -c 'js_content'`（0 即微信给错误页）。
+- 处置：等几小时～1 天让微信解风控，在 wewe-rss 后台对该公众号触发刷新；或给 wewe-rss 配代理。本系统无能为力。
+
 **2026-06-11 本地 Docker → TCR → ECS 部署已完成**。
 
 当前生产状态：
