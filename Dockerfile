@@ -39,6 +39,7 @@ RUN mkdir -p /app/prisma /app/public/uploads /home/nextjs && \
     chown nextjs:nodejs /home/nextjs
 
 USER nextjs
+ENV HOME=/home/nextjs
 EXPOSE 3000
 
 # Run migrations before starting the server
