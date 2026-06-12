@@ -174,15 +174,24 @@ const FIXTURE_URL = "https://example.com/e2e-fixture-isolation-article";
 async function getFixtureArticleId(
   request: APIRequestContext,
 ): Promise<string> {
-  const res = await request.get("/api/content-items?pageSize=200");
+  // pageSize 上限 100（route 强制 Math.min(100, ...)）；fixture 由 global-setup 创建，
+  // 按 createdAt desc 排序应在前。若 DB 累积 >100 篇新文章导致 fixture 跌出首页，
+  // 这里会抛错——届时改用 search/filter 参数或直接 DB 查 id。
+  const res = await request.get("/api/content-items?pageSize=100");
   expect(res.ok(), `list failed: ${res.status()}`).toBeTruthy();
   const body = await res.json();
   const items = body.data ?? [];
   const found = items.find(
-    (i: { originalUrl?: string }) => i.originalUrl === FIXTURE_URL,
+    (i: { originalUrl?: string; adminReviewStatus?: string }) =>
+      i.originalUrl === FIXTURE_URL,
   );
   if (!found)
     throw new Error("fixture 文章未找到——global-setup 是否创建了？");
+  // 守护：favorites POST 与非 admin 详情 GET 都要求 approved，否则 A/B 测试会失败得不明所以
+  expect(
+    found.adminReviewStatus,
+    "fixture 文章必须为 approved（userA/userB 才能收藏/访问）",
+  ).toBe("approved");
   return found.id;
 }
 
