@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function LoginForm() {
@@ -10,6 +10,26 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // 已登录用户访问登录页 → 跳走（避免已认证用户重复看到登录表单）
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/check")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.authenticated) {
+          const redirect = searchParams.get("redirect");
+          router.replace(redirect && redirect !== "/admin/login" ? redirect : "/");
+        }
+      })
+      .catch(() => {
+        /* 未登录或检查失败 → 停留在登录页 */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

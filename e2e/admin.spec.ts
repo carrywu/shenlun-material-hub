@@ -377,8 +377,8 @@ test.describe('Admin Clean', () => {
 
     await page.goto('/admin/clean');
     await expect(page.getByRole('heading', { name: '数据清洗', level: 1 })).toBeVisible({ timeout: 10000 });
-    // Rule checkboxes visible (base-ui renders as button[role="checkbox"])
-    await expect(page.locator('button[role="checkbox"]').first()).toBeVisible({ timeout: 10000 });
+    // Rule checkboxes visible (base-ui Checkbox 渲染为 <span data-slot="checkbox" role="checkbox">)
+    await expect(page.locator('[data-slot="checkbox"]').first()).toBeVisible({ timeout: 10000 });
     // Execute button visible
     await expect(page.getByRole('button', { name: '执行清洗' })).toBeVisible();
 
@@ -395,7 +395,7 @@ test.describe('Admin Clean', () => {
     await page.waitForTimeout(2000);
 
     // Find a rule checkbox and click it
-    const checkboxes = page.locator('button[role="checkbox"]');
+    const checkboxes = page.locator('[data-slot="checkbox"]');
     const checkboxCount = await checkboxes.count();
 
     if (checkboxCount > 0) {
@@ -425,11 +425,11 @@ test.describe('Admin Clean', () => {
 
     await page.goto('/admin/clean');
     await page.waitForTimeout(1000);
-    // Find and check a rule checkbox (base-ui renders as button[role="checkbox"])
-    const checkbox = page.locator('button[role="checkbox"]').first();
+    // Find and check a rule checkbox (base-ui Checkbox = <span data-slot="checkbox">)
+    const checkbox = page.locator('[data-slot="checkbox"]').first();
     if (await checkbox.isVisible()) {
-      const isChecked = await checkbox.getAttribute('data-checked');
-      if (isChecked === null) {
+      const isChecked = await checkbox.getAttribute('aria-checked');
+      if (isChecked !== 'true') {
         await checkbox.click();
       }
     }
@@ -458,13 +458,13 @@ test.describe('Admin Clean', () => {
     await page.waitForTimeout(2000);
 
     // Select all checkboxes by ensuring they are checked
-    const checkboxes = page.locator('button[role="checkbox"]');
+    const checkboxes = page.locator('[data-slot="checkbox"]');
     const checkboxCount = await checkboxes.count();
 
-    // Make sure at least one checkbox is checked (base-ui uses data-checked attribute)
+    // Make sure at least one checkbox is checked (base-ui 用 aria-checked 反映状态)
     for (let i = 0; i < checkboxCount; i++) {
-      const isChecked = await checkboxes.nth(i).getAttribute('data-checked');
-      if (isChecked === null) {
+      const ariaChecked = await checkboxes.nth(i).getAttribute('aria-checked');
+      if (ariaChecked !== 'true') {
         await checkboxes.nth(i).click();
       }
     }
@@ -484,8 +484,8 @@ test.describe('Admin Clean', () => {
       // Verify: page didn't crash (no error overlay), clean page still renders
       const errorOverlay = page.locator('#__next-route-announcer ~ [role="alert"]');
       await expect(errorOverlay).not.toBeVisible();
-      // Page is still functional — heading visible
-      await expect(page.getByRole('heading', { name: /管理/ })).toBeVisible({ timeout: 5000 });
+      // Page is still functional — 数据清洗 AdminShell h1 仍在（页面 h2 同名，用 level 精确到 h1）
+      await expect(page.getByRole('heading', { name: '数据清洗', level: 1 })).toBeVisible({ timeout: 5000 });
     }
 
     guard.report(testInfo);

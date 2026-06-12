@@ -169,38 +169,6 @@ test.describe('文章详情页', () => {
     guard.report(test.info());
   });
 
-  test('文章详情：AI 评估按钮', async ({ page }) => {
-    // AI 评估按钮仅在 !isAdmin 时渲染（admin 看到的是"前往后台"提示卡）。
-    // 该用例验证普通用户视角，覆盖文件级 admin storageState，改用 verified。
-    test.use({ storageState: '.auth/verified-storage.json' });
-    test.setTimeout(60000);
-    const guard = attachConsoleGuard(page);
-
-    await page.goto(`/articles/${articleId}`);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
-
-    // Wait for sidebar to load
-    await expect(page.getByText('快捷操作')).toBeVisible({ timeout: 10000 });
-
-    // Find AI assess button in the sidebar
-    const assessButton = page.getByRole('button', { name: 'AI 评估' });
-    await expect(assessButton).toBeVisible();
-
-    // Click the button
-    await assessButton.click();
-
-    // Button should show loading state (Loader2 spinner appears)
-    // The button either shows a spinner or shows the same text but disabled
-    // Wait a short time to see the loading state
-    await page.waitForTimeout(500);
-
-    // The button should either be disabled or show loading indicator
-    // After the request completes, a toast should appear
-    // We just verify the button was clickable and didn't cause a crash
-
-    guard.report(test.info());
-  });
-
   test('文章详情：管理视图提示', async ({ page }) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
@@ -239,6 +207,33 @@ test.describe('文章详情页', () => {
 
     // The articles list page should be loaded
     await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 10000 });
+
+    guard.report(test.info());
+  });
+});
+
+// AI 评估按钮仅在 !isAdmin 时渲染（admin 看到的是"前往后台文章管理"提示卡）。
+// 该用例验证普通用户视角，用独立 describe 覆盖文件级 admin storageState。
+test.describe('文章详情页 — 普通用户视角', () => {
+  test.use({ storageState: '.auth/verified-storage.json' });
+
+  test('文章详情：AI 评估按钮', async ({ page }) => {
+    test.setTimeout(60000);
+    const guard = attachConsoleGuard(page);
+
+    await page.goto(`/articles/${articleId}`);
+    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+
+    // Wait for sidebar to load
+    await expect(page.getByText('快捷操作')).toBeVisible({ timeout: 10000 });
+
+    // Find AI assess button in the sidebar (only renders for non-admin)
+    const assessButton = page.getByRole('button', { name: 'AI 评估' });
+    await expect(assessButton).toBeVisible();
+
+    // Click the button — verify it's clickable and doesn't crash
+    await assessButton.click();
+    await page.waitForTimeout(500);
 
     guard.report(test.info());
   });

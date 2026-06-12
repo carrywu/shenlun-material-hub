@@ -128,11 +128,13 @@ test.describe('文章列表页', () => {
       await firstDataRow.click();
     }
 
-    // 详情面板打开后渲染 ArticleDetail。不要依赖脆弱的 tailwind 类名
-    // （w-1/2 只在 md: 断点生效，类名字符串匹配不稳）。改用面板内的关闭按钮
-    // 作为"面板已打开"的稳定信号。
-    const closeButton = page.getByRole('button', { name: /关闭|×|✕|close/i }).first();
-    await expect(closeButton).toBeVisible({ timeout: 5000 });
+    // 详情面板打开后渲染 ArticleDetail。关闭按钮是纯图标（X，无 accessible name），
+    // 不能用 getByRole name 匹配。改用面板容器（.border-l，ArticlesPage 详情面板 wrapper）
+    // + 面板内文章标题 CardTitle 作为"面板已打开"的稳定信号。
+    const detailPanel = page.locator('div.border-l').last();
+    await expect(detailPanel).toBeVisible({ timeout: 5000 });
+    // 面板内应渲染 ArticleDetail 的标题 CardTitle
+    await expect(detailPanel.locator('article, [class*="CardTitle"], h2, h3').first()).toBeVisible({ timeout: 3000 });
 
     guard.report(test.info());
   });
