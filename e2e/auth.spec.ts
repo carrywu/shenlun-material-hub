@@ -141,6 +141,10 @@ test.describe('导航（已认证）', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
+    // Must navigate to a page first to see the nav header
+    await page.goto('/');
+    await expect(page.locator('header, nav')).toBeVisible({ timeout: 10000 });
+
     // Check all main nav links in header
     await expect(page.getByRole('link', { name: '仪表板' })).toBeVisible();
     await expect(page.getByRole('link', { name: '今日推荐' })).toBeVisible();
