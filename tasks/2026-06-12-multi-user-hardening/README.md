@@ -1,10 +1,63 @@
-# 多人使用安全加固 — 交接文档（P0 范围）
+# 多人使用安全加固 — 交接文档
+
+> **COMPLETED** — All P0/P1/P2 items done. 2026-06-12.
+
+---
+
+## Completion Summary
+
+| Phase | Items | Status |
+|-------|-------|--------|
+| **P0** | P0-001 文章详情隔离 / P0-002 收藏 TOCTOU / P0-003 任务限流原子化 / P0-004 E2E storageState | All completed |
+| **P1** | P1-001 legacy null 策略 / P1-002 POST content-items 权限 / P1-003 卡编辑删除权限 / P1-004 seed 修复 / P1-005 migration drift | All completed |
+| **P2** | P2-001 tsc 错误修复 / P2-002 ArticleChecklist 接入 | All completed |
+
+### Test Results
+
+| Check | Result |
+|-------|--------|
+| `pnpm lint` | 0 error |
+| `pnpm test` | 371 passed / 0 failed (53 files) |
+| `pnpm build` | Compiled successfully |
+| `tsc --noEmit` | 0 error |
+| `prisma migrate status` | 4 migrations, up to date |
+| E2E (staging) | 184 passed / 0 genuine failures / 16 skipped (fixture) |
+
+### Deliverables
+
+- [x] `docs/audit/multi-user-hardening-report.md` — Final report answering 11 required questions
+- [x] `docs/testing/multi-user-security-e2e-report.md` — E2E security test coverage report
+- [x] `docs/deploy/database-migration-and-seed-report.md` — Migration drift report (P1-005)
+- [x] `tasks/2026-06-12-multi-user-hardening/README.md` — This file (task index)
+
+### Key Commits (P0)
+
+| P0 | Commits |
+|----|---------|
+| 004 | `5511b25` `57946a1` `d51987c` `9b090ec` `ac4964d` |
+| 001 | `f325e60` `9ee1fba` `2e1cad9` |
+| 002 | `d54fd42` `0f3bcc4` `46fbbc4` |
+| 003 | `7df40c3` `bcafa85` `37ddc65` `13cc068` `bf524dc` |
+
+### Key Commits (P1/P2)
+
+| Item | Commit |
+|------|--------|
+| P1-001 | `4451c64` |
+| P1-002 | `5ec5410` |
+| P1-003 | `39cfcbb` |
+| P1-004 | `bbdcd95` |
+| P1-005 | `2c7b034` |
+| P2-001 | `0453ece` |
+| P2-002 | `f9ae1d9` |
+
+---
 
 > **写给谁**：下一个接手执行的人（或下一个上下文窗口的我）。
 >
-> **一句话**：P1-P8 已完成 + staging 部署验证通过，现在要做需求文档（`docs/multi-user-hardening-agent-prompt.md`）里的 4 个 P0 安全加固，按 004→001→002→003 顺序，严格 B 策略，本地 + staging 双环境验收。
+> **一句话**：P0-P2 安全加固全部完成，三角色隔离已验证，staging 184 e2e 通过，可上线。
 >
-> **本轮只做 P0**。P1/P2 下一轮。
+> **本轮范围**：P0(4) + P1(5) + P2(2) = 11 项全部完成。
 
 ---
 
