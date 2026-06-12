@@ -126,9 +126,13 @@ PSQL -c "SELECT indexname FROM pg_indexes WHERE indexname='materialcard_private_
 PSQL -c 'SELECT "adminReviewStatus", COUNT(*) FROM "ContentItem" GROUP BY "adminReviewStatus";'
 # → (0 rows)  ← staging 空库，见第 5 节说明
 
-# seed RoleQuota（幂等）
-PSQL -c "INSERT INTO \"RoleQuota\" (id, role, \"favoriteLimit\", \"updatedAt\") VALUES (gen_random_uuid()::text, 'USER', 100, NOW()), (gen_random_uuid()::text, 'VERIFIED_USER', 300, NOW()) ON CONFLICT (role) DO NOTHING;"
-# → INSERT 0 2
+# seed RoleQuota（幂等）——优先用 pnpm seed:role-quotas（已修复 Prisma 7 + tsx import，P1-004）
+# 以下 psql 方式为备用/参考：
+# PSQL -c "INSERT INTO \"RoleQuota\" (id, role, \"favoriteLimit\", \"updatedAt\") VALUES (gen_random_uuid()::text, 'USER', 100, NOW()), (gen_random_uuid()::text, 'VERIFIED_USER', 300, NOW()) ON CONFLICT (role) DO NOTHING;"
+
+# 推荐：在宿主机跑 seed 脚本（需先 source .env.staging）
+npx tsx src/scripts/seed-role-quotas.ts
+# → RoleQuota seed done: USER=100, VERIFIED_USER=300
 
 PSQL -c 'SELECT role, "favoriteLimit" FROM "RoleQuota";'
 # → USER 100, VERIFIED_USER 300

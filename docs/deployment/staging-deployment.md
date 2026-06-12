@@ -260,6 +260,7 @@ pnpm test:e2e
 | app 容器 unhealthy / 反复重启 | `docker compose logs app`；多半 `DATABASE_URL` 不对或 migrate 没跑 |
 | migrate 报 `relation already exists` | PG volume 有脏数据；`docker volume rm shenlun-staging_pgdata_staging` 后重部署 |
 | seed-admin 失败 | 宿主机 Node/pnpm 装了吗？`DATABASE_URL` 指向 `127.0.0.1:5433`？`.env.staging` 密码填了吗？ |
+| seed-role-quotas 失败 | 先 `source .env.staging` 再跑 `npx tsx src/scripts/seed-role-quotas.ts`；确保 `prisma generate` 已执行 |
 | wewe-rss 采不到文章 | Mac 浏览器开 `http://100.117.96.1:4000` 检查是否已微信扫码登录；wewe-rss 服务器 IP 可能被微信风控 |
 | 4000 端口被占 | `ss -lntp \| grep :4000` 找占用进程；停掉或改 compose 端口 |
 | ssh 免密失败 | Mac `ssh-copy-id carry.117.96.1` 跑过？`ssh -v carry.117.96.1` 看详细 |

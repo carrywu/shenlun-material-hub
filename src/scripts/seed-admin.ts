@@ -9,9 +9,13 @@
  * 如果管理员用户已存在，跳过创建。
  */
 
-// Use dynamic import to avoid TypeScript build issues with standalone scripts
+// 加载 .env（tsx 不自动加载；其他 seed 脚本依赖外部已设 DATABASE_URL）
+import "dotenv/config";
+
+// Prisma 7 + tsx: 必须显式 import client 入口，目录 import 会找 index.json 失败
 async function main() {
-  const { PrismaClient } = await import("../generated/prisma");
+  // 用显式 client 入口，避免目录 import 在 tsx 下找 index.json 失败（P1-004）
+  const { PrismaClient } = await import("../generated/prisma/client");
   const { PrismaPg } = await import("@prisma/adapter-pg");
   const { Pool } = await import("pg");
   const bcrypt = await import("bcryptjs");
