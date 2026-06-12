@@ -121,18 +121,16 @@ test.describe('WeWe RSS Integration Page', () => {
 
     // Click sync
     await syncBtn.click();
-    // Wait for result
-    await page.waitForTimeout(5000);
 
-    // After sync, verify page is stable (no crash)
-    await expect(page.getByRole('heading', { name: 'WeWe RSS 集成' })).toBeVisible({ timeout: 5000 });
-    // Check for sync response — either result, delete dialog, or error message
+    // 同步 API 可能要 10-20s（远端拉 feed）。用 expect 轮询而非固定 sleep。
+    // 同步结果渲染 syncResult.message（含「同步完成」/「同步失败」），或弹删除确认对话框。
     const syncResultMsg = page.getByText(/数据来源|同步完成|同步失败|服务不可用/);
     const deleteDialog = page.getByText('同步删除来源确认');
-    const syncResponseVisible = await syncResultMsg.isVisible().catch(() => false)
-      || await deleteDialog.isVisible().catch(() => false);
-    // Sync must produce some UI response within timeout
-    expect(syncResponseVisible).toBe(true);
+    await expect(async () => {
+      const visible = await syncResultMsg.isVisible().catch(() => false)
+        || await deleteDialog.isVisible().catch(() => false);
+      expect(visible, '同步后应出现结果文案或删除确认对话框').toBe(true);
+    }).toPass({ timeout: 30000, intervals: [1000, 2000, 5000] });
 
     guard.report(testInfo);
   });

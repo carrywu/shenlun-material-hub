@@ -93,7 +93,8 @@ test.describe('账号设置', () => {
     await page.getByRole('button', { name: '修改密码' }).click();
 
     // Should show validation error (all fields required)
-    await expect(page.getByText(/密码|必填|不能为空|请填写所有字段/)).toBeVisible({ timeout: 5000 });
+    // 精确匹配错误文案——宽正则会命中 label（当前密码/新密码 等）
+    await expect(page.getByText('请填写所有字段')).toBeVisible({ timeout: 5000 });
 
     guard.report(testInfo);
   });
