@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth, requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireAuth, unauthorizedResponse, forbiddenResponse, authErrorResponse } from "@/lib/auth";
 import { canAccessResource, canModifyResource } from "@/lib/data-isolation";
 
 // GET /api/material-cards/[id]
@@ -50,14 +50,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireAdmin(request);
-  if (!user) {
-    const cookieHeader = request.headers.get("cookie") || "";
-    if (!cookieHeader.includes("auth_token")) {
-      return unauthorizedResponse();
-    }
-    return forbiddenResponse();
-  }
+  const user = await requireAuth(request);
+  if (!user) return authErrorResponse(request);
   try {
     const { id } = await params;
     const body = await request.json();
@@ -116,14 +110,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireAdmin(request);
-  if (!user) {
-    const cookieHeader = request.headers.get("cookie") || "";
-    if (!cookieHeader.includes("auth_token")) {
-      return unauthorizedResponse();
-    }
-    return forbiddenResponse();
-  }
+  const user = await requireAuth(request);
+  if (!user) return authErrorResponse(request);
   try {
     const { id } = await params;
 
