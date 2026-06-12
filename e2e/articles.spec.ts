@@ -119,12 +119,20 @@ test.describe('文章列表页', () => {
       throw new Error('没有文章数据，无法测试行点击');
     }
 
-    await firstDataRow.click();
+    // 行内有覆盖整行的透明 click overlay（z-10 cursor-pointer）。直接点 row 可能命中
+    // 背景而不触发 onClick。优先点 overlay，回退点 row 本身。
+    const rowOverlay = firstDataRow.locator('.cursor-pointer.z-10').first();
+    if (await rowOverlay.count() > 0) {
+      await rowOverlay.click();
+    } else {
+      await firstDataRow.click();
+    }
 
-    // Detail panel should open on the right side — look for the ArticleDetail content
-    // The detail panel contains a close button and article content
-    const detailPanel = page.locator('.w-1\\/2.border-l');
-    await expect(detailPanel).toBeVisible({ timeout: 5000 });
+    // 详情面板打开后渲染 ArticleDetail。不要依赖脆弱的 tailwind 类名
+    // （w-1/2 只在 md: 断点生效，类名字符串匹配不稳）。改用面板内的关闭按钮
+    // 作为"面板已打开"的稳定信号。
+    const closeButton = page.getByRole('button', { name: /关闭|×|✕|close/i }).first();
+    await expect(closeButton).toBeVisible({ timeout: 5000 });
 
     guard.report(test.info());
   });

@@ -91,16 +91,14 @@ test.describe('文章详情页', () => {
     // Click to toggle
     await readButton.first().click();
 
-    // Wait a moment for the state to update
-    await page.waitForTimeout(500);
-
-    // Verify state changed
-    const newTitle = await readButton.first().getAttribute('title');
-    if (wasRead) {
-      expect(newTitle).toBe('标记已读');
-    } else {
-      expect(newTitle).toBe('标记未读');
-    }
+    // 状态更新依赖 PUT /api/content-items/[id] 返回后 setArticle，是异步的。
+    // 固定 500ms 会和 API 响应赛跑（重试时甚至看到两次方向相反的失败）。
+    // 改成轮询 title 翻转，给 5s 余量。
+    const expectedTitle = wasRead ? '标记已读' : '标记未读';
+    await expect.poll(
+      async () => await readButton.first().getAttribute('title'),
+      { timeout: 5000, message: `已读切换后按钮 title 应变为 ${expectedTitle}` }
+    ).toBe(expectedTitle);
 
     guard.report(test.info());
   });
@@ -172,6 +170,9 @@ test.describe('文章详情页', () => {
   });
 
   test('文章详情：AI 评估按钮', async ({ page }) => {
+    // AI 评估按钮仅在 !isAdmin 时渲染（admin 看到的是"前往后台"提示卡）。
+    // 该用例验证普通用户视角，覆盖文件级 admin storageState，改用 verified。
+    test.use({ storageState: '.auth/verified-storage.json' });
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
