@@ -170,18 +170,36 @@
 
 ## 完成记录区（执行时填，每完成一个 P0 追加一段）
 
-<!-- 模板：
-## P0-00X：<标题> ✅
-- **问题**：
-- **修法**：
-- **涉及文件**：
-- **验证命令**：
-- **测试结果**：
-- **未覆盖**：
-- **完成状态**：✅
--->
+## P0-004：E2E storageState 拆分 + 修复污染（B3 单 project 方案）⚠️ 框架完成，暴露既有问题
 
-（待执行）
+- **问题**：playwright 顶层 admin storageState 污染所有测试，16 个「未认证 401」用例不可信。
+- **修法（B3，决策 13，推翻第一轮 5-project 方案）**：
+  - 删顶层 `storageState`（`5511b25`）
+  - 17 spec 显式 `test.use({ storageState })` 标注（admin 文件级 + 混合 describe 分组）
+  - `api-security` 16 个 401 用例真匿名；新增 userA/userB 隔离用例（收藏 + 卡片基线）
+  - global-setup 重写：seed-e2e-accounts 脚本幂等创建 4 角色 → global-setup 只登录存 storageState
+  - `.auth/` 加 gitignore + `git rm --cached admin-storage.json`
+- **涉及文件**：playwright.config.ts、e2e/global-setup.ts、e2e/helpers/auth.ts、e2e/data-isolation.spec.ts、17 个 spec、src/scripts/seed-e2e-accounts.ts、.gitignore、package.json
+- **提交**：57c1722、77946a1、5511b25、d51987c、9b090ec、ac4964d、(Task4 global-setup 重写)
+- **本地 e2e 结果（run 7，dev server JWT_SECRET=playwright-test-secret）**：
+  - 206 passed / 61 failed / 2 flaky / 16 skipped / 16 did-not-run
+  - **4 角色 storageState 全部有效**（seed 成功 + global-setup 登录成功，无角色登录失败）
+- **61 个 failure 分类（关键）**：
+  1. **P0-004 暴露的污染（~18 个）**：`探索 API 返回 401`/`素材卡 API 返回 401` —— 这些测试断言「API 非 401」，但 API 本应需要认证；以前靠顶层 admin cookie 泄漏才「过」。现在正确匿名/正确身份后，断言暴露为错。**这是 P0-004 的预期效果（找出假绿）**，需逐个修测试断言或确认该 API 权限设计。
+  2. **既有 DB drift（~10 个）**：`driverAdapterError: TableDoesNotExist` —— Invitation 表 schema 与 DB 不一致（P1-005），还有其他表缺失。与 P0-004 无关。
+  3. **既有 UI 问题（~15 个）**：`strict mode: 探索区/今日推荐/模型参数 解析到 2 个元素` —— DOM 有重复元素，pre-existing。
+  4. **既有数据缺失（~5 个）**：`没有素材卡数据，无法测试批量选择` 等 —— dev DB 无测试数据。
+  5. **视觉回归（16 个）**：`toHaveScreenshot` 失败，pre-existing。
+  6. **既有 toHaveURL/toBeVisible（~? 个）**：多数为上述问题的连带（401/缺数据导致页面渲染异常）。
+- **未覆盖**：
+  - staging 未跑（决策 24：本地框架完成后暂停，001/002/003 连跑完再 staging 最终验收）
+  - A/B 卡片隔离是基线版（P0-001 完成后加强为真实插卡验证）
+- **发现的连带 bug（非 P0-004，记入 P1）**：
+  - `/api/admin/invitations` POST 500（Invitation 表 drift，P1-005）
+  - seed 脚本目录 import 在 tsx 下失败（需显式 client 入口，P1-004）
+- **完成状态**：⚠️ **框架完成，可信度已重建**（测试真假分明）；但 61 个 failure 多数是 P0-004 **暴露**的既有问题（DB drift / UI 重复 / 测试断言依赖泄漏 cookie）。**等待用户决策**（决策 24）：是否在本地继续逐个修这 61 个 failure，还是接受「框架完成 + staging 验收时再看」进入 001/002/003。
+
+
 
 ---
 
