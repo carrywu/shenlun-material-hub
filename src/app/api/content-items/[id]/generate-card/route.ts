@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateCardForContentItem, AiServiceError } from "@/services/ai";
-import { createAsyncTask, enqueueAsyncTask, checkTaskRateLimit } from "@/lib/async-task";
+import { createDedupTask, enqueueAsyncTask, RateLimitError } from "@/lib/async-task";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import type { CardType, ErrorCode } from "@/types";
 
@@ -141,17 +141,6 @@ export async function POST(
       );
     }
 
-    // P5: 用户级速率限制（在创建任务前统一拦截）
-    const rateLimit = await checkTaskRateLimit(user.id);
-    if (!rateLimit.allowed) {
-      return errorResponse(
-        "RATE_LIMITED",
-        rateLimit.reason ?? "任务数已达上限",
-        429,
-        { requestId }
-      );
-    }
-
     // P5: 卡包模式 vs 单类型
     const validTypes: CardType[] = [
       "golden_sentence",
@@ -201,13 +190,23 @@ export async function POST(
         tasks.push({ cardType: ct, duplicated: true, existingCardId: dup.id });
         continue;
       }
-      const task = await createAsyncTask(
-        "CARD_GENERATE",
-        { contentItemId: id, cardType: ct, requestId },
-        user.id
-      );
-      enqueueAsyncTask(task, () => runGenerateCardTask(id, ct, requestId, user.id));
-      tasks.push({ cardType: ct, taskId: task.id, duplicated: false });
+      try {
+        const task = await createDedupTask({
+          type: "CARD_GENERATE",
+          userId: user.id,
+          dedupeKey: `CARD_GENERATE:${user.id}:${id}:${ct}`,
+          params: { contentItemId: id, cardType: ct, requestId },
+          maxConcurrent: 3,
+          maxDaily: 50,
+        });
+        enqueueAsyncTask(task, () => runGenerateCardTask(id, ct, requestId, user.id));
+        tasks.push({ cardType: ct, taskId: task.id, duplicated: false });
+      } catch (e) {
+        if (e instanceof RateLimitError) {
+          return errorResponse("RATE_LIMITED", e.reason, 429, { requestId });
+        }
+        throw e;
+      }
     }
 
     return NextResponse.json(
