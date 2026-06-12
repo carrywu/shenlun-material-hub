@@ -13,12 +13,24 @@ export async function GET(
   if (!user) return authErrorResponse(request);
   try {
     const { id } = await params;
+    // P0-001: 非 ADMIN 只能看自己的子资源；ADMIN 看全部
+    const isAdmin = user.role === "ADMIN";
     const item = await db.contentItem.findUnique({
       where: { id },
       include: {
         source: { select: { id: true, name: true, platform: true } },
-        materialCards: { orderBy: { createdAt: "desc" } },
-        annotations: { orderBy: { createdAt: "desc" } },
+        materialCards: isAdmin
+          ? { orderBy: { createdAt: "desc" } }
+          : {
+              where: { ownerUserId: user.id },
+              orderBy: { createdAt: "desc" },
+            },
+        annotations: isAdmin
+          ? { orderBy: { createdAt: "desc" } }
+          : {
+              where: { userId: user.id },
+              orderBy: { createdAt: "desc" },
+            },
       },
     });
 
@@ -35,7 +47,21 @@ export async function GET(
       return NextResponse.json({ error: "内容条目不存在" }, { status: 404 });
     }
 
-    return NextResponse.json(item);
+    // P0-001: 防御性二次过滤（DB include where 在生产过滤；此处兜底，
+    // 确保非 ADMIN 绝不泄漏他人/legacy null 卡与批注）
+    const safeItem = isAdmin
+      ? item
+      : {
+          ...item,
+          materialCards: (item.materialCards ?? []).filter(
+            (c) => c.ownerUserId === user.id
+          ),
+          annotations: (item.annotations ?? []).filter(
+            (a) => a.userId === user.id
+          ),
+        };
+
+    return NextResponse.json(safeItem);
   } catch (error) {
     console.error("Failed to fetch content item:", error);
     return NextResponse.json({ error: "获取内容条目失败" }, { status: 500 });
