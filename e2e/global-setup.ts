@@ -23,7 +23,9 @@ async function globalSetup(config: FullConfig) {
   await accountInput.waitFor({ state: 'visible', timeout: 15000 });
 
   await accountInput.fill('admin');
-  await page.getByPlaceholder('请输入密码').fill('admin123');
+  // staging 用 .env.staging 里的真实密码（E2E_ADMIN_PASSWORD）；本地默认 admin123
+  const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? 'admin123';
+  await page.getByPlaceholder('请输入密码').fill(adminPassword);
   await page.locator("form button[type='submit']").click();
 
   // 等待登录成功——必须等待导航离开 /admin/login 页面
