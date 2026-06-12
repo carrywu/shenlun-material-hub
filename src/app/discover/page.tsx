@@ -25,6 +25,8 @@ import {
   TRUST_LEVELS,
 } from "@/types";
 import { CONTENT_TYPE_LABELS as CONTENT_TYPE_LABELS_CENTRALIZED, PLATFORM_LABELS as PLATFORM_LABELS_CENTRALIZED } from "@/lib/display-labels";
+import { useArticleChecklist, BatchFavoriteBar } from "@/components/ArticleChecklist";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface DiscoverItem {
   id: string;
@@ -103,6 +105,7 @@ export default function DiscoverPage() {
   // Actions state
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
   const [markedRead, setMarkedRead] = useState<Set<string>>(new Set());
+  const { selected, toggle: toggleSelect, clear: clearSelection } = useArticleChecklist();
   const pageSize = 20;
 
   const fetchItems = useCallback(async () => {
@@ -349,7 +352,14 @@ export default function DiscoverPage() {
                             }`}
                           >
                             <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 min-w-0">
+                              <div className="flex items-start gap-2 flex-1 min-w-0">
+                                <Checkbox
+                                  checked={selected.has(item.id)}
+                                  onCheckedChange={() => toggleSelect(item.id)}
+                                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                  className="mt-0.5 shrink-0"
+                                />
+                                <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                   <a
                                     href={item.originalUrl}
@@ -397,6 +407,7 @@ export default function DiscoverPage() {
                                     </span>
                                   )}
                                 </div>
+                              </div>
                               </div>
 
                               {/* Actions */}
@@ -481,6 +492,9 @@ export default function DiscoverPage() {
           </div>
         </div>
       )}
+
+      {/* Batch favorite bar */}
+      <BatchFavoriteBar selected={selected} onClear={clearSelection} />
     </div>
   );
 }

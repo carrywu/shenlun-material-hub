@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { CONTENT_TYPES, PLATFORMS } from "@/types";
 import { VERIFICATION_LABELS } from "@/lib/display-labels";
+import { useArticleChecklist, BatchFavoriteBar } from "@/components/ArticleChecklist";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ExploreItem {
   id: string;
@@ -113,6 +115,7 @@ export default function ExplorePage() {
   // Actions state
   const [ignored, setIgnored] = useState<Set<string>>(new Set());
   const [verified, setVerified] = useState<Set<string>>(new Set());
+  const { selected, toggle: toggleSelect, clear: clearSelection } = useArticleChecklist();
   const pageSize = 20;
 
   // Debounce search query
@@ -293,62 +296,70 @@ export default function ExplorePage() {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Link
-                          href={`/articles/${item.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="font-medium text-sm hover:underline text-slate-800"
-                        >
-                          {item.title}
-                        </Link>
-                      </div>
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      <Checkbox
+                        checked={selected.has(item.id)}
+                        onCheckedChange={() => toggleSelect(item.id)}
+                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Link
+                            href={`/articles/${item.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-medium text-sm hover:underline text-slate-800"
+                          >
+                            {item.title}
+                          </Link>
+                        </div>
 
-                      {item.excerpt && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                          {item.excerpt}
-                        </p>
-                      )}
-
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <Badge variant="outline" className="text-[10px]" onClick={(e) => e.stopPropagation()}>
-                          {item.source.name}
-                        </Badge>
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px]"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {CONTENT_TYPE_LABELS[item.contentType] ??
-                            item.contentType}
-                        </Badge>
-                        <Badge
-                          variant={
-                            item.source.verificationStatus === "unverified"
-                              ? "outline"
-                              : "secondary"
-                          }
-                          className={`text-[10px] ${
-                            item.source.verificationStatus === "disputed"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : ""
-                          }`}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {VERIFICATION_LABELS[item.source.verificationStatus] ??
-                            item.source.verificationStatus}
-                        </Badge>
-                        <Badge variant="outline" className="text-[10px]" onClick={(e) => e.stopPropagation()}>
-                          {STATUS_LABELS[item.processingStatus] ??
-                            item.processingStatus}
-                        </Badge>
-                        {item.publishedAt && (
-                          <span className="text-[10px] text-muted-foreground" onClick={(e) => e.stopPropagation()}>
-                            {new Date(item.publishedAt).toLocaleDateString(
-                              "zh-CN"
-                            )}
-                          </span>
+                        {item.excerpt && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                            {item.excerpt}
+                          </p>
                         )}
+
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <Badge variant="outline" className="text-[10px]" onClick={(e) => e.stopPropagation()}>
+                            {item.source.name}
+                          </Badge>
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px]"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {CONTENT_TYPE_LABELS[item.contentType] ??
+                              item.contentType}
+                          </Badge>
+                          <Badge
+                            variant={
+                              item.source.verificationStatus === "unverified"
+                                ? "outline"
+                                : "secondary"
+                            }
+                            className={`text-[10px] ${
+                              item.source.verificationStatus === "disputed"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : ""
+                            }`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {VERIFICATION_LABELS[item.source.verificationStatus] ??
+                              item.source.verificationStatus}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px]" onClick={(e) => e.stopPropagation()}>
+                            {STATUS_LABELS[item.processingStatus] ??
+                              item.processingStatus}
+                          </Badge>
+                          {item.publishedAt && (
+                            <span className="text-[10px] text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+                              {new Date(item.publishedAt).toLocaleDateString(
+                                "zh-CN"
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -439,6 +450,9 @@ export default function ExplorePage() {
           </div>
         </div>
       )}
+
+      {/* Batch favorite bar */}
+      <BatchFavoriteBar selected={selected} onClear={clearSelection} />
     </div>
   );
 }
