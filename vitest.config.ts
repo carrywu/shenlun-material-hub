@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
-    exclude: [...configDefaults.exclude, "e2e/**", ".next/**", "playwright-report/**", "test-results/**"],
+    exclude: [...configDefaults.exclude, "e2e/**", ".next/**", "playwright-report/**", "test-results/**", ".claude/**"],
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
   },
