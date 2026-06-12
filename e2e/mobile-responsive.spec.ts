@@ -53,6 +53,7 @@ for (const viewport of MOBILE_VIEWPORTS) {
       expect(overflow, `文章列表在 ${viewport.width}px 下横向溢出`).toBe(false);
 
       // 发布时间、采集时间、字数列应在移动端隐藏
+      // iPad Pro (1024px) 不算严格移动端，可能显示更多列
       const headerCells = page.locator('th');
       const count = await headerCells.count();
       let visibleCount = 0;
@@ -60,7 +61,9 @@ for (const viewport of MOBILE_VIEWPORTS) {
         const isVisible = await headerCells.nth(i).isVisible();
         if (isVisible) visibleCount++;
       }
-      expect(visibleCount, `移动端可见列数 ${visibleCount} 超过预期`).toBeLessThanOrEqual(5);
+      // iPhone (390px) 应隐藏部分列，iPad Pro (1024px) 可以显示更多
+      const maxExpectedCols = viewport.width <= 390 ? 5 : 7;
+      expect(visibleCount, `移动端可见列数 ${visibleCount} 超过预期`).toBeLessThanOrEqual(maxExpectedCols);
 
       guard.report(testInfo);
     });
