@@ -168,7 +168,6 @@ test.describe('API 安全认证 — 图片代理', () => {
     expect([400, 403]).toContain(res.status());
   });
 });
-});
 
 test.describe('API 安全 — 浏览器级别', () => {
   test('未认证用户访问 admin API 页面被重定向', async ({ browser }, testInfo) => {
