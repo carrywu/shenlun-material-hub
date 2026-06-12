@@ -139,16 +139,19 @@ test.describe('文章详情页', () => {
     // Wait for content to fully render
     await expect(page.getByText('正文')).toBeVisible({ timeout: 10000 });
 
+    // Wait for images to load (they may be loaded via proxy)
+    await page.waitForTimeout(2000);
+
     // Find images inside the article content area
     const articleImages = page.locator('.article-content img');
 
-    if ((await articleImages.count()) === 0) {
-      throw new Error(
-        '微信文章中没有图片，无法测试图片预览功能。请确保测试数据库中的微信文章包含图片内容。'
-      );
-    }
+    // Wait for at least one image to be visible
+    await expect.poll(async () => await articleImages.count(), {
+      timeout: 10000,
+      message: '等待文章图片加载',
+    }).toBeGreaterThan(0);
 
-    // Click the first image
+    // Click the first visible image
     const firstImg = articleImages.first();
     await firstImg.click();
 
@@ -216,6 +219,15 @@ test.describe('文章详情页', () => {
 // 该用例验证普通用户视角，用独立 describe 覆盖文件级 admin storageState。
 test.describe('文章详情页 — 普通用户视角', () => {
   test.use({ storageState: '.auth/verified-storage.json' });
+  let articleId: string;
+
+  test.beforeAll(async () => {
+    const article = await ensureArticleExists();
+    articleId = article.id;
+    if (!articleId) {
+      throw new Error('ensureArticleExists returned no ID — cannot run article detail tests');
+    }
+  });
 
   test('文章详情：AI 评估按钮', async ({ page }) => {
     test.setTimeout(60000);
