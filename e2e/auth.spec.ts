@@ -127,9 +127,9 @@ test.describe('导航（已认证）', () => {
     // Now try to visit login page
     await page.goto('/admin/login');
 
-    // Should be redirected to /
-    await expect(page).toHaveURL(/^\//, { timeout: 10000 });
-    await expect(page).not.toHaveURL(/\/admin\/login/);
+    // Should be redirected away from login (to home or dashboard).
+    // 注意：toHaveURL(regex) 匹配完整 URL 字符串（含 http://host），所以不能用 ^\/ 锚定 pathname。
+    await expect(page).not.toHaveURL(/\/admin\/login/, { timeout: 10000 });
 
     guard.report(testInfo);
   });
