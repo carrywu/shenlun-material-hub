@@ -409,6 +409,7 @@ model AsyncTask {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   completedAt DateTime?
+  dedupeKey   String?   // P0-003: 任务去重键，如 CARD_GENERATE:userId:contentItemId:cardType
 
   user User? @relation(fields: [userId], references: [id])
 
