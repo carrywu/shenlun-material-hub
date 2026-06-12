@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
-import { ownerScopeWhere, mergeWhere, canAccessResource } from "@/lib/data-isolation";
+import { ownedResourceWhere, mergeWhere, canAccessResource } from "@/lib/data-isolation";
 
 // GET /api/material-cards — 分页 + 筛选
 export async function GET(request: NextRequest) {
@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
       where.confirmed = confirmed === "true";
     }
 
-    // Multi-user data isolation: restrict to owned cards
-    const ownerFilter = ownerScopeWhere(user);
+    // P1-001: Multi-user data isolation — only own cards (legacy null-owner is admin-only)
+    const ownerFilter = ownedResourceWhere(user);
 
     if (search) {
       where.OR = [

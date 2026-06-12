@@ -32,6 +32,11 @@ vi.mock("@/lib/data-isolation", () => ({
     (user: { role: string; id: string }, ownerId: string | null, visibility?: string) =>
       user.role === "ADMIN" || ownerId === null || ownerId === user.id || visibility === "public"
   ),
+  // P1-001: ownedResourceWhere — non-admin sees only own data, no legacy null
+  ownedResourceWhere: vi.fn().mockImplementation(
+    (user: { role: string; id: string }, fieldName?: string) =>
+      user.role === "ADMIN" ? {} : { [fieldName ?? "ownerUserId"]: user.id }
+  ),
 }));
 
 vi.mock("@/services/ai-annotation", () => ({
@@ -144,16 +149,18 @@ describe("GET /api/content-items/[id]/annotations", () => {
     expect(findManyCall.where).toEqual({ contentItemId: "item-1" });
   });
 
-  it("regular user sees only own + legacy annotations", async () => {
+  it("P1-001: regular user sees only own annotations (no legacy null)", async () => {
     const req = createAuthenticatedRequest(
       "http://localhost/api/content-items/item-1/annotations",
       USERS.USER_A
     );
     const res = await GET(req, { params: Promise.resolve({ id: "item-1" }) });
     expect(res.status).toBe(200);
-    // Non-admin query should filter by userId
+    // P1-001: Non-admin query should filter by userId only (no OR with null)
     const findManyCall = dbMocks.findMany.mock.calls[0][0] as { where: Record<string, unknown> };
     expect(findManyCall.where.contentItemId).toBe("item-1");
-    expect(findManyCall.where).toHaveProperty("OR");
+    expect(findManyCall.where).toHaveProperty("userId", USERS.USER_A.id);
+    // Must NOT have OR clause that includes legacy null-owner data
+    expect(findManyCall.where).not.toHaveProperty("OR");
   });
 });

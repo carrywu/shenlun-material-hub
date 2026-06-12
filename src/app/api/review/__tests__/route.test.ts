@@ -28,8 +28,8 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/data-isolation", () => ({
-  ownerScopeWhere: (user: { id: string; role: string }) =>
-    user.role === "ADMIN" ? {} : { OR: [{ ownerUserId: user.id }, { ownerUserId: null }] },
+  ownedResourceWhere: (user: { id: string; role: string }) =>
+    user.role === "ADMIN" ? {} : { ownerUserId: user.id },
   mergeWhere: (base: Record<string, unknown>, filter: Record<string, unknown>) => {
     if (!Object.keys(filter).length) return base;
     if (!Object.keys(base).length) return filter;

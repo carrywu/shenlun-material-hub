@@ -25,6 +25,10 @@ export function contentVisibilityWhere(user: AuthUser) {
  * Build a Prisma where clause for owner-scoped data (MaterialCard, SyncRecord, etc.)
  * - ADMIN sees everything
  * - Other users see their own data + data with no owner (legacy)
+ *
+ * ⚠️ WARNING: This exposes legacy null-owner data to non-admin users.
+ * For user-owned resources where legacy null data should NOT be visible to non-admins,
+ * use `ownedResourceWhere` instead.
  */
 export function ownerScopeWhere(user: AuthUser, fieldName = "ownerUserId") {
   if (user.role === "ADMIN") {
@@ -36,6 +40,42 @@ export function ownerScopeWhere(user: AuthUser, fieldName = "ownerUserId") {
       { [fieldName]: null },
     ],
   };
+}
+
+/**
+ * Build a Prisma where clause for strictly owned resources (MaterialCard, Annotation, SyncRecord, etc.).
+ * - ADMIN sees everything
+ * - Non-admin sees ONLY their own data (no legacy null-owner data)
+ *
+ * Use this for user-owned resources where legacy null-owner data should only be
+ * visible to admins. This is the recommended replacement for `ownerScopeWhere`
+ * in routes that handle user assets (material-cards, sync-records, annotations).
+ */
+export function ownedResourceWhere(user: AuthUser, fieldName = "ownerUserId") {
+  if (user.role === "ADMIN") {
+    return {};
+  }
+  return { [fieldName]: user.id };
+}
+
+/**
+ * Build a Prisma where clause that excludes legacy null-owner data for non-admins.
+ * - ADMIN sees everything (including null-owner)
+ * - Non-admin sees only their own data AND explicitly excludes null-owner records
+ *
+ * Use this when you need to be extra strict: not only should non-admins not see
+ * other users' data, but legacy null-owner data must be explicitly filtered out
+ * (rather than just not included, as in `ownedResourceWhere`).
+ *
+ * In practice, `ownedResourceWhere` is usually sufficient since Prisma's
+ * `{ [fieldName]: user.id }` already excludes null values. Use this only when
+ * you need the explicit `not: null` guard for clarity or defense-in-depth.
+ */
+export function legacyAdminOnlyWhere(user: AuthUser, fieldName = "ownerUserId") {
+  if (user.role === "ADMIN") {
+    return {};
+  }
+  return { [fieldName]: { not: null, equals: user.id } };
 }
 
 /**

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
-import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
+import { ownedResourceWhere, mergeWhere } from "@/lib/data-isolation";
 
 export async function GET(request: NextRequest) {
   const user = await requireAdmin(request);
@@ -28,9 +28,9 @@ export async function GET(request: NextRequest) {
     const userIdFilter = searchParams.get("userId");
     if (userIdFilter) where.userId = userIdFilter;
 
-    // Multi-user data isolation: for non-ADMIN users, filter by userId
+    // P1-001: Multi-user data isolation — only own tasks (legacy null-owner is admin-only)
     // (Currently only admins can access this route, but added for future-proofing)
-    const ownerFilter = ownerScopeWhere(user, "userId");
+    const ownerFilter = ownedResourceWhere(user, "userId");
     const mergedWhere = mergeWhere(where, ownerFilter);
 
     const [data, total] = await Promise.all([

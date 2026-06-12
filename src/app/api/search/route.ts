@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, authErrorResponse } from "@/lib/auth";
-import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
+import { ownedResourceWhere, mergeWhere } from "@/lib/data-isolation";
 
 // GET /api/search - 全文搜索素材卡
 export async function GET(request: NextRequest) {
@@ -52,9 +52,8 @@ export async function GET(request: NextRequest) {
       where.confirmed = confirmed === "true";
     }
 
-    // Multi-user data isolation: restrict to owned cards
-    // Multi-user data isolation: restrict to owned cards
-    const ownerFilter = ownerScopeWhere(user);
+    // P1-001: Multi-user data isolation — only own cards (legacy null-owner is admin-only)
+    const ownerFilter = ownedResourceWhere(user);
     const mergedWhere = mergeWhere(where, ownerFilter);
 
     const [data, total] = await Promise.all([

@@ -21,8 +21,8 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/data-isolation", () => ({
-  ownerScopeWhere: (user: { id: string; role: string }, fieldName?: string) =>
-    user.role === "ADMIN" ? {} : { OR: [{ [fieldName ?? "ownerUserId"]: user.id }, { [fieldName ?? "ownerUserId"]: null }] },
+  ownedResourceWhere: (user: { id: string; role: string }, fieldName?: string) =>
+    user.role === "ADMIN" ? {} : { [fieldName ?? "ownerUserId"]: user.id },
 }));
 
 const adminUser = { id: "admin-1", username: "admin", role: "ADMIN", status: "ACTIVE" as const };

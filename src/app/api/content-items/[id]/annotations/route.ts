@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateAnnotation, autoAnnotateArticle } from "@/services/ai-annotation";
 import { requireAdmin, requireAuth, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
-import { canAccessResource } from "@/lib/data-isolation";
+import { canAccessResource, ownedResourceWhere } from "@/lib/data-isolation";
 
 // GET /api/content-items/[id]/annotations — 获取文章的所有批注
 export async function GET(
@@ -24,10 +24,10 @@ export async function GET(
       return forbiddenResponse("无权访问该内容");
     }
 
-    // Filter annotations: ADMIN sees all; regular users see own + legacy
+    // P1-001: Filter annotations — ADMIN sees all; non-admin sees only own (no legacy null)
     const annotationWhere = user.role === "ADMIN"
       ? { contentItemId: id }
-      : { contentItemId: id, OR: [{ userId: user.id }, { userId: null }] };
+      : { contentItemId: id, ...ownedResourceWhere(user, "userId") };
 
     const annotations = await db.articleAnnotation.findMany({
       where: annotationWhere,

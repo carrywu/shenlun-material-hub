@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
-import { ownerScopeWhere, mergeWhere } from "@/lib/data-isolation";
+import { ownedResourceWhere, mergeWhere } from "@/lib/data-isolation";
 import { MATERIAL_TYPE_LABELS } from "@/lib/display-labels";
 
 const CARD_TYPE_LABELS = MATERIAL_TYPE_LABELS;
@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Multi-user data isolation: restrict to owned material cards
-    const ownerFilter = ownerScopeWhere(user, "ownerUserId");
+    // P1-001: Multi-user data isolation — only own cards (legacy null-owner is admin-only)
+    const ownerFilter = ownedResourceWhere(user, "ownerUserId");
     const mergedWhere = mergeWhere(where, ownerFilter);
 
     const cards = await db.materialCard.findMany({
@@ -39,15 +39,27 @@ export async function GET(request: NextRequest) {
           select: {
             title: true,
             source: { select: { name: true } },
-            annotations: {
-              orderBy: { createdAt: "asc" },
-              select: {
-                selectedText: true,
-                comment: true,
-                color: true,
-                cardType: true,
-              },
-            },
+            // P1-001: Filter annotations — non-admin sees only own annotations (no legacy null)
+            annotations: user.role === "ADMIN"
+              ? {
+                  orderBy: { createdAt: "asc" },
+                  select: {
+                    selectedText: true,
+                    comment: true,
+                    color: true,
+                    cardType: true,
+                  },
+                }
+              : {
+                  where: { userId: user.id },
+                  orderBy: { createdAt: "asc" },
+                  select: {
+                    selectedText: true,
+                    comment: true,
+                    color: true,
+                    cardType: true,
+                  },
+                },
           },
         },
       },
