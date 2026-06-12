@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         Array<{ contentHash: string; cnt: number }>
       >`
         SELECT contentHash, COUNT(*) as cnt
-        FROM ContentItem
+        FROM "ContentItem"
         WHERE contentHash IS NOT NULL AND contentHash != ''
         GROUP BY contentHash
         HAVING cnt > 1
@@ -143,8 +143,8 @@ export async function POST(request: NextRequest) {
         Array<{ id: string }>
       >`
         SELECT mc.id
-        FROM MaterialCard mc
-        LEFT JOIN ContentItem ci ON mc.contentItemId = ci.id
+        FROM "MaterialCard" mc
+        LEFT JOIN "ContentItem" ci ON mc.contentItemId = ci.id
         WHERE ci.id IS NULL
       `;
 
@@ -202,12 +202,14 @@ export async function GET(request: Request) {
     });
 
     // Count duplicate content groups
+    // 注意：Postgres 对未加引号的标识符会折叠为小写，而实际表名是大写 "ContentItem"，
+    // 必须加双引号。否则报 relation "contentitem" does not exist。
     const duplicateGroups = await db.$queryRaw<
       Array<{ cnt: number }>
     >`
       SELECT COUNT(*) as cnt FROM (
         SELECT contentHash
-        FROM ContentItem
+        FROM "ContentItem"
         WHERE contentHash IS NOT NULL AND contentHash != ''
         GROUP BY contentHash
         HAVING COUNT(*) > 1
@@ -227,12 +229,13 @@ export async function GET(request: Request) {
     });
 
     // Count orphan cards
+    // 同上：表名必须加双引号（Postgres 大小写敏感）
     const orphanCards = await db.$queryRaw<
       Array<{ cnt: number }>
     >`
       SELECT COUNT(*) as cnt
-      FROM MaterialCard mc
-      LEFT JOIN ContentItem ci ON mc.contentItemId = ci.id
+      FROM "MaterialCard" mc
+      LEFT JOIN "ContentItem" ci ON mc.contentItemId = ci.id
       WHERE ci.id IS NULL
     `;
     const orphanCardCount = Number(orphanCards[0]?.cnt ?? 0);
