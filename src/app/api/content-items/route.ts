@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
-import { requireAuth, authErrorResponse } from "@/lib/auth";
+import { requireAuth, requireAdmin, authErrorResponse } from "@/lib/auth";
 import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
 
 // GET /api/content-items — 分页 + 筛选
@@ -68,9 +68,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/content-items — 手动导入
+// POST /api/content-items — 手动导入（仅管理员）
 export async function POST(request: NextRequest) {
-  const user = await requireAuth(request);
+  const user = await requireAdmin(request);
   if (!user) return authErrorResponse(request);
   try {
     const body = await request.json();
