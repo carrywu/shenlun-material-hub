@@ -124,6 +124,11 @@ test.describe('API 安全认证', () => {
 test.describe('API 安全认证 — 管理员', () => {
   test.use({ storageState: '.auth/admin-storage.json' });
 
+  // 只在 admin project 下运行（避免在 anonymous project 下失败）
+  test.beforeEach(({ project }) => {
+    test.skip(project.name !== 'admin', '管理员测试只在 admin project 下运行');
+  });
+
   test('管理员：content-items 返回 200', async ({ request }) => {
     const res = await request.get('/api/content-items');
     expect(res.status()).toBe(200);
