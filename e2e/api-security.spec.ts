@@ -116,11 +116,15 @@ test.describe('API 安全认证', () => {
     const res = await request.post('/api/ai-config', { data: {} });
     expect(res.status()).toBe(401);
   });
+});
 
-  // ── 已认证管理员：API 正常工作 ──
+// ── 已认证管理员：API 正常工作 ───────────────────────────────────────────────
+// 单独 describe，使用 admin storageState，确保在 admin project 下运行
+
+test.describe('API 安全认证 — 管理员', () => {
+  test.use({ storageState: '.auth/admin-storage.json' });
 
   test('管理员：content-items 返回 200', async ({ request }) => {
-    await loginAsAdminAPI(request);
     const res = await request.get('/api/content-items');
     expect(res.status()).toBe(200);
 
@@ -129,24 +133,25 @@ test.describe('API 安全认证', () => {
   });
 
   test('管理员：material-cards 返回 200', async ({ request }) => {
-    await loginAsAdminAPI(request);
     const res = await request.get('/api/material-cards');
     expect(res.status()).toBe(200);
   });
 
   test('管理员：admin users 返回 200', async ({ request }) => {
-    await loginAsAdminAPI(request);
     const res = await request.get('/api/admin/users');
     expect(res.status()).toBe(200);
   });
 
   test('管理员：admin metrics 返回 200', async ({ request }) => {
-    await loginAsAdminAPI(request);
     const res = await request.get('/api/admin/metrics');
     expect(res.status()).toBe(200);
   });
+});
 
-  // ── 图片代理安全：SSRF 防护 ──
+// ── 图片代理安全：SSRF 防护 ───────────────────────────────────────────────
+
+test.describe('API 安全认证 — 图片代理', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
 
   test('图片代理：禁止私有 IP', async ({ request }) => {
     const res = await request.get('/api/proxy/image?url=http://127.0.0.1/test.png');
@@ -162,6 +167,7 @@ test.describe('API 安全认证', () => {
     const res = await request.get('/api/proxy/image?url=http://evil.com/image.png');
     expect([400, 403]).toContain(res.status());
   });
+});
 });
 
 test.describe('API 安全 — 浏览器级别', () => {
