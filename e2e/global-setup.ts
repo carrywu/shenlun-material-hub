@@ -16,18 +16,18 @@ const ROLES: Role[] = [
   { name: 'userb', username: 'e2e_userb', passwordEnv: 'E2E_USERB_PASSWORD', defaultPassword: 'userb123', storagePath: '.auth/userb-storage.json', needInvitation: false },
 ];
 
-/** 通过 API 登录，返回 'ok'；失败返回 null */
+/** 通过 API 登录，成功返回 true；失败返回 false */
 async function tryLogin(
   request: APIRequestContext,
   username: string,
   password: string,
-): Promise<string | null> {
+): Promise<boolean> {
   const res = await request.post('/api/auth/login', {
     data: { username, password },
   });
-  if (!res.ok()) return null;
+  if (!res.ok()) return false;
   // API request context 不会自动共享 cookie 到 browser；这里只验证登录可达
-  return 'ok';
+  return true;
 }
 
 /** 通过注册 API 创建账号（幂等：409 视为已存在） */
@@ -52,7 +52,7 @@ async function createInvitationCode(adminCookie: string, baseURL: string): Promi
     headers: { 'Content-Type': 'application/json', cookie: adminCookie },
     body: JSON.stringify({ maxUses: 1 }),
   });
-  if (!res.ok) throw new Error(`生成邀请码失败：${res.status}`);
+  if (!res.ok) throw new Error(`生成邀请码失败：${res.status} ${await res.text()}`);
   const body = await res.json();
   return body.invitation.code;
 }
@@ -155,17 +155,15 @@ async function globalSetup(config: FullConfig) {
       try {
         const loggedIn = await tryLogin(apiCtx, role.username, password);
         if (!loggedIn) {
-          // 登录失败 → 注册
+          // 登录失败 → 注册（注册接口幂等，成功后下面的浏览器登录会再次校验凭据）
           if (role.needInvitation) {
             const code = await createInvitationCode(adminCookie, baseURL);
             await register(apiCtx, role.username, password, code);
           } else {
             await register(apiCtx, role.username, password);
           }
-          // 注册后再登录一次（注册接口已设 cookie，但 apiCtx 是独立的，这里只验证可登录）
-          await tryLogin(apiCtx, role.username, password);
         }
-        // 浏览器登录存 storageState
+        // 浏览器登录存 storageState（凭据错误会在此时大声失败）
         await browserLoginAndSave(baseURL, role.username, password, role.storagePath);
       } catch (e) {
         console.warn(`⚠ P0-004: 角色 ${role.name} 准备失败（${role.storagePath} 将缺，相关用例会 fail/skip）：${e instanceof Error ? e.message : e}`);

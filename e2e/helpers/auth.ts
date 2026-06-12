@@ -74,8 +74,8 @@ export async function loginAsUserAPI(
 ): Promise<void> {
   const res = await request.post('/api/auth/login', {
     data: {
-      username: process.env.E2E_USER_USERNAME ?? 'e2e_usera',
-      password: process.env.E2E_USER_PASSWORD ?? 'usera123',
+      username: process.env.E2E_USERA_USERNAME ?? 'e2e_usera',
+      password: process.env.E2E_USERA_PASSWORD ?? 'usera123',
     },
   });
   if (!res.ok()) {
