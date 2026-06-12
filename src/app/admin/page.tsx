@@ -147,7 +147,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const { dbStats, systemStats, recentErrors, recentTasks } = data;
+  const { dbStats, systemStats, recentErrors = [], recentTasks = [] } = data;
 
   const cardStats = [
     {

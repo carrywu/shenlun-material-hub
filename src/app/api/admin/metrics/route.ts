@@ -128,6 +128,24 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Admin metrics API error:", message);
+    return NextResponse.json({
+      dbStats: {
+        totalArticles: 0,
+        totalSources: 0,
+        activeTasks: 0,
+        failedTasks24h: 0,
+        errorLogs24h: 0,
+        dbSizeMb: 0
+      },
+      systemStats: {
+        memory: { total: 0, used: 0, percent: 0 },
+        cpu: { percent: 0, cores: 0 },
+        disk: { percent: 0, freeGb: 0 },
+        os: "Unknown"
+      },
+      recentErrors: [],
+      recentTasks: []
+    }, { status: 500 });
   }
 }
