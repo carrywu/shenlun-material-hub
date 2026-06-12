@@ -68,11 +68,11 @@ export async function POST(request: NextRequest) {
       const duplicates = await db.$queryRaw<
         Array<{ contentHash: string; cnt: number }>
       >`
-        SELECT contentHash, COUNT(*) as cnt
+        SELECT "contentHash", COUNT(*) as cnt
         FROM "ContentItem"
-        WHERE contentHash IS NOT NULL AND contentHash != ''
-        GROUP BY contentHash
-        HAVING cnt > 1
+        WHERE "contentHash" IS NOT NULL AND "contentHash" != ''
+        GROUP BY "contentHash"
+        HAVING COUNT(*) > 1
       `;
 
       let mergedCount = 0;
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       >`
         SELECT mc.id
         FROM "MaterialCard" mc
-        LEFT JOIN "ContentItem" ci ON mc.contentItemId = ci.id
+        LEFT JOIN "ContentItem" ci ON mc."contentItemId" = ci.id
         WHERE ci.id IS NULL
       `;
 
@@ -208,10 +208,10 @@ export async function GET(request: Request) {
       Array<{ cnt: number }>
     >`
       SELECT COUNT(*) as cnt FROM (
-        SELECT contentHash
+        SELECT "contentHash"
         FROM "ContentItem"
-        WHERE contentHash IS NOT NULL AND contentHash != ''
-        GROUP BY contentHash
+        WHERE "contentHash" IS NOT NULL AND "contentHash" != ''
+        GROUP BY "contentHash"
         HAVING COUNT(*) > 1
       )
     `;
@@ -235,7 +235,7 @@ export async function GET(request: Request) {
     >`
       SELECT COUNT(*) as cnt
       FROM "MaterialCard" mc
-      LEFT JOIN "ContentItem" ci ON mc.contentItemId = ci.id
+      LEFT JOIN "ContentItem" ci ON mc."contentItemId" = ci.id
       WHERE ci.id IS NULL
     `;
     const orphanCardCount = Number(orphanCards[0]?.cnt ?? 0);
