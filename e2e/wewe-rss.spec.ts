@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test';
 import { loginAsAdminAPI } from './helpers/auth';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
+// P0-004 (B3): 文件级 admin storageState——所有 WeWe RSS 用例访问 /admin/integrations/wewe-rss
+test.use({ storageState: '.auth/admin-storage.json' });
+
 test.describe('WeWe RSS Integration Page', () => {
   test('WeWe RSS：集成页加载', async ({ page }, testInfo) => {
     test.setTimeout(60000);

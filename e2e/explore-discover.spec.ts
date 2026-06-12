@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
+// P0-004 (B3): 文件级 admin storageState——探索/发现页含收藏与已读切换，需登录态；
+// admin 同为登录用户可覆盖
+test.use({ storageState: '.auth/admin-storage.json' });
+
 // ---------------------------------------------------------------------------
 // Explore page tests (/explore)
 // ---------------------------------------------------------------------------

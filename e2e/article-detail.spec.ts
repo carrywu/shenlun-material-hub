@@ -3,6 +3,8 @@ import { attachConsoleGuard } from './helpers/consoleGuard';
 import { ensureArticleExists, ensureWechatArticleExists } from './helpers/seed';
 
 test.describe('文章详情页', () => {
+  // P0-004 (B3): 详情页用例验证 admin 视角（管理视图提示、文章批注等），需 admin storageState
+  test.use({ storageState: '.auth/admin-storage.json' });
   let articleId: string;
 
   test.beforeAll(async () => {

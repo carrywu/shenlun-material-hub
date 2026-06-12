@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
 test.describe('复习页', () => {
+  // P0-004 (B3): /review 含复习/已掌握等用户态操作，需登录；admin 同为登录用户可覆盖
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('复习页：页面加载', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
 

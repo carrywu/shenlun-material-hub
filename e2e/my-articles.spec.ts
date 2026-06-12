@@ -8,6 +8,8 @@ import { expect, test } from '@playwright/test';
  */
 
 test.describe('收藏功能（P6）', () => {
+  // P0-004 (B3): /api/favorites 需登录态；admin 同为登录用户可覆盖
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('批量收藏 approved 文章', async ({ request }) => {
     const id = process.env.E2E_APPROVED_ARTICLE_ID;
     if (!id) test.skip(true, '需 E2E_APPROVED_ARTICLE_ID fixture');

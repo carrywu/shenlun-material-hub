@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
 test.describe('同步记录 /admin/sync-records', () => {
+  // P0-004 (B3): 同步记录为 admin 后台页面
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('同步记录：页面加载', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sync-records');

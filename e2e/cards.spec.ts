@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 import { ensureCardExists } from './helpers/seed';
 
+// P0-004 (B3): 文件级 admin storageState——素材卡列表与详情均依赖 admin 视角（管理、确认、删除）
+test.use({ storageState: '.auth/admin-storage.json' });
+
 test.describe('素材卡列表 /cards', () => {
   test('素材卡列表：页面加载', async ({ page }) => {
     test.setTimeout(60000);

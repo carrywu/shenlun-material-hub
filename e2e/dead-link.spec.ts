@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-test.describe('Dead Link / Empty Page 检查', () => {
-  // Public routes — no auth needed
+// 公开路由：无需登录态
+test.describe('公开页面 Dead Link 检查', () => {
+  // P0-004 (B3): 清空 storageState，确保真正匿名访问公开页
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   const publicRoutes = [
     '/articles', '/explore', '/discover', '/search', '/cards',
     '/review', '/register', '/admin/login',
@@ -25,8 +28,13 @@ test.describe('Dead Link / Empty Page 检查', () => {
       }
     });
   }
+});
 
-  // Protected routes — need auth (storageState provides it)
+// 受保护路由：需 admin 登录态
+test.describe('受保护页面 Dead Link 检查', () => {
+  // P0-004 (B3): 受保护页面用 admin storageState 访问
+  test.use({ storageState: '.auth/admin-storage.json' });
+
   const protectedRoutes = [
     '/admin', '/admin/tasks', '/admin/logs', '/admin/users',
     '/admin/backup', '/admin/clean', '/admin/settings/ai',

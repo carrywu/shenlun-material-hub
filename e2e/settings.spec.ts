@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
+// P0-004 (B3): 文件级 admin storageState——设置/账号/IMA 均为用户页需登录态；
+// admin 同为登录用户可覆盖
+test.use({ storageState: '.auth/admin-storage.json' });
+
 test.describe('设置首页', () => {
   test('设置首页：页面加载', async ({ page }, testInfo) => {
     test.setTimeout(60000);

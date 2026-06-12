@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
+// P0-004 (B3): 文件级 admin storageState——/admin/settings/ai 与 /settings/ai 均需登录态；
+// admin 同为登录用户，可覆盖 /settings/ai 用户页
+test.use({ storageState: '.auth/admin-storage.json' });
+
 test.describe('Admin AI Config', () => {
   test('管理员 AI 配置：页面加载', async ({ page }, testInfo) => {
     test.setTimeout(60000);

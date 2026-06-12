@@ -8,9 +8,16 @@ import { loginAsAdminAPI } from './helpers/auth';
  * - 公开 API 无需认证可访问
  * - Admin API 未认证返回 401
  * - 已认证用户访问正常
+ *
+ * P0-004 (B3): 顶层 storageState 已移除，{ request } 默认匿名。
+ * 本 describe 顶部显式声明匿名 storageState，使 16 个 401 / 公开 / 图片代理用例真正匿名；
+ * 4 个 "管理员：" 用例体内调用 loginAsAdminAPI(request) 自行注入 cookie。
  */
 
 test.describe('API 安全认证', () => {
+  // P0-004 (B3): 显式匿名——确保 401/公开/图片代理用例不带任何 cookie
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   // ── 公开 API：无需认证 ──
 
   test('公开 API：health 端点无需认证', async ({ request }) => {
@@ -172,14 +179,10 @@ test.describe('API 安全 — 浏览器级别', () => {
 
 // ── P1-T7: WeWe RSS settings route lockdown（admin-only 收紧）──
 //
-// 背景：playwright.config.ts 顶层设置了 storageState: '.auth/admin-storage.json'，
-// 默认 { request } fixture 会自动携带 admin cookie。要测试真正的"未认证"请求，
-// 必须用 test.use({ storageState: { cookies: [], origins: [] } }) 清空 cookie —— 这与
-// e2e/auth.spec.ts 中"登录页（未认证）"块的做法一致。
-//
-// 范围说明：
-// - 匿名 401（5 个端点）：本块覆盖。
-// - ADMIN 200 回归（防过度收紧）：本块覆盖。
+// P0-004 (B3): playwright.config.ts 顶层不再设 storageState，{ request } 默认匿名。
+// 下方两块分别用 test.use 显式声明：
+// - 匿名 401（5 个端点）：storageState 清空。
+// - ADMIN 200 回归（防过度收紧）：storageState = admin。
 // - VERIFIED_USER → 403：当前 e2e 无 VERIFIED_USER fixture（属 P8-T7），该路径已由
 //   src/app/api/settings/integrations/wewe-rss/__tests__/route.test.ts 单测覆盖，此处不重复。
 
@@ -220,8 +223,9 @@ test.describe('WeWe RSS 接口权限（P1 收紧）— 未认证 → 401', () =>
 });
 
 test.describe('WeWe RSS 接口权限（P1 收紧）— ADMIN 回归 → 200', () => {
-  // 此处保留全局 admin storageState（不 override），确保 admin 仍可访问，
+  // P0-004 (B3): 顶层 storageState 已移除；用 admin storageState 确保 admin 仍可访问，
   // 防止权限收紧过度把 admin 也挡在外面。
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('ADMIN GET settings/wewe-rss → 200（regression：管理员仍可用）', async ({ request }) => {
     await loginAsAdminAPI(request);
     const res = await request.get('/api/settings/integrations/wewe-rss');

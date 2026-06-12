@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
 test.describe('来源管理 /admin/sources', () => {
+  // P0-004 (B3): 来源管理为 admin 后台页面
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('来源管理：页面加载', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sources');

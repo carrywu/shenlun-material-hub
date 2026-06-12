@@ -5,10 +5,13 @@ import { expect, test } from '@playwright/test';
  *
  * 需求方强调现有 e2e 缺前端体验，本 spec 补「用户点按钮、走完整流程」。
  * 依赖 fixture 账号 + 文章。本地 dev 库无 fixture 时 test.skip。
- * admin 登录态由 global-setup；USER/VERIFIED_USER 完整链路需 P8 loginAsUserAPI。
+ * admin 登录态由文件级 storageState 提供；USER/VERIFIED_USER 完整链路需 P8 loginAsUserAPI。
  */
 
-test.describe('前台体验（P7）', () => {
+// 公开页面：/discover 与 /explore 无需登录态即可渲染
+test.describe('前台体验（P7）— 公开页面', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('今日推荐页加载（/discover）', async ({ page }) => {
     await page.goto('/discover');
     // 页面标题应可见（H1 含「今日推荐」）
@@ -28,9 +31,14 @@ test.describe('前台体验（P7）', () => {
     const hasNoResults = await page.locator('text=未找到匹配内容').isVisible().catch(() => false);
     expect(hasCards || hasEmpty || hasNoResults).toBeTruthy();
   });
+});
+
+// 受保护页面：/my-articles 与生卡 API 需登录态
+test.describe('前台体验（P7）— 受保护页面', () => {
+  // P0-004 (B3): /my-articles 与生卡接口需登录态；admin 同为登录用户可覆盖
+  test.use({ storageState: '.auth/admin-storage.json' });
 
   test('我的文章页加载（/my-articles，需登录）', async ({ page }) => {
-    // admin 已登录（storageState）
     await page.goto('/my-articles');
     await expect(page.getByRole('heading', { name: /我的文章/ }).first()).toBeVisible({
       timeout: 15000,

@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
+// P0-004 (B3): 文件级 admin storageState——本文件所有 describe 均为 admin 后台页面
+test.use({ storageState: '.auth/admin-storage.json' });
+
 test.describe('Admin Dashboard', () => {
   test('管理后台首页：页面加载', async ({ page }, testInfo) => {
     test.setTimeout(60000);
