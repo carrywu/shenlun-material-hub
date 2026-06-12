@@ -26,7 +26,8 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    storageState: '.auth/admin-storage.json',
+    // P0-004 (B3): 顶层不再设 storageState——每个 spec 用 test.use({ storageState }) 显式声明身份
+    // （admin/.auth/admin-storage.json, verified/usera/userb 各自文件, 或空 {cookies:[],origins:[]} 表匿名）
   },
   snapshotDir: './e2e/__screenshots__',
   globalSetup: require.resolve('./e2e/global-setup'),
