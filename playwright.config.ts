@@ -33,8 +33,27 @@ export default defineConfig({
   globalSetup: require.resolve('./e2e/global-setup'),
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'anonymous',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+      },
+    },
+    {
+      name: 'userA',
+      use: { ...devices['Desktop Chrome'], storageState: '.auth/usera-storage.json' },
+    },
+    {
+      name: 'userB',
+      use: { ...devices['Desktop Chrome'], storageState: '.auth/userb-storage.json' },
+    },
+    {
+      name: 'verified',
+      use: { ...devices['Desktop Chrome'], storageState: '.auth/verified-storage.json' },
+    },
+    {
+      name: 'admin',
+      use: { ...devices['Desktop Chrome'], storageState: '.auth/admin-storage.json' },
     },
   ],
   // 打远端 staging 时不本地起 dev server；本地开发/CI 才起 dev server
