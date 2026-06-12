@@ -16,10 +16,9 @@ vi.mock("@/lib/auth", () => ({
   forbiddenResponse: () => Response.json({ error: "x" }, { status: 403 }),
 }));
 
-const quota = vi.hoisted(() => ({ limits: vi.fn(), count: vi.fn() }));
+const quota = vi.hoisted(() => ({ limits: vi.fn() }));
 vi.mock("@/lib/favorite-quota", () => ({
   getFavoriteLimits: quota.limits,
-  getCurrentFavoriteCount: quota.count,
 }));
 
 const { mocks, dbMock } = vi.hoisted(() => {
@@ -66,7 +65,6 @@ describe("favorites route (P6)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     quota.limits.mockResolvedValue(100);
-    quota.count.mockResolvedValue(0);
   });
 
   it("USER 可收藏（不限角色）", async () => {
