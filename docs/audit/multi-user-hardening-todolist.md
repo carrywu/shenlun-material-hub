@@ -247,3 +247,22 @@
 - **验收**：lint 0 error、test 336 passed、build ✓。
 - **未覆盖**：真实并发压力测试（需 staging 多请求脚本，单测用 mock 模拟事务内顺序验证逻辑正确性）。
 - **完成状态**：✅ 完成（commits `d54fd42` 红测试、`0f3bcc4` 修复、`46fbbc4` 死代码清理）
+
+---
+
+## P0-003：任务限流原子化 ✅
+
+- **问题**：`generate-card` 路由 `checkTaskRateLimit`（count）+ `createAsyncTask`（insert）非原子，并发请求都过检查都建任务；AsyncTask 无 dedupeKey，同用户同文章同卡片类型可并发生成重复任务。
+- **修法**：
+  1. **schema**：AsyncTask 加 `dedupeKey String?` + partial unique index `asynctask_dedupe_active_unique (dedupeKey, userId) WHERE dedupeKey IS NOT NULL AND status IN ('PENDING','RUNNING')`（migration `20260612000002_task_dedupe`，部署时 apply）。
+  2. **createDedupTask**（`src/lib/async-task.ts`）：整段在 `db.$transaction` 内——`tx.$executeRaw\`SELECT pg_advisory_xact_lock(hashtext(userId))\`` 串行化同用户 → `findFirst` 查活跃同键任务（有则返回已存在）→ count 并发数（超 maxConcurrent 抛 `RateLimitError`）→ count 日数（超 maxDaily 抛）→ `create`。partial unique index 是并发兜底（即使 advisory lock 哈希碰撞，第二个 insert 也会因 unique 冲突回滚）。
+  3. **generate-card 路由**：删 `checkTaskRateLimit` 预检查，循环内 `createDedupTask` 替代 `createAsyncTask`，`RateLimitError` → 429。**卡包模式中途限流**：不再硬 429（会丢已入队任务），改为 `break` + 202 返回部分 `tasks` + `rateLimited:true` + `rateLimitReason`（dedupeKey 保证客户端重试时已运行类型被去重）。单类型模式保持 429。
+- **关键安全点**：advisory lock 在 count/findFirst **之前**；lock 键 `hashtext(userId)` per-user；dedupeKey 格式 `CARD_GENERATE:userId:contentItemId:cardType`（同用户可并发不同类型，仅去重重试同类型）；tagged template 参数化防注入。
+- **涉及文件**：`prisma/schema.prisma`、`prisma/migrations/20260612000002_task_dedupe/migration.sql`、`src/lib/async-task.ts`、`src/lib/__tests__/async-task-dedupe.test.ts`、`src/app/api/content-items/[id]/generate-card/route.ts`、`src/app/api/content-items/[id]/generate-card/__tests__/route.test.ts`
+- **验证命令**：`pnpm test src/lib/__tests__/async-task-dedupe.test.ts`、`pnpm test src/app/api/content-items/[id]/generate-card/__tests__/route.test.ts`
+- **测试结果**：async-task 新增 3 用例（advisory lock+创建、dedup 返回已存在、超并发抛 RateLimitError）；generate-card 新增 1 用例（卡包模式中途限流 202 部分+rateLimited），单类型 429 保持。全量 **340 passed / 0 failed**。lint 0 error，build ✓ Compiled successfully（tsc typecheck 通过）。
+- **⚠️ 未解决（上线限制，必须报告）**：
+  - **内存队列**：`src/lib/async-task.ts` 的任务队列存 `globalThis`（进程内存），**多副本/水平扩展不共享**，**进程重启丢未完成任务**。当前 `createDedupTask` 解决了「创建阶段」的并发竞态，但「执行阶段」仍依赖单进程内存队列。
+  - **单副本部署 OK**；**多副本/水平扩展前必须重构为 DB worker**（轮询 PENDING 任务或外部队列如 Redis/BullMQ）。
+  - **生产前人工确认**：部署是否单副本？若是多副本，P0-003 的任务执行层需独立升级（独立 issue，非本轮范围）。
+- **完成状态**：✅ 任务级去重 + 限流原子化完成（commits `7df40c3` schema、`bcafa85` createDedupTask、`37ddc65` 路由接入、`13cc068` 卡包模式 202 语义、`bf524dc` tsc 类型修复）；DB worker 升级独立 issue
