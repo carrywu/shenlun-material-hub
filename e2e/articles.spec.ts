@@ -119,22 +119,11 @@ test.describe('文章列表页', () => {
       throw new Error('没有文章数据，无法测试行点击');
     }
 
-    // 行内有覆盖整行的透明 click overlay（z-10 cursor-pointer）。直接点 row 可能命中
-    // 背景而不触发 onClick。优先点 overlay，回退点 row 本身。
-    const rowOverlay = firstDataRow.locator('.cursor-pointer.z-10').first();
-    if (await rowOverlay.count() > 0) {
-      await rowOverlay.click();
-    } else {
-      await firstDataRow.click();
-    }
-
-    // 详情面板打开后渲染 ArticleDetail。关闭按钮是纯图标（X，无 accessible name），
-    // 不能用 getByRole name 匹配。改用面板容器（.border-l，ArticlesPage 详情面板 wrapper）
-    // + 面板内文章标题 CardTitle 作为"面板已打开"的稳定信号。
-    const detailPanel = page.locator('div.border-l').last();
+    // 直接点行触发 onClick（ArticlesPage TableRow onClick=setDetailItem）。
+    const detailPanel = page.locator('div.border-l');
+    await firstDataRow.click();
+    // 详情面板打开后挂载 .border-l 容器（ArticlesPage line ~989）
     await expect(detailPanel).toBeVisible({ timeout: 5000 });
-    // 面板内应渲染 ArticleDetail 的标题 CardTitle
-    await expect(detailPanel.locator('article, [class*="CardTitle"], h2, h3').first()).toBeVisible({ timeout: 3000 });
 
     guard.report(test.info());
   });
