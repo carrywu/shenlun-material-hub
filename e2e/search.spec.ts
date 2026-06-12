@@ -133,7 +133,9 @@ test.describe('搜索页', () => {
     }
 
     // Find the first result card and click it
-    const firstResult = page.locator('.cursor-pointer').first();
+    // 精确到结果网格内的卡片（.grid .cursor-pointer），避免误点 header/按钮的 cursor-pointer
+    const firstResult = page.locator('.grid .cursor-pointer').first();
+    await expect(firstResult).toBeVisible({ timeout: 10000 });
     await firstResult.click();
 
     // Should navigate to /cards/{id}

@@ -88,10 +88,11 @@ test.describe('Admin Tasks', () => {
     const statusTrigger = page.getByRole('combobox').first();
     await statusTrigger.click();
     // Verify select options are visible
+    // Radix Select option 的 accessible name 是文案（已完成）而非 value（COMPLETED）
     await expect(page.getByRole('option', { name: '全部状态' })).toBeVisible();
-    await expect(page.getByRole('option', { name: 'COMPLETED' })).toBeVisible();
-    // Select COMPLETED
-    await page.getByRole('option', { name: 'COMPLETED' }).click();
+    await expect(page.getByRole('option', { name: '已完成' })).toBeVisible();
+    // Select 已完成（COMPLETED）
+    await page.getByRole('option', { name: '已完成' }).click();
     // The combobox value should reflect the selection
     await page.waitForTimeout(1000);
 
