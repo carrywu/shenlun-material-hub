@@ -144,8 +144,10 @@ test.describe('User AI Settings', () => {
     await expect(page.getByRole('button', { name: '保存配置' }).or(page.getByRole('button', { name: '保存中...' }))).toBeVisible();
     // Test button visible (only when config is configured)
     // Delete button visible (only when config is configured)
-    // At minimum the form is rendered
-    await expect(page.getByText('模型参数')).toBeVisible();
+    // At minimum the form is rendered — scope to the "模型参数" CardTitle,
+    // since "模型参数" also appears as a substring inside the page subtitle
+    // sentence ("配置您的个人 AI 模型参数，优先级高于系统默认配置").
+    await expect(page.locator('[data-slot="card-title"]').filter({ hasText: '模型参数' })).toBeVisible();
 
     guard.report(testInfo);
   });
