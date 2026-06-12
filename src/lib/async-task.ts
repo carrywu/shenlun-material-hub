@@ -252,13 +252,14 @@ export async function createDedupTask(input: DedupTaskInput) {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${input.userId}))`;
 
     // 已有活跃同键任务？→ 返回已存在（去重）
+    // select id + type：调用方（enqueueAsyncTask）需要 { id, type }，与 create 返回形状一致
     const existing = await tx.asyncTask.findFirst({
       where: {
         dedupeKey: input.dedupeKey,
         userId: input.userId,
         status: { in: ["PENDING", "RUNNING"] },
       },
-      select: { id: true },
+      select: { id: true, type: true },
     });
     if (existing) return existing;
 
