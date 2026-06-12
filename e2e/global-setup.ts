@@ -30,31 +30,52 @@ async function browserLoginAndSave(
   password: string,
   storagePath: string,
 ): Promise<void> {
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  try {
-    await page.goto(`${baseURL}/admin`);
-    await page.waitForURL(/\/admin\/login/, { timeout: 15000 });
+  // Dev server 冷启时首次编译 /admin/login 可能要 20-30s，给 40s + 1 次重试。
+  // webServer 起来后端口就 ready，但 Next 路由是 lazy 编译的，global-setup 抢跑会撞上。
+  const LOGIN_NAV_TIMEOUT = 40000;
+  const FORM_TIMEOUT = 30000;
+  const POST_LOGIN_TIMEOUT = 30000;
 
-    const accountInput = page.getByPlaceholder('请输入账号');
-    await accountInput.waitFor({ state: 'visible', timeout: 15000 });
-    await accountInput.fill(username);
-    await page.getByPlaceholder('请输入密码').fill(password);
-    await page.locator("form button[type='submit']").click();
+  const tryLogin = async () => {
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    try {
+      await page.goto(`${baseURL}/admin`, {
+        waitUntil: 'domcontentloaded',
+        timeout: LOGIN_NAV_TIMEOUT,
+      });
+      await page.waitForURL(/\/admin\/login/, { timeout: LOGIN_NAV_TIMEOUT });
 
-    await page.waitForURL((u) => !u.pathname.startsWith('/admin/login'), {
-      timeout: 15000,
-    });
-    await page.waitForSelector('main', { timeout: 10000 });
+      const accountInput = page.getByPlaceholder('请输入账号');
+      await accountInput.waitFor({ state: 'visible', timeout: FORM_TIMEOUT });
+      await accountInput.fill(username);
+      await page.getByPlaceholder('请输入密码').fill(password);
+      await page.locator("form button[type='submit']").click();
 
-    const cookies = await page.context().cookies();
-    const authToken = cookies.find((c) => c.name === 'auth_token');
-    if (!authToken) {
-      throw new Error(`${username} 登录成功但 auth_token cookie 不存在`);
+      await page.waitForURL((u) => !u.pathname.startsWith('/admin/login'), {
+        timeout: POST_LOGIN_TIMEOUT,
+      });
+      await page.waitForSelector('main', { timeout: 15000 });
+
+      const cookies = await page.context().cookies();
+      const authToken = cookies.find((c) => c.name === 'auth_token');
+      if (!authToken) {
+        throw new Error(`${username} 登录成功但 auth_token cookie 不存在`);
+      }
+      await page.context().storageState({ path: storagePath });
+    } finally {
+      await browser.close();
     }
-    await page.context().storageState({ path: storagePath });
-  } finally {
-    await browser.close();
+  };
+
+  try {
+    await tryLogin();
+  } catch (firstErr) {
+    // 重试一次：首次常因 dev server 冷启编译慢导致 timeout，第二次路由已缓存。
+    console.warn(
+      `⚠ globalSetup: ${username} 首次登录失败，重试一次：${firstErr instanceof Error ? firstErr.message : firstErr}`,
+    );
+    await tryLogin();
   }
 }
 
