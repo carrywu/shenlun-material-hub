@@ -172,6 +172,7 @@ export async function POST(
     // 串行 enqueue（全局并发由 async-task 限流；同用户 rateLimit 已查）
     const isBundleMode = Array.isArray(cardTypesRaw) && cardTypesRaw.length > 0;
     const tasks: Array<Record<string, unknown>> = [];
+    let rateLimited: { reason: string } | null = null;
     for (const ct of requestedTypes) {
       const dup = await db.materialCard.findFirst({
         where: { contentItemId: id, cardType: ct, ownerUserId: user.id },
@@ -203,14 +204,30 @@ export async function POST(
         tasks.push({ cardType: ct, taskId: task.id, duplicated: false });
       } catch (e) {
         if (e instanceof RateLimitError) {
-          return errorResponse("RATE_LIMITED", e.reason, 429, { requestId });
+          // 单类型模式：直接 429（还没开始任何任务）
+          if (!isBundleMode) {
+            return errorResponse("RATE_LIMITED", e.reason, 429, { requestId });
+          }
+          // 卡包模式：已入队的任务保留，标记 rateLimited 并以 202 返回部分结果。
+          // dedupeKey 保证客户端重试时已运行的同类型任务被去重，不会重复生成。
+          rateLimited = { reason: e.reason };
+          break;
         }
         throw e;
       }
     }
 
     return NextResponse.json(
-      { accepted: true, requestId, contentItemId: id, tasks },
+      rateLimited
+        ? {
+            accepted: true,
+            requestId,
+            contentItemId: id,
+            tasks,
+            rateLimited: true,
+            rateLimitReason: rateLimited.reason,
+          }
+        : { accepted: true, requestId, contentItemId: id, tasks },
       { status: 202 }
     );
   } catch (error) {
