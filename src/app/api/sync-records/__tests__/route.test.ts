@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   getUserFromRequest: vi.fn(),
@@ -34,7 +35,7 @@ describe("SyncRecords API — RBAC isolation", () => {
   it("should return 401 when unauthenticated", async () => {
     mocks.getUserFromRequest.mockResolvedValueOnce(null);
     const { GET } = await import("@/app/api/sync-records/route");
-    const res = await GET(new Request("http://localhost/api/sync-records"));
+    const res = await GET(new NextRequest("http://localhost/api/sync-records"));
     expect(res.status).toBe(401);
   });
 
@@ -43,7 +44,7 @@ describe("SyncRecords API — RBAC isolation", () => {
     mocks.findMany.mockResolvedValueOnce([{ id: "sr-1", userId: "user-a" }]);
     mocks.count.mockResolvedValueOnce(1);
     const { GET } = await import("@/app/api/sync-records/route");
-    const res = await GET(new Request("http://localhost/api/sync-records"));
+    const res = await GET(new NextRequest("http://localhost/api/sync-records"));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.data).toHaveLength(1);
@@ -57,7 +58,7 @@ describe("SyncRecords API — RBAC isolation", () => {
     ]);
     mocks.count.mockResolvedValueOnce(2);
     const { GET } = await import("@/app/api/sync-records/route");
-    const res = await GET(new Request("http://localhost/api/sync-records"));
+    const res = await GET(new NextRequest("http://localhost/api/sync-records"));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.total).toBe(2);

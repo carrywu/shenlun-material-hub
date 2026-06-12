@@ -54,9 +54,12 @@ function makeRequest(cookie: string | null, body?: unknown): NextRequest {
     init.headers = { ...(init.headers || {}), "content-type": "application/json" };
     init.body = JSON.stringify(body);
   }
+  // NextRequest expects its own RequestInit where signal cannot be null
+  const { signal, ...nextInit } = init;
+  void signal;
   return new NextRequest(
     "http://localhost/api/settings/integrations/wewe-rss/test",
-    init
+    nextInit
   );
 }
 

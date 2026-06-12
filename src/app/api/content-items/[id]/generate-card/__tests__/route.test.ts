@@ -62,8 +62,11 @@ function makeReq(id: string, user: unknown, body: unknown) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   };
+  // NextRequest expects its own RequestInit where signal cannot be null
+  const { signal, ...nextInit } = init;
+  void signal;
   return [
-    new NextRequest(`http://localhost/api/content-items/${id}/generate-card`, init),
+    new NextRequest(`http://localhost/api/content-items/${id}/generate-card`, nextInit),
     { params: Promise.resolve({ id }) },
   ] as const;
 }

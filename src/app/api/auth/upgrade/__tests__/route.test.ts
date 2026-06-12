@@ -38,7 +38,7 @@ vi.mock("@/lib/audit-logger", () => ({ auditLog: vi.fn().mockResolvedValue(undef
 
 import { POST } from "../route";
 
-function makeReq(user: unknown | null, body: unknown, cookie = "auth_token=t") {
+function makeReq(user: unknown | null, body: unknown, cookie: string | null = "auth_token=t") {
   authMocks.requireAuth.mockResolvedValue(user);
   const init: RequestInit = {
     method: "POST",
@@ -46,7 +46,10 @@ function makeReq(user: unknown | null, body: unknown, cookie = "auth_token=t") {
     body: JSON.stringify(body),
   };
   if (cookie) init.headers = { ...init.headers, cookie };
-  return new NextRequest("http://localhost/api/auth/upgrade", init);
+  // NextRequest expects its own RequestInit where signal cannot be null
+  const { signal, ...nextInit } = init;
+  void signal;
+  return new NextRequest("http://localhost/api/auth/upgrade", nextInit);
 }
 
 describe("POST /api/auth/upgrade (P8)", () => {

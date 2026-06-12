@@ -145,7 +145,7 @@ describe("mergeWhere", () => {
     expect(and).toHaveLength(2);
 
     // Verify both ORs are preserved
-    const orConditions = and.map((a: Record<string, unknown>) => a);
+    const orConditions = and.map((a: unknown) => a as Record<string, unknown>);
     expect(orConditions[0]).toEqual({ OR: base.OR });
     expect(orConditions[1]).toEqual({ OR: filter.OR });
   });

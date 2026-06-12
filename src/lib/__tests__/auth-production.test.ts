@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
+// Helper to set NODE_ENV in tests (TypeScript marks it readonly)
+function setNodeEnv(value: string) {
+  (process.env as Record<string, string | undefined>).NODE_ENV = value;
+}
+
 const mocks = vi.hoisted(() => ({
   userCount: vi.fn().mockResolvedValue(0),
   userFindUnique: vi.fn().mockResolvedValue(null),
@@ -43,7 +48,7 @@ describe("ensureInitialAdmin — production guard", () => {
   });
 
   it("should throw in production when ADMIN_PASSWORD_HASH is not set", async () => {
-    process.env.NODE_ENV = "production";
+    setNodeEnv("production");
     delete process.env.ADMIN_PASSWORD_HASH;
     mocks.userCount.mockResolvedValueOnce(0);
     mocks.userFindUnique.mockResolvedValueOnce(null);
@@ -55,7 +60,7 @@ describe("ensureInitialAdmin — production guard", () => {
   });
 
   it("should throw in production when ADMIN_PASSWORD_HASH is not a bcrypt hash", async () => {
-    process.env.NODE_ENV = "production";
+    setNodeEnv("production");
     process.env.ADMIN_PASSWORD_HASH = "some-sha256-hash-not-bcrypt";
     mocks.userCount.mockResolvedValueOnce(0);
     mocks.userFindUnique.mockResolvedValueOnce(null);
@@ -67,7 +72,7 @@ describe("ensureInitialAdmin — production guard", () => {
   });
 
   it("should succeed in production with valid bcrypt ADMIN_PASSWORD_HASH", async () => {
-    process.env.NODE_ENV = "production";
+    setNodeEnv("production");
     process.env.ADMIN_PASSWORD_HASH = "$2a$12$validbcrypthashvaluehere123456789012";
     mocks.userCount.mockResolvedValueOnce(0);
     mocks.userFindUnique.mockResolvedValueOnce(null);
@@ -78,7 +83,7 @@ describe("ensureInitialAdmin — production guard", () => {
   });
 
   it("should use default password in development when no env var is set", async () => {
-    process.env.NODE_ENV = "development";
+    setNodeEnv("development");
     delete process.env.ADMIN_PASSWORD_HASH;
     mocks.userCount.mockResolvedValueOnce(0);
     mocks.userFindUnique.mockResolvedValueOnce(null);
@@ -90,7 +95,7 @@ describe("ensureInitialAdmin — production guard", () => {
   });
 
   it("should skip creation when admin already exists", async () => {
-    process.env.NODE_ENV = "development";
+    setNodeEnv("development");
     mocks.userCount.mockResolvedValueOnce(1);
 
     const { ensureInitialAdmin } = await import("@/lib/auth");

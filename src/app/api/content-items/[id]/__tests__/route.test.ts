@@ -33,8 +33,11 @@ import { GET } from "../route";
 function makeReq(id: string, cookie: string | null) {
   const init: RequestInit = { method: "GET" };
   if (cookie) init.headers = { cookie };
+  // NextRequest expects its own RequestInit where signal cannot be null
+  const { signal, ...nextInit } = init;
+  void signal;
   return [
-    new NextRequest(`http://localhost/api/content-items/${id}`, init),
+    new NextRequest(`http://localhost/api/content-items/${id}`, nextInit),
     { params: Promise.resolve({ id }) },
   ] as const;
 }

@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 const { authMocks, USERS } = vi.hoisted(() => {
   const ADMIN = { id: "admin-id", username: "admin", role: "ADMIN" as const, status: "ACTIVE" as const };
   const VERIFIED = { id: "v", username: "v", role: "VERIFIED_USER" as const, status: "ACTIVE" as const };
-  const currentUser = { value: null as typeof ADMIN | null };
+  const currentUser = { value: null as typeof ADMIN | typeof VERIFIED | null };
   // Mirror real requireAdmin/requireVerifiedUser role-filtering semantics.
   const requireAdmin = vi.fn(async () => {
     const u = currentUser.value;
@@ -48,7 +48,10 @@ function makeReq(cookie: string | null, body?: unknown) {
     init.headers = { ...(init.headers || {}), "content-type": "application/json" };
     init.body = JSON.stringify(body);
   }
-  return new NextRequest("http://localhost/api/content-items/assess", init);
+  // NextRequest expects its own RequestInit where signal cannot be null
+  const { signal, ...nextInit } = init;
+  void signal;
+  return new NextRequest("http://localhost/api/content-items/assess", nextInit);
 }
 
 describe("POST /api/content-items/assess — permission lockdown (P4)", () => {

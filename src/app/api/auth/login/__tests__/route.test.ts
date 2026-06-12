@@ -58,6 +58,16 @@ function makeRequest(body: Record<string, unknown>) {
   });
 }
 
+// Helper to set/delete NODE_ENV in tests (TypeScript marks it readonly)
+function setNodeEnv(value: string | undefined) {
+  const env = process.env as Record<string, string | undefined>;
+  if (value === undefined) {
+    delete env.NODE_ENV;
+  } else {
+    env.NODE_ENV = value;
+  }
+}
+
 describe("POST /api/auth/login", () => {
   const originalNodeEnv = process.env.NODE_ENV;
   const originalAdminUsername = process.env.ADMIN_USERNAME;
@@ -67,19 +77,20 @@ describe("POST /api/auth/login", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = originalNodeEnv;
-    if (originalAdminUsername === undefined) delete process.env.ADMIN_USERNAME;
-    else process.env.ADMIN_USERNAME = originalAdminUsername;
-    if (originalAdminPasswordHash === undefined) delete process.env.ADMIN_PASSWORD_HASH;
-    else process.env.ADMIN_PASSWORD_HASH = originalAdminPasswordHash;
-    if (originalJwtSecret === undefined) delete process.env.JWT_SECRET;
-    else process.env.JWT_SECRET = originalJwtSecret;
+    const env = process.env as Record<string, string | undefined>;
+    if (originalNodeEnv === undefined) delete env.NODE_ENV;
+    else env.NODE_ENV = originalNodeEnv;
+    if (originalAdminUsername === undefined) delete env.ADMIN_USERNAME;
+    else env.ADMIN_USERNAME = originalAdminUsername;
+    if (originalAdminPasswordHash === undefined) delete env.ADMIN_PASSWORD_HASH;
+    else env.ADMIN_PASSWORD_HASH = originalAdminPasswordHash;
+    if (originalJwtSecret === undefined) delete env.JWT_SECRET;
+    else env.JWT_SECRET = originalJwtSecret;
 
-    delete process.env.ADMIN_USERNAME;
-    delete process.env.ADMIN_PASSWORD_HASH;
-    delete process.env.JWT_SECRET;
-    delete process.env.NODE_ENV;
+    delete env.ADMIN_USERNAME;
+    delete env.ADMIN_PASSWORD_HASH;
+    delete env.JWT_SECRET;
+    setNodeEnv(undefined);
     mocks.verifyPassword.mockResolvedValue({ valid: true });
     mocks.hashPassword.mockResolvedValue("$2a$12$newhash");
     mocks.createSession.mockResolvedValue("session-token");
@@ -98,7 +109,7 @@ describe("POST /api/auth/login", () => {
 
   it("rejects login when user is not found", async () => {
     mocks.userFindUnique.mockResolvedValue(null);
-    process.env.NODE_ENV = "production";
+    setNodeEnv("production");
     const { POST } = await import("../route");
 
     const response = await POST(makeRequest({ username: "nonexistent", password: "secret" }));

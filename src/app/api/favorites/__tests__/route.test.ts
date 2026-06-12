@@ -58,7 +58,10 @@ function makeReq(method: string, user: unknown | null, body?: unknown) {
     init.headers = { "content-type": "application/json" };
     init.body = JSON.stringify(body);
   }
-  return new NextRequest("http://localhost/api/favorites", init);
+  // NextRequest expects its own RequestInit where signal cannot be null
+  const { signal, ...nextInit } = init;
+  void signal;
+  return new NextRequest("http://localhost/api/favorites", nextInit);
 }
 
 describe("favorites route (P6)", () => {

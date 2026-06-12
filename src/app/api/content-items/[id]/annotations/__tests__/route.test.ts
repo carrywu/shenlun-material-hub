@@ -59,7 +59,7 @@ vi.mock("@/lib/db", () => ({
 
 import { GET } from "../route";
 
-function setMockUser(user: typeof USERS.ADMIN | null) {
+function setMockUser(user: typeof USERS.ADMIN | typeof USERS.USER_A | typeof USERS.USER_B | null) {
   authMocks.requireAuth.mockResolvedValue(user);
   authMocks.requireAdmin.mockResolvedValue(
     user && user.role === "ADMIN" ? user : null

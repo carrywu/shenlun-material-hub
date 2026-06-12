@@ -64,7 +64,7 @@ vi.mock("@/lib/data-isolation", () => ({
 import { PUT, DELETE, GET } from "../route";
 import { createAuthenticatedRequest, createAnonymousRequest } from "@/test/helpers/route-helpers";
 
-function setMockUser(user: typeof USERS.ADMIN | null) {
+function setMockUser(user: typeof USERS.ADMIN | typeof USERS.USER_A | typeof USERS.USER_B | null) {
   authMocks.requireAuth.mockResolvedValue(user);
 }
 

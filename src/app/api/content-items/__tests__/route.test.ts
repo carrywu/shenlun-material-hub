@@ -66,7 +66,7 @@ vi.mock("@/lib/data-isolation", () => ({
 
 import { POST } from "../route";
 
-function makePostReq(body: Record<string, unknown>, cookie = "auth_token=t") {
+function makePostReq(body: Record<string, unknown>, cookie: string | null = "auth_token=t") {
   return new NextRequest("http://localhost/api/content-items", {
     method: "POST",
     headers: cookie ? { cookie } : undefined,

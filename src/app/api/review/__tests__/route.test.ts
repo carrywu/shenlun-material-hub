@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   getUserFromRequest: vi.fn(),
@@ -46,7 +47,7 @@ describe("Review API — RBAC isolation", () => {
   it("should return 401 when unauthenticated", async () => {
     mocks.getUserFromRequest.mockResolvedValueOnce(null);
     const { GET } = await import("@/app/api/review/route");
-    const res = await GET(new Request("http://localhost/api/review"));
+    const res = await GET(new NextRequest("http://localhost/api/review"));
     expect(res.status).toBe(401);
   });
 
@@ -55,7 +56,7 @@ describe("Review API — RBAC isolation", () => {
     mocks.findMany.mockResolvedValueOnce([]);
     mocks.count.mockResolvedValueOnce(0);
     const { GET } = await import("@/app/api/review/route");
-    const res = await GET(new Request("http://localhost/api/review"));
+    const res = await GET(new NextRequest("http://localhost/api/review"));
     expect(res.status).toBe(200);
   });
 
@@ -64,7 +65,7 @@ describe("Review API — RBAC isolation", () => {
     mocks.findMany.mockResolvedValueOnce([]);
     mocks.count.mockResolvedValueOnce(0);
     const { GET } = await import("@/app/api/review/route");
-    const res = await GET(new Request("http://localhost/api/review"));
+    const res = await GET(new NextRequest("http://localhost/api/review"));
     expect(res.status).toBe(200);
   });
 
@@ -76,7 +77,7 @@ describe("Review API — RBAC isolation", () => {
       confirmed: false,
     });
     const { POST } = await import("@/app/api/review/route");
-    const res = await POST(new Request("http://localhost/api/review", {
+    const res = await POST(new NextRequest("http://localhost/api/review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cardId: "card-1", confirmed: true }),
@@ -92,7 +93,7 @@ describe("Review API — RBAC isolation", () => {
       confirmed: false,
     });
     const { POST } = await import("@/app/api/review/route");
-    const res = await POST(new Request("http://localhost/api/review", {
+    const res = await POST(new NextRequest("http://localhost/api/review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cardId: "card-1", confirmed: true }),

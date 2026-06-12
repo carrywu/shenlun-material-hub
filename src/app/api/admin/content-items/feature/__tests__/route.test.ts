@@ -31,7 +31,10 @@ function makeReq(method: string, user: unknown, body?: unknown, query = "") {
     init.headers = { "content-type": "application/json" };
     init.body = JSON.stringify(body);
   }
-  return new NextRequest(`http://localhost/api/admin/content-items/feature${query}`, init);
+  // NextRequest expects its own RequestInit where signal cannot be null
+  const { signal, ...nextInit } = init;
+  void signal;
+  return new NextRequest(`http://localhost/api/admin/content-items/feature${query}`, nextInit);
 }
 
 describe("feature endpoints (P4)", () => {

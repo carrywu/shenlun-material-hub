@@ -6,51 +6,28 @@ import path from "path";
 // Mock the db module so backup functions don't hit a real database
 vi.mock("@/lib/db", () => ({
   db: {
-    user: { findMany: vi.fn().mockResolvedValue([]) },
-    source: { findMany: vi.fn().mockResolvedValue([]) },
-    aiConfig: { findMany: vi.fn().mockResolvedValue([]) },
-    aiPromptTemplate: { findMany: vi.fn().mockResolvedValue([]) },
-    systemLog: { findMany: vi.fn().mockResolvedValue([]) },
-    session: { findMany: vi.fn().mockResolvedValue([]) },
-    collectionChannel: { findMany: vi.fn().mockResolvedValue([]) },
-    contentItem: { findMany: vi.fn().mockResolvedValue([]) },
-    collectorRun: { findMany: vi.fn().mockResolvedValue([]) },
-    asyncTask: { findMany: vi.fn().mockResolvedValue([]) },
-    materialCard: { findMany: vi.fn().mockResolvedValue([]) },
-    syncRecord: { findMany: vi.fn().mockResolvedValue([]) },
-    articleAnnotation: { findMany: vi.fn().mockResolvedValue([]) },
-    // For restore
-    articleAnnotation: {
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      count: vi.fn().mockResolvedValue(0),
+    },
+    source: {
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
-    syncRecord: {
+    aiConfig: {
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
-    materialCard: {
+    aiPromptTemplate: {
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
-    asyncTask: {
-      findMany: vi.fn().mockResolvedValue([]),
-      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-      createMany: vi.fn().mockResolvedValue({ count: 0 }),
-    },
-    collectorRun: {
-      findMany: vi.fn().mockResolvedValue([]),
-      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-      createMany: vi.fn().mockResolvedValue({ count: 0 }),
-    },
-    contentItem: {
-      findMany: vi.fn().mockResolvedValue([]),
-      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-      createMany: vi.fn().mockResolvedValue({ count: 0 }),
-    },
-    collectionChannel: {
+    systemLog: {
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -61,31 +38,40 @@ vi.mock("@/lib/db", () => ({
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
       count: vi.fn().mockResolvedValue(0),
     },
-    systemLog: {
+    collectionChannel: {
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
-    aiPromptTemplate: {
+    contentItem: {
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
-    aiConfig: {
+    collectorRun: {
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
-    source: {
+    asyncTask: {
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
-    user: {
+    materialCard: {
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
-      count: vi.fn().mockResolvedValue(0),
+    },
+    syncRecord: {
+      findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    articleAnnotation: {
+      findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     $queryRaw: vi.fn().mockResolvedValue([{ count: BigInt(0) }]),
   },
@@ -109,7 +95,9 @@ describe("backup helpers", () => {
     const parsed = await parseBackupArchive(archive);
 
     expect(parsed.version).toBe(2);
-    expect(parsed.sourceDb).toBe("postgresql");
+    if (parsed.version === 2) {
+      expect(parsed.sourceDb).toBe("postgresql");
+    }
     expect(parsed.uploads).toHaveLength(1);
     expect(parsed.uploads[0]?.relativePath).toBe("a.txt");
   });
