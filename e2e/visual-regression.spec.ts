@@ -52,6 +52,9 @@ test.describe('Visual Regression 视觉回归', () => {
         test.setTimeout(60000);
         const guard = attachConsoleGuard(page);
 
+        // Set fixed viewport for consistent screenshot dimensions
+        await page.setViewportSize({ width: 1280, height: 720 });
+
         await page.goto(route);
         await page.waitForLoadState('domcontentloaded');
         await expect(page.locator(waitSelector).first()).toBeVisible({ timeout: 10000 });
