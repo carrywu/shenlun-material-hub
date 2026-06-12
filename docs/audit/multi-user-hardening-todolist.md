@@ -216,3 +216,19 @@
 - 🚫 不要把用户 A/B 数据隔离只写单测，不做 E2E
 - 🚫 继续新增 UI 功能而不处理 P0 安全问题禁止
 - ⚠️ 决策 10：失败预案激进——staging 必绿，单点死磕不降级（卡死时找用户介入，不自行跳过）
+
+---
+
+## P0-001：文章详情子资源隔离 ✅
+
+- **问题**：`GET /api/content-items/[id]` 的 include 未过滤子资源，非 ADMIN 能看到别人的素材卡和批注。
+- **影响**：多人场景下数据泄露（A 看到 B 的卡/批注）。
+- **修法**：详情接口 include 按 `user.role` 分支——ADMIN 全量，非 ADMIN 仅 `ownerUserId/userId = currentUser.id`。legacy null 子资源默认对非 ADMIN 隐藏。
+- **实现**：Prisma `include.where`（DB 层过滤）+ 防御性 JS 后置过滤（内存层兜底）双重保险——两层字段名/比较器完全一致（`ownerUserId`/`userId` 严格相等），任一层被误改另一层仍能拦住泄露。偏离原 plan 的「Prisma-only」，但因单测 mock `findUnique` 返回固定 payload 不执行 include.where，JS 层保证测试可信；security-wise 冗余过滤相互一致是更强而非更弱。
+- **涉及文件**：`src/app/api/content-items/[id]/route.ts`、`src/app/api/content-items/[id]/__tests__/route.test.ts`
+- **附带修复**：`src/app/api/articles/__tests__/route.test.ts` 匿名可见性用例——该用例断言已删除的 legacy-null OR 过滤（commit `e01a0af` 移除，因 schema visibility 非空致 500），更新为断言新的 `{approved, public}` 扁平过滤。
+- **验证命令**：`pnpm test src/app/api/content-items/[id]/__tests__/route.test.ts`
+- **测试结果**：新增 3 个用例（非 ADMIN 只看自己的、ADMIN 全量、无自己卡时空数组），全绿。全量 334 passed / 0 failed。
+- **验收**：`pnpm lint`（0 error）、`pnpm test`（334 passed）、`pnpm build`（✓ Compiled successfully）全绿。
+- **与需求文档差异**：列表接口（material-cards / annotations）已经正确隔离（P1-P8 用 ownerScopeWhere），本次只修详情接口。
+- **完成状态**：✅ 完成（commits `f325e60` 红测试、`9ee1fba` 修复、`2e1cad9` 附带测试对齐）
