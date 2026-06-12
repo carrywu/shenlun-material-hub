@@ -56,22 +56,31 @@ describe("GET /api/articles route handler", () => {
     mocks.count.mockResolvedValue(0);
   });
 
-  it("should add visibility filter for anonymous users (public + legacy null)", async () => {
+  it("should add visibility filter for anonymous users (approved + public)", async () => {
     authMocks.getUserFromRequest.mockResolvedValue(null);
     const req = new NextRequest("http://localhost/api/articles");
     const res = await GET(req);
     expect(res.status).toBe(200);
-    // P2-14: anonymous users see public + legacy (visibility:null) via mergeWhere
+    // P3-final: 匿名用户只看 adminReviewStatus=approved 且 visibility=public。
+    // 注意：原 P2-14 想包含 legacy visibility:null 行，但 schema 里 visibility 是
+    // 非空字段（String @default("public")），Prisma 拒绝 visibility:null 条件
+    // （→ PrismaClientValidationError → 500）。DB 实测 0 行 visibility IS NULL，
+    // 该 OR 条件零命中且致 500，已移除（commit e01a0af）。
     const { mergeWhere } = await import("@/lib/data-isolation");
     expect(mergeWhere).toHaveBeenCalled();
-    // Check that mergeWhere was called with a visibility OR filter
-    const lastMergeCall = (mergeWhere as ReturnType<typeof vi.fn>).mock.calls.find(
+    // 匿名 filter 必须是 approved + public（不再是 OR legacy-null）
+    const visibilityCall = (mergeWhere as ReturnType<typeof vi.fn>).mock.calls.find(
       (call: unknown[]) => {
         const filter = call[1] as Record<string, unknown> | undefined;
-        return filter && typeof filter === "object" && "OR" in filter;
+        return (
+          filter &&
+          typeof filter === "object" &&
+          filter.adminReviewStatus === "approved" &&
+          filter.visibility === "public"
+        );
       }
     );
-    expect(lastMergeCall).toBeDefined();
+    expect(visibilityCall).toBeDefined();
   });
 
   it("should apply visibility filter for authenticated regular user", async () => {

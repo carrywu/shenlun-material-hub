@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
+// P0-004 (B3): 文件级 admin storageState——/admin/settings/ai 与 /settings/ai 均需登录态；
+// admin 同为登录用户，可覆盖 /settings/ai 用户页
+test.use({ storageState: '.auth/admin-storage.json' });
+
 test.describe('Admin AI Config', () => {
   test('管理员 AI 配置：页面加载', async ({ page }, testInfo) => {
     test.setTimeout(60000);
@@ -140,8 +144,10 @@ test.describe('User AI Settings', () => {
     await expect(page.getByRole('button', { name: '保存配置' }).or(page.getByRole('button', { name: '保存中...' }))).toBeVisible();
     // Test button visible (only when config is configured)
     // Delete button visible (only when config is configured)
-    // At minimum the form is rendered
-    await expect(page.getByText('模型参数')).toBeVisible();
+    // At minimum the form is rendered — scope to the "模型参数" CardTitle,
+    // since "模型参数" also appears as a substring inside the page subtitle
+    // sentence ("配置您的个人 AI 模型参数，优先级高于系统默认配置").
+    await expect(page.locator('[data-slot="card-title"]').filter({ hasText: '模型参数' })).toBeVisible();
 
     guard.report(testInfo);
   });

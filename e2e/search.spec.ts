@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
 test.describe('搜索页', () => {
+  // P0-004 (B3): /search 检索素材卡需登录态；admin 同为登录用户可覆盖
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('搜索页：页面加载', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
 
@@ -131,7 +133,9 @@ test.describe('搜索页', () => {
     }
 
     // Find the first result card and click it
-    const firstResult = page.locator('.cursor-pointer').first();
+    // 精确到结果网格内的卡片（.grid .cursor-pointer），避免误点 header/按钮的 cursor-pointer
+    const firstResult = page.locator('.grid .cursor-pointer').first();
+    await expect(firstResult).toBeVisible({ timeout: 10000 });
     await firstResult.click();
 
     // Should navigate to /cards/{id}

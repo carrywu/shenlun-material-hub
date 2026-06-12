@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test';
 import { loginAsAdminAPI } from './helpers/auth';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
+// P0-004 (B3): 文件级 admin storageState——所有 WeWe RSS 用例访问 /admin/integrations/wewe-rss
+test.use({ storageState: '.auth/admin-storage.json' });
+
 test.describe('WeWe RSS Integration Page', () => {
   test('WeWe RSS：集成页加载', async ({ page }, testInfo) => {
     test.setTimeout(60000);
@@ -106,7 +109,7 @@ test.describe('WeWe RSS Integration Page', () => {
   });
 
   test('WeWe RSS：同步来源', async ({ page }, testInfo) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/integrations/wewe-rss');
@@ -118,18 +121,30 @@ test.describe('WeWe RSS Integration Page', () => {
 
     // Click sync
     await syncBtn.click();
-    // Wait for result
-    await page.waitForTimeout(5000);
 
-    // After sync, verify page is stable (no crash)
-    await expect(page.getByRole('heading', { name: 'WeWe RSS 集成' })).toBeVisible({ timeout: 5000 });
-    // Check for sync response — either result, delete dialog, or error message
-    const syncResultMsg = page.getByText(/数据来源|同步完成|同步失败|服务不可用/);
-    const deleteDialog = page.getByText('同步删除来源确认');
-    const syncResponseVisible = await syncResultMsg.isVisible().catch(() => false)
-      || await deleteDialog.isVisible().catch(() => false);
-    // Sync must produce some UI response within timeout
-    expect(syncResponseVisible).toBe(true);
+    // Wait for sync to complete (either success or error)
+    // The sync result will show in a div with class bg-muted containing the message
+    const syncResultContainer = page.locator('.bg-muted');
+    await expect.poll(
+      async () => {
+        const count = await syncResultContainer.count();
+        return count > 0;
+      },
+      {
+        timeout: 60000,
+        message: '等待同步结果出现',
+      }
+    );
+
+    // Verify the result message contains expected keywords
+    const resultText = await syncResultContainer.first().textContent();
+    const hasExpectedText = resultText && (
+      resultText.includes('同步完成') ||
+      resultText.includes('同步失败') ||
+      resultText.includes('WeWe RSS 中没有') ||
+      resultText.includes('服务不可用')
+    );
+    expect(hasExpectedText, `同步结果应包含预期文案，实际为：${resultText}`).toBe(true);
 
     guard.report(testInfo);
   });

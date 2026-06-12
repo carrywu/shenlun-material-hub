@@ -26,14 +26,34 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    storageState: '.auth/admin-storage.json',
+    // P0-004 (B3): 顶层不再设 storageState——每个 spec 用 test.use({ storageState }) 显式声明身份
+    // （admin/.auth/admin-storage.json, verified/usera/userb 各自文件, 或空 {cookies:[],origins:[]} 表匿名）
   },
   snapshotDir: './e2e/__screenshots__',
   globalSetup: require.resolve('./e2e/global-setup'),
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'anonymous',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+      },
+    },
+    {
+      name: 'userA',
+      use: { ...devices['Desktop Chrome'], storageState: '.auth/usera-storage.json' },
+    },
+    {
+      name: 'userB',
+      use: { ...devices['Desktop Chrome'], storageState: '.auth/userb-storage.json' },
+    },
+    {
+      name: 'verified',
+      use: { ...devices['Desktop Chrome'], storageState: '.auth/verified-storage.json' },
+    },
+    {
+      name: 'admin',
+      use: { ...devices['Desktop Chrome'], storageState: '.auth/admin-storage.json' },
     },
   ],
   // 打远端 staging 时不本地起 dev server；本地开发/CI 才起 dev server

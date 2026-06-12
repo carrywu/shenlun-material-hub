@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
+// P0-004 (B3): 文章列表页所有用例均需 admin 登录态（访问 /admin/articles、调试按钮等）
+test.use({ storageState: '.auth/admin-storage.json' });
+
 test.describe('文章列表页', () => {
   test('文章列表页加载', async ({ page }) => {
     const guard = attachConsoleGuard(page);
@@ -116,11 +119,10 @@ test.describe('文章列表页', () => {
       throw new Error('没有文章数据，无法测试行点击');
     }
 
+    // 直接点行触发 onClick（ArticlesPage TableRow onClick=setDetailItem）。
+    const detailPanel = page.locator('div.border-l');
     await firstDataRow.click();
-
-    // Detail panel should open on the right side — look for the ArticleDetail content
-    // The detail panel contains a close button and article content
-    const detailPanel = page.locator('.w-1\\/2.border-l');
+    // 详情面板打开后挂载 .border-l 容器（ArticlesPage line ~989）
     await expect(detailPanel).toBeVisible({ timeout: 5000 });
 
     guard.report(test.info());
@@ -302,13 +304,13 @@ test.describe('文章列表页', () => {
 // 注意：这些用例依赖 fixture 数据（pending_admin / approved 文章）。
 // 本地 dev 库无 fixture 时 test.skip；staging 应用 P2 migration 并 seed 后可运行。
 
-test.describe('文章审核可见性（P3）', () => {
+test.describe('文章审核可见性（P3 - admin）', () => {
   test('ADMIN 可用 adminReviewStatus=pending_admin 筛选', async ({ request }) => {
     const pendingId = process.env.E2E_PENDING_ARTICLE_ID;
     if (!pendingId) {
       test.skip(true, '需要 E2E_PENDING_ARTICLE_ID fixture（staging apply P2 migration 后）');
     }
-    // admin 已通过 global-setup 的 storageState 登录
+    // admin 已通过文件级 storageState 登录
     const res = await request.get('/api/articles?adminReviewStatus=pending_admin&pageSize=5');
     expect(res.status()).toBe(200);
     const json = await res.json();
@@ -317,14 +319,18 @@ test.describe('文章审核可见性（P3）', () => {
     );
     expect(allPending).toBeTruthy();
   });
+});
+
+test.describe('文章审核可见性（P3 - 匿名）', () => {
+  // P0-004 (B3): 清空文件级 admin storageState，使 { request } 真正匿名
+  test.use({ storageState: { cookies: [], origins: [] } });
 
   test('非管理员访问未审核文章详情 → 404（防 ID 绕过）', async ({ request }) => {
-    // 用独立无 cookie context 模拟匿名 → 401；VERIFIED_USER 场景需 P8 的 loginAsVerifiedUserAPI
+    // 匿名访问受保护接口 → 401（requireAuth 拦截，先于 adminReviewStatus 检查）
     const pendingId = process.env.E2E_PENDING_ARTICLE_ID;
     if (!pendingId) {
       test.skip(true, '需要 E2E_PENDING_ARTICLE_ID fixture');
     }
-    // 匿名访问受保护接口 → 401（requireAuth 拦截，先于 adminReviewStatus 检查）
     const res = await request.get(`/api/content-items/${pendingId}`);
     expect([401, 404]).toContain(res.status());
   });

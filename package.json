@@ -15,6 +15,7 @@
     "seed:accounts": "tsx src/scripts/seed-accounts.ts",
     "seed:channels": "tsx src/scripts/seed-channels.ts",
     "seed:role-quotas": "tsx src/scripts/seed-role-quotas.ts",
+    "seed:e2e-accounts": "tsx src/scripts/seed-e2e-accounts.ts",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:setup": "tsx scripts/setup-fresh-db.ts",

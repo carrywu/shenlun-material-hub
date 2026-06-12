@@ -23,6 +23,22 @@ const CRITICAL_PATTERNS = [
   /NEXT_NOT_FOUND/i,
 ];
 
+// 良性错误：浏览器在导航/卸载页面时中止进行中的 fetch，会抛 TypeError: Failed to fetch
+// （Chromium）或 NetworkError（其它）。这是预期行为，不是应用 bug。
+// Playwright 测试里 page.goto 会主动取消未完成的请求，这类噪声必须忽略，
+// 否则任何"加载 dashboard 后立即跳走"的用例都会误报。
+const BENIGN_PATTERNS = [
+  /Failed to fetch/i,
+  /Load failed/i,
+  /NetworkError when attempting to fetch/i,
+  /The user aborted a request/i,
+  /navigation/i,
+];
+
+function isBenign(text: string): boolean {
+  return BENIGN_PATTERNS.some((p) => p.test(text));
+}
+
 export function attachConsoleGuard(page: Page): ConsoleGuard {
   const errors: ConsoleError[] = [];
   const pageErrors: Error[] = [];
@@ -70,15 +86,21 @@ export function attachConsoleGuard(page: Page): ConsoleGuard {
       }
 
       // 检查 critical pattern —— 发现则直接 throw，不假装通过
-      const allText = [...errors.map((e) => e.text), ...pageErrors.map((e) => e.message)].join('\n');
+      // 先剔除良性错误（导航中止 fetch 等浏览器噪声），避免误报。
+      const realErrors = errors.filter((e) => !isBenign(e.text));
+      const realPageErrors = pageErrors.filter((e) => !isBenign(e.message));
+      const allText = [
+        ...realErrors.map((e) => e.text),
+        ...realPageErrors.map((e) => e.message),
+      ].join('\n');
       const criticals = CRITICAL_PATTERNS.filter((p) => p.test(allText));
       if (criticals.length > 0) {
         const matchedPatterns = criticals.map((p) => p.source).join(', ');
-        const matchedTexts = errors
+        const matchedTexts = realErrors
           .filter((e) => CRITICAL_PATTERNS.some((p) => p.test(e.text)))
           .map((e) => e.text)
           .concat(
-            pageErrors
+            realPageErrors
               .filter((e) => CRITICAL_PATTERNS.some((p) => p.test(e.message)))
               .map((e) => e.message),
           )

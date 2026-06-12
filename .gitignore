@@ -172,3 +172,6 @@ config/server.config.local.json
 /src/generated/prisma
 prisma/dev.db.pre-pg-migration
 .playwright-mcp/
+
+# P0-004: e2e storageState 缓存（含登录 cookie，不入库）
+.auth/

@@ -9,6 +9,8 @@ import { expect, test } from '@playwright/test';
  */
 
 test.describe('素材卡归属（P5）', () => {
+  // P0-004 (B3): 生卡接口需登录态；admin 态下 approved 文章返回 202/409，未审核返回 400
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('VERIFIED_USER 对 approved 文章生卡 → 202', async ({ request }) => {
     const id = process.env.E2E_APPROVED_ARTICLE_ID;
     if (!id) test.skip(true, '需 E2E_APPROVED_ARTICLE_ID fixture');

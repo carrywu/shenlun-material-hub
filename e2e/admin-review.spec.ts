@@ -9,6 +9,8 @@ import { expect, test } from '@playwright/test';
  */
 
 test.describe('管理员审核流（P4）', () => {
+  // P0-004 (B3): 所有审核流用例均需 admin storageState
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('ADMIN 批量通过 pending_admin 文章', async ({ request }) => {
     // 先取一篇 pending_admin
     const list = await request.get('/api/articles?adminReviewStatus=pending_admin&pageSize=1');

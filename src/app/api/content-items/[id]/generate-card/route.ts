@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateCardForContentItem, AiServiceError } from "@/services/ai";
-import { createAsyncTask, enqueueAsyncTask, checkTaskRateLimit } from "@/lib/async-task";
+import { createDedupTask, enqueueAsyncTask, RateLimitError } from "@/lib/async-task";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import type { CardType, ErrorCode } from "@/types";
 
@@ -141,17 +141,6 @@ export async function POST(
       );
     }
 
-    // P5: 用户级速率限制（在创建任务前统一拦截）
-    const rateLimit = await checkTaskRateLimit(user.id);
-    if (!rateLimit.allowed) {
-      return errorResponse(
-        "RATE_LIMITED",
-        rateLimit.reason ?? "任务数已达上限",
-        429,
-        { requestId }
-      );
-    }
-
     // P5: 卡包模式 vs 单类型
     const validTypes: CardType[] = [
       "golden_sentence",
@@ -183,6 +172,7 @@ export async function POST(
     // 串行 enqueue（全局并发由 async-task 限流；同用户 rateLimit 已查）
     const isBundleMode = Array.isArray(cardTypesRaw) && cardTypesRaw.length > 0;
     const tasks: Array<Record<string, unknown>> = [];
+    let rateLimited: { reason: string } | null = null;
     for (const ct of requestedTypes) {
       const dup = await db.materialCard.findFirst({
         where: { contentItemId: id, cardType: ct, ownerUserId: user.id },
@@ -201,17 +191,43 @@ export async function POST(
         tasks.push({ cardType: ct, duplicated: true, existingCardId: dup.id });
         continue;
       }
-      const task = await createAsyncTask(
-        "CARD_GENERATE",
-        { contentItemId: id, cardType: ct, requestId },
-        user.id
-      );
-      enqueueAsyncTask(task, () => runGenerateCardTask(id, ct, requestId, user.id));
-      tasks.push({ cardType: ct, taskId: task.id, duplicated: false });
+      try {
+        const task = await createDedupTask({
+          type: "CARD_GENERATE",
+          userId: user.id,
+          dedupeKey: `CARD_GENERATE:${user.id}:${id}:${ct}`,
+          params: { contentItemId: id, cardType: ct, requestId },
+          maxConcurrent: 3,
+          maxDaily: 50,
+        });
+        enqueueAsyncTask(task, () => runGenerateCardTask(id, ct, requestId, user.id));
+        tasks.push({ cardType: ct, taskId: task.id, duplicated: false });
+      } catch (e) {
+        if (e instanceof RateLimitError) {
+          // 单类型模式：直接 429（还没开始任何任务）
+          if (!isBundleMode) {
+            return errorResponse("RATE_LIMITED", e.reason, 429, { requestId });
+          }
+          // 卡包模式：已入队的任务保留，标记 rateLimited 并以 202 返回部分结果。
+          // dedupeKey 保证客户端重试时已运行的同类型任务被去重，不会重复生成。
+          rateLimited = { reason: e.reason };
+          break;
+        }
+        throw e;
+      }
     }
 
     return NextResponse.json(
-      { accepted: true, requestId, contentItemId: id, tasks },
+      rateLimited
+        ? {
+            accepted: true,
+            requestId,
+            contentItemId: id,
+            tasks,
+            rateLimited: true,
+            rateLimitReason: rateLimited.reason,
+          }
+        : { accepted: true, requestId, contentItemId: id, tasks },
       { status: 202 }
     );
   } catch (error) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
-import { getFavoriteLimits, getCurrentFavoriteCount } from "@/lib/favorite-quota";
+import { getFavoriteLimits } from "@/lib/favorite-quota";
 
 // GET /api/favorites — 当前用户的收藏列表
 export async function GET(request: NextRequest) {
@@ -37,19 +37,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "contentItemIds 不能为空" }, { status: 400 });
     }
 
-    // 上限校验：整批超限 → 拒绝
     const limit = await getFavoriteLimits(user);
-    const currentCount = await getCurrentFavoriteCount(user.id);
-    if (currentCount + contentItemIds.length > limit) {
-      return NextResponse.json(
-        {
-          error: `收藏已达上限（${currentCount}/${limit}），无法再加入 ${contentItemIds.length} 篇`,
-        },
-        { status: 400 }
-      );
-    }
 
     const result = await db.$transaction(async (tx) => {
+      // P0-002: 事务级 advisory lock，串行化同一用户的配额检查
+      // hashtext 返回 int4，pg_advisory_xact_lock 事务提交/回滚自动释放
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${user.id}))`;
+
+      // 事务内 count（修复 TOCTOU——读到的是串行化后的真实值）
+      const currentCount = await tx.articleFavorite.count({
+        where: { userId: user.id },
+      });
+
       // 只允许收藏 approved 文章
       const eligible = await tx.contentItem.findMany({
         where: { id: { in: contentItemIds }, adminReviewStatus: "approved" },
@@ -58,20 +57,32 @@ export async function POST(request: NextRequest) {
       const eligibleIds = eligible.map((e) => e.id);
       const skipped = contentItemIds.length - eligibleIds.length;
 
-      let added = 0;
-      for (const id of eligibleIds) {
-        try {
-          await tx.articleFavorite.create({ data: { userId: user.id, contentItemId: id } });
-          added++;
-        } catch {
-          // 已收藏（unique 冲突）→ 跳过
-        }
+      // 事务内配额检查（TOCTOU 修复的关键）
+      if (currentCount + eligibleIds.length > limit) {
+        throw new Error("QUOTA_EXCEEDED");
       }
-      return { added, skipped, alreadyFavorited: eligibleIds.length - added };
+
+      // 批量幂等插入（skipDuplicates 处理重复收藏）
+      let added = 0;
+      if (eligibleIds.length > 0) {
+        const createResult = await tx.articleFavorite.createMany({
+          data: eligibleIds.map((id) => ({ userId: user.id, contentItemId: id })),
+          skipDuplicates: true,
+        });
+        added = createResult.count;
+      }
+      const alreadyFavorited = eligibleIds.length - added;
+      return { added, skipped, alreadyFavorited };
     });
 
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof Error && error.message === "QUOTA_EXCEEDED") {
+      return NextResponse.json(
+        { error: "收藏已达上限，无法继续收藏" },
+        { status: 400 }
+      );
+    }
     console.error("favorites POST failed:", error);
     return NextResponse.json({ error: "收藏失败" }, { status: 500 });
   }

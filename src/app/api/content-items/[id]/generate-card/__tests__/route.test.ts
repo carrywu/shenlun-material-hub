@@ -34,9 +34,16 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 vi.mock("@/lib/async-task", () => ({
-  createAsyncTask: mocks.createTask,
+  createDedupTask: mocks.createTask,
   enqueueAsyncTask: mocks.enqueue,
-  checkTaskRateLimit: mocks.rateLimit,
+  RateLimitError: class RateLimitError extends Error {
+    reason: string;
+    constructor(reason: string) {
+      super(reason);
+      this.name = "RateLimitError";
+      this.reason = reason;
+    }
+  },
 }));
 vi.mock("@/services/ai", () => ({
   generateCardForContentItem: vi.fn(),
@@ -73,7 +80,6 @@ const APPROVED_ITEM = {
 describe("POST /api/content-items/[id]/generate-card (P5)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.rateLimit.mockResolvedValue({ allowed: true });
   });
 
   it("USER → 403", async () => {
@@ -126,9 +132,33 @@ describe("POST /api/content-items/[id]/generate-card (P5)", () => {
   it("速率限制命中 → 429", async () => {
     mocks.findUnique.mockResolvedValue(APPROVED_ITEM);
     mocks.findFirstCard.mockResolvedValue(null);
-    mocks.rateLimit.mockResolvedValue({ allowed: false, reason: "并发上限" });
+    // createDedupTask 抛 RateLimitError（限流在事务内）
+    mocks.createTask.mockRejectedValue(new (await import("@/lib/async-task")).RateLimitError("并发上限"));
     const [req, ctx] = makeReq("x", USERS.VERIFIED, { cardType: "golden_sentence" });
     const res = await POST(req, ctx);
     expect(res.status).toBe(429);
+  });
+
+  it("卡包模式：中途限流 → 202 + 已接受任务 + rateLimited 标记", async () => {
+    mocks.findUnique.mockResolvedValue(APPROVED_ITEM);
+    mocks.findFirstCard.mockResolvedValue(null);
+    // 前 3 次 createDedupTask 成功，第 4 次抛 RateLimitError
+    const { RateLimitError } = await import("@/lib/async-task");
+    mocks.createTask
+      .mockResolvedValueOnce({ id: "t1", type: "CARD_GENERATE" })
+      .mockResolvedValueOnce({ id: "t2", type: "CARD_GENERATE" })
+      .mockResolvedValueOnce({ id: "t3", type: "CARD_GENERATE" })
+      .mockRejectedValueOnce(new RateLimitError("并发上限"));
+    const [req, ctx] = makeReq("x", USERS.VERIFIED, {
+      cardTypes: ["golden_sentence", "standard_expression", "case_material", "countermeasure"],
+    });
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(202);
+    const j = await res.json();
+    expect(j.rateLimited).toBe(true);
+    expect(j.rateLimitReason).toBe("并发上限");
+    // 前 3 个类型已接受
+    expect(j.tasks.length).toBe(3);
+    expect(mocks.createTask).toHaveBeenCalledTimes(4); // 3 成功 + 1 抛
   });
 });

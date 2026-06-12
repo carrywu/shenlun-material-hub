@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
 test.describe('同步记录 /admin/sync-records', () => {
+  // P0-004 (B3): 同步记录为 admin 后台页面
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('同步记录：页面加载', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sync-records');
@@ -50,7 +52,8 @@ test.describe('同步记录 /admin/sync-records', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sync-records');
-    await expect(page.getByRole('heading', { name: '同步记录' })).toBeVisible({ timeout: 10000 });
+    // 页面有 2 个 '同步记录' heading：header 顶部小 h1 + 主区大 h1。定位主标题（text-2xl）。
+    await expect(page.locator('h1.text-2xl')).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(2000);
 
     // Try to filter for failed records

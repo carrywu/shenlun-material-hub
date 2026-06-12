@@ -259,13 +259,6 @@ export default function ReviewPage() {
               <p className="text-lg font-medium">太棒了！</p>
               <p className="text-sm">当前没有需要复习的素材卡</p>
               <div className="flex items-center gap-3 mt-4">
-                <Button
-                  variant="outline"
-                  onClick={handleRefresh}
-                >
-                  <RefreshCw className="h-4 w-4 mr-1.5" />
-                  换一批
-                </Button>
                 <Link href="/cards">
                   <Button variant="default" size="sm">
                     查看素材卡

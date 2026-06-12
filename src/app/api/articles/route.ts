@@ -119,15 +119,14 @@ export async function GET(request: NextRequest) {
         where.adminReviewStatus = adminReviewStatus;
       }
     } else {
-      // P2-14: include legacy articles with visibility:null for anonymous users
-      // Use AND to combine visibility filter with existing keyword OR
-      // P3-final: 匿名用户也只能看 adminReviewStatus=approved（防未审核泄露）
+      // P3-final: 匿名用户只看 adminReviewStatus=approved 且 visibility=public
+      // 注意：原 P2-14 想包含 legacy visibility:null 行，但 schema 里 visibility 是
+      // 非空字段（String @default("public")），Prisma 拒绝 visibility:null 条件
+      // （PrismaClientValidationError → 500）。DB 实测 0 行 visibility IS NULL，
+      // 该条件零命中且致 500，删除。
       const visibilityFilter = {
         adminReviewStatus: "approved",
-        OR: [
-          { visibility: "public" },
-          { visibility: null },
-        ],
+        visibility: "public",
       };
       where = mergeWhere(where, visibilityFilter);
     }

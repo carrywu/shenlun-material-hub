@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
 
+// P0-004 (B3): 文件级 admin storageState——设置/账号/IMA 均为用户页需登录态；
+// admin 同为登录用户可覆盖
+test.use({ storageState: '.auth/admin-storage.json' });
+
 test.describe('设置首页', () => {
   test('设置首页：页面加载', async ({ page }, testInfo) => {
     test.setTimeout(60000);
@@ -89,7 +93,8 @@ test.describe('账号设置', () => {
     await page.getByRole('button', { name: '修改密码' }).click();
 
     // Should show validation error (all fields required)
-    await expect(page.getByText(/密码|必填|不能为空|请填写所有字段/)).toBeVisible({ timeout: 5000 });
+    // 精确匹配错误文案——宽正则会命中 label（当前密码/新密码 等）
+    await expect(page.getByText('请填写所有字段')).toBeVisible({ timeout: 5000 });
 
     guard.report(testInfo);
   });

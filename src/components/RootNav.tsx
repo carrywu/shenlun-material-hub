@@ -51,20 +51,21 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
 
   return (
     <header className="border-b bg-card">
-      <div className="flex h-12 items-center px-6 gap-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold text-sm">
+      <div className="flex h-12 items-center px-4 md:px-6 gap-3 md:gap-6">
+        <Link href="/" className="flex items-center gap-2 font-semibold text-sm shrink-0">
           <Layers className="h-5 w-5 text-primary" />
-          申论素材采集台
+          <span className="hidden sm:inline">申论素材采集台</span>
         </Link>
-        <nav className="flex items-center gap-1 flex-1">
+        {/* 移动端：nav 可横向滚动，不撑破 header；仅图标+sm 起显示文字 */}
+        <nav className="flex items-center gap-1 flex-1 overflow-x-auto min-w-0 whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 rounded-md px-2.5 md:px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
             >
               <item.icon className="h-4 w-4" />
-              {item.label}
+              <span className="hidden lg:inline">{item.label}</span>
             </Link>
           ))}
         </nav>

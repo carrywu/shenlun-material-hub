@@ -119,6 +119,8 @@ test.describe('登录页（未认证）', () => {
 // ─── 导航 (authenticated via global storageState) ──────────────────
 
 test.describe('导航（已认证）', () => {
+  // P0-004 (B3): 顶层 storageState 已移除，"已认证" describe 必须显式声明 admin storageState
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('登录页：已登录用户访问登录页跳转首页', async ({ page }, testInfo) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
@@ -127,9 +129,10 @@ test.describe('导航（已认证）', () => {
     // Now try to visit login page
     await page.goto('/admin/login');
 
-    // Should be redirected to /
-    await expect(page).toHaveURL(/^\//, { timeout: 10000 });
-    await expect(page).not.toHaveURL(/\/admin\/login/);
+    // Should be redirected away from login (to home or dashboard).
+    // 注意：toHaveURL(regex) 匹配完整 URL 字符串（含 http://host），所以不能用 ^\/ 锚定 pathname。
+    // 冷启时登录页首次编译 + /api/auth/check fetch 较慢，给 30s。
+    await expect(page).not.toHaveURL(/\/admin\/login/, { timeout: 30000 });
 
     guard.report(testInfo);
   });
@@ -137,6 +140,10 @@ test.describe('导航（已认证）', () => {
   test('导航：登录后顶部导航栏可见', async ({ page }, testInfo) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
+
+    // Must navigate to a page first to see the nav header
+    await page.goto('/');
+    await expect(page.locator('header, nav')).toBeVisible({ timeout: 10000 });
 
     // Check all main nav links in header
     await expect(page.getByRole('link', { name: '仪表板' })).toBeVisible();
@@ -244,6 +251,8 @@ test.describe('导航（已认证）', () => {
 // ─── 登出 (authenticated via global storageState) ──────────────────
 
 test.describe('登出（已认证）', () => {
+  // P0-004 (B3): 顶层 storageState 已移除，显式声明 admin storageState
+  test.use({ storageState: '.auth/admin-storage.json' });
   test('登出：点击登出后清除 cookie 跳转登录页', async ({ page }, testInfo) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);

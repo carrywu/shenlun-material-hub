@@ -204,18 +204,16 @@ export default function AiConfigPage() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Header — AdminShell already renders the document <h1> ("AI 配置"),
+          so this block only provides a back-link + subtitle. */}
       <div className="border-b px-6 py-4">
         <div className="flex items-center gap-4">
           <Link href="/" className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div>
-            <h1 className="text-xl font-semibold">AI 配置</h1>
-            <p className="text-sm text-muted-foreground">
-              配置 AI 服务连接，用于内容评估和素材卡生成
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            配置 AI 服务连接，用于内容评估和素材卡生成
+          </p>
         </div>
       </div>
 

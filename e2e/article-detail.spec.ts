@@ -3,6 +3,8 @@ import { attachConsoleGuard } from './helpers/consoleGuard';
 import { ensureArticleExists, ensureWechatArticleExists } from './helpers/seed';
 
 test.describe('文章详情页', () => {
+  // P0-004 (B3): 详情页用例验证 admin 视角（管理视图提示、文章批注等），需 admin storageState
+  test.use({ storageState: '.auth/admin-storage.json' });
   let articleId: string;
 
   test.beforeAll(async () => {
@@ -89,16 +91,14 @@ test.describe('文章详情页', () => {
     // Click to toggle
     await readButton.first().click();
 
-    // Wait a moment for the state to update
-    await page.waitForTimeout(500);
-
-    // Verify state changed
-    const newTitle = await readButton.first().getAttribute('title');
-    if (wasRead) {
-      expect(newTitle).toBe('标记已读');
-    } else {
-      expect(newTitle).toBe('标记未读');
-    }
+    // 状态更新依赖 PUT /api/content-items/[id] 返回后 setArticle，是异步的。
+    // 固定 500ms 会和 API 响应赛跑（重试时甚至看到两次方向相反的失败）。
+    // 改成轮询 title 翻转，给 5s 余量。
+    const expectedTitle = wasRead ? '标记已读' : '标记未读';
+    await expect.poll(
+      async () => await readButton.first().getAttribute('title'),
+      { timeout: 5000, message: `已读切换后按钮 title 应变为 ${expectedTitle}` }
+    ).toBe(expectedTitle);
 
     guard.report(test.info());
   });
@@ -139,16 +139,19 @@ test.describe('文章详情页', () => {
     // Wait for content to fully render
     await expect(page.getByText('正文')).toBeVisible({ timeout: 10000 });
 
+    // Wait for images to load (they may be loaded via proxy)
+    await page.waitForTimeout(2000);
+
     // Find images inside the article content area
     const articleImages = page.locator('.article-content img');
 
-    if ((await articleImages.count()) === 0) {
-      throw new Error(
-        '微信文章中没有图片，无法测试图片预览功能。请确保测试数据库中的微信文章包含图片内容。'
-      );
-    }
+    // Wait for at least one image to be visible
+    await expect.poll(async () => await articleImages.count(), {
+      timeout: 10000,
+      message: '等待文章图片加载',
+    }).toBeGreaterThan(0);
 
-    // Click the first image
+    // Click the first visible image
     const firstImg = articleImages.first();
     await firstImg.click();
 
@@ -165,35 +168,6 @@ test.describe('文章详情页', () => {
 
     // Overlay should disappear
     await expect(closeButton).not.toBeVisible({ timeout: 5000 });
-
-    guard.report(test.info());
-  });
-
-  test('文章详情：AI 评估按钮', async ({ page }) => {
-    test.setTimeout(60000);
-    const guard = attachConsoleGuard(page);
-
-    await page.goto(`/articles/${articleId}`);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
-
-    // Wait for sidebar to load
-    await expect(page.getByText('快捷操作')).toBeVisible({ timeout: 10000 });
-
-    // Find AI assess button in the sidebar
-    const assessButton = page.getByRole('button', { name: 'AI 评估' });
-    await expect(assessButton).toBeVisible();
-
-    // Click the button
-    await assessButton.click();
-
-    // Button should show loading state (Loader2 spinner appears)
-    // The button either shows a spinner or shows the same text but disabled
-    // Wait a short time to see the loading state
-    await page.waitForTimeout(500);
-
-    // The button should either be disabled or show loading indicator
-    // After the request completes, a toast should appear
-    // We just verify the button was clickable and didn't cause a crash
 
     guard.report(test.info());
   });
@@ -236,6 +210,42 @@ test.describe('文章详情页', () => {
 
     // The articles list page should be loaded
     await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 10000 });
+
+    guard.report(test.info());
+  });
+});
+
+// AI 评估按钮仅在 !isAdmin 时渲染（admin 看到的是"前往后台文章管理"提示卡）。
+// 该用例验证普通用户视角，用独立 describe 覆盖文件级 admin storageState。
+test.describe('文章详情页 — 普通用户视角', () => {
+  test.use({ storageState: '.auth/verified-storage.json' });
+  let articleId: string;
+
+  test.beforeAll(async () => {
+    const article = await ensureArticleExists();
+    articleId = article.id;
+    if (!articleId) {
+      throw new Error('ensureArticleExists returned no ID — cannot run article detail tests');
+    }
+  });
+
+  test('文章详情：AI 评估按钮', async ({ page }) => {
+    test.setTimeout(60000);
+    const guard = attachConsoleGuard(page);
+
+    await page.goto(`/articles/${articleId}`);
+    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+
+    // Wait for sidebar to load
+    await expect(page.getByText('快捷操作')).toBeVisible({ timeout: 10000 });
+
+    // Find AI assess button in the sidebar (only renders for non-admin)
+    const assessButton = page.getByRole('button', { name: 'AI 评估' });
+    await expect(assessButton).toBeVisible();
+
+    // Click the button — verify it's clickable and doesn't crash
+    await assessButton.click();
+    await page.waitForTimeout(500);
 
     guard.report(test.info());
   });

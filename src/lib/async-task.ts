@@ -221,3 +221,74 @@ export async function checkTaskRateLimit(userId: string): Promise<{ allowed: boo
 
   return { allowed: true };
 }
+
+// P0-003: 任务级去重 + 限流原子化
+
+export interface DedupTaskInput {
+  type: AsyncTaskType;
+  userId: string;
+  dedupeKey: string;
+  params?: unknown;
+  maxConcurrent: number;
+  maxDaily: number;
+}
+
+export class RateLimitError extends Error {
+  constructor(public reason: string) {
+    super(reason);
+    this.name = "RateLimitError";
+  }
+}
+
+/**
+ * P0-003: 事务内创建去重任务。
+ * - advisory lock 串行化同一用户（hashtext(userId)，事务级锁）
+ * - 查已有活跃同键任务 → 有则返回（去重）
+ * - 限流检查（并发 + 日）
+ * - insert（dedupeKey partial unique index 兜底并发冲突）
+ */
+export async function createDedupTask(input: DedupTaskInput) {
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${input.userId}))`;
+
+    // 已有活跃同键任务？→ 返回已存在（去重）
+    // select id + type：调用方（enqueueAsyncTask）需要 { id, type }，与 create 返回形状一致
+    const existing = await tx.asyncTask.findFirst({
+      where: {
+        dedupeKey: input.dedupeKey,
+        userId: input.userId,
+        status: { in: ["PENDING", "RUNNING"] },
+      },
+      select: { id: true, type: true },
+    });
+    if (existing) return existing;
+
+    // 限流：并发任务数
+    const runningCount = await tx.asyncTask.count({
+      where: { userId: input.userId, status: { in: ["PENDING", "RUNNING"] } },
+    });
+    if (runningCount >= input.maxConcurrent) {
+      throw new RateLimitError(`并发任务数已达上限 (${input.maxConcurrent})`);
+    }
+
+    // 限流：每日任务数
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const dailyCount = await tx.asyncTask.count({
+      where: { userId: input.userId, createdAt: { gte: todayStart } },
+    });
+    if (dailyCount >= input.maxDaily) {
+      throw new RateLimitError(`今日任务数已达上限 (${input.maxDaily})`);
+    }
+
+    return tx.asyncTask.create({
+      data: {
+        type: input.type,
+        status: "PENDING",
+        params: serialize(input.params),
+        userId: input.userId,
+        dedupeKey: input.dedupeKey,
+      },
+    });
+  });
+}
