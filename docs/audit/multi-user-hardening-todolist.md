@@ -232,3 +232,18 @@
 - **验收**：`pnpm lint`（0 error）、`pnpm test`（334 passed）、`pnpm build`（✓ Compiled successfully）全绿。
 - **与需求文档差异**：列表接口（material-cards / annotations）已经正确隔离（P1-P8 用 ownerScopeWhere），本次只修详情接口。
 - **完成状态**：✅ 完成（commits `f325e60` 红测试、`9ee1fba` 修复、`2e1cad9` 附带测试对齐）
+
+---
+
+## P0-002：收藏配额 TOCTOU 修复 ✅
+
+- **问题**：`POST /api/favorites` 的 count 检查（`getCurrentFavoriteCount`）在事务外，insert 在事务内，两个并发请求都读到 count=N、都过检查、都 insert → 突破配额。`@@unique` 只防同一文章重复，不防「并发收藏不同文章突破总数」。
+- **影响**：多人并发收藏不同文章时突破上限。
+- **修法**：整段移入 `db.$transaction`，顺序为：(1) `tx.$executeRaw\`SELECT pg_advisory_xact_lock(hashtext(${user.id}))\`` 串行化同一用户（事务级锁，提交/回滚自动释放）；(2) `tx.articleFavorite.count` 读真实 count（lock 之后，消除 TOCTOU 窗口）；(3) `tx.contentItem.findMany` 取 approved eligible；(4) `currentCount + eligibleIds.length > limit` 则 throw `QUOTA_EXCEEDED`（事务回滚，无部分插入）；(5) `tx.articleFavorite.createMany({ skipDuplicates: true })` 幂等批量插入。
+- **关键安全点**：advisory lock 在 count **之前**（否则 TOCTOU 不成立）；lock 键是 `hashtext(user.id)`（per-user，不同用户互不阻塞）；tagged template 参数化防注入。
+- **涉及文件**：`src/app/api/favorites/route.ts`、`src/app/api/favorites/__tests__/route.test.ts`
+- **验证命令**：`pnpm test src/app/api/favorites/__tests__/route.test.ts`
+- **测试结果**：新增 2 用例（advisory lock 调用、事务内 count 超限拒绝），3 个既有用例改用事务内 mock。7 passed。全量 336 passed / 0 failed。
+- **验收**：lint 0 error、test 336 passed、build ✓。
+- **未覆盖**：真实并发压力测试（需 staging 多请求脚本，单测用 mock 模拟事务内顺序验证逻辑正确性）。
+- **完成状态**：✅ 完成（commits `d54fd42` 红测试、`0f3bcc4` 修复、`46fbbc4` 死代码清理）
