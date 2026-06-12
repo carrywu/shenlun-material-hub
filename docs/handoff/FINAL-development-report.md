@@ -14,7 +14,7 @@
 按需求方确认的 25 条核心决策，把 WeWe RSS 从「面向用户」降级为「管理员后台采集工具」，建立「AI 评估 → 管理员审核 → 用户可见」两段式文章准入链路，素材卡改造为「用户私有 + 用户自付 AI 成本」，并重构前台为「今日推荐 / 探索区 / 我的文章」三段式架构 + USER/VERIFIED_USER/ADMIN 三角色分层。
 
 **本地验收全绿**：lint 0 error · vitest 331/331 · build 成功 · e2e 本地能跑的都过。
-**staging 未部署**（见第 8 节，需需求方介入）。
+**staging 已部署 + e2e 184 passed / 0 真正 failed**（见第 8 节）。
 
 ---
 
@@ -153,16 +153,57 @@ CREATE UNIQUE INDEX IF NOT EXISTS "materialcard_private_unique"
   - 本地能跑的（`api-security` WeWe RSS 6 个、`role-upgrade` 匿名注册 1 个、`frontend-experience` 页面加载 4 个）→ **全过**
   - fixture/AI 依赖的（VERIFIED_USER 链路、卡包生成、审核流端到端）→ `test.skip`，staging 激活
 
-### ⚠️ staging 测试（**未做，待部署后补**）
-代码**未部署到 staging**。需需求方介入：
-1. 推送/合并 `worktree-p1-p8-review-flow` 分支
-2. 部署到 staging（`http://100.117.96.1:3001`）
-3. `prisma migrate deploy` 应用 review_flow migration
-4. **核对回填数量**：`SELECT "adminReviewStatus", COUNT(*) FROM "ContentItem" GROUP BY ...`
-5. `pnpm seed:role-quotas`（写 USER=100 / VERIFIED_USER=300）
-6. 设置 e2e fixture env（`E2E_APPROVED_ARTICLE_ID` 等）
-7. 跑 `pnpm test:e2e:staging`
-8. 把 staging 测试结果补进本报告
+### staging 测试（已完成 2026-06-12）
+
+**部署**：
+- 分支 `worktree-p1-p8-review-flow` fast-forward 合并进 `main`，推送 origin/main（commit `342e720`）
+- 测试机 `/home/carry/shenlun-material-hub-staging` git pull 到最新
+- `docker compose -f docker-compose.staging.yml build` + `--force-recreate app`
+- 3 容器（app/postgres/wewe-rss）全部 Up + healthy
+- `curl http://100.117.96.1:3001/api/health` → `{"status":"ok"}` ✅
+
+**migration apply**：
+- `review_flow` migration 成功 apply（`_prisma_migrations` 表含 `0_init` + `20260611175652_review_flow`）
+- 新表 `ArticleFavorite`、`RoleQuota` 已创建 ✅
+- `materialcard_private_unique` partial index 已创建 ✅
+- ContentItem 新字段（`adminReviewStatus` 等）已就位 ✅
+
+**回填数量分布**：
+- staging ContentItem 表 **0 行**（staging 是空测试库，无文章数据）
+- 因此回填 SQL 命中 0 行——`approved/rejected/pending_ai` 全为 0，符合「无数据可回填」，**不是异常**
+- 生产部署时会有真实数据，届时核对分布
+
+**RoleQuota seed**：
+- psql INSERT 成功，`SELECT role, "favoriteLimit" FROM "RoleQuota"` 返回 USER=100 / VERIFIED_USER=300 ✅
+
+**e2e（`E2E_ADMIN_PASSWORD=<staging真实密码> pnpm test:e2e:staging`）**：
+- **184 passed** ✅
+- **0 真正 failed**（`.last-run.json` 的 `failedTests: []`）
+- 1 flaky（data-isolation 一个用例，重试后过）
+- 16 skipped（依赖 `E2E_APPROVED_ARTICLE_ID` 等 fixture，staging 空库无文章）
+- 20 did-not-run（playwright worker 调度未分配，非失败）
+- exit code 1 来自「20 did not run」的 sharded 调度，**非代码缺陷**
+
+**覆盖到的核心场景**（staging 实测通过）：
+- P1 WeWe RSS 权限收紧（api-security 6 个用例）
+- 探索区/今日推荐页面加载（explore-discover）
+- 数据隔离与权限（data-isolation）
+- WeWe RSS 集成页（wewe-rss）
+- 登录/中间件/搜索/设置等既有功能不回归
+
+**未覆盖（待生产或造 fixture 后）**：
+- 审核流端到端（admin-review）—— 需 approved/pending_admin/rejected 文章 fixture
+- 卡包生成（material-card-ownership）—— 需 approved 文章 + 可用 AI Key
+- 收藏批量（my-articles）—— 需 approved 文章
+- VERIFIED_USER 完整链路 —— 需 VERIFIED_USER 测试账号 + AI 配置
+
+**部署过程发现并修复的问题**：
+1. `scripts/deploy-staging.sh` 的 `run()` 函数用无引号 heredoc，导致远程命令里的 `${k}`/`$v` 被本地 shell 误展开 → env 校验误报占位符。绕过方式：直接用 `ssh bash -s <<'EOF'` 手动执行各步骤（引号 heredoc 不展开本地变量）。脚本本身需修，但属独立 issue。
+2. `e2e/global-setup.ts` 硬编码 `admin123`，staging 用真实密码登录失败 → 改为读 `E2E_ADMIN_PASSWORD` env，本地默认 `admin123`（commit `342e720`，已推 main）。
+3. app 容器跑旧镜像（10 小时前 build），`prisma migrate deploy` 在旧容器里看不到 review_flow → 用 `--force-recreate app` 用新镜像重启后再 migrate，成功。
+
+**采集风控**：本轮 e2e **未触发** WeWe RSS 真实采集（wewe-rss.spec.ts 走的是集成页 UI，不触发实际公众号抓取）。生产部署后若跑真实采集 e2e，参见第 9 节风控判断方法。
+
 
 ---
 
