@@ -124,12 +124,8 @@ test.describe('API 安全认证', () => {
 test.describe('API 安全认证 — 管理员', () => {
   test.use({ storageState: '.auth/admin-storage.json' });
 
-  // 只在 admin project 下运行（避免在 anonymous project 下失败）
-  test.beforeEach(({ project }) => {
-    test.skip(project.name !== 'admin', '管理员测试只在 admin project 下运行');
-  });
-
-  test('管理员：content-items 返回 200', async ({ request }) => {
+  test('管理员：content-items 返回 200', async ({ request }, testInfo) => {
+    test.skip(testInfo.project.name !== 'admin', '管理员测试只在 admin project 下运行');
     const res = await request.get('/api/content-items');
     expect(res.status()).toBe(200);
 
@@ -137,17 +133,20 @@ test.describe('API 安全认证 — 管理员', () => {
     expect(Array.isArray(body.data)).toBe(true);
   });
 
-  test('管理员：material-cards 返回 200', async ({ request }) => {
+  test('管理员：material-cards 返回 200', async ({ request }, testInfo) => {
+    test.skip(testInfo.project.name !== 'admin', '管理员测试只在 admin project 下运行');
     const res = await request.get('/api/material-cards');
     expect(res.status()).toBe(200);
   });
 
-  test('管理员：admin users 返回 200', async ({ request }) => {
+  test('管理员：admin users 返回 200', async ({ request }, testInfo) => {
+    test.skip(testInfo.project.name !== 'admin', '管理员测试只在 admin project 下运行');
     const res = await request.get('/api/admin/users');
     expect(res.status()).toBe(200);
   });
 
-  test('管理员：admin metrics 返回 200', async ({ request }) => {
+  test('管理员：admin metrics 返回 200', async ({ request }, testInfo) => {
+    test.skip(testInfo.project.name !== 'admin', '管理员测试只在 admin project 下运行');
     const res = await request.get('/api/admin/metrics');
     expect(res.status()).toBe(200);
   });
