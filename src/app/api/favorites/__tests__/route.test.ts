@@ -71,18 +71,19 @@ describe("favorites route (P6)", () => {
 
   it("USER 可收藏（不限角色）", async () => {
     mocks.txFindMany.mockResolvedValue([{ id: "c1", adminReviewStatus: "approved" }]);
-    mocks.txCreate.mockResolvedValue({});
+    mocks.txCreateMany.mockResolvedValue({ count: 1 });
     const res = await POST(makeReq("POST", USERS.USER, { contentItemIds: ["c1"] }));
     expect(res.status).toBe(200);
   });
 
   it("整批超上限 → 400（不部分收藏）", async () => {
     quota.limits.mockResolvedValue(100);
-    quota.count.mockResolvedValue(95);
+    mocks.txCount.mockResolvedValue(95);
     const ids = Array.from({ length: 10 }, (_, i) => `c${i}`);
+    mocks.txFindMany.mockResolvedValue(ids.map((id) => ({ id })));
     const res = await POST(makeReq("POST", USERS.VERIFIED, { contentItemIds: ids }));
     expect(res.status).toBe(400);
-    expect(mocks.txCreate).not.toHaveBeenCalled();
+    expect(mocks.txCreateMany).not.toHaveBeenCalled();
   });
 
   it("未审核文章被过滤（skipped）", async () => {
@@ -95,7 +96,8 @@ describe("favorites route (P6)", () => {
       const status = args?.where?.adminReviewStatus;
       return status ? rows.filter((r) => r.adminReviewStatus === status) : rows;
     });
-    mocks.txCreate.mockResolvedValue({});
+    mocks.txCount.mockResolvedValue(0);
+    mocks.txCreateMany.mockResolvedValue({ count: 1 });
     const res = await POST(makeReq("POST", USERS.VERIFIED, { contentItemIds: ["c1", "c2"] }));
     expect(res.status).toBe(200);
     const j = await res.json();
