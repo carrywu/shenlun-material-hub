@@ -67,19 +67,73 @@ export async function loginAsAdminAPI(
  * storageState，或通过 `playwright.request.newContext({ storageState: ... })`
  * 创建独立 context。
  *
- * USER 账号需在 global-setup 或 seed 脚本里预创建；dev DB 暂缺该 fixture，
- * 调用方应做好 try/catch 或 test.skip 兜底。
+ * USER 账号由 global-setup 自动注册（e2e_usera），不再需要 seed 预创建。
  */
 export async function loginAsUserAPI(
   request: import('@playwright/test').APIRequestContext,
 ): Promise<void> {
   const res = await request.post('/api/auth/login', {
     data: {
-      username: process.env.E2E_USER_USERNAME ?? 'plainuser',
-      password: process.env.E2E_USER_PASSWORD ?? 'user-password',
+      username: process.env.E2E_USER_USERNAME ?? 'e2e_usera',
+      password: process.env.E2E_USER_PASSWORD ?? 'usera123',
     },
   });
   if (!res.ok()) {
     throw new Error(`USER API 登录失败：${res.status()} ${await res.text()}`);
+  }
+}
+
+/**
+ * P0-004: VERIFIED_USER 角色 API 登录。
+ * 账号由 global-setup 自动注册（e2e_verified），密码从 env 读默认 verified123。
+ */
+export async function loginAsVerifiedUserAPI(
+  request: import('@playwright/test').APIRequestContext,
+): Promise<void> {
+  const res = await request.post('/api/auth/login', {
+    data: {
+      username: process.env.E2E_VERIFIED_USERNAME ?? 'e2e_verified',
+      password: process.env.E2E_VERIFIED_PASSWORD ?? 'verified123',
+    },
+  });
+  if (!res.ok()) {
+    throw new Error(`VERIFIED API 登录失败：${res.status()} ${await res.text()}`);
+  }
+}
+
+/**
+ * P0-004: userB 角色 API 登录（A/B 隔离测试用）。
+ */
+export async function loginAsUserBAPI(
+  request: import('@playwright/test').APIRequestContext,
+): Promise<void> {
+  const res = await request.post('/api/auth/login', {
+    data: {
+      username: process.env.E2E_USERB_USERNAME ?? 'e2e_userb',
+      password: process.env.E2E_USERB_PASSWORD ?? 'userb123',
+    },
+  });
+  if (!res.ok()) {
+    throw new Error(`userB API 登录失败：${res.status()} ${await res.text()}`);
+  }
+}
+
+/**
+ * P0-004: 通过注册 API 创建账号（幂等：用户名已存在返回 409 视为成功）。
+ * 带 invitationCode → VERIFIED_USER；不带 → USER。
+ * 返回登录态 cookie（调用方负责存 storageState）。
+ */
+export async function registerUserAPI(
+  request: import('@playwright/test').APIRequestContext,
+  username: string,
+  password: string,
+  invitationCode?: string,
+): Promise<void> {
+  const res = await request.post('/api/auth/register', {
+    data: { username, password, invitationCode },
+  });
+  // 201 = 新注册成功；409 = 用户名已存在（幂等，视为成功）
+  if (res.status() !== 201 && res.status() !== 409) {
+    throw new Error(`注册 ${username} 失败：${res.status()} ${await res.text()}`);
   }
 }
