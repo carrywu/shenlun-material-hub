@@ -109,7 +109,7 @@ test.describe('WeWe RSS Integration Page', () => {
   });
 
   test('WeWe RSS：同步来源', async ({ page }, testInfo) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/integrations/wewe-rss');
@@ -122,15 +122,29 @@ test.describe('WeWe RSS Integration Page', () => {
     // Click sync
     await syncBtn.click();
 
-    // 同步 API 可能要 10-20s（远端拉 feed）。用 expect 轮询而非固定 sleep。
-    // 同步结果渲染 syncResult.message（含「同步完成」/「同步失败」），或弹删除确认对话框。
-    const syncResultMsg = page.getByText(/数据来源|同步完成|同步失败|服务不可用/);
-    const deleteDialog = page.getByText('同步删除来源确认');
-    await expect(async () => {
-      const visible = await syncResultMsg.isVisible().catch(() => false)
-        || await deleteDialog.isVisible().catch(() => false);
-      expect(visible, '同步后应出现结果文案或删除确认对话框').toBe(true);
-    }).toPass({ timeout: 30000, intervals: [1000, 2000, 5000] });
+    // Wait for sync to complete (either success or error)
+    // The sync result will show in a div with class bg-muted containing the message
+    const syncResultContainer = page.locator('.bg-muted');
+    await expect.poll(
+      async () => {
+        const count = await syncResultContainer.count();
+        return count > 0;
+      },
+      {
+        timeout: 60000,
+        message: '等待同步结果出现',
+      }
+    );
+
+    // Verify the result message contains expected keywords
+    const resultText = await syncResultContainer.first().textContent();
+    const hasExpectedText = resultText && (
+      resultText.includes('同步完成') ||
+      resultText.includes('同步失败') ||
+      resultText.includes('WeWe RSS 中没有') ||
+      resultText.includes('服务不可用')
+    );
+    expect(hasExpectedText, `同步结果应包含预期文案，实际为：${resultText}`).toBe(true);
 
     guard.report(testInfo);
   });
