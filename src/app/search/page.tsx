@@ -288,14 +288,16 @@ export default function SearchPage() {
         {/* Results */}
         {hasSearched && (
           <div className="space-y-3">
-            <div className="text-sm text-muted-foreground">
-              共找到 {total} 条结果
-              {query && (
-                <span>
-                  ，关键词：<strong>{query}</strong>
-                </span>
-              )}
-            </div>
+            {results.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                共找到 {total} 条结果
+                {query && (
+                  <span>
+                    ，关键词：<strong>{query}</strong>
+                  </span>
+                )}
+              </div>
+            )}
 
             {results.length === 0 ? (
               <Card>
