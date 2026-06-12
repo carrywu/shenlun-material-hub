@@ -52,8 +52,11 @@ async function browserLoginAndSave(
       await page.getByPlaceholder('请输入密码').fill(password);
       await page.locator("form button[type='submit']").click();
 
+      // waitUntil: 'commit' —— 只等导航提交，不等 'load'（dashboard 的 metrics 轮询
+      // 可能让 load 事件迟迟不触发，cold-start 下导致 waitForURL 超时）。
       await page.waitForURL((u) => !u.pathname.startsWith('/admin/login'), {
         timeout: POST_LOGIN_TIMEOUT,
+        waitUntil: 'commit',
       });
       await page.waitForSelector('main', { timeout: 15000 });
 
