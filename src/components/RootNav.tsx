@@ -3,22 +3,23 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  FileText, Home, Layers, CreditCard, Search,
-  RotateCcw, Compass, Sparkles, Shield, Settings,
-  Bookmark,
+  FileText, Home, CreditCard, Search,
+  RotateCcw, Shield, Settings,
+  Layers,
 } from "lucide-react";
 import type { AuthUser } from "@/lib/auth";
 
-const navItems = [
-  { href: "/", label: "仪表板", icon: Home },
-  { href: "/discover", label: "今日推荐", icon: Sparkles },
-  { href: "/explore", label: "探索区", icon: Compass },
-  { href: "/my-articles", label: "我的文章", icon: Bookmark },
-  { href: "/articles", label: "文章列表", icon: FileText },
-  { href: "/cards", label: "素材卡", icon: CreditCard },
-  { href: "/search", label: "检索", icon: Search },
+// Base nav items for all logged-in users
+const baseNavItems = [
+  { href: "/articles", label: "文章", icon: FileText },
   { href: "/review", label: "复习", icon: RotateCcw },
   { href: "/settings", label: "设置", icon: Settings },
+];
+
+// Extra items for VERIFIED_USER and ADMIN
+const verifiedNavItems = [
+  { href: "/cards", label: "素材卡", icon: CreditCard },
+  { href: "/search", label: "检索", icon: Search },
 ];
 
 const roleLabels: Record<string, { label: string; color: string }> = {
@@ -31,10 +32,17 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
   const pathname = usePathname();
   const router = useRouter();
 
-  // Hide navigation on login page
-  if (pathname === "/admin/login") {
+  // Hide navigation on login pages
+  if (pathname === "/admin/login" || pathname === "/login") {
     return null;
   }
+
+  const role = currentUser?.role ?? "USER";
+  const navItems = [
+    { href: "/", label: "首页", icon: Home },
+    ...baseNavItems,
+    ...(role === "VERIFIED_USER" || role === "ADMIN" ? verifiedNavItems : []),
+  ];
 
   const isAdmin = currentUser?.role === "ADMIN";
   const roleInfo = currentUser ? roleLabels[currentUser.role] ?? roleLabels.USER : null;
@@ -99,7 +107,7 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
             </>
           ) : (
             <Link
-              href="/admin/login"
+              href="/login"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               登录

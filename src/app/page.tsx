@@ -24,6 +24,12 @@ import { CONTENT_TYPE_LABELS } from "@/lib/display-labels";
 
 export const dynamic = "force-dynamic";
 
+const ROLE_WELCOME: Record<string, string> = {
+  USER: "浏览已审核文章，收藏和复习",
+  VERIFIED_USER: "学习文章，生成素材卡，同步到 IMA",
+  ADMIN: "管理内容、审核文章，以及个人学习",
+};
+
 export default async function DashboardPage() {
   // Server-side auth check — redirect unauthenticated users
   let currentUser = null;
@@ -38,7 +44,7 @@ export default async function DashboardPage() {
   }
 
   if (!currentUser) {
-    redirect("/admin/login?redirect=/");
+    redirect("/login");
   }
 
   const isAdmin = currentUser.role === "ADMIN";
@@ -144,11 +150,12 @@ export default async function DashboardPage() {
   ];
 
   const quickActions = [
-    { href: "/discover", label: "今日推荐", desc: "已核验来源", icon: Sparkles, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-950/60" },
-    { href: "/explore", label: "探索区", desc: "待核验内容", icon: Search, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-950/60" },
-    { href: "/articles", label: "文章库", desc: "精选内容", icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60" },
-    { href: "/cards", label: "素材卡", desc: "编辑同步", icon: Layers, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-950/60" },
+    { href: "/articles", label: "文章库", desc: "已审核文章", icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60" },
+    ...(currentUser.role === "VERIFIED_USER" || currentUser.role === "ADMIN"
+      ? [{ href: "/cards", label: "素材卡", desc: "编辑同步", icon: Layers, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-950/60" }]
+      : []),
     { href: "/review", label: "复习", desc: "记忆检验", icon: RotateCcw, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/60" },
+    { href: "/search", label: "检索", desc: "全文搜索", icon: Search, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-950/60" },
   ];
 
   return (
@@ -169,7 +176,7 @@ export default async function DashboardPage() {
               </div>
               <h1 className="text-2xl font-bold text-white tracking-tight">申论素材采集台</h1>
               <p className="text-sm text-slate-400 mt-1">
-                采集官方内容 · AI 生成素材卡 · 一键同步至 IMA 知识库
+                {ROLE_WELCOME[currentUser.role] ?? ROLE_WELCOME.USER}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">

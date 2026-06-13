@@ -15,20 +15,13 @@ const ALWAYS_PUBLIC = [
 ];
 
 // Page routes that allow anonymous access (non-API, browser-visible pages)
-// 注意：/cards、/search、/review 需要登录，不在此列表中
+// 注意：/articles、/cards、/search、/review 需要登录，不在此列表中
 const PUBLIC_PAGES = [
-  "/articles",       // 文章列表（公开浏览）
-  "/discover",       // 今日推荐（公开内容源）
-  "/explore",        // 探索区（未验证来源）
   "/register",       // 用户注册
 ];
 
 // API routes that allow anonymous access (public data feeds)
 const PUBLIC_APIS = [
-  "/api/articles",       // 文章列表 API
-  "/api/discover",       // 推荐内容 API
-  "/api/explore",        // 探索内容 API
-  "/api/search",         // 搜索 API
   "/api/health",         // 健康检查
   "/api/auth/register",  // 注册 API
 ];

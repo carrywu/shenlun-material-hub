@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { validateSession, type AuthUser } from "@/lib/auth";
 import { AuthProvider } from "@/lib/auth-context";
 import RootNav from "@/components/RootNav";
+import { MobileBottomTab } from "@/components/MobileBottomTab";
 
 export const metadata: Metadata = {
   title: "申论素材采集台",
@@ -36,7 +37,8 @@ export default async function RootLayout({
         <AuthProvider user={currentUser}>
           <Toaster position="top-right" richColors />
           <RootNav currentUser={currentUser} />
-          <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
+          <MobileBottomTab currentUser={currentUser} />
+          <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">{children}</main>
         </AuthProvider>
       </body>
     </html>
