@@ -13,6 +13,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -338,52 +346,49 @@ export default function UsersPage() {
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">用户名 *</label>
-                <input
+                <Input
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                   placeholder="3-32 个字符"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">密码 *</label>
-                <input
+                <Input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="至少 6 个字符"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">显示名称</label>
-                <input
+                <Input
                   value={newDisplayName}
                   onChange={(e) => setNewDisplayName(e.target.value)}
                   placeholder="可选"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">邮箱</label>
-                <input
+                <Input
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="可选"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">角色</label>
-                <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                >
-                  <option value="USER">普通用户</option>
-                  <option value="VERIFIED_USER">认证用户</option>
-                  <option value="ADMIN">管理员</option>
-                </select>
+                <Select value={newRole} onValueChange={(val) => setNewRole(val as string)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="选择角色" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USER">普通用户</SelectItem>
+                    <SelectItem value="VERIFIED_USER">认证用户</SelectItem>
+                    <SelectItem value="ADMIN">管理员</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
@@ -417,12 +422,11 @@ export default function UsersPage() {
             <p className="mb-3 text-xs text-muted-foreground">
               重置后该用户的所有会话将被清除，需要重新登录。
             </p>
-            <input
+            <Input
               type="password"
               value={resetPassword}
               onChange={(e) => setResetPassword(e.target.value)}
               placeholder="新密码（至少 6 个字符）"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             />
             <div className="mt-4 flex justify-end gap-2">
               <Button

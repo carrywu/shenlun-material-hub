@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 
 function LoginForm() {
@@ -81,13 +82,12 @@ function LoginForm() {
         <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="username">
           账号
         </label>
-        <input
+        <Input
           id="username"
           type="text"
           placeholder="请输入账号"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="w-full px-4 py-3 bg-background border border-input rounded-xl text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200"
           disabled={loading}
         />
       </div>
@@ -96,13 +96,12 @@ function LoginForm() {
         <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="password">
           密码
         </label>
-        <input
+        <Input
           id="password"
           type="password"
           placeholder="请输入密码"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full px-4 py-3 bg-background border border-input rounded-xl text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200"
           disabled={loading}
         />
       </div>

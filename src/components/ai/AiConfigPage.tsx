@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, TestTube, Trash2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -269,11 +270,11 @@ export default function AiConfigPage() {
           <CardContent className="space-y-4">
             <div>
               <label className="text-sm font-medium">API Base URL</label>
-              <input
+              <Input
                 type="text"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
+                className="mt-1"
                 placeholder="https://api.deepseek.com/v1"
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -284,11 +285,11 @@ export default function AiConfigPage() {
             <div>
               <label className="text-sm font-medium">API Key</label>
               <div className="relative mt-1">
-                <input
+                <Input
                   type={showKey ? "text" : "password"}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="w-full px-3 py-2 pr-10 border rounded-md text-sm"
+                  className="pr-10"
                   placeholder={config?.configured ? `当前: ${config.maskedKey}` : "sk-..."}
                 />
                 <Button
@@ -309,24 +310,24 @@ export default function AiConfigPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">模型</label>
-                <input
+                <Input
                   type="text"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
+                  className="mt-1"
                   placeholder="deepseek-chat"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">温度 (0-1)</label>
-                <input
+                <Input
                   type="number"
-                  min="0"
-                  max="1"
-                  step="0.1"
+                  min={0}
+                  max={1}
+                  step={0.1}
                   value={temperature}
                   onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                  className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
+                  className="mt-1"
                 />
               </div>
             </div>

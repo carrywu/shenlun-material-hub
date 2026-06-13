@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export function UpgradeButton() {
   const [open, setOpen] = useState(false);
@@ -49,11 +50,11 @@ export function UpgradeButton() {
             <p className="text-sm text-muted-foreground mb-3">
               输入邀请码后可使用自己的 AI 配置生成素材卡。
             </p>
-            <input
+            <Input
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="邀请码"
-              className="border rounded px-2 py-1 w-full mb-3"
+              className="mb-3"
             />
             <div className="flex gap-2 justify-end">
               <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
