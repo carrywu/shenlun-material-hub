@@ -1,7 +1,7 @@
 # Development TodoList
 
 生成日期：2026-06-13  
-状态：Batch 1-5 全部开发完成
+状态：Batch 1-5 + 前端改造第一轮 (A1-A5) 全部完成
 
 ## 状态说明
 
@@ -490,3 +490,104 @@
   - 每阶段有具体任务、文件范围、验证标准。
 - 风险：改造需要逐步推进，不可一次性全改。
 - 关联提交：pending
+
+## Stage 7 / 前端改造第一轮（Round A：功能补全）
+
+设计文档：`docs/superpowers/specs/2026-06-13-frontend-refactor-design.md`
+实施计划：`docs/superpowers/plans/2026-06-13-frontend-round-a.md`
+
+### A3：删除旧路由 /discover /explore /my-articles
+
+- 状态：done
+- 目标：清理已废弃的前台页面路由，减少代码体积和路由混乱，无重定向。
+- 实际修改文件：
+  - `src/app/discover/page.tsx`（删除，500 行）
+  - `src/app/explore/page.tsx`（删除，458 行）
+  - `src/app/my-articles/page.tsx`（删除，5 行）
+  - `src/components/my-articles/MyArticlesPage.tsx`（删除，119 行）
+- 测试命令：
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 4 个文件共 1082 行代码删除。
+  - 无路由重定向，旧链接返回 404。
+  - lint 0 errors，54 files / 379 tests 全部通过，build 通过。
+- 未验证风险：
+  - 9 个 E2E spec 文件可能引用已删除路由，待 Docker/Playwright 可用后排查清理。
+- 关联提交：`ed3b584`
+
+### A2：Articles API filter 参数 + Tab 切换
+
+- 状态：done
+- 目标：`/articles` 页面新增「全部/推荐/收藏」Tab 切换，API 支持 `filter` 查询参数。
+- 实际修改文件：
+  - `src/app/api/articles/route.ts` — 新增 `filter` 参数解析：`approved` 设置 adminReviewStatus，`favorites` 查询 ArticleFavorite（匿名用户静默降级）
+  - `src/app/api/articles/__tests__/route.test.ts` — 新增 3 个测试：filter=approved、filter=favorites 有收藏、filter=favorites 无收藏
+  - `src/components/articles/ArticlesPage.tsx` — 新增 Tabs/TabsList/TabsTrigger（base-ui/react），activeTab 状态从 URL `?tab=` 初始化，fetchItems URL 构建含 filter 参数
+- 测试命令：
+  - `pnpm test src/app/api/articles/__tests__/route.test.ts`
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - Tab 切换正常，URL 同步 `?tab=recommended` / `?tab=favorites`。
+  - filter=approved 只返回已审核通过文章。
+  - filter=favorites 登录用户返回收藏文章，匿名用户静默降级为普通列表。
+  - 3 个新测试全部通过。
+  - lint 0 errors，54 files / 382 tests 全部通过，build 通过。
+- 风险：admin 同时传递 filter=approved 和 adminReviewStatus 参数时，后者覆盖前者（可接受，显式过滤优先）。
+- 关联提交：`3a581e9`
+
+### A1：学习状态展示标记（已读/已收藏/已忽略）
+
+- 状态：done
+- 目标：文章列表页和详情页展示用户私有的学习状态徽章。
+- 实际修改文件：
+  - `src/components/articles/ArticlesPage.tsx` — ContentItemData 接口新增 userRead/userIgnored/userBookmarked 可选字段；引入 CheckCircle/BookmarkCheck/EyeOff lucide 图标；标题旁条件渲染状态图标（span title 包裹）
+  - `src/app/articles/[id]/page.tsx` — ArticleDetail 接口新增 userRead/userIgnored/userBookmarked 可选字段；引入 CheckCircle 图标；AI 评分 Badge 后条件渲染已读/已收藏/已忽略 Badge
+- 测试命令：
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 列表页标题旁显示已读（绿勾）、已收藏（书签）、已忽略（隐藏）图标。
+  - 详情页 header 显示对应状态 Badge。
+  - 图标使用 lucide-react 组件，通过 span title 属性提供 tooltip。
+  - lint 0 errors，54 files / 382 tests 全部通过，build 通过。
+- 未验证风险：
+  - 详情页 toggle 按钮仍修改全局 read/ignored/bookmarked 字段，状态徽章展示 per-user 字段，两者并存为过渡态。
+- 关联提交：`6d1efcf`
+
+### A4：归档箱 API archivedOnly + 归档 Tab
+
+- 状态：done
+- 目标：`/cards` 页面新增「全部卡片/已归档」Tab，可查看归档卡片并恢复。
+- 实际修改文件：
+  - `src/app/api/material-cards/route.ts` — 新增 `archivedOnly` 参数：值为 `"true"` 时 where 条件从 `archivedAt: null` 改为 `archivedAt: { not: null }`
+  - `src/app/api/material-cards/__tests__/route.test.ts`（新建）— 4 个测试：默认排除归档、archivedOnly=true 返回归档、archivedOnly=false 排除、401 未认证
+  - `src/app/cards/page.tsx` — CardItem 接口新增 archivedAt；新增 showArchived 状态和 Tabs（base-ui/react）；fetchCards 含 archivedOnly 参数；归档视图显示归档日期和恢复按钮（PATCH action: unarchive）
+- 测试命令：
+  - `pnpm test src/app/api/material-cards/__tests__/route.test.ts`
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 默认卡片列表不含归档卡。
+  - 已归档 Tab 显示归档卡片，每张卡显示归档日期和恢复按钮。
+  - 恢复操作调用 PATCH `{ action: "unarchive" }`，成功后刷新列表。
+  - 4 个新测试全部通过。
+  - lint 0 errors，55 files / 386 tests 全部通过，build 通过。
+- 风险：无。
+- 关联提交：`9759a55`
+
+### A5：重新生成确认弹窗
+
+- 状态：done
+- 目标：文章详情页点击"重新生成"时，若已有素材卡则弹出二次确认，防止误覆盖。
+- 实际修改文件：
+  - `src/components/ui/alert-dialog.tsx`（新建，149 行）— AlertDialog 组件，使用 `@base-ui/react/alert-dialog` 原语；导出 AlertDialog、AlertDialogContent、AlertDialogHeader、AlertDialogFooter、AlertDialogTitle、AlertDialogDescription、AlertDialogAction（destructive Button）、AlertDialogCancel
+  - `src/components/ArticleDetail.tsx` — 新增 showRegenConfirm 状态；handleGenerateClick 检查 `article._count?.materialCards > 0` 决定是否弹窗；handleGenerateCard 接受 force 参数；AlertDialog 中文文案"该文章已有素材卡，重新生成将覆盖现有内容并重置学习状态。是否继续？"
+- 测试命令：
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 无素材卡时点击重新生成直接触发。
+  - 有素材卡时弹出 AlertDialog 二次确认。
+  - 确认后 POST body 含 `{ force: true }`，触发覆盖生成。
+  - 取消关闭弹窗，不触发任何操作。
+  - AlertDialog 样式与现有 dialog.tsx 一致（rounded-xl、popover bg、zoom 动画）。
+  - lint 0 errors，55 files / 386 tests 全部通过，build 通过。
+- 风险：无。
+- 关联提交：`b375064`

@@ -1,12 +1,12 @@
 # Development Handoff
 
 生成日期：2026-06-13  
-状态：Batch 1-5 全部开发完成  
+状态：Batch 1-5 + 前端改造第一轮 (A1-A5) 全部完成  
 适用：后续 agent 接手前恢复现场
 
 ## 1. 当前目标
 
-Batch 1（权限与数据安全）、Batch 2（用户管理与后台稳定性）、Batch 3（学习状态与素材卡生命周期）、Batch 4（前台 IA 与移动端）、Batch 5（UI 评估与计划）全部完成并通过验证。下一阶段可进入 UI 渐进式改造执行（见 `docs/audit/ui-refactor-plan.md`），或先完成 Prisma migration 应用和 Playwright E2E 全量回归。
+Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全部完成。前端改造第一轮（A1 学习状态展示、A2 Articles Tab、A3 旧路由清理、A4 归档箱 Tab、A5 重新生成确认弹窗）已完成并通过验证。下一阶段可进入前端改造第二轮（UI 组件统一，见 `docs/superpowers/specs/2026-06-13-frontend-refactor-design.md`），或先完成 Prisma migration 应用和 Playwright E2E 全量回归。
 
 ## 2. 已完成
 
@@ -52,22 +52,30 @@ Batch 1（权限与数据安全）、Batch 2（用户管理与后台稳定性）
 - **T6-001 UI 组件库评估**：输出 `docs/audit/ui-assessment.md`，覆盖 12 个 shadcn 组件、26 个自定义业务组件、31 个裸 `<button>` 标签、缺少 ErrorBoundary、Zod 未使用等发现。
 - **T6-002 UI 渐进式改造计划**：输出 `docs/audit/ui-refactor-plan.md`，4 阶段（基础组件加固 → 表单规范化 → 表格与列表 → 视觉统一），不引入 AntD/HeroUI/TanStack/RHF。
 
+### 前端改造第一轮（Round A：功能补全）
+- **设计文档**：`docs/superpowers/specs/2026-06-13-frontend-refactor-design.md`，两轮制改造（Round A 功能补全 + Round B UI 统一）。
+- **实施计划**：`docs/superpowers/plans/2026-06-13-frontend-round-a.md`，5 个 Task 按依赖顺序执行。
+- **A3 旧路由清理**：删除 `/discover`、`/explore`、`/my-articles` 三个废弃路由页面，共移除 1082 行代码，无重定向。
+- **A2 Articles Tab 切换**：`/articles` 页面新增「全部/推荐/收藏」Tab 切换，API 添加 `filter` 参数（approved/favorites），匿名访问 favorites 静默降级。
+- **A1 学习状态展示**：文章列表页和详情页显示「已读/已收藏/已忽略」状态徽章，使用 per-user 字段（userRead/userIgnored/userBookmarked）。
+- **A4 归档箱 Tab**：`/cards` 页面新增「全部卡片/已归档」Tab，API 添加 `archivedOnly` 参数，归档视图显示归档日期和恢复按钮。
+- **A5 重新生成确认弹窗**：新建 `alert-dialog.tsx` 组件（base-ui/react），文章详情页重新生成时若已有素材卡则弹出二次确认，支持 force 覆盖。
+
 ### 验证基线
 - `pnpm lint`：0 errors / 17 warnings（全部为预存 warning）。
-- `pnpm test`：54 files / 379 tests 全部通过。
+- `pnpm test`：55 files / 386 tests 全部通过。
 - `pnpm build`：通过。
 
 ## 3. 进行中
 
-当前没有业务代码开发进行中。所有计划内 Batch 已完成。
+当前没有业务代码开发进行中。所有计划内 Batch 和前端改造第一轮已完成。
 
 ## 4. 下一步
 
 1. **应用 Prisma migration**：Docker/PostgreSQL 启动后运行 `npx prisma migrate deploy` 应用 `20260613_batch3_support` migration（archivedAt + UserContentState 表）。
 2. **Playwright E2E 全量回归**：Docker 可用后运行 `pnpm exec playwright test`，重点关注 `auth.spec.ts`、`data-isolation.spec.ts`、`mobile-responsive.spec.ts` 受双登录页和路由变更影响的 spec。
-3. **UI 渐进式改造**：按 `docs/audit/ui-refactor-plan.md` 的 4 阶段执行，从 Phase 1（基础组件加固）开始。
-4. **前端消费方适配**：文章详情页（`src/app/articles/[id]/page.tsx`、`src/app/discover/page.tsx`、`src/app/explore/page.tsx`）尚未从 API 返回的 `userRead/userIgnored/userBookmarked` 字段读取并展示状态。
-5. **Articles 页面 Tabs**：`/articles` 页面全部/推荐/收藏 Tab 切换需要额外前端实现。
+3. **E2E spec 清理**：`/discover`、`/explore`、`/my-articles` 旧路由已删除，9 个 E2E spec 文件可能引用已删除页面，需排查并更新断言。
+4. **前端改造第二轮（Round B）**：按 `docs/superpowers/specs/2026-06-13-frontend-refactor-design.md` 的 Round B 部分执行，4 阶段（基础组件加固 → 表单规范化 → 表格与弹窗 → 视觉统一）。
 
 ## 5. 关键决策
 
@@ -159,6 +167,29 @@ Batch 1（权限与数据安全）、Batch 2（用户管理与后台稳定性）
 - `docs/audit/ui-assessment.md`
 - `docs/audit/ui-refactor-plan.md`
 
+### 前端改造第一轮（Round A）新增/修改
+
+新建：
+- `src/components/ui/alert-dialog.tsx`（AlertDialog 组件，base-ui/react 原语）
+- `src/app/api/material-cards/__tests__/route.test.ts`（4 个归档过滤测试）
+- `docs/superpowers/specs/2026-06-13-frontend-refactor-design.md`
+- `docs/superpowers/plans/2026-06-13-frontend-round-a.md`
+
+删除：
+- `src/app/discover/page.tsx`
+- `src/app/explore/page.tsx`
+- `src/app/my-articles/page.tsx`
+- `src/components/my-articles/MyArticlesPage.tsx`
+
+修改：
+- `src/app/api/articles/route.ts`（添加 filter 参数：approved/favorites）
+- `src/app/api/articles/__tests__/route.test.ts`（3 个新测试）
+- `src/components/articles/ArticlesPage.tsx`（Tab 切换 + 状态图标）
+- `src/app/articles/[id]/page.tsx`（已读/已收藏/已忽略 Badge）
+- `src/app/api/material-cards/route.ts`（archivedOnly 参数）
+- `src/app/cards/page.tsx`（归档 Tab + 恢复按钮）
+- `src/components/ArticleDetail.tsx`（重新生成确认弹窗）
+
 ### 文档更新
 - `docs/audit/development-todolist.md`
 - `docs/audit/development-handoff.md`
@@ -166,7 +197,7 @@ Batch 1（权限与数据安全）、Batch 2（用户管理与后台稳定性）
 ## 7. 测试结果
 
 - `pnpm lint`：通过，0 errors / 17 warnings。
-- `pnpm test`：通过，54 files / 379 tests。
+- `pnpm test`：通过，55 files / 386 tests。
 - `pnpm build`：通过。
 - `pnpm exec playwright test e2e/admin.spec.ts -g "创建用户成功" --project=admin`：通过（Batch 1 阶段验证，20.2s）。
 - `pnpm exec playwright test e2e/cards.spec.ts -g "点击卡片跳转详情|素材卡详情" --project=admin`：6 个测试通过（Batch 1 阶段验证，31.2s）。
@@ -176,14 +207,14 @@ Batch 1（权限与数据安全）、Batch 2（用户管理与后台稳定性）
 ## 8. 未验证风险
 
 - **Prisma migration 未应用**：`20260613_batch3_support/migration.sql` 已创建但 Docker/PostgreSQL 未运行，`prisma migrate deploy` 未执行。应用前代码可构建但运行时涉及 `UserContentState` 或 `archivedAt` 的查询会报错。
-- **Playwright E2E 未全量回归**：Batch 2-5 改动后未跑完整 E2E。以下 spec 可能受影响：
+- **Playwright E2E 未全量回归**：Batch 2-5 + Round A 改动后未跑完整 E2E。以下 spec 可能受影响：
   - `auth.spec.ts`：双登录页 + `/login` 路由变更。
   - `data-isolation.spec.ts`：学习状态私有化可能需更新断言。
   - `mobile-responsive.spec.ts`：新增 MobileBottomTab 可能需要新断言。
   - `admin.spec.ts`：用户删除改禁用，原断言删除行为的 test 需更新。
-- **前端消费方未适配**：文章详情页和列表页尚未使用 API 返回的 `userRead/userIgnored/userBookmarked` 字段，仍读取全局字段（这些字段在 Batch 3 后不再更新）。
-- **Articles 页面 Tab 切换未实现**：`/articles` 页面目前没有全部/推荐/收藏 Tab 的 UI 切换逻辑。
+- **E2E spec 引用已删除路由**：`/discover`、`/explore`、`/my-articles` 路由页面已在 Round A 中删除，9 个 E2E spec 文件可能包含对这些路由的引用，需逐一排查清理。
 - **Prisma Client 已生成**：`npx prisma generate` 已执行，`src/generated/prisma` 包含 `UserContentState` 类型。
+- **全局/私有字段并存**：文章详情页同时存在全局 `read/ignored/bookmarked`（toggle 按钮用）和 per-user `userRead/userIgnored/userBookmarked`（展示徽章用），toggle 操作仍修改全局字段。待后续统一为 per-user 字段。
 
 ## 9. 注意事项
 
@@ -192,5 +223,7 @@ Batch 1（权限与数据安全）、Batch 2（用户管理与后台稳定性）
 - 不要把 UI 组件库改造提前到权限/数据安全之前（已完成）。
 - 不要对数据库做破坏性操作；需要清理/迁移时先 dry-run。
 - 按 `development-plan.md` 和 `development-todolist.md` 执行后续工作。
-- UI 改造必须参考 `docs/audit/ui-refactor-plan.md`，不引入 AntD/HeroUI/TanStack/RHF。
+- 前端改造第二轮（Round B）必须参考 `docs/superpowers/specs/2026-06-13-frontend-refactor-design.md` 和 `docs/superpowers/plans/2026-06-13-frontend-round-a.md`，不引入 AntD/HeroUI/TanStack/RHF。
+- UI 改造参考 `docs/audit/ui-refactor-plan.md`。
 - Docker/PostgreSQL 恢复后优先运行 `prisma migrate deploy` + Playwright 全量回归。
+- E2E spec 清理需在 Playwright 可运行后进行，逐 spec 排查引用已删除路由的断言。
