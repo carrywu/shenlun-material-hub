@@ -25,7 +25,11 @@ vi.mock("@/lib/data-isolation", () => ({
 
 const mocks = vi.hoisted(() => ({ findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() }));
 vi.mock("@/lib/db", () => ({
-  db: { contentItem: { findUnique: mocks.findUnique, update: mocks.update, delete: mocks.delete } },
+  db: {
+    contentItem: { findUnique: mocks.findUnique, update: mocks.update, delete: mocks.delete },
+    userContentState: { findUnique: vi.fn().mockResolvedValue(null) },
+    articleFavorite: { findUnique: vi.fn().mockResolvedValue(null) },
+  },
 }));
 
 import { GET } from "../route";

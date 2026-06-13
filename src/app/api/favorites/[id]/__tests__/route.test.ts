@@ -12,12 +12,12 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 const { tx, dbMock } = vi.hoisted(() => {
-  const tx = { favDel: vi.fn(), cardDel: vi.fn() };
+  const tx = { favDel: vi.fn(), cardUpd: vi.fn() };
   const dbMock = {
     $transaction: vi.fn(async (fn: (t: unknown) => Promise<unknown>) =>
       fn({
         articleFavorite: { deleteMany: tx.favDel },
-        materialCard: { deleteMany: tx.cardDel },
+        materialCard: { updateMany: tx.cardUpd },
       })
     ),
   };
@@ -38,8 +38,11 @@ describe("DELETE /api/favorites/[id] (P6)", () => {
     expect(tx.favDel).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId: "v", contentItemId: "c1" } })
     );
-    expect(tx.cardDel).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { ownerUserId: "v", contentItemId: "c1" } })
+    expect(tx.cardUpd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { ownerUserId: "v", contentItemId: "c1" },
+        data: { archivedAt: expect.any(Date) },
+      })
     );
   });
 

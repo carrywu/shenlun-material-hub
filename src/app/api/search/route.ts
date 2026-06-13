@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       Math.max(1, parseInt(searchParams.get("pageSize") ?? "20"))
     );
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { archivedAt: null };
 
     if (query) {
       where.OR = [

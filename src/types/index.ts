@@ -222,6 +222,17 @@ export interface ContentItem {
   updatedAt: Date;
 }
 
+// 用户学习状态
+export interface UserContentState {
+  id: string;
+  userId: string;
+  contentItemId: string;
+  read: boolean;
+  ignored: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // AI 评分结果
 export interface AIScoreDetail {
   relevance: number;

@@ -61,6 +61,10 @@ vi.mock("@/lib/data-isolation", () => ({
   ),
 }));
 
+vi.mock("@/lib/audit-logger", () => ({
+  auditLog: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { PUT, DELETE, GET } from "../route";
 import { createAuthenticatedRequest, createAnonymousRequest } from "@/test/helpers/route-helpers";
 
@@ -159,7 +163,7 @@ describe("DELETE /api/material-cards/[id]", () => {
     vi.clearAllMocks();
     setMockUser(USERS.USER_A);
     dbMocks.findUnique.mockResolvedValue(mockCard());
-    dbMocks.delete.mockResolvedValue(mockCard());
+    dbMocks.update.mockResolvedValue(mockCard());
   });
 
   it("allows owner to delete own card", async () => {
@@ -170,7 +174,12 @@ describe("DELETE /api/material-cards/[id]", () => {
     );
     const res = await DELETE(req, { params: Promise.resolve({ id: "card-1" }) });
     expect(res.status).toBe(200);
-    expect(dbMocks.delete).toHaveBeenCalled();
+    expect(dbMocks.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "card-1" },
+        data: { archivedAt: expect.any(Date) },
+      })
+    );
   });
 
   it("blocks non-owner from deleting (403)", async () => {
@@ -182,7 +191,7 @@ describe("DELETE /api/material-cards/[id]", () => {
     );
     const res = await DELETE(req, { params: Promise.resolve({ id: "card-1" }) });
     expect(res.status).toBe(403);
-    expect(dbMocks.delete).not.toHaveBeenCalled();
+    expect(dbMocks.update).not.toHaveBeenCalled();
   });
 
   it("allows admin to delete any card", async () => {
@@ -194,7 +203,12 @@ describe("DELETE /api/material-cards/[id]", () => {
     );
     const res = await DELETE(req, { params: Promise.resolve({ id: "card-1" }) });
     expect(res.status).toBe(200);
-    expect(dbMocks.delete).toHaveBeenCalled();
+    expect(dbMocks.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "card-1" },
+        data: { archivedAt: expect.any(Date) },
+      })
+    );
   });
 
   it("blocks regular user from deleting null-owner card (legacy)", async () => {

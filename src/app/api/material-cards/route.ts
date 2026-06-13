@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const confirmed = searchParams.get("confirmed");
     const search = searchParams.get("search");
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { archivedAt: null };
 
     if (contentItemId) where.contentItemId = contentItemId;
     if (cardType) where.cardType = cardType;

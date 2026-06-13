@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const cardType = searchParams.get("category");
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "10")));
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { archivedAt: null };
     if (cardType) where.cardType = cardType;
 
     // P1-001: Multi-user data isolation — only own cards (legacy null-owner is admin-only)

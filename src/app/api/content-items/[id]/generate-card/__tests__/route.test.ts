@@ -106,6 +106,27 @@ describe("POST /api/content-items/[id]/generate-card (P5)", () => {
     expect(res.status).toBe(409);
   });
 
+  it("force=true with existing card succeeds (202)", async () => {
+    mocks.findUnique.mockResolvedValue(APPROVED_ITEM);
+    mocks.findFirstCard.mockResolvedValue({ id: "existing", ownerUserId: "v" });
+    mocks.createTask.mockResolvedValue({ id: "t1", type: "CARD_GENERATE" });
+    const [req, ctx] = makeReq("x", USERS.VERIFIED, { cardType: "golden_sentence", force: true });
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(202);
+    expect(mocks.createTask).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  it("force=false (default) with existing card returns 409", async () => {
+    mocks.findUnique.mockResolvedValue(APPROVED_ITEM);
+    mocks.findFirstCard.mockResolvedValue({ id: "existing", ownerUserId: "v" });
+    const [req, ctx] = makeReq("x", USERS.VERIFIED, { cardType: "golden_sentence", force: false });
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(409);
+    expect(mocks.createTask).not.toHaveBeenCalled();
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
   it("公共卡（ownerUserId=null）不阻止私有卡生成 + findFirst 含 ownerUserId", async () => {
     mocks.findUnique.mockResolvedValue(APPROVED_ITEM);
     mocks.findFirstCard.mockResolvedValue(null);

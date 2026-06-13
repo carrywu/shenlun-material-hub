@@ -18,7 +18,7 @@ function errorResponse(
   return NextResponse.json({ error: code, code, message, status, ...extra }, { status });
 }
 
-async function runGenerateCardTask(id: string, cardType: CardType, requestId: string, ownerUserId: string) {
+async function runGenerateCardTask(id: string, cardType: CardType, requestId: string, ownerUserId: string, force?: boolean) {
   const item = await db.contentItem.findUnique({
     where: { id },
     include: {
@@ -33,7 +33,7 @@ async function runGenerateCardTask(id: string, cardType: CardType, requestId: st
   const existingCard = await db.materialCard.findFirst({
     where: { contentItemId: id, cardType, ownerUserId },
   });
-  if (existingCard) {
+  if (existingCard && !force) {
     return {
       contentItemId: id,
       cardType,
@@ -51,19 +51,36 @@ async function runGenerateCardTask(id: string, cardType: CardType, requestId: st
       ownerUserId
     );
 
-    const card = await db.materialCard.create({
-      data: {
-        contentItemId: id,
-        cardType,
-        title: item.title.slice(0, 100),
-        sourceSnapshot: aiData.sourceSnapshot,
-        originalFacts: aiData.originalFacts,
-        aiSummary: aiData.aiSummary,
-        highlightSuggestions: aiData.highlightSuggestions,
-        transferSuggestions: aiData.transferSuggestions,
-        ownerUserId,
-      },
-    });
+    let card;
+    if (existingCard && force) {
+      card = await db.materialCard.update({
+        where: { id: existingCard.id },
+        data: {
+          title: item.title.slice(0, 100),
+          sourceSnapshot: aiData.sourceSnapshot,
+          originalFacts: aiData.originalFacts,
+          aiSummary: aiData.aiSummary,
+          highlightSuggestions: aiData.highlightSuggestions,
+          transferSuggestions: aiData.transferSuggestions,
+          confirmed: false,
+          confirmedAt: null,
+        },
+      });
+    } else {
+      card = await db.materialCard.create({
+        data: {
+          contentItemId: id,
+          cardType,
+          title: item.title.slice(0, 100),
+          sourceSnapshot: aiData.sourceSnapshot,
+          originalFacts: aiData.originalFacts,
+          aiSummary: aiData.aiSummary,
+          highlightSuggestions: aiData.highlightSuggestions,
+          transferSuggestions: aiData.transferSuggestions,
+          ownerUserId,
+        },
+      });
+    }
 
     await db.contentItem.update({
       where: { id },
@@ -115,6 +132,7 @@ export async function POST(
     const body = await request.json().catch(() => ({}));
     const cardType = (body.cardType as CardType) ?? "golden_sentence";
     const cardTypesRaw = body.cardTypes as CardType[] | undefined;
+    const force = body.force === true;
 
     const item = await db.contentItem.findUnique({
       where: { id },
@@ -177,7 +195,7 @@ export async function POST(
       const dup = await db.materialCard.findFirst({
         where: { contentItemId: id, cardType: ct, ownerUserId: user.id },
       });
-      if (dup) {
+      if (dup && !force) {
         // 单类型模式：直接 409，便于前端精准提示
         if (!isBundleMode) {
           return errorResponse(
@@ -200,7 +218,7 @@ export async function POST(
           maxConcurrent: 3,
           maxDaily: 50,
         });
-        enqueueAsyncTask(task, () => runGenerateCardTask(id, ct, requestId, user.id));
+        enqueueAsyncTask(task, () => runGenerateCardTask(id, ct, requestId, user.id, force));
         tasks.push({ cardType: ct, taskId: task.id, duplicated: false });
       } catch (e) {
         if (e instanceof RateLimitError) {

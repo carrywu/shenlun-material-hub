@@ -16,7 +16,9 @@ export type AuditAction =
   | "change_password"
   | "role_change"
   | "user_disable"
-  | "user_enable";
+  | "user_enable"
+  | "archive"
+  | "unarchive";
 
 export type AuditResource =
   | "User"

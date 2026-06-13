@@ -19,9 +19,10 @@ export async function DELETE(
       await tx.articleFavorite.deleteMany({
         where: { userId: user.id, contentItemId },
       });
-      // 连带删该用户基于该文章的素材卡（公共卡和别人卡不动）
-      await tx.materialCard.deleteMany({
+      // 连带软删该用户基于该文章的素材卡（公共卡和别人卡不动）
+      await tx.materialCard.updateMany({
         where: { ownerUserId: user.id, contentItemId },
+        data: { archivedAt: new Date() },
       });
     });
     return NextResponse.json({ success: true });

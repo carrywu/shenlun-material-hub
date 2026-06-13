@@ -27,6 +27,12 @@ vi.mock("@/lib/db", () => ({
       findMany: mocks.findMany,
       count: mocks.count,
     },
+    userContentState: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    articleFavorite: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 

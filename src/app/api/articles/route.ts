@@ -145,13 +145,38 @@ export async function GET(request: NextRequest) {
       db.contentItem.count({ where }),
     ]);
 
-    return NextResponse.json({
+    const result = {
       data,
       total,
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),
-    });
+    };
+
+    // If user is authenticated, fetch their learning states for these articles
+    if (user) {
+      const articleIds = data.map(a => a.id);
+      const [states, favorites] = await Promise.all([
+        db.userContentState.findMany({
+          where: { userId: user.id, contentItemId: { in: articleIds } },
+        }),
+        db.articleFavorite.findMany({
+          where: { userId: user.id, contentItemId: { in: articleIds } },
+        }),
+      ]);
+      const stateMap = new Map(states.map(s => [s.contentItemId, s]));
+      const favSet = new Set(favorites.map(f => f.contentItemId));
+      // Enrich each article
+      const enrichedData = data.map(a => ({
+        ...a,
+        userRead: stateMap.get(a.id)?.read ?? false,
+        userIgnored: stateMap.get(a.id)?.ignored ?? false,
+        userBookmarked: favSet.has(a.id),
+      }));
+      return NextResponse.json({ ...result, data: enrichedData });
+    }
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Failed to fetch articles:", error);
     return NextResponse.json(

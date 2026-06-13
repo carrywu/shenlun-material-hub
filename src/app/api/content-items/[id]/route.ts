@@ -61,7 +61,20 @@ export async function GET(
           ),
         };
 
-    return NextResponse.json(safeItem);
+    // Fetch per-user learning state
+    const userState = await db.userContentState.findUnique({
+      where: { userId_contentItemId: { userId: user.id, contentItemId: id } },
+    });
+    const userFavorite = await db.articleFavorite.findUnique({
+      where: { userId_contentItemId: { userId: user.id, contentItemId: id } },
+    });
+
+    return NextResponse.json({
+      ...safeItem,
+      userRead: userState?.read ?? false,
+      userIgnored: userState?.ignored ?? false,
+      userBookmarked: !!userFavorite,
+    });
   } catch (error) {
     console.error("Failed to fetch content item:", error);
     return NextResponse.json({ error: "获取内容条目失败" }, { status: 500 });
