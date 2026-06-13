@@ -9,7 +9,6 @@ import {
   User,
   Ban,
   Key,
-  Trash2,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -141,6 +140,10 @@ export default function UsersPage() {
       setNewEmail("");
       setNewDisplayName("");
       setNewRole("USER");
+      // Optimistically add new user to list
+      if (data.user) {
+        setUsers(prev => [data.user as UserItem, ...prev]);
+      }
       void fetchUsers();
     } catch {
       toast.error("创建用户失败");
@@ -202,24 +205,6 @@ export default function UsersPage() {
       toast.error("重置密码失败");
     } finally {
       setResetting(false);
-    }
-  }
-
-  // ─── Delete user ─────────────────────────────────────────────────────────
-
-  async function handleDelete(id: string, username: string) {
-    if (!confirm(`确认删除用户 "${username}"？此操作不可恢复。`)) return;
-    try {
-      const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "删除失败");
-        return;
-      }
-      toast.success(`用户 "${username}" 已删除`);
-      void fetchUsers();
-    } catch {
-      toast.error("删除失败");
     }
   }
 
@@ -326,13 +311,6 @@ export default function UsersPage() {
                           title="重置密码"
                         >
                           <Key className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(u.id, u.username)}
-                          className="cursor-pointer rounded px-2 py-1 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600"
-                          title="删除"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>

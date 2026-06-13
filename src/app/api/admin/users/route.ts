@@ -49,8 +49,17 @@ export async function POST(request: Request) {
     return cookieHeader.includes("auth_token") ? forbiddenResponse() : unauthorizedResponse();
   }
 
-  const body = await request.json();
-  const { username, password, email, displayName, role } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "请求体必须是有效 JSON" }, { status: 400 });
+  }
+  const username = body.username as string | undefined;
+  const password = body.password as string | undefined;
+  const email = body.email as string | undefined;
+  const displayName = body.displayName as string | undefined;
+  const role = body.role as string | undefined;
 
   if (!username || !password) {
     return NextResponse.json({ error: "用户名和密码不能为空" }, { status: 400 });

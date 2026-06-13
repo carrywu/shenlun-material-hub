@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -231,8 +231,8 @@ export default function AdminLogsPage() {
                   const isExpanded = expandedId === log.id;
                   const hasDetail = !!log.detail;
                   return (
-                    <>
-                      <TableRow key={log.id}>
+                    <Fragment key={log.id}>
+                      <TableRow>
                         <TableCell>{new Date(log.createdAt).toLocaleString("zh-CN")}</TableCell>
                         <TableCell>
                           <Badge variant={log.level === "ERROR" ? "destructive" : log.level === "WARN" ? "secondary" : "outline"}>
@@ -264,7 +264,7 @@ export default function AdminLogsPage() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>

@@ -58,8 +58,17 @@ export async function PUT(request: Request, context: RouteContext) {
   }
 
   const { id } = await context.params;
-  const body = await request.json();
-  const { role, status, displayName, email, password } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "请求体必须是有效 JSON" }, { status: 400 });
+  }
+  const role = body.role as string | undefined;
+  const status = body.status as string | undefined;
+  const displayName = body.displayName as string | undefined;
+  const email = body.email as string | undefined;
+  const password = body.password as string | undefined;
 
   const target = await db.user.findUnique({ where: { id } });
   if (!target) {
@@ -150,54 +159,16 @@ export async function PUT(request: Request, context: RouteContext) {
   return NextResponse.json({ user: updated });
 }
 
-/** DELETE /api/admin/users/[id] — delete a user */
-export async function DELETE(request: Request, context: RouteContext) {
+/** DELETE /api/admin/users/[id] — deletion not supported this phase, use disable instead */
+export async function DELETE(request: Request, _context: RouteContext) {
   const admin = await requireAdmin(request);
   if (!admin) {
     const cookieHeader = request.headers.get("cookie") || "";
     return cookieHeader.includes("auth_token") ? forbiddenResponse() : unauthorizedResponse();
   }
 
-  const { id } = await context.params;
-  const target = await db.user.findUnique({ where: { id } });
-  if (!target) {
-    return NextResponse.json({ error: "用户不存在" }, { status: 404 });
-  }
-
-  // Cannot delete the last admin
-  if (target.role === "ADMIN") {
-    const activeAdmins = await countActiveAdmins();
-    if (activeAdmins <= 1) {
-      return NextResponse.json(
-        { error: "不能删除最后一个管理员" },
-        { status: 400 }
-      );
-    }
-  }
-
-  // Cannot delete yourself
-  if (target.id === admin.id) {
-    return NextResponse.json(
-      { error: "不能删除自己的账号" },
-      { status: 400 }
-    );
-  }
-
-  await db.user.delete({ where: { id } });
-
-  await logger.info(
-    `Admin "${admin.username}" deleted user "${target.username}"`,
-    "AUTH"
+  return NextResponse.json(
+    { error: "当前不支持删除用户，请使用禁用功能" },
+    { status: 405 }
   );
-
-  await auditLog({
-    userId: admin.id,
-    action: "delete",
-    resource: "User",
-    resourceId: id,
-    detail: { targetUsername: target.username, byAdmin: admin.username },
-    ip: getClientIp(request),
-  });
-
-  return NextResponse.json({ success: true });
 }
