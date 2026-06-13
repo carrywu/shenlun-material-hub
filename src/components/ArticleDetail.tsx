@@ -15,6 +15,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ExternalLink,
   X,
   CreditCard,
@@ -78,6 +88,7 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
     aiSummary: string | null;
     originalFacts: string | null;
   } | null>(null);
+  const [showRegenConfirm, setShowRegenConfirm] = useState(false);
 
   const tags = parseTopicTags(article.topicTags);
 
@@ -85,7 +96,15 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
     ? (() => { try { return JSON.parse(article.aiScoreDetail); } catch { return null; } })()
     : null;
 
-  async function handleGenerateCard() {
+  function handleGenerateClick() {
+    if (article._count?.materialCards && article._count.materialCards > 0) {
+      setShowRegenConfirm(true);
+    } else {
+      handleGenerateCard();
+    }
+  }
+
+  async function handleGenerateCard(force = false) {
     if (generating) return;
     setGenerating(true);
     setGeneratedCard(null);
@@ -95,7 +114,7 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
       const res = await fetch(`/api/content-items/${article.id}/generate-card`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardType }),
+        body: JSON.stringify({ cardType, ...(force && { force: true }) }),
       });
 
       const data = await res.json();
@@ -273,7 +292,7 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
               </Select>
               <Button
                 size="sm"
-                onClick={handleGenerateCard}
+                onClick={handleGenerateClick}
                 disabled={generating || !article.fullText || article.adminReviewStatus !== "approved"}
               >
                 {generating ? (
@@ -340,6 +359,27 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
           </div>
         )}
       </CardContent>
+      <AlertDialog open={showRegenConfirm} onOpenChange={setShowRegenConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认重新生成</AlertDialogTitle>
+            <AlertDialogDescription>
+              该文章已有素材卡，重新生成将覆盖现有内容并重置学习状态。是否继续？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowRegenConfirm(false);
+                handleGenerateCard(true);
+              }}
+            >
+              重新生成
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
