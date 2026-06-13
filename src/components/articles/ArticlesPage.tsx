@@ -23,7 +23,7 @@ import {
 import { BatchActions } from "@/components/BatchActions";
 import { ArticleDetail } from "@/components/ArticleDetail";
 import { Pagination } from "@/components/ui/pagination";
-import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown, Star } from "lucide-react";
+import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown, Star, CheckCircle, BookmarkCheck, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -60,6 +60,9 @@ interface ContentItemData {
   visibility: string | null;
   source?: { name: string } | null;
   _count: { materialCards: number };
+  userRead?: boolean;
+  userIgnored?: boolean;
+  userBookmarked?: boolean;
 }
 
 interface ContentItemsResponse {
@@ -910,15 +913,32 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                         </TableCell>
                       )}
                       <TableCell className="font-medium max-w-[180px] md:max-w-[280px] truncate">
-                        <button
-                          className="hover:underline text-left w-full truncate font-semibold text-foreground/85 hover:text-primary transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDetailItem(item);
-                          }}
-                        >
-                          {item.title}
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {item.userRead && (
+                            <span title="已读" className="shrink-0">
+                              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                            </span>
+                          )}
+                          {item.userBookmarked && (
+                            <span title="已收藏" className="shrink-0">
+                              <BookmarkCheck className="h-3.5 w-3.5 text-yellow-500" />
+                            </span>
+                          )}
+                          {item.userIgnored && (
+                            <span title="已忽略" className="shrink-0">
+                              <EyeOff className="h-3.5 w-3.5 text-muted-foreground/50" />
+                            </span>
+                          )}
+                          <button
+                            className="hover:underline text-left w-full truncate font-semibold text-foreground/85 hover:text-primary transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDetailItem(item);
+                            }}
+                          >
+                            {item.title}
+                          </button>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">

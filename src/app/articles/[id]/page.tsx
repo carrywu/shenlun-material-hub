@@ -15,6 +15,7 @@ import {
   FileText,
   Bookmark,
   BookmarkCheck,
+  CheckCircle,
   Eye,
   EyeOff,
   Sparkles,
@@ -70,6 +71,9 @@ interface ArticleDetail {
   bookmarked: boolean;
   read: boolean;
   ignored: boolean;
+  userRead?: boolean;
+  userIgnored?: boolean;
+  userBookmarked?: boolean;
   source?: { id: string; name: string; platform: string } | null;
   materialCards: Array<{
     id: string;
@@ -667,6 +671,21 @@ export default function ArticleDetailPage() {
                     }`}
                   >
                     评分 {article.aiScore}
+                  </Badge>
+                )}
+                {article.userRead && (
+                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 hover:bg-green-100">
+                    <CheckCircle className="h-3 w-3 mr-1" /> 已读
+                  </Badge>
+                )}
+                {article.userBookmarked && (
+                  <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50">
+                    <BookmarkCheck className="h-3 w-3 mr-1" /> 已收藏
+                  </Badge>
+                )}
+                {article.userIgnored && (
+                  <Badge variant="secondary" className="text-xs opacity-50 hover:opacity-50">
+                    <EyeOff className="h-3 w-3 mr-1" /> 已忽略
                   </Badge>
                 )}
               </div>
