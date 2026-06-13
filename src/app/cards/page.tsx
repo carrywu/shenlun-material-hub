@@ -24,6 +24,8 @@ import {
   BarChart3,
   Lightbulb,
   Sparkles,
+  ArchiveRestore,
+  Clock,
 } from "lucide-react";
 import type { CardType } from "@/types";
 
@@ -37,6 +39,7 @@ interface CardItem {
   aiSummary: string | null;
   highlightSuggestions: string | null;
   transferSuggestions: string | null;
+  archivedAt: string | null;
   createdAt: string;
   contentItem: {
     id: string;
@@ -85,6 +88,9 @@ export default function CardsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBatchSync, setShowBatchSync] = useState(false);
 
+  // Archive tab
+  const [showArchived, setShowArchived] = useState(false);
+
   const pageSize = 12;
 
   const fetchCards = useCallback(async () => {
@@ -97,6 +103,7 @@ export default function CardsPage() {
       if (search) params.set("search", search);
       if (cardTypeFilter !== "all") params.set("cardType", cardTypeFilter);
       if (confirmedFilter !== "all") params.set("confirmed", confirmedFilter);
+      if (showArchived) params.set("archivedOnly", "true");
 
       const res = await fetch(`/api/material-cards?${params.toString()}`);
       if (res.status === 401) {
@@ -116,7 +123,7 @@ export default function CardsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, cardTypeFilter, confirmedFilter]);
+  }, [page, search, cardTypeFilter, confirmedFilter, showArchived]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -126,7 +133,7 @@ export default function CardsPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
-  }, [search, cardTypeFilter, confirmedFilter]);
+  }, [search, cardTypeFilter, confirmedFilter, showArchived]);
 
   async function handleDelete(id: string) {
     if (!confirm("确定删除此素材卡？")) return;
@@ -154,6 +161,25 @@ export default function CardsPage() {
       fetchCards();
     } catch (err) {
       toast.error("操作失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+    }
+  }
+
+  async function handleRestore(cardId: string) {
+    try {
+      const res = await fetch(`/api/material-cards/${cardId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "unarchive" }),
+      });
+      if (res.ok) {
+        toast.success("卡片已恢复");
+        fetchCards();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "恢复失败");
+      }
+    } catch {
+      toast.error("网络错误");
     }
   }
 
@@ -191,6 +217,19 @@ export default function CardsPage() {
             刷新
           </Button>
         </div>
+      </div>
+
+      {/* Archive toggle tabs */}
+      <div className="px-6 pt-3">
+        <Tabs
+          value={showArchived ? "archived" : "all"}
+          onValueChange={(v: string) => { setShowArchived(v === "archived"); }}
+        >
+          <TabsList>
+            <TabsTrigger value="all">全部卡片</TabsTrigger>
+            <TabsTrigger value="archived">已归档</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Filters */}
@@ -313,14 +352,20 @@ export default function CardsPage() {
           </div>
         ) : cards.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-            <p>暂无素材卡</p>
-            <p className="text-sm">请先在文章库中对文章进行 AI 评估，然后生成素材卡</p>
-            <Link
-              href="/articles"
-              className="mt-1 text-sm text-primary hover:underline flex items-center gap-1"
-            >
-              前往文章库生成素材卡 →
-            </Link>
+            {showArchived ? (
+              <p>暂无已归档卡片</p>
+            ) : (
+              <>
+                <p>暂无素材卡</p>
+                <p className="text-sm">请先在文章库中对文章进行 AI 评估，然后生成素材卡</p>
+                <Link
+                  href="/articles"
+                  className="mt-1 text-sm text-primary hover:underline flex items-center gap-1"
+                >
+                  前往文章库生成素材卡 →
+                </Link>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -356,6 +401,22 @@ export default function CardsPage() {
                     onConfirm={isAdmin ? handleConfirm : undefined}
                   />
                 </div>
+                {showArchived && card.archivedAt && (
+                  <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      归档于 {new Date(card.archivedAt).toLocaleDateString("zh-CN")}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-xs"
+                      onClick={(e) => { e.stopPropagation(); handleRestore(card.id); }}
+                    >
+                      <ArchiveRestore className="h-3 w-3 mr-1" /> 恢复
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
