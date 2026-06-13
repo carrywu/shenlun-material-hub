@@ -19,6 +19,7 @@ vi.mock("@/lib/auth", () => ({
 const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),
   count: vi.fn(),
+  articleFavoriteFindMany: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -31,7 +32,7 @@ vi.mock("@/lib/db", () => ({
       findMany: vi.fn().mockResolvedValue([]),
     },
     articleFavorite: {
-      findMany: vi.fn().mockResolvedValue([]),
+      findMany: mocks.articleFavoriteFindMany,
     },
   },
 }));
@@ -60,6 +61,7 @@ describe("GET /api/articles route handler", () => {
     authMocks.getUserFromRequest.mockResolvedValue(null);
     mocks.findMany.mockResolvedValue([]);
     mocks.count.mockResolvedValue(0);
+    mocks.articleFavoriteFindMany.mockResolvedValue([]);
   });
 
   it("should add visibility filter for anonymous users (approved + public)", async () => {
@@ -198,5 +200,53 @@ describe("GET /api/articles route handler", () => {
     // 非 ADMIN：不能写入 where.adminReviewStatus（由 mock 的 contentVisibilityWhere 保证 approved）
     const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
     expect(lastWhere).not.toHaveProperty("adminReviewStatus");
+  });
+
+  it("filter=approved → where.adminReviewStatus=approved", async () => {
+    const req = new NextRequest(
+      "http://localhost/api/articles?filter=approved"
+    );
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(mocks.findMany).toHaveBeenCalled();
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("adminReviewStatus", "approved");
+  });
+
+  it("filter=favorites + user with favorites → where.id in favIds", async () => {
+    authMocks.getUserFromRequest.mockResolvedValue(USERS.USER_A);
+    mocks.articleFavoriteFindMany.mockResolvedValue([
+      { contentItemId: "fav-1" },
+      { contentItemId: "fav-2" },
+    ]);
+    mocks.findMany.mockResolvedValue([]);
+    mocks.count.mockResolvedValue(0);
+    const req = new NextRequest(
+      "http://localhost/api/articles?filter=favorites"
+    );
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(mocks.articleFavoriteFindMany).toHaveBeenCalledWith({
+      where: { userId: USERS.USER_A.id },
+      select: { contentItemId: true },
+    });
+    expect(mocks.findMany).toHaveBeenCalled();
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("id");
+    expect((lastWhere.id as Record<string, unknown>).in).toEqual(["fav-1", "fav-2"]);
+  });
+
+  it("filter=favorites + user with no favorites → empty response, no db query", async () => {
+    authMocks.getUserFromRequest.mockResolvedValue(USERS.USER_A);
+    mocks.articleFavoriteFindMany.mockResolvedValue([]);
+    const req = new NextRequest(
+      "http://localhost/api/articles?filter=favorites"
+    );
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 });
+    expect(mocks.findMany).not.toHaveBeenCalled();
+    expect(mocks.count).not.toHaveBeenCalled();
   });
 });

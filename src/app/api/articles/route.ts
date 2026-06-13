@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const qualityStatus = searchParams.get("qualityStatus");
     const aiDecision = searchParams.get("aiDecision");
     const adminReviewStatus = searchParams.get("adminReviewStatus");
+    const filter = searchParams.get("filter");
     const sortBy = searchParams.get("sortBy") ?? "createdAt";
 
     // 时间范围筛选
@@ -110,6 +111,11 @@ export async function GET(request: NextRequest) {
       orderBy = [{ createdAt: "desc" }, { id: "desc" }];
     }
 
+    // 推荐筛选（approved = 仅已通过审核的文章）
+    if (filter === "approved") {
+      where.adminReviewStatus = "approved";
+    }
+
     // Visibility: authenticated users see public+own+legacy; anonymous see public+legacy(null) only
     const user = await getUserFromRequest(request);
     if (user) {
@@ -117,6 +123,18 @@ export async function GET(request: NextRequest) {
       // P3: ADMIN 可按审核状态筛选；非 ADMIN 由 contentVisibilityWhere 强制 approved
       if (user.role === "ADMIN" && adminReviewStatus && adminReviewStatus !== "all") {
         where.adminReviewStatus = adminReviewStatus;
+      }
+      // 收藏筛选：仅返回当前用户已收藏的文章
+      if (filter === "favorites") {
+        const favs = await db.articleFavorite.findMany({
+          where: { userId: user.id },
+          select: { contentItemId: true },
+        });
+        const favIds = favs.map(f => f.contentItemId);
+        if (favIds.length === 0) {
+          return NextResponse.json({ data: [], total: 0, page, pageSize, totalPages: 0 });
+        }
+        where.id = { in: favIds };
       }
     } else {
       // P3-final: 匿名用户只看 adminReviewStatus=approved 且 visibility=public

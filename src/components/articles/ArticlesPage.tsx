@@ -25,6 +25,7 @@ import { ArticleDetail } from "@/components/ArticleDetail";
 import { Pagination } from "@/components/ui/pagination";
 import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { waitForAdminTask } from "@/lib/client-admin-task";
@@ -184,6 +185,9 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
   // Dev debug mode: show owner/visibility columns
   const [showDebugCols, setShowDebugCols] = useState(false);
 
+  // Tab filter (all / recommended / favorites)
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") ?? "all");
+
   // 加载来源列表
   useEffect(() => {
     fetch("/api/sources?pageSize=500")
@@ -233,6 +237,8 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
       if (collectedStart) params.set("collectedStart", collectedStart);
       if (collectedEnd) params.set("collectedEnd", collectedEnd);
       if (sortBy !== "createdAt") params.set("sortBy", sortBy);
+      if (activeTab === "recommended") params.set("filter", "approved");
+      if (activeTab === "favorites") params.set("filter", "favorites");
 
       const res = await fetch(`/api/articles?${params.toString()}`);
       if (!res.ok) throw new Error("请求失败");
@@ -245,7 +251,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, keyword, sourceType, sourceName, section, qualityStatus, aiDecision, adminReviewStatus, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy]);
+  }, [page, pageSize, keyword, sourceType, sourceName, section, qualityStatus, aiDecision, adminReviewStatus, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy, activeTab]);
 
   // 同步筛选条件到 URL
   const syncUrl = useCallback(() => {
@@ -262,9 +268,10 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     if (collectedStart) params.set("collectedStart", collectedStart);
     if (collectedEnd) params.set("collectedEnd", collectedEnd);
     if (sortBy !== "createdAt") params.set("sortBy", sortBy);
+    if (activeTab && activeTab !== "all") params.set("tab", activeTab);
     const qs = params.toString();
     router.replace(`/articles${qs ? `?${qs}` : ""}`, { scroll: false });
-  }, [keyword, sourceType, sourceName, section, qualityStatus, aiDecision, adminReviewStatus, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy, router]);
+  }, [keyword, sourceType, sourceName, section, qualityStatus, aiDecision, adminReviewStatus, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy, activeTab, router]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -292,6 +299,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     setCollectedStart("");
     setCollectedEnd("");
     setSortBy("createdAt");
+    setActiveTab("all");
     setPage(1);
     router.replace("/articles", { scroll: false });
   }
@@ -577,6 +585,18 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
           </div>
         )}
       </div>
+
+      {/* Tab filter: all / recommended / favorites */}
+      <div className="px-6 pt-3">
+        <Tabs value={activeTab} onValueChange={(v: string) => { setActiveTab(v); setPage(1); }}>
+          <TabsList>
+            <TabsTrigger value="all">全部</TabsTrigger>
+            <TabsTrigger value="recommended">推荐</TabsTrigger>
+            <TabsTrigger value="favorites">收藏</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       <div className="border-b px-6 py-3 bg-muted/20">
         <div className="flex flex-wrap items-end gap-3">
           {/* 关键词 */}
