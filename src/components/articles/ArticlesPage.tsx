@@ -929,15 +929,16 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                               <EyeOff className="h-3.5 w-3.5 text-muted-foreground/50" />
                             </span>
                           )}
-                          <button
-                            className="hover:underline text-left w-full truncate font-semibold text-foreground/85 hover:text-primary transition-colors"
+                          <Button
+                            variant="link"
+                            className="w-full truncate text-left"
                             onClick={(e) => {
                               e.stopPropagation();
                               setDetailItem(item);
                             }}
                           >
                             {item.title}
-                          </button>
+                          </Button>
                         </div>
                       </TableCell>
                       <TableCell>

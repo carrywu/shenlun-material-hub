@@ -7,6 +7,7 @@ import {
   RotateCcw, Shield, Settings,
   Layers,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { AuthUser } from "@/lib/auth";
 
 // Base nav items for all logged-in users
@@ -98,12 +99,14 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
               <span className="text-xs text-muted-foreground">
                 {currentUser.username}
               </span>
-              <button
+              <Button
+                variant="link"
+                size="xs"
                 onClick={handleLogout}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                className="text-muted-foreground hover:text-foreground"
               >
                 退出
-              </button>
+              </Button>
             </>
           ) : (
             <Link

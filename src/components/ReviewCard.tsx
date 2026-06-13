@@ -129,9 +129,11 @@ function CollapsibleSection({
   const theme = COLOR_THEMES[label] ?? COLOR_THEMES["默认"];
   return (
     <div className={`rounded-lg border ${theme.border} ${theme.bg} overflow-hidden transition-all duration-200`}>
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={onToggle}
-        className="flex items-center gap-2 w-full text-left p-3 hover:bg-muted/30 transition-colors"
+        className="w-full justify-start"
       >
         <span className={`w-1 h-3.5 rounded-full ${theme.bar}`} />
         <Icon className={`h-4 w-4 ${theme.text}`} />
@@ -141,7 +143,7 @@ function CollapsibleSection({
         ) : (
           <ChevronDown className={`h-4 w-4 ${theme.text} ml-auto`} />
         )}
-      </button>
+      </Button>
       {isOpen && (
         <div className="px-3 pb-3 pt-0 pl-10 border-t border-border/40">
           {renderContent(content)}

@@ -291,13 +291,15 @@ export default function AiConfigPage() {
                   className="w-full px-3 py-2 pr-10 border rounded-md text-sm"
                   placeholder={config?.configured ? `当前: ${config.maskedKey}` : "sk-..."}
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={() => setShowKey(!showKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
                 >
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Key 会加密存储在数据库中。留空则保持现有 Key 不变。

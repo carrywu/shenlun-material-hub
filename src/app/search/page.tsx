@@ -270,7 +270,9 @@ export default function SearchPage() {
             {activeFilters.map((f) => (
               <Badge key={f.key} variant="secondary" className="text-xs">
                 {f.label}
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={() => {
                     if (f.key === "cardType") setCardType("");
                     if (f.key === "tags") setTags("");
@@ -279,7 +281,7 @@ export default function SearchPage() {
                   className="ml-1 hover:text-destructive"
                 >
                   <X className="h-3 w-3" />
-                </button>
+                </Button>
               </Badge>
             ))}
           </div>

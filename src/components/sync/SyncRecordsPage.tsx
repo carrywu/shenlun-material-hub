@@ -367,10 +367,12 @@ export default function SyncRecordsPage() {
                             <code className="text-xs text-muted-foreground truncate max-w-28">
                               {record.remoteDocumentId}
                             </code>
-                            <button
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="icon-xs"
                               onClick={() => copyRemoteId(record.id, record.remoteDocumentId!)}
-                              className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+                              className="shrink-0"
                               title="复制远端文档 ID"
                             >
                               {copiedId === record.id ? (
@@ -378,7 +380,7 @@ export default function SyncRecordsPage() {
                               ) : (
                                 <Copy className="h-3 w-3 text-muted-foreground" />
                               )}
-                            </button>
+                            </Button>
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">-</span>

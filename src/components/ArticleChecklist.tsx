@@ -67,9 +67,9 @@ export function BatchFavoriteBar({
       >
         {loading ? "处理中..." : "收藏选中"}
       </Button>
-      <button onClick={onClear} className="text-sm text-gray-300 hover:text-white">
+      <Button onClick={onClear} variant="ghost" size="sm" className="text-gray-300 hover:text-white">
         取消
-      </button>
+      </Button>
     </div>
   );
 }
