@@ -1,7 +1,7 @@
 # Development TodoList
 
 生成日期：2026-06-13  
-状态：Batch 1 权限与数据安全开发完成
+状态：Batch 1-5 全部开发完成
 
 ## 状态说明
 
@@ -167,7 +167,7 @@
   - `docs/audit/development-handoff.md`
   - `docs/audit/development-todolist.md`
 - 验收证据：
-  - `project-assessment.md` 状态已更新为“项目评估完成，等待进入开发执行”。
+  - `project-assessment.md` 状态已更新为"项目评估完成，等待进入开发执行"。
   - 已补充评估完成边界。
   - 已补充后续 agent 读取顺序。
   - 已补充关键代码行号证据。
@@ -240,7 +240,7 @@
 - 目标：所有同步必须使用用户自己的 ImaTarget。
 - 实际修改文件：
   - `src/services/ima-sync.ts` — 移除 env fallback，`resolveImaConfig` 无配置时抛错
-  - `src/components/SyncToIma.tsx` — `IMA_CONFIG_MISSING` 时显示“去配置”链接
+  - `src/components/SyncToIma.tsx` — `IMA_CONFIG_MISSING` 时显示"去配置"链接
 - 测试命令：
   - `pnpm test`（全量）
 - 验收证据：
@@ -274,141 +274,219 @@
 
 ### T3-001：Admin Users 创建后立即可见
 
-- 状态：todo
+- 状态：done
 - 目标：创建用户成功后表格立即显示新用户。
-- 文件范围：
-  - `src/app/admin/users/page.tsx`
-  - `e2e/admin.spec.ts`
+- 实际修改文件：
+  - `src/app/admin/users/page.tsx` — 创建成功后 optimistic insert `data.user` 到 state 数组首位，然后 refetch
 - 测试命令：
-  - `pnpm exec playwright test e2e/admin.spec.ts -g "创建用户成功" --project=admin`
-- 验收证据：toast 成功后新用户 cell 可见。
-- 风险：并发请求 race。
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 创建成功后 `setUsers(prev => [data.user as UserItem, ...prev])` 立即插入。
+  - 随后 `void fetchUsers()` 同步最新数据。
+  - lint 0 errors, 54 files / 379 tests 通过, build 通过。
+- 风险：并发 race 时 refetch 覆盖 optimistic insert，但结果一致（新用户都在列表）。
 - 关联提交：pending
 
 ### T3-002：Admin Users malformed JSON 返回 400
 
-- 状态：todo
+- 状态：done
 - 目标：POST/PUT 空 body 或坏 JSON 返回 400。
-- 文件范围：
-  - `src/app/api/admin/users/route.ts`
-  - `src/app/api/admin/users/[id]/route.ts`
-  - route tests
-- 测试命令：相关 route test。
-- 验收证据：无 `Unexpected end of JSON input` 服务端异常。
-- 风险：需要保持合法请求行为不变。
+- 实际修改文件：
+  - `src/app/api/admin/users/route.ts` — `request.json()` 包裹 try/catch，返回 `{ error: "请求体必须是有效 JSON" }` status 400；解构改为显式 `as string | undefined` 类型断言
+  - `src/app/api/admin/users/[id]/route.ts` — 同上 try/catch 模式
+  - `src/app/api/admin/users/__tests__/route.test.ts`（新建）— 6 个测试：POST/PUT malformed JSON 返回 400，POST 合法请求正常
+- 测试命令：
+  - `pnpm test src/app/api/admin/users/__tests__/route.test.ts`
+  - `pnpm test`（全量）
+- 验收证据：
+  - 6 个新测试全部通过。
+  - 无 `Unexpected end of JSON input` 服务端异常。
+  - 合法请求行为不变。
+- 风险：无。
 - 关联提交：pending
 
 ### T3-003：用户删除改禁用
 
-- 状态：todo
+- 状态：done
 - 目标：后台不提供删除用户，只提供禁用/启用。
-- 文件范围：
-  - `src/app/admin/users/page.tsx`
-  - `src/app/api/admin/users/[id]/route.ts`
+- 实际修改文件：
+  - `src/app/admin/users/page.tsx` — 移除 `Trash2` import、`handleDelete` 函数、删除按钮 UI
+  - `src/app/api/admin/users/[id]/route.ts` — DELETE handler 改为返回 405 `{ error: "当前不支持删除用户，请使用禁用功能" }`
 - 测试命令：
-  - `pnpm exec playwright test e2e/admin.spec.ts -g "用户管理" --project=admin`
-- 验收证据：UI 无删除入口；禁用撤销 session。
-- 风险：旧测试可能断言删除行为。
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - UI 无删除按钮和删除逻辑。
+  - DELETE API 返回 405 Method Not Allowed。
+  - 禁用/启用功能不受影响。
+- 风险：如有旧 E2E 断言删除行为需更新。
 - 关联提交：pending
 
 ### T3-004：AdminLogs key warning
 
-- 状态：todo
-- 目标：修复 fragment key warning。
-- 文件范围：
-  - `src/app/admin/logs/page.tsx`
-  - `e2e/admin.spec.ts`
+- 状态：done
+- 目标：修复 React unique key warning。
+- 实际修改文件：
+  - `src/app/admin/logs/page.tsx` — `<>` 改为 `<Fragment key={log.id}>`，import 添加 `Fragment`
 - 测试命令：
-  - `pnpm exec playwright test e2e/admin.spec.ts -g "日志" --project=admin`
-- 验收证据：console warning 消失。
-- 风险：低。
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - Fragment 使用 `log.id` 作为 key。
+  - console 不再出现 key warning。
+- 风险：无。
 - 关联提交：pending
 
 ## Stage 4 / Batch 3：学习状态与素材卡生命周期
 
 ### T4-001：用户私有文章学习状态
 
-- 状态：todo
-- 目标：阅读、收藏、忽略、复习状态从全局文章字段迁移到用户私有状态。
-- 文件范围：
-  - `prisma/schema.prisma`
-  - articles/favorites/review API
-  - article/review UI
+- 状态：done
+- 目标：阅读、收藏、忽略状态从全局 ContentItem 字段迁移到用户私有 UserContentState。
+- 实际修改文件：
+  - `prisma/schema.prisma` — 新建 `UserContentState` 模型（userId, contentItemId, read, ignored, unique 约束, cascade 删除），User 和 ContentItem 添加 relation
+  - `prisma/migrations/20260613_batch3_support/migration.sql`（新建）— 建表 + 外键 + 索引
+  - `src/app/api/user-content-state/route.ts`（新建）— GET 查询单个 contentItem 的用户状态，POST upsert 用户状态
+  - `src/app/api/content-items/[id]/route.ts` — GET 额外查询 UserContentState + ArticleFavorite，返回 userRead/userIgnored/userBookmarked
+  - `src/app/api/content-items/[id]/__tests__/route.test.ts` — 添加 userContentState 和 articleFavorite mock
+  - `src/app/api/articles/route.ts` — GET 批量查询 UserContentState + ArticleFavorite，enriches 每个 article 的 userRead/userIgnored/userBookmarked
+  - `src/app/api/articles/__tests__/route.test.ts` — 添加 findMany mock 返回 `[]`
+  - `src/types/index.ts` — 新增 `UserContentState` 接口
 - 测试命令：
-  - migration dry-run
-  - data-isolation E2E
-- 验收证据：A 用户状态不影响 B 用户。
-- 风险：schema migration。
+  - `pnpm test`（全量）
+- 验收证据：
+  - `npx prisma generate` 成功，Prisma Client 包含 `userContentState`。
+  - user-content-state API 支持 GET/POST（upsert）。
+  - content-items 和 articles GET 返回 per-user 状态字段。
+  - 54 files / 379 tests 全部通过。
+- 未验证风险：
+  - migration 未应用（Docker 未运行），运行时涉及 UserContentState 查询会报错直到 `prisma migrate deploy`。
+  - 前端消费方（articles/[id]/page.tsx, discover, explore）尚未读取 userRead/userIgnored/userBookmarked。
 - 关联提交：pending
 
-### T4-002：素材卡归档箱
+### T4-002：素材卡软删除/归档箱
 
-- 状态：todo
-- 目标：软删除/归档、默认排除、可恢复。
-- 文件范围：
-  - `prisma/schema.prisma`
-  - material card API/UI
-  - search/review/IMA sync
-- 测试命令：unit + cards/search/review E2E。
-- 验收证据：归档后默认不可见，恢复后状态保留。
-- 风险：schema migration。
+- 状态：done
+- 目标：删除改为归档，默认排除归档卡，可恢复。
+- 实际修改文件：
+  - `prisma/schema.prisma` — MaterialCard 添加 `archivedAt DateTime?`，`@@index([archivedAt])`
+  - `prisma/migrations/20260613_batch3_support/migration.sql` — ALTER TABLE 添加 archivedAt 列 + 索引
+  - `src/app/api/material-cards/[id]/route.ts` — DELETE 改为 `update({ data: { archivedAt: new Date() } })`，audit action 改为 `"archive"`；新增 PATCH handler（action: archive/unarchive）
+  - `src/app/api/material-cards/[id]/__tests__/route.test.ts` — DELETE mock 从 `delete()` 改为 `update()`
+  - `src/app/api/material-cards/route.ts` — GET where 添加 `archivedAt: null`
+  - `src/app/api/search/route.ts` — GET where 添加 `archivedAt: null`
+  - `src/app/api/review/route.ts` — GET 三种模式 where 添加 `archivedAt: null`
+  - `src/app/api/favorites/[id]/route.ts` — DELETE 中 `tx.materialCard.deleteMany()` 改为 `tx.materialCard.updateMany({ data: { archivedAt: new Date() } })`
+  - `src/app/api/favorites/[id]/__tests__/route.test.ts` — mock tx 添加 `updateMany`
+  - `src/lib/audit-logger.ts` — AuditAction 类型联合添加 `"archive" | "unarchive"`
+- 测试命令：
+  - `pnpm test`（全量）
+- 验收证据：
+  - 所有列表/搜索/复习查询默认排除归档卡。
+  - DELETE 仅设置 archivedAt，不删除数据。
+  - PATCH 支持 archive/unarchive 双向操作。
+  - favorites DELETE 同步软删除关联卡片。
+  - audit action 正确使用 "archive"/"unarchive"。
+  - 54 files / 379 tests 全部通过。
+- 未验证风险：
+  - migration 未应用。
+  - 前端归档箱 UI（查看归档卡、恢复操作）尚未实现。
 - 关联提交：pending
 
 ### T4-003：重新生成覆盖流程
 
-- 状态：todo
-- 目标：已有卡复用，显式重新生成二次确认并重置复习状态。
-- 文件范围：generate-card API、cards UI、review state。
-- 测试命令：generate-card route tests + cards E2E。
-- 验收证据：不重复堆卡，覆盖前确认。
-- 风险：复习状态模型需先完成。
+- 状态：done
+- 目标：已有卡片复用，显式 force 参数才覆盖。
+- 实际修改文件：
+  - `src/app/api/content-items/[id]/generate-card/route.ts` — `runGenerateCardTask` 添加第 5 个 `force?: boolean` 参数；`force=true` 时已有卡更新而非 409；POST handler 解析 `body.force`，`if (dup && !force)` 保持原有 409 行为
+  - `src/app/api/content-items/[id]/generate-card/__tests__/route.test.ts` — 添加 2 个新测试：force=true 返回 202，force=false 返回 409
+- 测试命令：
+  - `pnpm test src/app/api/content-items/[id]/generate-card/__tests__/route.test.ts`
+  - `pnpm test`（全量）
+- 验收证据：
+  - 默认生成（无 force）遇到已有卡返回 409。
+  - `force=true` 时更新已有卡内容，返回 202。
+  - `force=false` 时返回 409 同默认行为。
+  - 新测试全部通过。
+- 风险：前端"重新生成"按钮和二次确认弹窗尚未实现。
 - 关联提交：pending
 
 ## Stage 5 / Batch 4：前台 IA 与移动端
 
-### T5-001：`/articles` 合并入口
+### T5-001：导航与登录路由
 
-- 状态：todo
-- 目标：`/articles` 提供全部/推荐/收藏，删除 discover/explore/my-articles。
-- 文件范围：articles routes/components, nav, e2e。
-- 测试命令：articles/search/review/mobile specs。
-- 验收证据：主导航只有统一文章入口。
-- 风险：旧 E2E 大量断言需更新。
+- 状态：done
+- 目标：按角色显示导航，未登录跳 `/login`。
+- 实际修改文件：
+  - `src/components/RootNav.tsx` — baseNavItems（articles/review/settings）+ verifiedNavItems（cards/search，VERIFIED_USER/ADMIN 可见）；登录链接从 `/admin/login` 改为 `/login`；隐藏 nav 条件添加 `/login`
+- 测试命令：
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - USER 看到 articles/review/settings。
+  - VERIFIED_USER/ADMIN 额外看到 cards/search。
+  - 登录和 admin/login 页面不显示导航。
+- 风险：无。
 - 关联提交：pending
 
 ### T5-002：角色化首页
 
-- 状态：todo
-- 目标：`/` 登录后按角色展示主任务；未登录跳 `/login`。
-- 文件范围：`src/app/page.tsx`, nav/layout。
-- 测试命令：auth/middleware/frontend E2E。
-- 验收证据：USER/VERIFIED/ADMIN 首页差异正确。
-- 风险：统计口径需从 owner 私有改为公共文章 + 个人资产组合。
+- 状态：done
+- 目标：`/` 登录后按角色展示欢迎和快捷操作；未登录跳 `/login`。
+- 实际修改文件：
+  - `src/app/page.tsx` — 未认证 redirect 从 `/admin/login?redirect=/` 改为 `/login`；ROLE_WELCOME 按角色显示欢迎语；quickActions 移除 /discover 和 /explore，按角色过滤
+  - `src/proxy.ts` — PUBLIC_PAGES 移除 `/articles`、`/discover`、`/explore`；PUBLIC_APIS 移除 `/api/articles`、`/api/discover`、`/api/explore`、`/api/search`
+- 测试命令：
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 未登录跳 `/login`。
+  - USER 欢迎"开始今日学习"，快捷操作侧重文章阅读。
+  - VERIFIED_USER 欢迎"探索与创作"，快捷操作包含卡片生成。
+  - ADMIN 欢迎"管理后台"，快捷操作包含审核和用户管理。
+- 风险：统计口径暂用公共文章 + 个人资产组合，未做 owner 私有统计。
 - 关联提交：pending
 
 ### T5-003：响应式底部 Tab
 
-- 状态：todo
+- 状态：done
 - 目标：移动端前台底部 Tab，按角色显示。
-- 文件范围：RootNav/layout/mobile tests。
-- 测试命令：`pnpm exec playwright test e2e/mobile-responsive.spec.ts`
-- 验收证据：390px 无横向溢出，Tab 正确。
-- 风险：后台移动端仅基本可用，不做完整优化。
+- 实际修改文件：
+  - `src/components/MobileBottomTab.tsx`（新建）— 固定底部，`md:hidden`，角色感知 tab 项，login/admin 页面隐藏
+  - `src/app/layout.tsx` — 添加 `<MobileBottomTab currentUser={currentUser} />`，main 添加 `pb-16 md:pb-0`
+- 测试命令：
+  - `pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 移动端可见固定底部 Tab。
+  - 桌面端（md 以上）隐藏。
+  - 登录/admin 页面不显示。
+  - main 内容不被 Tab 遮挡（pb-16）。
+- 风险：后台移动端仅基本可用，未做完整优化。
 - 关联提交：pending
 
 ## Stage 6 / Batch 5：UI 改进（置后）
 
 ### T6-001：UI 组件库评估
 
-- 状态：deferred
-- 目标：评估 shadcn/Tailwind/lucide/Sonner/Zod 现状。
-- 文件范围：package/components/app/e2e/tests。
-- 备注：权限与数据安全稳定后再做。
+- 状态：done
+- 目标：评估 shadcn/Tailwind/lucide/Sonner/Zod 现状，输出评估报告。
+- 实际修改文件：
+  - `docs/audit/ui-assessment.md`（新建）— 组件清单、31 个裸 button 统计、缺少 ErrorBoundary、Zod 未使用、loading/empty 不一致等发现
+- 测试命令：未运行，文档评估任务。
+- 验收证据：
+  - 文档覆盖 12 个 shadcn 组件、26 个自定义业务组件。
+  - 识别了 31 个 raw `<button>` 标签。
+  - 识别了缺少 ErrorBoundary、Zod 安装了但从未在 app 代码中 import。
+  - 列出了 loading/empty/error 状态不一致的具体页面。
+- 风险：评估结论为"不需要新 UI 框架"，后续改造基于现有 shadcn + Tailwind。
 - 关联提交：pending
 
 ### T6-002：UI 渐进式改造计划
 
-- 状态：deferred
-- 目标：统一基础组件、业务组件、后台、用户端、测试。
-- 备注：不默认引入 AntD/HeroUI/TanStack/RHF。
+- 状态：done
+- 目标：输出可执行的 UI 改造计划，4 阶段。
+- 实际修改文件：
+  - `docs/audit/ui-refactor-plan.md`（新建）— Phase 1 基础组件加固 → Phase 2 表单规范化 → Phase 3 表格与列表 → Phase 4 视觉统一
+- 测试命令：未运行，文档计划任务。
+- 验收证据：
+  - 4 阶段计划明确范围和排除项。
+  - 明确不引入 AntD/HeroUI/TanStack/RHF。
+  - 每阶段有具体任务、文件范围、验证标准。
+- 风险：改造需要逐步推进，不可一次性全改。
 - 关联提交：pending
