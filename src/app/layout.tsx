@@ -6,6 +6,7 @@ import { validateSession, type AuthUser } from "@/lib/auth";
 import { AuthProvider } from "@/lib/auth-context";
 import RootNav from "@/components/RootNav";
 import { MobileBottomTab } from "@/components/MobileBottomTab";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export const metadata: Metadata = {
   title: "申论素材采集台",
@@ -38,7 +39,9 @@ export default async function RootLayout({
           <Toaster position="top-right" richColors />
           <RootNav currentUser={currentUser} />
           <MobileBottomTab currentUser={currentUser} />
-          <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">{children}</main>
+          <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </main>
         </AuthProvider>
       </body>
     </html>
