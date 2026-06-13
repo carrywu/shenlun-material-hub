@@ -10,7 +10,6 @@ import {
   Users,
   Ban,
   Key,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FormField } from "@/components/ui/form-field";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -333,114 +333,104 @@ export default function UsersPage() {
       </div>
 
       {/* Create User Dialog */}
-      {showCreateDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-foreground">创建新用户</h2>
-              <Button variant="ghost" size="icon-sm" onClick={() => setShowCreateDialog(false)}>
-                <X />
-              </Button>
-            </div>
-            <div className="space-y-3">
-              <FormField label="用户名" required>
-                <Input
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="3-32 个字符"
-                />
-              </FormField>
-              <FormField label="密码" required>
-                <Input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="至少 6 个字符"
-                />
-              </FormField>
-              <FormField label="显示名称">
-                <Input
-                  value={newDisplayName}
-                  onChange={(e) => setNewDisplayName(e.target.value)}
-                  placeholder="可选"
-                />
-              </FormField>
-              <FormField label="邮箱">
-                <Input
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="可选"
-                />
-              </FormField>
-              <FormField label="角色">
-                <Select value={newRole} onValueChange={(val) => setNewRole(val as string)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="选择角色" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USER">普通用户</SelectItem>
-                    <SelectItem value="VERIFIED_USER">认证用户</SelectItem>
-                    <SelectItem value="ADMIN">管理员</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormField>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowCreateDialog(false)}
-              >
-                取消
-              </Button>
-              <Button
-                onClick={handleCreate}
-                disabled={creating}
-              >
-                {creating ? "创建中..." : "创建"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reset Password Dialog */}
-      {showResetDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-foreground">重置密码</h2>
-              <Button variant="ghost" size="icon-sm" onClick={() => setShowResetDialog(null)}>
-                <X />
-              </Button>
-            </div>
-            <p className="mb-3 text-xs text-muted-foreground">
-              重置后该用户的所有会话将被清除，需要重新登录。
-            </p>
-            <FormField label="新密码" required helper="至少 6 个字符">
+      <Dialog open={showCreateDialog} onOpenChange={(open) => { if (!open) setShowCreateDialog(false); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>创建新用户</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <FormField label="用户名" required>
               <Input
-                type="password"
-                value={resetPassword}
-                onChange={(e) => setResetPassword(e.target.value)}
-                placeholder="新密码（至少 6 个字符）"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="3-32 个字符"
               />
             </FormField>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowResetDialog(null)}
-              >
-                取消
-              </Button>
-              <Button
-                onClick={handleResetPassword}
-                disabled={resetting || resetPassword.length < 6}
-              >
-                {resetting ? "重置中..." : "确认重置"}
-              </Button>
-            </div>
+            <FormField label="密码" required>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="至少 6 个字符"
+              />
+            </FormField>
+            <FormField label="显示名称">
+              <Input
+                value={newDisplayName}
+                onChange={(e) => setNewDisplayName(e.target.value)}
+                placeholder="可选"
+              />
+            </FormField>
+            <FormField label="邮箱">
+              <Input
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="可选"
+              />
+            </FormField>
+            <FormField label="角色">
+              <Select value={newRole} onValueChange={(val) => setNewRole(val as string)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="选择角色" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USER">普通用户</SelectItem>
+                  <SelectItem value="VERIFIED_USER">认证用户</SelectItem>
+                  <SelectItem value="ADMIN">管理员</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateDialog(false)}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={creating}
+            >
+              {creating ? "创建中..." : "创建"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={showResetDialog !== null} onOpenChange={(open) => { if (!open) setShowResetDialog(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>重置密码</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            重置后该用户的所有会话将被清除，需要重新登录。
+          </DialogDescription>
+          <FormField label="新密码" required helper="至少 6 个字符">
+            <Input
+              type="password"
+              value={resetPassword}
+              onChange={(e) => setResetPassword(e.target.value)}
+              placeholder="新密码（至少 6 个字符）"
+            />
+          </FormField>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowResetDialog(null)}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={handleResetPassword}
+              disabled={resetting || resetPassword.length < 6}
+            >
+              {resetting ? "重置中..." : "确认重置"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
