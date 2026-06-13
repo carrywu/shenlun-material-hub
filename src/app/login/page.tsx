@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 import { Loader2 } from "lucide-react";
 
 function UserLoginForm() {
@@ -77,10 +78,7 @@ function UserLoginForm() {
         </div>
       )}
 
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="username">
-          账号
-        </label>
+      <FormField label="账号" required>
         <Input
           id="username"
           type="text"
@@ -89,12 +87,9 @@ function UserLoginForm() {
           onChange={(e) => setUsername(e.target.value)}
           disabled={loading}
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="password">
-          密码
-        </label>
+      <FormField label="密码" required>
         <Input
           id="password"
           type="password"
@@ -103,7 +98,7 @@ function UserLoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           disabled={loading}
         />
-      </div>
+      </FormField>
 
       <Button type="submit" disabled={loading} size="lg" className="mt-2 w-full">
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}

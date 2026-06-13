@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/form-field";
 import { Loader2 } from "lucide-react";
 
 function RegisterForm() {
@@ -72,53 +73,38 @@ function RegisterForm() {
         </div>
       )}
 
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="username">
-          账号
-        </label>
+      <FormField label="账号" required>
         <Input
           id="username"
           type="text"
           placeholder="请输入账号（至少 3 个字符）"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="py-3 rounded-xl"
           disabled={loading}
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="password">
-          密码
-        </label>
+      <FormField label="密码" required>
         <Input
           id="password"
           type="password"
           placeholder="请输入密码（至少 6 个字符）"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="py-3 rounded-xl"
           disabled={loading}
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-2" htmlFor="invitationCode">
-          邀请码（可选）
-        </label>
+      <FormField label="邀请码（可选）" helper="邀请码可选，填写后升级为认证用户（可生成素材卡）">
         <Input
           id="invitationCode"
           type="text"
           placeholder="留空则注册为普通用户"
           value={invitationCode}
           onChange={(e) => setInvitationCode(e.target.value)}
-          className="py-3 rounded-xl"
           disabled={loading}
         />
-        <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">
-          邀请码可选，填写后升级为认证用户（可生成素材卡）
-        </p>
-      </div>
+      </FormField>
 
       <Button type="submit" disabled={loading} size="lg" className="mt-2 w-full">
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
