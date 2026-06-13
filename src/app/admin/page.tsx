@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Clock
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const TASK_TYPE_LABELS: Record<string, string> = {
   WEB_CRAWL: "网页爬取",
@@ -137,12 +138,12 @@ export default function AdminDashboardPage() {
         <AlertOctagon className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <h3 className="text-base font-semibold text-foreground">无法加载系统数据</h3>
         <p className="text-xs text-muted-foreground mt-1">请检查后台服务或刷新重试</p>
-        <button
+        <Button
+          size="sm"
           onClick={fetchMetrics}
-          className="mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-medium transition cursor-pointer"
         >
           重新尝试
-        </button>
+        </Button>
       </div>
     );
   }
@@ -202,14 +203,15 @@ export default function AdminDashboardPage() {
           <h2 className="text-lg font-bold text-foreground tracking-tight">控制台概览</h2>
           <p className="text-xs text-muted-foreground mt-1">运行状态监控与模块配置中心</p>
         </div>
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={fetchMetrics}
           disabled={refreshing}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-medium text-foreground transition cursor-pointer disabled:opacity-50"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-primary" : ""}`} />
+          <RefreshCw className={refreshing ? "animate-spin" : ""} />
           <span>{refreshing ? "刷新中" : "手动刷新"}</span>
-        </button>
+        </Button>
       </div>
 
       {/* Stats Cards */}

@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
 
 interface SidebarItem {
   name: string;
@@ -129,12 +130,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Mobile menu button */}
-      <button
-        className="fixed top-4 left-4 z-30 rounded-lg border border-border bg-card p-2 lg:hidden"
+      <Button
+        variant="ghost"
+        size="icon"
+        className="fixed top-4 left-4 z-30 lg:hidden"
         onClick={() => setMobileOpen(true)}
       >
-        <Menu className="h-5 w-5" />
-      </button>
+        <Menu />
+      </Button>
 
       <aside className={`flex h-full flex-shrink-0 flex-col border-r border-border bg-card transition-all duration-200
         ${collapsed ? "w-16" : "w-64"}
@@ -155,20 +158,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </>
           )}
           <div className="ml-auto flex items-center gap-1">
-            <button
-              className="hidden rounded p-1 text-muted-foreground hover:bg-muted lg:block"
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="hidden lg:block"
               onClick={() => setCollapsed(!collapsed)}
               title={collapsed ? "展开侧边栏" : "收起侧边栏"}
             >
-              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </button>
-            <button
-              className="rounded p-1 text-muted-foreground hover:bg-muted lg:hidden"
+              {collapsed ? <ChevronRight /> : <ChevronLeft />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="lg:hidden"
               onClick={() => setMobileOpen(false)}
               title="关闭菜单"
             >
-              <X className="h-4 w-4" />
-            </button>
+              <X />
+            </Button>
           </div>
         </div>
 
@@ -222,14 +229,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="cursor-pointer rounded-lg p-1.5 text-muted-foreground transition-all duration-200 hover:bg-red-50 hover:text-red-600"
+              className="hover:bg-red-50 hover:text-red-600"
               title="退出登录"
             >
-              <LogOut className="h-4.5 w-4.5" />
-            </button>
+              <LogOut />
+            </Button>
           </div>
         </div>
       </aside>
