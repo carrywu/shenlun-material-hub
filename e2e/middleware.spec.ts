@@ -156,8 +156,8 @@ test.describe("Middleware redirect", () => {
       if (msg.type() === "error") errors.push(msg.text());
     });
 
-    // Visit all public pages (no longer includes /search and /cards)
-    for (const url of ["/articles", "/explore", "/discover"]) {
+    // Visit all public pages (Round B: /explore and /discover removed)
+    for (const url of ["/articles"]) {
       await page.goto(url);
       await page.waitForTimeout(1000);
     }

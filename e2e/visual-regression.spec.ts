@@ -34,8 +34,7 @@ test.describe('Visual Regression 视觉回归', () => {
     const routes = [
       { route: '/', slug: 'dashboard', waitSelector: 'h1, h2, h3, main' },
       { route: '/articles', slug: 'articles', waitSelector: 'h1, h2, h3, main' },
-      { route: '/explore', slug: 'explore', waitSelector: 'h1, h2, h3, main' },
-      { route: '/discover', slug: 'discover', waitSelector: 'h1, h2, h3, main' },
+      // Round B: /explore and /discover pages removed
       { route: '/cards', slug: 'cards', waitSelector: 'h1, h2, h3, main' },
       { route: '/search', slug: 'search', waitSelector: 'h1, h2, h3, main' },
       { route: '/review', slug: 'review', waitSelector: 'h1, h2, h3, main' },

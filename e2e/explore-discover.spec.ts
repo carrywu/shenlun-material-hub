@@ -5,11 +5,16 @@ import { attachConsoleGuard } from './helpers/consoleGuard';
 // admin 同为登录用户可覆盖
 test.use({ storageState: '.auth/admin-storage.json' });
 
+// Round B refactor: /explore 和 /discover 页面已从前端移除，导航不再链接。
+// API 端点 (/api/explore, /api/discover) 仍存在，但前端页面未实现。
+// 以下测试暂 skip，待后续版本恢复页面时重新启用。
+
 // ---------------------------------------------------------------------------
 // Explore page tests (/explore)
 // ---------------------------------------------------------------------------
 
 test.describe('探索区 /explore', () => {
+  test.skip(true, 'Round B refactor: /explore 页面已移除，导航不再链接');
   test('探索页：页面加载', async ({ page }) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
@@ -127,6 +132,7 @@ test.describe('探索区 /explore', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('发现页 /discover', () => {
+  test.skip(true, 'Round B refactor: /discover 页面已移除，导航不再链接');
   test('发现页：页面加载', async ({ page }) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);

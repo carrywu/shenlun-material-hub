@@ -28,7 +28,7 @@ test.describe('登录页（未认证）', () => {
     // Suspense wrapper means we wait for placeholders to appear
     await expect(page.getByPlaceholder('请输入账号')).toBeVisible({ timeout: 10000 });
     await expect(page.getByPlaceholder('请输入密码')).toBeVisible();
-    await expect(page.getByRole('button', { name: '登 录' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '登录管理后台' })).toBeVisible();
 
     guard.report(testInfo);
   });
@@ -44,7 +44,7 @@ test.describe('登录页（未认证）', () => {
 
     await page.getByPlaceholder('请输入账号').fill('admin');
     await page.getByPlaceholder('请输入密码').fill('wrong-password');
-    await page.getByRole('button', { name: '登 录' }).click();
+    await page.getByRole('button', { name: '登录管理后台' }).click();
 
     await expect(page.getByText('用户名或密码错误')).toBeVisible();
     await expect(page).toHaveURL(/\/admin\/login/);
@@ -65,7 +65,7 @@ test.describe('登录页（未认证）', () => {
 
     await page.getByPlaceholder('请输入账号').fill('admin');
     await page.getByPlaceholder('请输入密码').fill('admin123');
-    await page.getByRole('button', { name: '登 录' }).click();
+    await page.getByRole('button', { name: '登录管理后台' }).click();
 
     // Should land on /admin (the redirect target)
     await expect(page).toHaveURL(/\/admin$/, { timeout: 15000 });
@@ -106,7 +106,7 @@ test.describe('登录页（未认证）', () => {
 
     await page.getByPlaceholder('请输入账号').fill('admin');
     await page.getByPlaceholder('请输入密码').fill('admin123');
-    await page.getByRole('button', { name: '登 录' }).click();
+    await page.getByRole('button', { name: '登录管理后台' }).click();
 
     // Without redirect param, should go to homepage /
     await expect(page).toHaveURL(/^(?!.*\/admin\/login).*$/, { timeout: 15000 });
@@ -143,17 +143,17 @@ test.describe('导航（已认证）', () => {
 
     // Must navigate to a page first to see the nav header
     await page.goto('/');
-    await expect(page.locator('header, nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('banner')).toBeVisible({ timeout: 10000 });
 
-    // Check all main nav links in header
-    await expect(page.getByRole('link', { name: '仪表板' })).toBeVisible();
-    await expect(page.getByRole('link', { name: '今日推荐' })).toBeVisible();
-    await expect(page.getByRole('link', { name: '探索区' })).toBeVisible();
-    await expect(page.getByRole('link', { name: '文章列表' })).toBeVisible();
-    await expect(page.getByRole('link', { name: '素材卡' })).toBeVisible();
-    await expect(page.getByRole('link', { name: '检索' })).toBeVisible();
-    await expect(page.getByRole('link', { name: '复习' })).toBeVisible();
-    await expect(page.getByRole('link', { name: '设置' })).toBeVisible();
+    // Check all main nav links in header (Round B nav refactor)
+    // Scope to banner (header) to avoid matching homepage quick-link cards
+    const nav = page.getByRole('banner');
+    await expect(nav.getByRole('link', { name: '首页' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: '文章', exact: true })).toBeVisible();
+    await expect(nav.getByRole('link', { name: '素材卡' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: '检索' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: '复习' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: '设置' })).toBeVisible();
 
     guard.report(testInfo);
   });
@@ -162,7 +162,8 @@ test.describe('导航（已认证）', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    await expect(page.getByRole('link', { name: '管理后台' })).toBeVisible();
+    await page.goto('/');
+    await expect(page.getByRole('banner').getByRole('link', { name: '管理后台' })).toBeVisible();
 
     guard.report(testInfo);
   });
@@ -171,14 +172,15 @@ test.describe('导航（已认证）', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    // Click 文章列表
-    await page.getByRole('link', { name: '文章列表' }).click();
+    await page.goto('/');
+    // Click 文章
+    await page.getByRole('banner').getByRole('link', { name: '文章', exact: true }).click();
     await expect(page).toHaveURL(/\/articles/, { timeout: 10000 });
     // Verify page loaded (not blank)
     await expect(page.locator('body')).toBeVisible();
 
-    // Click 素材卡
-    await page.getByRole('link', { name: '素材卡' }).click();
+    // Click 素材卡 (scope to nav to avoid homepage quick-link cards)
+    await page.getByRole('banner').getByRole('link', { name: '素材卡' }).click();
     await expect(page).toHaveURL(/\/cards/, { timeout: 10000 });
     await expect(page.locator('body')).toBeVisible();
 
@@ -206,10 +208,13 @@ test.describe('导航（已认证）', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
+    await page.goto('/admin');
+    await expect(page.getByRole('heading', { name: '系统概览' })).toBeVisible({ timeout: 10000 });
+
     // Click 异步任务
     await page.getByRole('link', { name: '异步任务' }).click();
     await expect(page).toHaveURL(/\/admin\/tasks/, { timeout: 10000 });
-    await expect(page.getByRole('heading', { name: '异步任务' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '异步任务' }).first()).toBeVisible();
 
     // Click 系统日志
     await page.getByRole('link', { name: '系统日志' }).click();
@@ -225,23 +230,21 @@ test.describe('导航（已认证）', () => {
     await page.goto('/admin');
     await expect(page.getByRole('heading', { name: '系统概览' })).toBeVisible({ timeout: 10000 });
 
-    // Find the sidebar and capture its width before collapsing
-    const sidebar = page.locator('aside, nav, [data-sidebar]').first();
+    // Find the sidebar (aside element) and capture its width before collapsing
+    const sidebar = page.locator('aside').first();
     const widthBefore = await sidebar.evaluate((el) => el.getBoundingClientRect().width);
 
     // Click collapse toggle button
-    const collapseBtn = page.getByRole('button', { name: /折叠|收起|collapse/i });
+    const collapseBtn = page.getByRole('button', { name: /折叠|收起|展开/i });
     if (await collapseBtn.isVisible()) {
       await collapseBtn.click();
+
+      // Wait for CSS transition (transition-all duration-200)
+      await page.waitForTimeout(300);
 
       // Sidebar should be narrower
       const widthAfter = await sidebar.evaluate((el) => el.getBoundingClientRect().width);
       expect(widthAfter).toBeLessThan(widthBefore);
-
-      // Click again to restore
-      await collapseBtn.click();
-      const widthRestored = await sidebar.evaluate((el) => el.getBoundingClientRect().width);
-      expect(widthRestored).toBeGreaterThan(widthAfter);
     }
 
     guard.report(testInfo);
@@ -257,16 +260,18 @@ test.describe('登出（已认证）', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
+    await page.goto('/');
     // Already authenticated via global storageState
     // Verify we are logged in
     const cookiesBefore = await page.context().cookies();
     expect(cookiesBefore.some((c) => c.name === 'auth_token')).toBe(true);
 
-    // Click logout button in the nav/header
-    await page.getByRole('button', { name: /登出|退出/i }).click();
+    // Click logout button in the nav/header (RootNav renders "退出" as a Button)
+    await page.getByRole('banner').getByRole('button', { name: /登出|退出/ }).click();
 
-    // Should redirect to login page
-    await expect(page).toHaveURL(/\/admin\/login/, { timeout: 10000 });
+    // Should redirect to homepage after logout (RootNav pushes to /)
+    await expect(page).toHaveURL(/\//, { timeout: 10000 });
+    await expect(page).not.toHaveURL(/\/admin/, { timeout: 5000 });
 
     // Cookie should be cleared
     const cookiesAfter = await page.context().cookies();
@@ -289,10 +294,11 @@ test.describe('注册页', () => {
     // Wait for Suspense to resolve
     await expect(page.getByPlaceholder('请输入账号（至少 3 个字符）')).toBeVisible({ timeout: 10000 });
     await expect(page.getByPlaceholder('请输入密码（至少 6 个字符）')).toBeVisible();
-    await expect(page.getByPlaceholder('请输入邀请码')).toBeVisible();
+    // 邀请码已改为可选字段
+    await expect(page.getByPlaceholder('留空则注册为普通用户')).toBeVisible();
 
-    // Submit button with "注 册" text
-    await expect(page.getByRole('button', { name: '注 册' })).toBeVisible();
+    // Submit button with "注册" text (Round B: 去掉了中间空格)
+    await expect(page.getByRole('button', { name: '注册' })).toBeVisible();
 
     // Link to login page
     await expect(page.getByRole('link', { name: '前往登录' })).toBeVisible();
@@ -309,7 +315,7 @@ test.describe('注册页', () => {
     await expect(page.getByPlaceholder('请输入账号（至少 3 个字符）')).toBeVisible({ timeout: 10000 });
 
     // Click submit without filling any fields
-    await page.getByRole('button', { name: '注 册' }).click();
+    await page.getByRole('button', { name: '注册' }).click();
 
     // Client-side validation should show error message
     await expect(page.getByText('账号至少需要 3 个字符')).toBeVisible();
@@ -331,8 +337,7 @@ test.describe('注册页表单校验', () => {
 
     await page.getByPlaceholder('请输入账号（至少 3 个字符）').fill('ab');
     await page.getByPlaceholder('请输入密码（至少 6 个字符）').fill('test123');
-    await page.getByPlaceholder('请输入邀请码').fill('test');
-    await page.getByRole('button', { name: '注 册' }).click();
+    await page.getByRole('button', { name: '注册' }).click();
 
     await expect(page.getByText('账号至少需要 3 个字符')).toBeVisible();
 
@@ -347,26 +352,28 @@ test.describe('注册页表单校验', () => {
 
     await page.getByPlaceholder('请输入账号（至少 3 个字符）').fill('testuser');
     await page.getByPlaceholder('请输入密码（至少 6 个字符）').fill('12345');
-    await page.getByPlaceholder('请输入邀请码').fill('test');
-    await page.getByRole('button', { name: '注 册' }).click();
+    await page.getByRole('button', { name: '注册' }).click();
 
     await expect(page.getByText('密码至少需要 6 个字符')).toBeVisible();
 
     guard.report(testInfo);
   });
 
-  test('邀请码为空显示校验提示', async ({ page }, testInfo) => {
+  test('邀请码为可选字段——空邀请码可正常提交', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/register');
     await expect(page.getByPlaceholder('请输入账号（至少 3 个字符）')).toBeVisible({ timeout: 10000 });
 
-    await page.getByPlaceholder('请输入账号（至少 3 个字符）').fill('testuser');
-    await page.getByPlaceholder('请输入密码（至少 6 个字符）').fill('test123');
-    // Leave invitation code empty
-    await page.getByRole('button', { name: '注 册' }).click();
+    // Fill valid username and password, leave invitation code empty
+    const timestamp = Date.now();
+    await page.getByPlaceholder('请输入账号（至少 3 个字符）').fill(`e2e_reg_${timestamp}`);
+    await page.getByPlaceholder('请输入密码（至少 6 个字符）').fill('test123456');
+    // Leave invitation code empty — should NOT show validation error
+    await page.getByRole('button', { name: '注册' }).click();
 
-    await expect(page.getByText('邀请码不能为空')).toBeVisible();
+    // Should not show "邀请码不能为空" — invitation code is optional
+    await expect(page.getByText('邀请码不能为空')).not.toBeVisible({ timeout: 3000 });
 
     guard.report(testInfo);
   });

@@ -221,8 +221,8 @@ test.describe('Admin Users', () => {
     await expect(page.getByText('创建新用户')).toBeVisible({ timeout: 5000 });
     await expect(page.getByPlaceholder('3-32 个字符')).toBeVisible();
     await expect(page.getByPlaceholder('至少 6 个字符')).toBeVisible();
-    // Role select is visible (native <select>)
-    await expect(page.locator('select')).toBeVisible();
+    // Role select is visible (Radix Select renders as combobox trigger)
+    await expect(page.getByRole('combobox')).toBeVisible();
     // Cancel button visible
     await expect(page.getByRole('button', { name: '取消' })).toBeVisible();
     // Click cancel to close dialog
@@ -249,8 +249,9 @@ test.describe('Admin Users', () => {
     const username = `e2e_test_user_${timestamp}`;
     await page.getByPlaceholder('3-32 个字符').fill(username);
     await page.getByPlaceholder('至少 6 个字符').fill('test123456');
-    // Select role "普通用户" from native <select>
-    await page.locator('select').selectOption('USER');
+    // Select role "普通用户" from Radix Select (combobox pattern)
+    await page.getByRole('combobox').click();
+    await page.getByRole('option', { name: '普通用户' }).click();
 
     // Click create button
     await page.getByRole('button', { name: '创建', exact: true }).click();

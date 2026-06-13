@@ -112,6 +112,10 @@ test.describe('WeWe RSS Integration Page', () => {
     test.setTimeout(120000);
     const guard = attachConsoleGuard(page);
 
+    // Check if WeWe RSS service is available; skip if infrastructure is down
+    const healthCheck = await page.request.get('http://localhost:4000').catch(() => null);
+    test.skip(!healthCheck || !healthCheck.ok(), 'WeWe RSS 服务不可用，跳过同步测试');
+
     await page.goto('/admin/integrations/wewe-rss');
     await expect(page.getByText('WeWe RSS 集成')).toBeVisible({ timeout: 10000 });
 

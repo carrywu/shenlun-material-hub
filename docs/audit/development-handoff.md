@@ -1,12 +1,12 @@
 # Development Handoff
 
 生成日期：2026-06-13  
-状态：Batch 1-5 + 前端改造第一轮 (A1-A5) + 第二轮 (B-Phase 1-4) 全部完成  
+状态：Batch 1-5 + 前端改造第一轮 (A1-A5) + 第二轮 (B-Phase 1-4) + Playwright E2E 回归修复 全部完成  
 适用：后续 agent 接手前恢复现场
 
 ## 1. 当前目标
 
-Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全部完成。前端改造第一轮（A1 学习状态展示、A2 Articles Tab、A3 旧路由清理、A4 归档箱 Tab、A5 重新生成确认弹窗）已完成。前端改造第二轮（B-Phase 1-4：基础组件 + 表单规范化 + 表格弹窗 + 视觉统一）已完成并通过验证，12 个 Task 全部交付。下一阶段可进入 Playwright E2E 全量回归、Prisma migration 应用，或进入下一轮功能迭代。
+Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全部完成。前端改造第一轮（A1 学习状态展示、A2 Articles Tab、A3 旧路由清理、A4 归档箱 Tab、A5 重新生成确认弹窗）已完成。前端改造第二轮（B-Phase 1-4：基础组件 + 表单规范化 + 表格弹窗 + 视觉统一）已完成并通过验证，12 个 Task 全部交付。Playwright E2E 全量回归已完成修复（admin project：66 passed, 15 skipped, 0 failed），8 个 spec 文件已适配 Round B UI 变更。下一阶段可进行跨浏览器全量回归（5 project）、视觉回归快照重生成，或进入下一轮功能迭代。
 
 ## 2. 已完成
 
@@ -87,16 +87,31 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - `pnpm test`：55 files / 386 tests 全部通过。
 - `pnpm build`：通过。
 
+### Playwright E2E 回归修复
+- **初始回归结果**：1158 passed, 163 failed, 96 skipped（5 project × 26 spec）。
+- **失败分类**：7 类（A-G），涵盖 auth 选择器过期、admin Radix Select 迁移、articles 断言变化、已删除路由引用、middleware 路由列表、wewe-rss 基础设施依赖、visual-regression 路由删除。
+- **修复后结果（admin project）**：66 passed, 15 skipped（预期跳过：explore/discover/my-articles 页面已移除 + wewe-rss 服务不可用）, 0 failed。
+- **修复的 spec 文件**：
+  - `e2e/auth.spec.ts`：登录按钮文案 `'登 录'` → `'登录管理后台'`（4 处），导航链接名称适配 Round B（首页/文章/素材卡/检索/复习/设置），添加 `exact: true` 和 banner scoping 避免首页快捷卡片误匹配，添加缺失 `page.goto()` 调用修复 serial mode 级联失败，sidebar locator 从 `'aside, nav, [data-sidebar]'` 改为 `'aside'`，logout 重定向从 `/admin/login` 改为 `/`，register 页占位符和按钮文案更新，邀请码改为可选字段。
+  - `e2e/admin.spec.ts`：原生 `<select>` 断言改为 Radix Select combobox 模式（`getByRole('combobox')` + `getByRole('option')`）。
+  - `e2e/articles.spec.ts`：移除 "共 X 篇" 副标题断言（PageHeader 迁移后不再渲染）。
+  - `e2e/explore-discover.spec.ts`：两个 describe 块添加 `test.skip()`（/explore 和 /discover 页面已在 Round A 删除）。
+  - `e2e/frontend-experience.spec.ts`：公共页面 describe 块和 `/my-articles` 测试添加 `test.skip()`。
+  - `e2e/middleware.spec.ts`：公开页面 console error 检查移除 `/explore` 和 `/discover`。
+  - `e2e/visual-regression.spec.ts`：截图路由数组移除 `/explore` 和 `/discover`。
+  - `e2e/wewe-rss.spec.ts`：同步测试前添加基础设施可用性检查（`http://localhost:4000` health check），不可用时自动跳过。
+
 ## 3. 进行中
 
-当前没有业务代码开发进行中。所有计划内 Batch 和前端改造第一轮已完成。
+当前没有业务代码开发或 E2E 修复进行中。所有计划内 Batch、前端改造第一轮、第二轮以及 E2E 回归修复（admin project）已完成。
 
 ## 4. 下一步
 
-1. **应用 Prisma migration**：Docker/PostgreSQL 启动后运行 `npx prisma migrate deploy` 应用 `20260613_batch3_support` migration（archivedAt + UserContentState 表）。
-2. **Playwright E2E 全量回归**：Docker 可用后运行 `pnpm exec playwright test`，重点关注 `auth.spec.ts`、`data-isolation.spec.ts`、`mobile-responsive.spec.ts` 受双登录页和路由变更影响的 spec。Round B 的 UI 组件迁移可能导致 E2E 断言选择器变化（如 data-slot 属性），需排查。
-3. **E2E spec 清理**：`/discover`、`/explore`、`/my-articles` 旧路由已删除，9 个 E2E spec 文件可能引用已删除页面，需排查并更新断言。
-4. **视觉回归检查**：Round B 中 Card 圆角从 rounded-xl 改为 rounded-lg、登录表单字段移除 rounded-xl 覆盖、按钮语义颜色丢失（admin 禁用/启用/重置按钮），需浏览器端人工确认视觉效果是否可接受。
+1. **跨浏览器全量回归**：E2E 修复已在 admin project（chromium）验证通过（66 passed, 15 skipped, 0 failed）。需在 5 个 browser project（chromium、firefox、webkit、mobile-chrome、mobile-safari）上跑全量回归确认修复无遗漏。命令：`pnpm exec playwright test`。
+2. **视觉回归快照重生成**：`e2e/visual-regression.spec.ts` 已移除已删除路由（/explore、/discover），但剩余页面的截图快照仍为旧版，需用 `--update-snapshots` 重新生成基线。命令：`pnpm exec playwright test e2e/visual-regression.spec.ts --update-snapshots --project=chromium`。
+3. **WeWe RSS 同步测试验证**：`e2e/wewe-rss.spec.ts` 已添加基础设施 health check 跳过逻辑，待 WeWe RSS 服务（localhost:4000）可用后验证同步功能。
+4. **Round B 视觉人工确认**：Card 圆角从 rounded-xl 改为 rounded-lg、登录表单字段移除 rounded-xl 覆盖、admin 表格操作按钮语义颜色丢失（ghost variant），需浏览器端人工确认视觉效果是否可接受。
+5. **E2E spec 进一步清理**：15 个 skipped test 中，explore/discover/my-articles 相关测试已添加 skip 标注但代码仍保留。若确认不再需要可考虑删除对应 spec 文件。
 
 ## 5. 关键决策
 
@@ -215,6 +230,18 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - `docs/audit/development-todolist.md`
 - `docs/audit/development-handoff.md`
 
+### Playwright E2E 回归修复（2026-06-14）
+
+修改：
+- `e2e/auth.spec.ts`（登录按钮、导航链接、注册页、sidebar、logout 适配 Round B UI）
+- `e2e/admin.spec.ts`（Radix Select combobox 替代原生 select）
+- `e2e/articles.spec.ts`（移除 PageHeader 迁移后失效的副标题断言）
+- `e2e/explore-discover.spec.ts`（skip 已删除的 /explore 和 /discover 页面）
+- `e2e/frontend-experience.spec.ts`（skip 已删除的公共页面和 /my-articles）
+- `e2e/middleware.spec.ts`（移除已删除路由的 console error 检查）
+- `e2e/visual-regression.spec.ts`（移除已删除路由的截图条目）
+- `e2e/wewe-rss.spec.ts`（添加基础设施 health check 跳过逻辑）
+
 ### 前端改造第二轮（Round B）新增/修改
 
 新建：
@@ -237,24 +264,25 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - `pnpm lint`：通过，0 errors / 17 warnings。
 - `pnpm test`：通过，55 files / 386 tests。
 - `pnpm build`：通过。
-- `pnpm exec playwright test e2e/admin.spec.ts -g "创建用户成功" --project=admin`：通过（Batch 1 阶段验证，20.2s）。
-- `pnpm exec playwright test e2e/cards.spec.ts -g "点击卡片跳转详情|素材卡详情" --project=admin`：6 个测试通过（Batch 1 阶段验证，31.2s）。
-- `pnpm exec playwright test e2e/middleware.spec.ts --project=admin`：14 个测试通过（Batch 1 阶段验证，1.7m）。
 - `pnpm seed:e2e-accounts`：幂等成功，3 个非 admin 账号同步。
+- **Playwright E2E 初始回归**（2026-06-14）：1158 passed, 163 failed, 96 skipped（5 project × 26 spec）。163 个失败分为 7 类（auth/admin/articles/explore/middleware/wewe-rss/visual-regression）。
+- **Playwright E2E 修复后回归**（2026-06-14，admin project）：66 passed, 15 skipped, 0 failed。
+  - 15 个 skip 均为预期：explore/discover/my-articles 页面已在 Round A 删除（`test.skip()` 标注），wewe-rss 服务不可用（health check 自动跳过）。
+  - 修复涉及 8 个 spec 文件：`auth.spec.ts`、`admin.spec.ts`、`articles.spec.ts`、`explore-discover.spec.ts`、`frontend-experience.spec.ts`、`middleware.spec.ts`、`visual-regression.spec.ts`、`wewe-rss.spec.ts`。
+  - 验证命令：`pnpm exec playwright test --project=admin`。
+- **Batch 1 阶段验证**（历史）：
+  - `pnpm exec playwright test e2e/admin.spec.ts -g "创建用户成功" --project=admin`：通过（20.2s）。
+  - `pnpm exec playwright test e2e/cards.spec.ts -g "点击卡片跳转详情|素材卡详情" --project=admin`：6 个测试通过（31.2s）。
+  - `pnpm exec playwright test e2e/middleware.spec.ts --project=admin`：14 个测试通过（1.7m）。
 
 ## 8. 未验证风险
 
-- **Prisma migration 未应用**：`20260613_batch3_support/migration.sql` 已创建但 Docker/PostgreSQL 未运行，`prisma migrate deploy` 未执行。应用前代码可构建但运行时涉及 `UserContentState` 或 `archivedAt` 的查询会报错。
-- **Playwright E2E 未全量回归**：Batch 2-5 + Round A + Round B 改动后未跑完整 E2E。以下 spec 可能受影响：
-  - `auth.spec.ts`：双登录页 + `/login` 路由变更。
-  - `data-isolation.spec.ts`：学习状态私有化可能需更新断言。
-  - `mobile-responsive.spec.ts`：新增 MobileBottomTab 可能需要新断言。
-  - `admin.spec.ts`：用户删除改禁用，原断言删除行为的 test 需更新。
-- **E2E spec 引用已删除路由**：`/discover`、`/explore`、`/my-articles` 路由页面已在 Round A 中删除，9 个 E2E spec 文件可能包含对这些路由的引用，需逐一排查清理。
-- **Round B 视觉回归未验证**：Card 圆角从 rounded-xl 改为 rounded-lg（影响全局所有 Card 组件），登录/注册表单字段移除 rounded-xl 覆盖，Admin 表格操作按钮语义颜色（红/绿/琥珀）在迁移到 shadcn ghost variant 后丢失。需浏览器端人工确认。
+- **跨浏览器回归未验证**：E2E 修复仅在 admin project（chromium）上验证，firefox/webkit/mobile-chrome/mobile-safari 4 个 project 未跑。理论上选择器修复（banner scoping、exact、Radix combobox）应跨浏览器一致，但需全量确认。
+- **视觉回归快照过期**：`visual-regression.spec.ts` 已移除已删除路由，但剩余页面的截图快照仍为 Round B 前旧版，需 `--update-snapshots` 重生成。
+- **Round B 视觉回归未人工确认**：Card 圆角从 rounded-xl 改为 rounded-lg（影响全局所有 Card 组件），登录/注册表单字段移除 rounded-xl 覆盖，Admin 表格操作按钮语义颜色（红/绿/琥珀）在迁移到 shadcn ghost variant 后丢失。需浏览器端人工确认。
 - **FormField 缺少 htmlFor**：FormField 组件的 label 不使用 `htmlFor`/`id` 关联，可能影响无障碍审计。若后续有无障碍需求，需扩展 FormField 添加 `htmlFor` prop。
-- **Prisma Client 已生成**：`npx prisma generate` 已执行，`src/generated/prisma` 包含 `UserContentState` 类型。
 - **全局/私有字段并存**：文章详情页同时存在全局 `read/ignored/bookmarked`（toggle 按钮用）和 per-user `userRead/userIgnored/userBookmarked`（展示徽章用），toggle 操作仍修改全局字段。待后续统一为 per-user 字段。
+- **WeWe RSS 测试依赖外部服务**：已添加 health check 跳过逻辑，但同步功能本身未被 E2E 验证（取决于 localhost:4000 可用性）。
 
 ## 9. 注意事项
 
@@ -266,5 +294,6 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - 前端改造第二轮（Round B）已完成。参考 `docs/superpowers/specs/2026-06-13-round-b-ui-unification-design.md` 和 `docs/superpowers/plans/2026-06-13-round-b-ui-unification.md`。不引入 AntD/HeroUI/TanStack/RHF。
 - 新建的 UI 组件（EmptyState、LoadingSkeleton/LoadingIndicator、ErrorBoundary、FormField、PageHeader）遵循项目 convention：`data-slot` 属性、`cn()` 类名合并、`function` 声明 + 底部 `export`、`React.ComponentProps` props 转发。
 - UI 改造参考 `docs/audit/ui-refactor-plan.md`。
-- Docker/PostgreSQL 恢复后优先运行 `prisma migrate deploy` + Playwright 全量回归。
-- E2E spec 清理需在 Playwright 可运行后进行，逐 spec 排查引用已删除路由的断言。
+- Docker/PostgreSQL 恢复后优先运行 `prisma migrate deploy`（已应用过则跳过）+ Playwright 跨浏览器全量回归。
+- E2E spec 中已删除路由（/discover、/explore、/my-articles）的测试已添加 `test.skip()` 标注，代码保留以备参考。
+- Playwright E2E 修复已完成 admin project 验证，跨浏览器回归优先跑 `pnpm exec playwright test`。

@@ -12,9 +12,6 @@ test.describe('文章列表页', () => {
     // Wait for Suspense to resolve and data to load
     await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
 
-    // Subtitle with total count
-    await expect(page.getByText(/共 \d+ 篇/)).toBeVisible();
-
     // Table headers visible
     await expect(page.getByRole('columnheader', { name: '标题' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: '来源' })).toBeVisible();

@@ -13,6 +13,7 @@ import { expect, test } from '@playwright/test';
 // 本轮（P0-004）决策：带 admin storageState 让页面能拉到数据，先验前端渲染不崩；
 // 公开匿名访问的真 bug 标 known-issue，进 P0-001 时一并处理。
 test.describe('前台体验（P7）— 公开页面', () => {
+  test.skip(true, 'Round B refactor: /discover 和 /explore 页面已移除');
   test.use({ storageState: '.auth/admin-storage.json' });
 
   test('今日推荐页加载（/discover）', async ({ page }) => {
@@ -44,6 +45,7 @@ test.describe('前台体验（P7）— 受保护页面', () => {
   test.use({ storageState: '.auth/admin-storage.json' });
 
   test('我的文章页加载（/my-articles，需登录）', async ({ page }) => {
+    test.skip(true, 'Round B refactor: /my-articles 页面已移除');
     await page.goto('/my-articles');
     await expect(page.getByRole('heading', { name: /我的文章/ }).first()).toBeVisible({
       timeout: 15000,
