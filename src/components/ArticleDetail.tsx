@@ -41,6 +41,7 @@ import { waitForAdminTask } from "@/lib/client-admin-task";
 import { CONTENT_TYPE_LABELS, translateTag, parseTopicTags } from "@/lib/display-labels";
 import { useAuth } from "@/lib/auth-context";
 import { UpgradeButton } from "@/components/UpgradeButton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface ContentItemDetailProps {
   article: {
@@ -248,9 +249,11 @@ export function ArticleDetail({ article, onClose, managementMode = false }: Cont
             <p className="text-sm text-muted-foreground">{article.excerpt}</p>
           </div>
         )}
-        <div className="text-sm leading-relaxed whitespace-pre-wrap">
-          {article.fullText ?? "暂无全文内容"}
-        </div>
+        {article.fullText ? (
+          <div className="text-sm leading-relaxed whitespace-pre-wrap">{article.fullText}</div>
+        ) : (
+          <EmptyState title="暂无全文内容" description="文章全文尚未采集" className="py-8" />
+        )}
 
         <Separator />
         {user?.role === "USER" ? (

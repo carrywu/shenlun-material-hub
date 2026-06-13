@@ -7,6 +7,7 @@ import {
   Shield,
   ShieldCheck,
   User,
+  Users,
   Ban,
   Key,
   X,
@@ -21,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -252,10 +254,7 @@ export default function UsersPage() {
             加载中...
           </div>
         ) : users.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-sm text-muted-foreground">
-            <User className="mb-2 h-8 w-8 text-muted-foreground/50" />
-            暂无用户数据
-          </div>
+          <EmptyState icon={Users} title="暂无用户数据" description="点击「创建用户」添加第一个用户" className="py-16" />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

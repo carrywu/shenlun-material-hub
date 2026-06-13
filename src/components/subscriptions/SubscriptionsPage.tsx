@@ -59,6 +59,7 @@ import {
   type PreviewArticle,
 } from "@/components/ArticlePreviewDialog";
 import { waitForAdminTask } from "@/lib/client-admin-task";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // 平台标签
 const PLATFORM_LABELS: Record<string, string> = {
@@ -709,10 +710,7 @@ export default function SubscriptionsPage() {
             加载中...
           </div>
         ) : sources.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-            <p>暂无来源</p>
-            <p className="text-sm">点击「新建来源」添加第一个采集来源</p>
-          </div>
+          <EmptyState title="暂无来源" description="点击「新建来源」添加第一个采集来源" className="h-48" />
         ) : (
           <Table>
             <TableHeader>

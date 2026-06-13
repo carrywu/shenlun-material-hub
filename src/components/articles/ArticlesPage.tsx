@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { waitForAdminTask } from "@/lib/client-admin-task";
 import { CONTENT_GENRE_LABELS } from "@/lib/display-labels";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface ContentItemData {
   id: string;
@@ -867,10 +868,11 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
             ) : loading ? (
               <div className="flex items-center justify-center h-48 text-muted-foreground">加载中...</div>
             ) : items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-                <p>暂无符合条件的文章</p>
-                <p className="text-sm">{managementMode ? "尝试调整筛选条件或点击「开始采集」获取内容" : "尝试调整筛选条件后重新搜索"}</p>
-              </div>
+              <EmptyState
+                title="暂无符合条件的文章"
+                description={managementMode ? "尝试调整筛选条件或点击「开始采集」获取内容" : "尝试调整筛选条件后重新搜索"}
+                className="h-48"
+              />
             ) : (
               <Table>
                 <TableHeader>

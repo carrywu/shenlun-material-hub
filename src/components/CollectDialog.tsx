@@ -25,6 +25,7 @@ import {
   Camera,
 } from "lucide-react";
 import { waitForAdminTask } from "@/lib/client-admin-task";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface SourceItem {
   id: string;
@@ -348,10 +349,7 @@ export function CollectDialog({
             加载来源...
           </div>
         ) : sources.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
-            <p>没有已启用的来源</p>
-            <p className="text-sm">请先在来源管理中启用来源</p>
-          </div>
+          <EmptyState title="暂无可用来源" description="请先在来源管理中启用来源" className="py-8" />
         ) : (
           /* Source selection */
           <div className="space-y-4">

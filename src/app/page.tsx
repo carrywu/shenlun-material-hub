@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { CollectButton } from "@/components/CollectButton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { CONTENT_TYPE_LABELS } from "@/lib/display-labels";
 
 export const dynamic = "force-dynamic";
@@ -235,13 +236,7 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent>
                 {recentItems.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                      <FileText className="h-6 w-6 opacity-50" />
-                    </div>
-                    <p className="font-medium">暂无内容</p>
-                    <p className="text-sm mt-1">点击「浏览内容」开始采集</p>
-                  </div>
+                  <EmptyState icon={FileText} title="暂无内容" description="点击「浏览内容」开始采集" />
                 ) : (
                   <div className="space-y-2">
                     {recentItems.map((item) => (

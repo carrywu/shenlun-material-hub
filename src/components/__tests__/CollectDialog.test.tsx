@@ -57,7 +57,7 @@ describe("CollectDialog", () => {
     render(<CollectDialog open={true} onOpenChange={() => {}} />);
 
     await waitFor(() => {
-      expect(screen.getByText("没有已启用的来源")).toBeInTheDocument();
+      expect(screen.getByText("暂无可用来源")).toBeInTheDocument();
     });
   });
 

@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, TestTube, Trash2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LoadingIndicator } from "@/components/ui/loading-skeleton";
 
 interface AiConfigData {
   configured: boolean;
@@ -196,11 +198,7 @@ export default function AiConfigPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">加载中...</p>
-      </div>
-    );
+    return <LoadingIndicator className="h-full" />
   }
 
   return (
@@ -370,7 +368,7 @@ export default function AiConfigPage() {
             </div>
 
             {promptTemplates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">暂无提示词模板</p>
+              <EmptyState title="暂无提示词模板" description="系统将自动生成默认模板" />
             ) : (
               <div className="space-y-4">
                 {promptTemplates.map((template) => (
