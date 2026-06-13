@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FormField } from "@/components/ui/form-field";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -343,41 +344,36 @@ export default function UsersPage() {
               </Button>
             </div>
             <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">用户名 *</label>
+              <FormField label="用户名" required>
                 <Input
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                   placeholder="3-32 个字符"
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">密码 *</label>
+              </FormField>
+              <FormField label="密码" required>
                 <Input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="至少 6 个字符"
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">显示名称</label>
+              </FormField>
+              <FormField label="显示名称">
                 <Input
                   value={newDisplayName}
                   onChange={(e) => setNewDisplayName(e.target.value)}
                   placeholder="可选"
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">邮箱</label>
+              </FormField>
+              <FormField label="邮箱">
                 <Input
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="可选"
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">角色</label>
+              </FormField>
+              <FormField label="角色">
                 <Select value={newRole} onValueChange={(val) => setNewRole(val as string)}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="选择角色" />
@@ -388,7 +384,7 @@ export default function UsersPage() {
                     <SelectItem value="ADMIN">管理员</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </FormField>
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button
@@ -421,12 +417,14 @@ export default function UsersPage() {
             <p className="mb-3 text-xs text-muted-foreground">
               重置后该用户的所有会话将被清除，需要重新登录。
             </p>
-            <Input
-              type="password"
-              value={resetPassword}
-              onChange={(e) => setResetPassword(e.target.value)}
-              placeholder="新密码（至少 6 个字符）"
-            />
+            <FormField label="新密码" required helper="至少 6 个字符">
+              <Input
+                type="password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                placeholder="新密码（至少 6 个字符）"
+              />
+            </FormField>
             <div className="mt-4 flex justify-end gap-2">
               <Button
                 variant="outline"
