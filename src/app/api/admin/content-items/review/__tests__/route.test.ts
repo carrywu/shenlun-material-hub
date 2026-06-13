@@ -98,7 +98,7 @@ describe("POST /api/admin/content-items/review (P4)", () => {
     expect(res.status).toBe(400);
   });
 
-  it("reject（下架）→ 删除全部素材卡 + 清 featuredToday", async () => {
+  it("reject（下架）→ 仅删公共卡(ownerUserId=null) + 清 featuredToday", async () => {
     tx.findMany.mockResolvedValue([{ id: "x", aiDecision: "accept", adminReviewStatus: "approved" }]);
     tx.updateMany.mockResolvedValue({ count: 1 });
     tx.deleteMany.mockResolvedValue({ count: 5 });
@@ -107,7 +107,7 @@ describe("POST /api/admin/content-items/review (P4)", () => {
     );
     expect(res.status).toBe(200);
     expect(tx.deleteMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { contentItemId: { in: ["x"] } } })
+      expect.objectContaining({ where: { contentItemId: { in: ["x"] }, ownerUserId: null } })
     );
     expect(tx.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({

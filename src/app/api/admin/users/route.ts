@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse, hashPassword } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { auditLog } from "@/lib/audit-logger";
+
+function getClientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  return forwarded?.split(",")[0]?.trim() || "unknown";
+}
 
 /** GET /api/admin/users — list all users */
 export async function GET(request: Request) {
@@ -98,6 +104,15 @@ export async function POST(request: Request) {
   });
 
   await logger.info(`Admin "${admin.username}" created user "${username}" (role: ${userRole})`, "AUTH");
+
+  await auditLog({
+    userId: admin.id,
+    action: "create",
+    resource: "User",
+    resourceId: newUser.id,
+    detail: { username, role: userRole, byAdmin: admin.username },
+    ip: getClientIp(request),
+  });
 
   return NextResponse.json({ user: newUser }, { status: 201 });
 }

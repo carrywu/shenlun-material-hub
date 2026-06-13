@@ -96,7 +96,10 @@ export default function CardDetailPage() {
     setError(null);
     try {
       const res = await fetch(`/api/material-cards/${cardId}`);
-      if (!res.ok) throw new Error("请求失败");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "请求失败");
+      }
       const data = await res.json();
       setCard(data);
     } catch (err) {

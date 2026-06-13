@@ -51,7 +51,7 @@ export async function loginAsAdminAPI(
   request: import('@playwright/test').APIRequestContext,
 ): Promise<void> {
   const res = await request.post('/api/auth/login', {
-    data: { username: 'admin', password: 'admin123' },
+    data: { username: 'admin', password: 'admin123', context: 'admin' },
   });
   if (!res.ok()) {
     throw new Error(`API 登录失败：${res.status()} ${await res.text()}`);

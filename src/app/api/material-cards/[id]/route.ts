@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth, unauthorizedResponse, forbiddenResponse, authErrorResponse } from "@/lib/auth";
-import { canAccessResource, canModifyResource } from "@/lib/data-isolation";
+import { requireAuth, unauthorizedResponse, authErrorResponse } from "@/lib/auth";
+import { canModifyResource } from "@/lib/data-isolation";
+import { auditLog } from "@/lib/audit-logger";
 
 // GET /api/material-cards/[id]
 export async function GET(
@@ -34,8 +35,13 @@ export async function GET(
       return NextResponse.json({ error: "素材卡不存在" }, { status: 404 });
     }
 
-    if (!canAccessResource(user, card.ownerUserId)) {
-      return NextResponse.json({ error: "无权访问该素材卡" }, { status: 403 });
+    // 访问控制：Owner 可看自己的卡，ADMIN 可看任意卡，
+    // null-owner（legacy 公共卡）仅 ADMIN 可见，其他用户返回 404
+    if (user.role !== "ADMIN") {
+      if (card.ownerUserId !== user.id) {
+        // 不泄露资源存在性，统一返回 404
+        return NextResponse.json({ error: "素材卡不存在" }, { status: 404 });
+      }
     }
 
     return NextResponse.json(card);
@@ -125,6 +131,14 @@ export async function DELETE(
     }
 
     await db.materialCard.delete({ where: { id } });
+
+    await auditLog({
+      userId: user.id,
+      action: "delete",
+      resource: "MaterialCard",
+      resourceId: id,
+      detail: { title: existing.title, ownerUserId: existing.ownerUserId },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

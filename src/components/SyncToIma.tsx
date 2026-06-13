@@ -143,6 +143,11 @@ export function SyncToIma({
             <>
               <XCircle className="h-3.5 w-3.5 text-destructive" />
               <span className="text-destructive">{translateSyncError(lastResult.error)}</span>
+              {lastResult.error?.includes("IMA_CONFIG_MISSING") && (
+                <a href="/settings" className="text-blue-600 hover:underline ml-1">
+                  去配置
+                </a>
+              )}
             </>
           )}
         </div>

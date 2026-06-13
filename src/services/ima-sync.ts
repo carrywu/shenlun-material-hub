@@ -2,10 +2,8 @@ import { db } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
 import type { MaterialCardStructuredContent } from "@/types";
 
-const IMA_API_BASE = process.env.IMA_API_BASE ?? "https://api.ima.qq.com";
-const IMA_CLIENT_ID = process.env.IMA_CLIENT_ID ?? "";
-const IMA_API_KEY = process.env.IMA_API_KEY ?? "";
-const IMA_KNOWLEDGE_BASE_ID = process.env.IMA_KNOWLEDGE_BASE_ID ?? "";
+// IMA API 基础 URL（非敏感，用于构造请求地址）
+const DEFAULT_IMA_API_BASE = "https://api.ima.qq.com";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
@@ -18,7 +16,8 @@ export interface ImaConfig {
 }
 
 /**
- * 解析 IMA 配置：优先从数据库 ImaTarget 表读取用户配置，回退到环境变量。
+ * 解析 IMA 配置：必须从数据库 ImaTarget 表读取用户配置，无配置时抛出错误。
+ * 不使用环境变量 fallback，确保每个用户只同步到自己的知识库。
  */
 export async function resolveImaConfig(userId?: string): Promise<ImaConfig> {
   if (userId) {
@@ -29,7 +28,7 @@ export async function resolveImaConfig(userId?: string): Promise<ImaConfig> {
 
     if (target) {
       return {
-        baseUrl: target.baseUrl,
+        baseUrl: target.baseUrl || DEFAULT_IMA_API_BASE,
         clientId: target.clientId ?? "",
         apiKey: target.encryptedApiKey ? decrypt(target.encryptedApiKey) : "",
         knowledgeBaseId: target.knowledgeBaseId ?? "",
@@ -37,13 +36,8 @@ export async function resolveImaConfig(userId?: string): Promise<ImaConfig> {
     }
   }
 
-  // 回退到环境变量
-  return {
-    baseUrl: IMA_API_BASE,
-    clientId: IMA_CLIENT_ID,
-    apiKey: IMA_API_KEY,
-    knowledgeBaseId: IMA_KNOWLEDGE_BASE_ID,
-  };
+  // 无用户配置，抛出业务错误
+  throw new Error("IMA_CONFIG_MISSING: 请先在设置中配置个人 IMA 知识库");
 }
 
 interface ImaDocument {
@@ -127,9 +121,9 @@ async function callImaApi(
   body?: unknown,
   config?: ImaConfig
 ): Promise<unknown> {
-  const baseUrl = config?.baseUrl ?? IMA_API_BASE;
-  const clientId = config?.clientId ?? IMA_CLIENT_ID;
-  const apiKey = config?.apiKey ?? IMA_API_KEY;
+  const baseUrl = config?.baseUrl ?? DEFAULT_IMA_API_BASE;
+  const clientId = config?.clientId ?? "";
+  const apiKey = config?.apiKey ?? "";
   const url = `${baseUrl}${endpoint}`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -155,7 +149,7 @@ async function uploadDocument(
   doc: ImaDocument,
   config?: ImaConfig
 ): Promise<ImaSyncResult> {
-  const kbId = config?.knowledgeBaseId ?? IMA_KNOWLEDGE_BASE_ID;
+  const kbId = config?.knowledgeBaseId ?? "";
   const result = (await callImaApi(
     `/v1/knowledge_bases/${kbId}/documents`,
     "POST",

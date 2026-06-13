@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-function LoginForm() {
+function UserLoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -11,7 +11,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // 已登录用户访问登录页 → 跳走（避免已认证用户重复看到登录表单）
+  // 已登录用户访问登录页 → 跳走
   useEffect(() => {
     let cancelled = false;
     fetch("/api/auth/check")
@@ -20,7 +20,7 @@ function LoginForm() {
         if (cancelled) return;
         if (data?.authenticated) {
           const redirect = searchParams.get("redirect");
-          router.replace(redirect && redirect !== "/admin/login" ? redirect : "/");
+          router.replace(redirect && redirect !== "/login" ? redirect : "/articles");
         }
       })
       .catch(() => {
@@ -45,7 +45,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, context: "admin" }),
+        body: JSON.stringify({ username, password, context: "user" }),
       });
 
       const data = await res.json();
@@ -53,8 +53,7 @@ function LoginForm() {
         throw new Error(data.error || "登录失败");
       }
 
-      // Redirect to the page user originally requested, or homepage
-      const redirect = searchParams.get("redirect") || "/";
+      const redirect = searchParams.get("redirect") || "/articles";
       router.push(redirect);
       router.refresh();
     } catch (err) {
@@ -108,7 +107,7 @@ function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 mt-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 text-white font-medium text-sm rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg cursor-pointer active:scale-[0.98]"
+        className="w-full py-3 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-medium text-sm rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg cursor-pointer active:scale-[0.98]"
       >
         {loading ? (
           <>
@@ -126,11 +125,11 @@ function LoginForm() {
   );
 }
 
-export default function AdminLoginPage() {
+export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background text-foreground relative overflow-hidden font-sans">
       {/* Background gradients */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-gradient-to-br from-violet-200/40 to-transparent rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-gradient-to-br from-blue-200/40 to-transparent rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-gradient-to-tl from-indigo-200/40 to-transparent rounded-full blur-[120px] pointer-events-none" />
 
       {/* Main card */}
@@ -138,25 +137,31 @@ export default function AdminLoginPage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 mb-4 shadow-md">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 mb-4 shadow-md">
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            申论素材采集台
+            申论素材学习台
           </h1>
           <p className="text-xs text-muted-foreground mt-2">
-            请输入账号和密码
+            登录后开始学习
           </p>
         </div>
 
         <Suspense fallback={<div className="text-center text-sm text-muted-foreground py-8">加载中...</div>}>
-          <LoginForm />
+          <UserLoginForm />
         </Suspense>
 
-        {/* Footer */}
+        {/* Footer with register link */}
         <div className="text-center mt-8 pt-6 border-t border-border">
+          <p className="text-xs text-muted-foreground mb-2">
+            还没有账号？
+            <a href="/register" className="ml-1 text-blue-600 hover:text-blue-700 font-medium">
+              立即注册
+            </a>
+          </p>
           <p className="text-[10px] text-muted-foreground">
             申论素材采集台 &copy; {new Date().getFullYear()} All Rights Reserved.
           </p>

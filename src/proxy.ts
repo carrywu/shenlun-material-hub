@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { validateSession } from "./lib/auth";
 
-const PUBLIC_LOGIN_PAGE = "/admin/login";
+const ADMIN_LOGIN_PAGE = "/admin/login";
+const FRONTEND_LOGIN_PAGE = "/login";
 
 // Paths that never require authentication (login pages, auth endpoints)
 const ALWAYS_PUBLIC = [
+  "/login",
   "/admin/login",
   "/api/auth/login",
   "/api/auth/check",
@@ -13,13 +15,11 @@ const ALWAYS_PUBLIC = [
 ];
 
 // Page routes that allow anonymous access (non-API, browser-visible pages)
+// 注意：/cards、/search、/review 需要登录，不在此列表中
 const PUBLIC_PAGES = [
   "/articles",       // 文章列表（公开浏览）
   "/discover",       // 今日推荐（公开内容源）
   "/explore",        // 探索区（未验证来源）
-  "/search",         // 素材卡检索
-  "/review",         // 复习模式
-  "/cards",          // 素材卡浏览
   "/register",       // 用户注册
 ];
 
@@ -51,13 +51,14 @@ export async function proxy(req: NextRequest) {
 
   // Skip always-public paths
   if (ALWAYS_PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    // Already logged in? Redirect login page to homepage
-    if (pathname === "/admin/login") {
+    // 已登录用户访问任一登录页 → 跳走
+    if (pathname === ADMIN_LOGIN_PAGE || pathname === FRONTEND_LOGIN_PAGE) {
       const token = req.cookies.get("auth_token")?.value;
       if (token) {
         const user = await validateSession(token);
         if (user) {
-          return NextResponse.redirect(new URL("/", req.url));
+          const dest = pathname === ADMIN_LOGIN_PAGE ? "/" : "/articles";
+          return NextResponse.redirect(new URL(dest, req.url));
         }
       }
     }
@@ -106,9 +107,12 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── All page routes: redirect to login if unauthenticated ─────────────────
+  // ── All page routes: redirect to appropriate login if unauthenticated ─────
   if (!authenticatedUser) {
-    const loginUrl = new URL(PUBLIC_LOGIN_PAGE, req.url);
+    // 后台页面 → /admin/login；前台页面 → /login
+    const isAdminRoute = pathname.startsWith("/admin");
+    const loginPage = isAdminRoute ? ADMIN_LOGIN_PAGE : FRONTEND_LOGIN_PAGE;
+    const loginUrl = new URL(loginPage, req.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }

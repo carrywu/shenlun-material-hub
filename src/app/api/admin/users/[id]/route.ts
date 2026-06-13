@@ -9,6 +9,12 @@ import {
 } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { auditLog } from "@/lib/audit-logger";
+
+function getClientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  return forwarded?.split(",")[0]?.trim() || "unknown";
+}
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -126,6 +132,21 @@ export async function PUT(request: Request, context: RouteContext) {
     "AUTH"
   );
 
+  // 审计日志：区分 disable/enable/role_change/update
+  const auditAction =
+    status === "DISABLED" ? "user_disable" :
+    status === "ACTIVE" && target.status === "DISABLED" ? "user_enable" :
+    role && role !== target.role ? "role_change" :
+    "update";
+  await auditLog({
+    userId: admin.id,
+    action: auditAction,
+    resource: "User",
+    resourceId: id,
+    detail: { targetUsername: target.username, fields: Object.keys(updates), ...(role ? { newRole: role } : {}), ...(status ? { newStatus: status } : {}) },
+    ip: getClientIp(request),
+  });
+
   return NextResponse.json({ user: updated });
 }
 
@@ -168,6 +189,15 @@ export async function DELETE(request: Request, context: RouteContext) {
     `Admin "${admin.username}" deleted user "${target.username}"`,
     "AUTH"
   );
+
+  await auditLog({
+    userId: admin.id,
+    action: "delete",
+    resource: "User",
+    resourceId: id,
+    detail: { targetUsername: target.username, byAdmin: admin.username },
+    ip: getClientIp(request),
+  });
 
   return NextResponse.json({ success: true });
 }

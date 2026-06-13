@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { auditLog } from "@/lib/audit-logger";
 
 // ─── Brute-force rate limiting ────────────────────────────────────────────
 const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
     // Ensure at least one admin exists (idempotent)
     await ensureInitialAdmin();
 
-    const { username, password } = await req.json();
+    const { username, password, context } = await req.json();
 
     if (!username || !password) {
       return NextResponse.json(
@@ -138,6 +139,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 后台登录上下文：拒绝非 ADMIN 用户
+    if (context === "admin" && user.role !== "ADMIN") {
+      recordFailedAttempt(clientKey);
+      await logger.warn(
+        `Non-admin user "${username}" attempted admin login`,
+        "AUTH"
+      );
+      return NextResponse.json(
+        { error: "该账号无后台管理权限，请使用前台登录入口" },
+        { status: 403 }
+      );
+    }
+
     // If legacy hash was used, upgrade to bcrypt
     if (result.needsUpgrade) {
       const newHash = await hashPassword(password);
@@ -169,6 +183,14 @@ export async function POST(req: NextRequest) {
     response.headers.append("Set-Cookie", buildCookieHeader(token));
 
     await logger.info(`User "${username}" (role: ${user.role}) logged in.`, "AUTH");
+
+    await auditLog({
+      userId: user.id,
+      action: "login",
+      resource: "Session",
+      detail: { username: user.username, role: user.role, context: context || "user" },
+      ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown",
+    });
 
     // P1-17: Clean up expired sessions periodically (fire-and-forget)
     cleanExpiredSessions().catch(() => {});

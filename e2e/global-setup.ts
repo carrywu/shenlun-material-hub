@@ -8,77 +8,82 @@ interface Role {
   passwordEnv: string;
   defaultPassword: string;
   storagePath: string;
+  /** 登录 context：admin 或 user */
+  loginContext: 'admin' | 'user';
 }
 
 const ROLES: Role[] = [
-  { name: 'admin', username: 'admin', passwordEnv: 'E2E_ADMIN_PASSWORD', defaultPassword: 'admin123', storagePath: '.auth/admin-storage.json' },
-  { name: 'verified', username: 'e2e_verified', passwordEnv: 'E2E_VERIFIED_PASSWORD', defaultPassword: 'verified123', storagePath: '.auth/verified-storage.json' },
-  { name: 'usera', username: 'e2e_usera', passwordEnv: 'E2E_USERA_PASSWORD', defaultPassword: 'usera123', storagePath: '.auth/usera-storage.json' },
-  { name: 'userb', username: 'e2e_userb', passwordEnv: 'E2E_USERB_PASSWORD', defaultPassword: 'userb123', storagePath: '.auth/userb-storage.json' },
+  { name: 'admin', username: 'admin', passwordEnv: 'E2E_ADMIN_PASSWORD', defaultPassword: 'admin123', storagePath: '.auth/admin-storage.json', loginContext: 'admin' },
+  { name: 'verified', username: 'e2e_verified', passwordEnv: 'E2E_VERIFIED_PASSWORD', defaultPassword: 'verified123', storagePath: '.auth/verified-storage.json', loginContext: 'user' },
+  { name: 'usera', username: 'e2e_usera', passwordEnv: 'E2E_USERA_PASSWORD', defaultPassword: 'usera123', storagePath: '.auth/usera-storage.json', loginContext: 'user' },
+  { name: 'userb', username: 'e2e_userb', passwordEnv: 'E2E_USERB_PASSWORD', defaultPassword: 'userb123', storagePath: '.auth/userb-storage.json', loginContext: 'user' },
 ];
 
 /**
- * 浏览器登录，存 storageState。
+ * 通过 API 登录，提取 auth_token cookie，注入浏览器 context 并存 storageState。
  *
- * 注意：项目只有 /admin/login 一个登录页（无 /login 路由）。先 goto /admin 触发
- * middleware 重定向到 /admin/login，等表单 placeholder 出现（Suspense 解析完）再填。
- * URL predicate 不用 regex，避免同时匹配 /admin/login。
+ * 比浏览器表单提交更可靠：不依赖 Playwright 对 client-side routing 和 cookie 检测的行为。
  */
-async function browserLoginAndSave(
+async function apiLoginAndSave(
   baseURL: string,
   username: string,
   password: string,
   storagePath: string,
+  loginContext: 'admin' | 'user',
 ): Promise<void> {
-  // Dev server 冷启时首次编译 /admin/login 可能要 20-30s，给 40s + 1 次重试。
-  // webServer 起来后端口就 ready，但 Next 路由是 lazy 编译的，global-setup 抢跑会撞上。
-  const LOGIN_NAV_TIMEOUT = 40000;
-  const FORM_TIMEOUT = 30000;
-  const POST_LOGIN_TIMEOUT = 30000;
+  // 1. API 登录，提取 token
+  const loginUrl = `${baseURL}/api/auth/login`;
+  const res = await fetch(loginUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, context: loginContext }),
+    // 不自动跟随重定向，手动处理 cookie
+    redirect: 'manual',
+  });
 
-  const tryLogin = async () => {
-    const browser = await chromium.launch();
-    const page = await browser.newPage();
-    try {
-      await page.goto(`${baseURL}/admin`, {
-        waitUntil: 'domcontentloaded',
-        timeout: LOGIN_NAV_TIMEOUT,
-      });
-      await page.waitForURL(/\/admin\/login/, { timeout: LOGIN_NAV_TIMEOUT });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`API 登录失败 (${res.status}): ${body}`);
+  }
 
-      const accountInput = page.getByPlaceholder('请输入账号');
-      await accountInput.waitFor({ state: 'visible', timeout: FORM_TIMEOUT });
-      await accountInput.fill(username);
-      await page.getByPlaceholder('请输入密码').fill(password);
-      await page.locator("form button[type='submit']").click();
+  const setCookieHeader = res.headers.get('set-cookie');
+  if (!setCookieHeader) {
+    throw new Error(`API 登录成功但 Set-Cookie 头不存在`);
+  }
 
-      // waitUntil: 'commit' —— 只等导航提交，不等 'load'（dashboard 的 metrics 轮询
-      // 可能让 load 事件迟迟不触发，cold-start 下导致 waitForURL 超时）。
-      await page.waitForURL((u) => !u.pathname.startsWith('/admin/login'), {
-        timeout: POST_LOGIN_TIMEOUT,
-        waitUntil: 'commit',
-      });
-      await page.waitForSelector('main', { timeout: 15000 });
+  // 解析 auth_token 值
+  const tokenMatch = setCookieHeader.match(/auth_token=([^;]+)/);
+  if (!tokenMatch) {
+    throw new Error(`Set-Cookie 中未找到 auth_token`);
+  }
+  const token = tokenMatch[1];
 
-      const cookies = await page.context().cookies();
-      const authToken = cookies.find((c) => c.name === 'auth_token');
-      if (!authToken) {
-        throw new Error(`${username} 登录成功但 auth_token cookie 不存在`);
-      }
-      await page.context().storageState({ path: storagePath });
-    } finally {
-      await browser.close();
-    }
-  };
-
+  // 2. 启动浏览器，注入 cookie，导航并存 storageState
+  const url = new URL(baseURL);
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
   try {
-    await tryLogin();
-  } catch (firstErr) {
-    // 重试一次：首次常因 dev server 冷启编译慢导致 timeout，第二次路由已缓存。
-    console.warn(
-      `⚠ globalSetup: ${username} 首次登录失败，重试一次：${firstErr instanceof Error ? firstErr.message : firstErr}`,
-    );
-    await tryLogin();
+    await context.addCookies([{
+      name: 'auth_token',
+      value: token,
+      domain: url.hostname,
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Strict',
+    }]);
+
+    const page = await context.newPage();
+    // 导航到目标页面验证登录态
+    const destination = loginContext === 'admin' ? '/' : '/articles';
+    await page.goto(`${baseURL}${destination}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
+    });
+    await page.waitForSelector('main', { timeout: 15000 });
+
+    await context.storageState({ path: storagePath });
+  } finally {
+    await browser.close();
   }
 }
 
@@ -117,7 +122,7 @@ async function globalSetup(config: FullConfig) {
   const adminRole = ROLES[0];
   const adminPassword = process.env[adminRole.passwordEnv] ?? adminRole.defaultPassword;
   try {
-    await browserLoginAndSave(baseURL, adminRole.username, adminPassword, adminRole.storagePath);
+    await apiLoginAndSave(baseURL, adminRole.username, adminPassword, adminRole.storagePath, adminRole.loginContext);
   } catch (e) {
     throw new Error(
       `globalSetup: admin 登录失败，无法继续：${e instanceof Error ? e.message : e}`,
@@ -128,7 +133,7 @@ async function globalSetup(config: FullConfig) {
   for (const role of ROLES.slice(1)) {
     const password = process.env[role.passwordEnv] ?? role.defaultPassword;
     try {
-      await browserLoginAndSave(baseURL, role.username, password, role.storagePath);
+      await apiLoginAndSave(baseURL, role.username, password, role.storagePath, role.loginContext);
     } catch (e) {
       console.warn(
         `⚠ P0-004: 角色 ${role.name} 登录失败（${role.storagePath} 将缺，相关用例会 fail/skip）：${e instanceof Error ? e.message : e}`,

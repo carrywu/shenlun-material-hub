@@ -27,7 +27,18 @@ async function main() {
   const { Pool } = await import("pg");
   const bcrypt = await import("bcryptjs");
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 5000,
+  });
+  // 先做最小连接验证，避免后续操作在 DB 不可用时挂起
+  try {
+    await pool.query("SELECT 1");
+  } catch (connErr) {
+    console.error("数据库连接失败，请检查 PostgreSQL 服务状态:", (connErr as Error).message);
+    await pool.end();
+    process.exit(1);
+  }
   const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
 

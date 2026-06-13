@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encrypt, decrypt, hasEncryptionKey } from "@/lib/crypto";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { auditLog } from "@/lib/audit-logger";
 
 // GET /api/settings/ima-targets — 获取当前用户的 IMA 目标列表
 export async function GET(request: NextRequest) {
@@ -96,6 +97,14 @@ export async function POST(request: NextRequest) {
         encryptedApiKey: encrypt(apiKey.trim()),
         knowledgeBaseId: (knowledgeBaseId || "default").trim(),
       },
+    });
+
+    await auditLog({
+      userId: user.id,
+      action: "update",
+      resource: "AiConfig",
+      resourceId: target.id,
+      detail: { name: target.name, clientId: target.clientId },
     });
 
     return NextResponse.json({

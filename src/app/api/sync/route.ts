@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { syncToIma, syncBatchToIma, getSyncStatus, getSyncHistory } from "@/services/ima-sync";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { auditLog } from "@/lib/audit-logger";
 
 // POST /api/sync - 同步素材卡到 ima 知识库
 export async function POST(request: NextRequest) {
@@ -38,6 +39,14 @@ export async function POST(request: NextRequest) {
       }
 
       const result = await syncToIma(cardId, user.id);
+
+      await auditLog({
+        userId: user.id,
+        action: "sync",
+        resource: "MaterialCard",
+        resourceId: cardId,
+      });
+
       return NextResponse.json(result);
     }
 
@@ -85,6 +94,14 @@ export async function POST(request: NextRequest) {
       }
 
       const result = await syncBatchToIma(cardIds, undefined, user.id);
+
+      await auditLog({
+        userId: user.id,
+        action: "sync",
+        resource: "MaterialCard",
+        detail: { batchCount: cardIds.length },
+      });
+
       return NextResponse.json(result);
     }
 

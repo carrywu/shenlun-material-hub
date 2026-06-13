@@ -62,9 +62,12 @@ export async function POST(request: NextRequest) {
         return { reviewed: ids.length, action, force: !!force };
       }
 
-      // reject：下架 → 删全部素材卡 + 清今日推荐
+      // reject：下架 → 删系统公共卡（ownerUserId=null），保留用户私有卡 + 清今日推荐
       await tx.materialCard.deleteMany({
-        where: { contentItemId: { in: ids } },
+        where: {
+          contentItemId: { in: ids },
+          ownerUserId: null,
+        },
       });
       await tx.contentItem.updateMany({
         where: { id: { in: ids } },
