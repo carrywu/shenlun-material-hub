@@ -15,6 +15,7 @@ import {
   Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const TASK_TYPE_LABELS: Record<string, string> = {
   WEB_CRAWL: "网页爬取",
@@ -322,43 +323,43 @@ export default function AdminDashboardPage() {
               当前没有执行过的异步任务
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground">
-                    <th className="py-2 font-medium">任务类型</th>
-                    <th className="py-2 font-medium">触发时间</th>
-                    <th className="py-2 font-medium">状态</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border text-foreground">
-                  {recentTasks.map((task) => (
-                    <tr key={task.id} className="hover:bg-muted/50">
-                      <td className="py-3 font-mono font-medium text-xs text-primary">
-                        {TASK_TYPE_LABELS[task.type] || task.type}
-                      </td>
-                      <td className="py-3 text-muted-foreground flex items-center gap-1">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>任务类型</TableHead>
+                  <TableHead>触发时间</TableHead>
+                  <TableHead>状态</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentTasks.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell className="font-mono font-medium text-xs text-primary">
+                      {TASK_TYPE_LABELS[task.type] || task.type}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <div className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                         <span>{new Date(task.createdAt).toLocaleString("zh-CN")}</span>
-                      </td>
-                      <td className="py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                          task.status === "COMPLETED"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : task.status === "FAILED"
-                            ? "bg-red-50 text-red-700 border border-red-200"
-                            : task.status === "RUNNING"
-                            ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
-                            : "bg-muted text-muted-foreground border border-border"
-                        }`}>
-                          {task.status === "COMPLETED" ? "成功" : task.status === "FAILED" ? "失败" : task.status === "RUNNING" ? "运行中" : "排队中"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                        task.status === "COMPLETED"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : task.status === "FAILED"
+                          ? "bg-red-50 text-red-700 border border-red-200"
+                          : task.status === "RUNNING"
+                          ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
+                          : "bg-muted text-muted-foreground border border-border"
+                      }`}>
+                        {task.status === "COMPLETED" ? "成功" : task.status === "FAILED" ? "失败" : task.status === "RUNNING" ? "运行中" : "排队中"}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </div>
 

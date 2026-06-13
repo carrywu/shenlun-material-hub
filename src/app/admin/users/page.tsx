@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FormField } from "@/components/ui/form-field";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -257,79 +258,77 @@ export default function UsersPage() {
         ) : users.length === 0 ? (
           <EmptyState icon={Users} title="暂无用户数据" description="点击「创建用户」添加第一个用户" className="py-16" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">用户名</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">显示名</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">邮箱</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">角色</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">状态</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">创建时间</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium text-foreground">{u.username}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{u.displayName || "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{u.email || "—"}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[u.role] || "bg-gray-100 text-gray-700"}`}>
-                        {(u.role === "ADMIN" ? Shield : u.role === "VERIFIED_USER" ? ShieldCheck : User) && (
-                          <span className="h-3 w-3">
-                            {u.role === "ADMIN" ? <Shield className="h-3 w-3" /> : u.role === "VERIFIED_USER" ? <ShieldCheck className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                          </span>
-                        )}
-                        {ROLE_LABELS[u.role] || u.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[u.status] || "bg-gray-100"}`}>
-                        {STATUS_LABELS[u.status] || u.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(u.createdAt).toLocaleDateString("zh-CN")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        {u.status === "ACTIVE" ? (
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            onClick={() => updateField(u.id, "status", "DISABLED")}
-                            title="禁用"
-                          >
-                            <Ban />
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="xs"
-                            onClick={() => updateField(u.id, "status", "ACTIVE")}
-                            title="启用"
-                          >
-                            启用
-                          </Button>
-                        )}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>用户名</TableHead>
+                <TableHead>显示名</TableHead>
+                <TableHead>邮箱</TableHead>
+                <TableHead>角色</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>创建时间</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((u) => (
+                <TableRow key={u.id}>
+                  <TableCell className="font-medium text-foreground">{u.username}</TableCell>
+                  <TableCell className="text-muted-foreground">{u.displayName || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{u.email || "—"}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[u.role] || "bg-gray-100 text-gray-700"}`}>
+                      {(u.role === "ADMIN" ? Shield : u.role === "VERIFIED_USER" ? ShieldCheck : User) && (
+                        <span className="h-3 w-3">
+                          {u.role === "ADMIN" ? <Shield className="h-3 w-3" /> : u.role === "VERIFIED_USER" ? <ShieldCheck className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                        </span>
+                      )}
+                      {ROLE_LABELS[u.role] || u.role}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[u.status] || "bg-gray-100"}`}>
+                      {STATUS_LABELS[u.status] || u.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(u.createdAt).toLocaleDateString("zh-CN")}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      {u.status === "ACTIVE" ? (
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          onClick={() => { setShowResetDialog(u.id); setResetPassword(""); }}
-                          title="重置密码"
+                          onClick={() => updateField(u.id, "status", "DISABLED")}
+                          title="禁用"
                         >
-                          <Key />
+                          <Ban />
                         </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => updateField(u.id, "status", "ACTIVE")}
+                          title="启用"
+                        >
+                          启用
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => { setShowResetDialog(u.id); setResetPassword(""); }}
+                        title="重置密码"
+                      >
+                        <Key />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </div>
 
