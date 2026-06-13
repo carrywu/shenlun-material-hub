@@ -1,12 +1,12 @@
 # Development Handoff
 
 生成日期：2026-06-13  
-状态：Batch 1-5 + 前端改造第一轮 (A1-A5) 全部完成  
+状态：Batch 1-5 + 前端改造第一轮 (A1-A5) + 第二轮 (B-Phase 1-4) 全部完成  
 适用：后续 agent 接手前恢复现场
 
 ## 1. 当前目标
 
-Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全部完成。前端改造第一轮（A1 学习状态展示、A2 Articles Tab、A3 旧路由清理、A4 归档箱 Tab、A5 重新生成确认弹窗）已完成并通过验证。下一阶段可进入前端改造第二轮（UI 组件统一，见 `docs/superpowers/specs/2026-06-13-frontend-refactor-design.md`），或先完成 Prisma migration 应用和 Playwright E2E 全量回归。
+Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全部完成。前端改造第一轮（A1 学习状态展示、A2 Articles Tab、A3 旧路由清理、A4 归档箱 Tab、A5 重新生成确认弹窗）已完成。前端改造第二轮（B-Phase 1-4：基础组件 + 表单规范化 + 表格弹窗 + 视觉统一）已完成并通过验证，12 个 Task 全部交付。下一阶段可进入 Playwright E2E 全量回归、Prisma migration 应用，或进入下一轮功能迭代。
 
 ## 2. 已完成
 
@@ -61,6 +61,27 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - **A4 归档箱 Tab**：`/cards` 页面新增「全部卡片/已归档」Tab，API 添加 `archivedOnly` 参数，归档视图显示归档日期和恢复按钮。
 - **A5 重新生成确认弹窗**：新建 `alert-dialog.tsx` 组件（base-ui/react），文章详情页重新生成时若已有素材卡则弹出二次确认，支持 force 覆盖。
 
+### 前端改造第二轮（Round B：UI 组件统一）
+- **设计文档**：`docs/superpowers/specs/2026-06-13-round-b-ui-unification-design.md`，4 Phase 制改造（基础组件 → 表单 → 表格弹窗 → 视觉统一）。
+- **实施计划**：`docs/superpowers/plans/2026-06-13-round-b-ui-unification.md`，12 个 Task 按依赖顺序执行。
+- **Phase 1（基础组件 + 裸元素迁移）**：
+  - Task 1：新建 EmptyState + LoadingSkeleton/LoadingIndicator 组件（data-slot、ARIA、export convention）。
+  - Task 2：新建 ErrorBoundary 组件，layout.tsx 包裹 children。
+  - Task 3：Admin 页面 18 个裸 button 迁移至 shadcn Button。
+  - Task 4：前台与组件 12 个裸 button 迁移至 shadcn Button（登录页替换 SVG spinner 为 Loader2）。
+  - Task 5：15 个裸 input + 1 个裸 select 迁移至 shadcn Input/Select。
+  - Task 6：7 处内联空状态统一为 EmptyState 组件，AiConfigPage 纯文本 loading 升级为 LoadingIndicator。
+- **Phase 2（表单规范化）**：
+  - Task 7：新建 FormField 组件，login/admin-login/register 三个表单页面标准化（移除 register 页 rounded-xl 覆盖）。
+  - Task 8：admin/users 创建用户弹窗 5 个字段 + 重置密码弹窗 1 个字段用 FormField 包裹。
+- **Phase 3（表格 + 弹窗）**：
+  - Task 9：admin/page.tsx 近期任务表（3 列）+ admin/users 用户管理表（7 列）迁移至 shadcn Table。
+  - Task 10：admin/users 创建用户弹窗 + 重置密码弹窗 + UpgradeButton 付费弹窗迁移至 shadcn Dialog（@base-ui/react）。
+- **Phase 4（视觉统一）**：
+  - Task 11：新建 PageHeader 组件（title + description + actions）。
+  - Task 12：6 个前台页面应用 PageHeader，Card 组件圆角统一为 rounded-lg，空状态文案标准化。
+- **迁移排除项**：10 个 date picker input（type="date" + opacity-0 覆盖模式）、1 个 range slider、articles/[id] 图片预览全屏 modal、AdminShell 移动端侧边栏 overlay。
+
 ### 验证基线
 - `pnpm lint`：0 errors / 17 warnings（全部为预存 warning）。
 - `pnpm test`：55 files / 386 tests 全部通过。
@@ -73,9 +94,9 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 ## 4. 下一步
 
 1. **应用 Prisma migration**：Docker/PostgreSQL 启动后运行 `npx prisma migrate deploy` 应用 `20260613_batch3_support` migration（archivedAt + UserContentState 表）。
-2. **Playwright E2E 全量回归**：Docker 可用后运行 `pnpm exec playwright test`，重点关注 `auth.spec.ts`、`data-isolation.spec.ts`、`mobile-responsive.spec.ts` 受双登录页和路由变更影响的 spec。
+2. **Playwright E2E 全量回归**：Docker 可用后运行 `pnpm exec playwright test`，重点关注 `auth.spec.ts`、`data-isolation.spec.ts`、`mobile-responsive.spec.ts` 受双登录页和路由变更影响的 spec。Round B 的 UI 组件迁移可能导致 E2E 断言选择器变化（如 data-slot 属性），需排查。
 3. **E2E spec 清理**：`/discover`、`/explore`、`/my-articles` 旧路由已删除，9 个 E2E spec 文件可能引用已删除页面，需排查并更新断言。
-4. **前端改造第二轮（Round B）**：按 `docs/superpowers/specs/2026-06-13-frontend-refactor-design.md` 的 Round B 部分执行，4 阶段（基础组件加固 → 表单规范化 → 表格与弹窗 → 视觉统一）。
+4. **视觉回归检查**：Round B 中 Card 圆角从 rounded-xl 改为 rounded-lg、登录表单字段移除 rounded-xl 覆盖、按钮语义颜色丢失（admin 禁用/启用/重置按钮），需浏览器端人工确认视觉效果是否可接受。
 
 ## 5. 关键决策
 
@@ -194,6 +215,23 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - `docs/audit/development-todolist.md`
 - `docs/audit/development-handoff.md`
 
+### 前端改造第二轮（Round B）新增/修改
+
+新建：
+- `src/components/ui/empty-state.tsx`（EmptyState 组件）
+- `src/components/ui/loading-skeleton.tsx`（LoadingSkeleton + LoadingIndicator 组件）
+- `src/components/ui/error-boundary.tsx`（ErrorBoundary 错误边界组件）
+- `src/components/ui/form-field.tsx`（FormField 表单字段组件）
+- `src/components/ui/page-header.tsx`（PageHeader 页面标题组件）
+- `docs/superpowers/specs/2026-06-13-round-b-ui-unification-design.md`
+- `docs/superpowers/plans/2026-06-13-round-b-ui-unification.md`
+
+修改（按 Phase）：
+- Phase 1：`src/app/layout.tsx`（ErrorBoundary 包裹）、`src/app/admin/users/page.tsx`（button/input/select/empty state）、`src/app/admin/page.tsx`（button）、`src/components/admin/AdminShell.tsx`（button）、`src/app/page.tsx`（empty state）、`src/components/ai/AiConfigPage.tsx`（input/button/loading/empty state）、`src/app/login/page.tsx`（button/input/FormField）、`src/app/admin/login/page.tsx`（button/input/FormField）、`src/app/register/page.tsx`（button/input/FormField）、`src/components/UpgradeButton.tsx`（input/dialog）、`src/components/subscriptions/SubscriptionsPage.tsx`（empty state）、`src/components/ArticleDetail.tsx`（empty state）、`src/components/CollectDialog.tsx`（empty state）、`src/components/articles/ArticlesPage.tsx`（empty state）、`src/components/__tests__/CollectDialog.test.tsx`（更新断言文案）
+- Phase 2：（login/admin-login/register 已列在 Phase 1）、`src/app/admin/users/page.tsx`（FormField 包裹）
+- Phase 3：`src/app/admin/page.tsx`（Table）、`src/app/admin/users/page.tsx`（Table + Dialog）、`src/components/UpgradeButton.tsx`（Dialog）
+- Phase 4：`src/app/cards/page.tsx`、`src/app/search/page.tsx`、`src/app/review/page.tsx`、`src/app/settings/page.tsx`、`src/components/sync/SyncRecordsPage.tsx`、`src/components/articles/ArticlesPage.tsx`（PageHeader）、`src/components/ui/card.tsx`（rounded-xl → rounded-lg）
+
 ## 7. 测试结果
 
 - `pnpm lint`：通过，0 errors / 17 warnings。
@@ -207,12 +245,14 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 ## 8. 未验证风险
 
 - **Prisma migration 未应用**：`20260613_batch3_support/migration.sql` 已创建但 Docker/PostgreSQL 未运行，`prisma migrate deploy` 未执行。应用前代码可构建但运行时涉及 `UserContentState` 或 `archivedAt` 的查询会报错。
-- **Playwright E2E 未全量回归**：Batch 2-5 + Round A 改动后未跑完整 E2E。以下 spec 可能受影响：
+- **Playwright E2E 未全量回归**：Batch 2-5 + Round A + Round B 改动后未跑完整 E2E。以下 spec 可能受影响：
   - `auth.spec.ts`：双登录页 + `/login` 路由变更。
   - `data-isolation.spec.ts`：学习状态私有化可能需更新断言。
   - `mobile-responsive.spec.ts`：新增 MobileBottomTab 可能需要新断言。
   - `admin.spec.ts`：用户删除改禁用，原断言删除行为的 test 需更新。
 - **E2E spec 引用已删除路由**：`/discover`、`/explore`、`/my-articles` 路由页面已在 Round A 中删除，9 个 E2E spec 文件可能包含对这些路由的引用，需逐一排查清理。
+- **Round B 视觉回归未验证**：Card 圆角从 rounded-xl 改为 rounded-lg（影响全局所有 Card 组件），登录/注册表单字段移除 rounded-xl 覆盖，Admin 表格操作按钮语义颜色（红/绿/琥珀）在迁移到 shadcn ghost variant 后丢失。需浏览器端人工确认。
+- **FormField 缺少 htmlFor**：FormField 组件的 label 不使用 `htmlFor`/`id` 关联，可能影响无障碍审计。若后续有无障碍需求，需扩展 FormField 添加 `htmlFor` prop。
 - **Prisma Client 已生成**：`npx prisma generate` 已执行，`src/generated/prisma` 包含 `UserContentState` 类型。
 - **全局/私有字段并存**：文章详情页同时存在全局 `read/ignored/bookmarked`（toggle 按钮用）和 per-user `userRead/userIgnored/userBookmarked`（展示徽章用），toggle 操作仍修改全局字段。待后续统一为 per-user 字段。
 
@@ -223,7 +263,8 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - 不要把 UI 组件库改造提前到权限/数据安全之前（已完成）。
 - 不要对数据库做破坏性操作；需要清理/迁移时先 dry-run。
 - 按 `development-plan.md` 和 `development-todolist.md` 执行后续工作。
-- 前端改造第二轮（Round B）必须参考 `docs/superpowers/specs/2026-06-13-frontend-refactor-design.md` 和 `docs/superpowers/plans/2026-06-13-frontend-round-a.md`，不引入 AntD/HeroUI/TanStack/RHF。
+- 前端改造第二轮（Round B）已完成。参考 `docs/superpowers/specs/2026-06-13-round-b-ui-unification-design.md` 和 `docs/superpowers/plans/2026-06-13-round-b-ui-unification.md`。不引入 AntD/HeroUI/TanStack/RHF。
+- 新建的 UI 组件（EmptyState、LoadingSkeleton/LoadingIndicator、ErrorBoundary、FormField、PageHeader）遵循项目 convention：`data-slot` 属性、`cn()` 类名合并、`function` 声明 + 底部 `export`、`React.ComponentProps` props 转发。
 - UI 改造参考 `docs/audit/ui-refactor-plan.md`。
 - Docker/PostgreSQL 恢复后优先运行 `prisma migrate deploy` + Playwright 全量回归。
 - E2E spec 清理需在 Playwright 可运行后进行，逐 spec 排查引用已删除路由的断言。

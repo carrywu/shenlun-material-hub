@@ -1,7 +1,7 @@
 # Development TodoList
 
 生成日期：2026-06-13  
-状态：Batch 1-5 + 前端改造第一轮 (A1-A5) 全部完成
+状态：Batch 1-5 + 前端改造第一轮 (A1-A5) + 第二轮 (B-Phase 1-4) 全部完成
 
 ## 状态说明
 
@@ -591,3 +591,197 @@
   - lint 0 errors，55 files / 386 tests 全部通过，build 通过。
 - 风险：无。
 - 关联提交：`b375064`
+
+## Stage 8：前端改造第二轮（Round B — UI 组件统一）
+
+### B1：EmptyState + LoadingSkeleton/LoadingIndicator 组件
+
+- 状态：done
+- 目标：创建可复用的空状态和加载骨架组件，替代散落在各页面的内联实现。
+- 实际修改文件：
+  - `src/components/ui/empty-state.tsx`（新建）— EmptyState 组件，支持 icon/title/description/action 配置
+  - `src/components/ui/loading-skeleton.tsx`（新建）— LoadingSkeleton（animate-pulse 骨架条）+ LoadingIndicator（Loader2 旋转图标 + 文本）
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 两个组件均包含 data-slot 属性、role="status"、aria-label。
+  - 遵循项目 export convention（function 声明 + 底部 export）。
+  - React.ComponentProps<"div"> props 转发。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 关联提交：`719bd37`（初始）、`8b1b572`（修复 data-slot/ARIA/export convention）
+
+### B2：ErrorBoundary + layout 包裹
+
+- 状态：done
+- 目标：创建全局 ErrorBoundary 组件，捕获运行时错误并展示友好 fallback UI。
+- 实际修改文件：
+  - `src/components/ui/error-boundary.tsx`（新建）— class 组件，componentDidCatch + getDerivedStateFromError
+  - `src/app/layout.tsx`（修改）— ErrorBoundary 包裹 children
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - fallback UI 包含 AlertTriangle 图标 + 重试按钮。
+  - cn() className 合并、props 转发。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 关联提交：`169e385`
+
+### B3：Admin 页面裸 button 迁移（18 个）
+
+- 状态：done
+- 目标：Admin 页面 18 个裸 `<button>` 迁移至 shadcn Button。
+- 实际修改文件：
+  - `src/app/admin/users/page.tsx`（11 个按钮）
+  - `src/components/admin/AdminShell.tsx`（4 个按钮）
+  - `src/app/admin/page.tsx`（2 个按钮）
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 全部按钮使用 shadcn Button（variant: default/outline/ghost, size: default/sm/xs/icon-xs/icon-sm）。
+  - 语义颜色（红/绿/琥珀 hover）丢失，改为 shadcn ghost 默认色。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 风险：admin 表格操作按钮语义 hover 颜色丢失。
+- 关联提交：`980fe15`
+
+### B4：前台与组件裸 button 迁移（12 个）
+
+- 状态：done
+- 目标：前台页面和业务组件 12 个裸 `<button>` 迁移至 shadcn Button。
+- 实际修改文件（12 个文件各 1 个按钮）：
+  - `src/app/search/page.tsx`、`src/app/settings/ai/page.tsx`、`src/app/settings/ima/page.tsx`、`src/components/RootNav.tsx`、`src/components/ReviewCard.tsx`、`src/components/articles/ArticleChecklist.tsx`、`src/components/articles/ArticlesPage.tsx`、`src/components/sync/SyncRecordsPage.tsx`、`src/components/ai/AiConfigPage.tsx`、`src/app/login/page.tsx`、`src/app/register/page.tsx`、`src/app/admin/login/page.tsx`
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 登录/注册页替换内联 SVG spinner 为 lucide-react Loader2。
+  - 渐变背景按钮替换为 shadcn default variant。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 风险：登录页渐变背景丢失。
+- 关联提交：`9f55f0f`
+
+### B5：裸 input + select 迁移（15+1）
+
+- 状态：done
+- 目标：15 个裸 `<input>` 和 1 个裸 `<select>` 迁移至 shadcn Input/Select。
+- 实际修改文件：
+  - `src/app/admin/users/page.tsx`（5 input + 1 select）
+  - `src/components/ai/AiConfigPage.tsx`（4 input）
+  - `src/app/login/page.tsx`（2 input）
+  - `src/app/admin/login/page.tsx`（2 input）
+  - `src/components/UpgradeButton.tsx`（1 input）
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - select 使用 onValueChange + as string 断言。
+  - password toggle input 保留 type={showKey ? "text" : "password"}。
+  - 剩余裸 input：10 个 date picker + 1 个 range slider（排除项）。
+  - 剩余裸 select：0。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 关联提交：`583d4f2`
+
+### B6：空状态统一 + Loading 升级（7+1 处）
+
+- 状态：done
+- 目标：7 处内联空状态替换为 EmptyState 组件，1 处纯文本 loading 升级为 LoadingIndicator。
+- 实际修改文件：
+  - `src/app/page.tsx`（空状态）
+  - `src/app/admin/users/page.tsx`（空状态）
+  - `src/components/subscriptions/SubscriptionsPage.tsx`（空状态）
+  - `src/components/ai/AiConfigPage.tsx`（空状态 + loading 升级）
+  - `src/components/ArticleDetail.tsx`（内联 fallback → 条件渲染 EmptyState）
+  - `src/components/CollectDialog.tsx`（空状态，文案从"没有已启用的来源"改为"暂无可用来源"）
+  - `src/components/articles/ArticlesPage.tsx`（空状态）
+  - `src/components/__tests__/CollectDialog.test.tsx`（更新断言文案匹配新 title）
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 全部空状态使用 EmptyState 组件，统一 role="status" + data-slot="empty-state"。
+  - AiConfigPage loading 从 `<p>加载中...</p>` 升级为 `<LoadingIndicator>`。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 关联提交：`2ead45a`
+
+### B7：FormField 组件 + 登录表单规范化
+
+- 状态：done
+- 目标：创建 FormField 组件，统一登录/注册表单的 label + error + helper 渲染。
+- 实际修改文件：
+  - `src/components/ui/form-field.tsx`（新建）— FormField 组件，支持 label/error/required/helper/children
+  - `src/app/login/page.tsx`（2 个字段 FormField 包裹）
+  - `src/app/admin/login/page.tsx`（2 个字段 FormField 包裹）
+  - `src/app/register/page.tsx`（3 个字段 FormField 包裹，移除 rounded-xl 覆盖）
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - FormField 使用 data-slot="form-field"、cn() className 合并。
+  - register 页 Input 移除 `className="py-3 rounded-xl"` 覆盖。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 风险：FormField 的 label 不使用 htmlFor/id 关联，可能影响无障碍。
+- 关联提交：`37004ba`
+
+### B8：admin/users 表单 FormField 包裹
+
+- 状态：done
+- 目标：创建用户弹窗 5 个字段 + 重置密码弹窗 1 个字段用 FormField 包裹。
+- 实际修改文件：
+  - `src/app/admin/users/page.tsx`
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 5 个创建字段（用户名/密码/显示名/邮箱/角色）和 1 个重置密码字段均使用 FormField。
+  - 重置密码字段使用 helper="至少 6 个字符"。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 关联提交：`85ad0a1`
+
+### B9：裸 table 迁移（2 个）
+
+- 状态：done
+- 目标：2 个裸 `<table>` 迁移至 shadcn Table 组件。
+- 实际修改文件：
+  - `src/app/admin/page.tsx`（近期任务表，3 列）
+  - `src/app/admin/users/page.tsx`（用户管理表，7 列）
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 仅替换 HTML 结构（table/thead/tr/th/tbody/td），保留所有 cell 内容逻辑（Badge、图标、条件样式）。
+  - 移除 wrapping `<div className="overflow-x-auto">`。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 关联提交：`630424b`
+
+### B10：手写弹窗迁移（3 个）
+
+- 状态：done
+- 目标：3 个 `fixed inset-0` 手写弹窗迁移至 shadcn Dialog（@base-ui/react）。
+- 实际修改文件：
+  - `src/app/admin/users/page.tsx`（创建用户弹窗 + 重置密码弹窗）
+  - `src/components/UpgradeButton.tsx`（付费升级弹窗）
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 使用 Dialog open/onOpenChange 控制状态，DialogContent 自带关闭按钮。
+  - 移除 admin/users 的 X icon import（不再需要）。
+  - UpgradeButton 移除 e.stopPropagation() 模式（Dialog 原生处理 backdrop 点击）。
+  - 剩余 fixed inset-0：仅 articles/[id]/page.tsx 图片预览（排除项）。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 关联提交：`7267237`
+
+### B11：PageHeader 组件
+
+- 状态：done
+- 目标：创建可复用的页面标题组件，统一前台页面标题区域。
+- 实际修改文件：
+  - `src/components/ui/page-header.tsx`（新建）— PageHeader 组件，支持 title/description/actions
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - data-slot="page-header"，cn() className 合并。
+  - h1 text-2xl font-bold tracking-tight + description text-sm text-muted-foreground。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 关联提交：包含在 `459a98b` 中
+
+### B12：视觉统一 — PageHeader 应用 + 圆角 + 文案
+
+- 状态：done
+- 目标：6 个前台页面应用 PageHeader，Card 组件圆角统一为 rounded-lg，空状态文案标准化。
+- 实际修改文件：
+  - `src/app/cards/page.tsx`（PageHeader）
+  - `src/app/search/page.tsx`（PageHeader）
+  - `src/app/review/page.tsx`（PageHeader）
+  - `src/app/settings/page.tsx`（PageHeader，移除 Settings icon）
+  - `src/components/sync/SyncRecordsPage.tsx`（PageHeader）
+  - `src/components/articles/ArticlesPage.tsx`（PageHeader，移除内联 count badge）
+  - `src/components/ui/card.tsx`（rounded-xl → rounded-lg，全局替换）
+- 测试命令：`pnpm lint && pnpm test && pnpm build`
+- 验收证据：
+  - 6 个页面标题区域统一使用 PageHeader 组件。
+  - Card 根元素、CardHeader、CardFooter、img 选择器全部 rounded-xl → rounded-lg。
+  - AiConfigPage EmptyState 已有 description="系统将自动生成默认模板"。
+  - lint 0 errors，55 files / 386 tests 通过，build 通过。
+- 风险：Card 圆角变化为全局影响，需浏览器确认视觉效果。settings 页 Settings icon 丢失。
+- 关联提交：`459a98b`
