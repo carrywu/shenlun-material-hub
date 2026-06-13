@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   RefreshCw,
   Loader2,
@@ -149,25 +150,23 @@ export default function ReviewPage() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="border-b px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">复习模式</h1>
-            <p className="text-sm text-muted-foreground">
-              逐步揭示素材卡内容，检验记忆效果
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-1.5 ${loading ? "animate-spin" : ""}`}
-            />
-            换一批
-          </Button>
-        </div>
+        <PageHeader
+          title="复习模式"
+          description="逐步揭示素材卡内容，检验记忆效果"
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-1.5 ${loading ? "animate-spin" : ""}`}
+              />
+              换一批
+            </Button>
+          }
+        />
       </div>
 
       <div className="flex-1 overflow-auto p-6 space-y-4">

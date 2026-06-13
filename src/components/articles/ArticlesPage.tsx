@@ -23,6 +23,7 @@ import {
 import { BatchActions } from "@/components/BatchActions";
 import { ArticleDetail } from "@/components/ArticleDetail";
 import { Pagination } from "@/components/ui/pagination";
+import { PageHeader } from "@/components/ui/page-header";
 import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown, Star, CheckCircle, BookmarkCheck, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -543,45 +544,38 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="border-b px-6 py-3.5 bg-card">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-baseline gap-2">
-              <h1 className="text-xl font-semibold">文章列表</h1>
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
-                共 {total} 篇
-              </span>
+        <PageHeader
+          title="文章列表"
+          description={managementMode ? "管理采集的内容条目，AI 评估后生成素材卡" : "浏览已采集的内容条目，按来源、主题和时间筛选阅读"}
+          actions={
+            <div className="flex items-center gap-2">
+              {managementMode && (
+                <>
+                  <Button variant="default" size="sm" onClick={handleCollect} disabled={collecting}>
+                    {collecting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Play className="mr-1.5 h-4 w-4" />}
+                    {collecting ? "采集中..." : "开始采集"}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleAssess} disabled={assessing}>
+                    {assessing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Brain className="mr-1.5 h-4 w-4" />}
+                    {assessing ? "评估中..." : "AI 评估"}
+                  </Button>
+                  <Button
+                    variant={showDebugCols ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowDebugCols(!showDebugCols)}
+                    title="切换 owner/visibility 调试列"
+                  >
+                    🐛 调试
+                  </Button>
+                </>
+              )}
+              <Button variant="outline" size="sm" onClick={fetchItems}>
+                <RefreshCw className="mr-1.5 h-4 w-4" />
+                刷新
+              </Button>
             </div>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {managementMode ? "管理采集的内容条目，AI 评估后生成素材卡" : "浏览已采集的内容条目，按来源、主题和时间筛选阅读"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {managementMode && (
-              <>
-                <Button variant="default" size="sm" onClick={handleCollect} disabled={collecting}>
-                  {collecting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Play className="mr-1.5 h-4 w-4" />}
-                  {collecting ? "采集中..." : "开始采集"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleAssess} disabled={assessing}>
-                  {assessing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Brain className="mr-1.5 h-4 w-4" />}
-                  {assessing ? "评估中..." : "AI 评估"}
-                </Button>
-                <Button
-                  variant={showDebugCols ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setShowDebugCols(!showDebugCols)}
-                  title="切换 owner/visibility 调试列"
-                >
-                  🐛 调试
-                </Button>
-              </>
-            )}
-            <Button variant="outline" size="sm" onClick={fetchItems}>
-              <RefreshCw className="mr-1.5 h-4 w-4" />
-              刷新
-            </Button>
-          </div>
-        </div>
+          }
+        />
         {managementMode && (collectProgress || assessProgress) && (
           <div className="mt-2 text-sm text-muted-foreground">
             {collectProgress && <p>{collectProgress}</p>}

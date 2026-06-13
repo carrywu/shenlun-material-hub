@@ -2,7 +2,8 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { validateSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { Settings, Sparkles, Upload, Link as LinkIcon, User } from "lucide-react";
+import { Sparkles, Upload, Link as LinkIcon, User } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function SettingsPage() {
   // Verify user is logged in
@@ -26,17 +27,12 @@ export default async function SettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-3">
-          <Settings className="h-6 w-6 text-primary" />
-          个人设置
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {isVerifiedUser
-            ? "管理你的 AI 配置、IMA 同步目标和集成设置"
-            : "查看账号信息和修改密码"}
-        </p>
-      </div>
+      <PageHeader
+        title="个人设置"
+        description={isVerifiedUser
+          ? "管理你的 AI 配置、IMA 同步目标和集成设置"
+          : "查看账号信息和修改密码"}
+      />
 
       <div className="grid gap-4">
         {/* Account Settings */}

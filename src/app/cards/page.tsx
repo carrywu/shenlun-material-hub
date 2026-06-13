@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
 import { MaterialCardView } from "@/components/MaterialCard";
@@ -205,18 +206,16 @@ export default function CardsPage() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="border-b px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">素材卡管理</h1>
-            <p className="text-sm text-muted-foreground">
-              查看和管理 AI 生成的申论素材卡
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchCards}>
-            <RefreshCw className="mr-1.5 h-4 w-4" />
-            刷新
-          </Button>
-        </div>
+        <PageHeader
+          title="素材卡管理"
+          description="查看和管理 AI 生成的申论素材卡"
+          actions={
+            <Button variant="outline" size="sm" onClick={fetchCards}>
+              <RefreshCw className="mr-1.5 h-4 w-4" />
+              刷新
+            </Button>
+          }
+        />
       </div>
 
       {/* Archive toggle tabs */}

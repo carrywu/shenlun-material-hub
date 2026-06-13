@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Search,
   Download,
@@ -169,23 +170,21 @@ export default function SearchPage() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="border-b px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">素材卡检索</h1>
-            <p className="text-sm text-muted-foreground">
-              全文搜索素材卡内容，支持按类型和标签筛选
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={total === 0}
-          >
-            <Download className="h-4 w-4 mr-1.5" />
-            导出 Markdown
-          </Button>
-        </div>
+        <PageHeader
+          title="素材卡检索"
+          description="全文搜索素材卡内容，支持按类型和标签筛选"
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={total === 0}
+            >
+              <Download className="h-4 w-4 mr-1.5" />
+              导出 Markdown
+            </Button>
+          }
+        />
       </div>
 
       <div className="flex-1 overflow-auto p-6 space-y-4">

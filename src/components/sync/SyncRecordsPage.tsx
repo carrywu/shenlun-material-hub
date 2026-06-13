@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -196,18 +197,16 @@ export default function SyncRecordsPage() {
     <div className="flex-1 overflow-auto p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">同步记录</h1>
-            <p className="text-muted-foreground text-sm">
-              查看素材卡同步到 ima 知识库的历史记录
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchRecords} disabled={loading}>
-            <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            刷新
-          </Button>
-        </div>
+        <PageHeader
+          title="同步记录"
+          description="查看素材卡同步到 ima 知识库的历史记录"
+          actions={
+            <Button variant="outline" size="sm" onClick={fetchRecords} disabled={loading}>
+              <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              刷新
+            </Button>
+          }
+        />
 
         {/* Filters */}
         <div className="flex flex-wrap items-end gap-3">
