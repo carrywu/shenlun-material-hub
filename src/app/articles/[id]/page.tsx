@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,6 +111,55 @@ interface ArticleDetail {
     createdAt: string;
   }>;
   annotations: Annotation[];
+}
+
+/** 批注 tooltip：使用 portal 挂载到 body，fixed 定位，跟随鼠标并自动避让视口边缘。
+ *  全程不调用 setState：初始位置用 CSS 隐藏，mousemove 直接操作 DOM 位移，
+ *  避免高频重渲染，也避开 effect 内同步 setState 的 lint 报错。 */
+function AnnotationTooltip({ comment, visible }: { comment: string; visible: boolean }) {
+  const elRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const el = elRef.current;
+      if (!el) return;
+      const pad = 12;
+      const tooltipW = 256;
+      const tooltipH = 80;
+      let top = e.clientY - tooltipH - pad;
+      let left = e.clientX - tooltipW / 2;
+      if (top < pad) top = e.clientY + pad;
+      if (left < pad) left = pad;
+      if (left + tooltipW > window.innerWidth - pad) left = window.innerWidth - tooltipW - pad;
+      el.style.top = `${top}px`;
+      el.style.left = `${left}px`;
+      el.style.opacity = "1";
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    return () => document.removeEventListener("mousemove", handleMouseMove);
+  }, [visible]);
+
+  if (!visible || typeof document === "undefined") return null;
+  return createPortal(
+    <div
+      ref={elRef}
+      style={{
+        position: "fixed",
+        top: -200,
+        left: -200,
+        opacity: 0,
+        zIndex: 9999,
+        transition: "opacity 0.05s",
+      }}
+      className="w-64 p-2 bg-popover text-popover-foreground text-xs rounded-md shadow-lg border pointer-events-none"
+      role="tooltip"
+    >
+      <span className="font-medium block mb-1">批注：</span>
+      {comment}
+    </div>,
+    document.body,
+  );
 }
 
 const CARD_TYPE_CONFIG: Record<string, { label: string }> = {
@@ -342,6 +392,7 @@ export default function ArticleDetailPage() {
   const [deletingAnnotationId, setDeletingAnnotationId] = useState<string | null>(null);
   const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(null);
   const [editComment, setEditComment] = useState("");
+  const [hoveredAnnotation, setHoveredAnnotation] = useState<Annotation | null>(null);
 
   const textRef = useRef<HTMLDivElement>(null);
 
@@ -670,18 +721,16 @@ export default function ArticleDetailPage() {
         <span
           key={`annotation-${annotation.id}`}
           data-annotation-id={annotation.id}
-          className="relative group cursor-pointer scroll-mt-20"
+          className="relative cursor-pointer scroll-mt-20"
           style={{
             backgroundColor: annotation.color + "40",
             borderBottom: `2px solid ${annotation.color}`,
           }}
           title={annotation.comment}
+          onMouseEnter={() => setHoveredAnnotation(annotation)}
+          onMouseLeave={() => setHoveredAnnotation(null)}
         >
           {annotation.selectedText}
-          <span className="absolute bottom-full left-0 hidden group-hover:block z-10 w-64 p-2 bg-popover text-popover-foreground text-xs rounded-md shadow-md border">
-            <span className="font-medium block mb-1">批注：</span>
-            {annotation.comment}
-          </span>
         </span>
       );
 
@@ -917,12 +966,18 @@ export default function ArticleDetailPage() {
                     rawHtml={article.rawHtml}
                     fullText={article.fullText}
                     sourceUrl={article.originalUrl}
+                    annotations={article.annotations.length > 0 ? article.annotations : undefined}
                     onMouseUp={handleTextSelection}
                     onImageClick={setPreviewImageUrl}
                   >
-                    {article.annotations.length > 0 ? renderAnnotatedText() : undefined}
+                    {!article.rawHtml && article.annotations.length > 0 ? renderAnnotatedText() : undefined}
                   </ArticleContentRenderer>
                 </div>
+                {/* Portal tooltip for annotations — placed outside overflow containers */}
+                <AnnotationTooltip
+                  comment={hoveredAnnotation?.comment ?? ""}
+                  visible={!!hoveredAnnotation}
+                />
               </CardContent>
             </Card>
 

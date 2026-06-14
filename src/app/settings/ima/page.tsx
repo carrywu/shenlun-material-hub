@@ -42,6 +42,7 @@ export default function ImaSettingsPage() {
   const [error, setError] = useState("");
   const [health, setHealth] = useState<ImaHealth | null>(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -75,6 +76,7 @@ export default function ImaSettingsPage() {
     setApiKey("");
     setKnowledgeBaseId("");
     setShowForm(false);
+    setShowAdvanced(false);
     setError("");
   };
 
@@ -85,17 +87,10 @@ export default function ImaSettingsPage() {
   }
 
   const handleCreate = async () => {
-    // Non-admin only needs clientId and apiKey; admin needs all fields
-    if (isAdmin) {
-      if (!name || !baseUrl || !clientId || !apiKey || !knowledgeBaseId) {
-        setError("请填写所有字段");
-        return;
-      }
-    } else {
-      if (!clientId || !apiKey) {
-        setError("请填写 Client ID 和 API Key");
-        return;
-      }
+    // 所有角色只需 clientId 和 apiKey
+    if (!clientId || !apiKey) {
+      setError("请填写 Client ID 和 API Key");
+      return;
     }
 
     setSaving(true);
@@ -277,18 +272,6 @@ export default function ImaSettingsPage() {
             <CardTitle className="text-base">添加新的 IMA 目标</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {isAdmin && (
-              <>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">名称</label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：我的 IMA 知识库" className="h-9" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">API Base URL</label>
-                  <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.ima.qq.com" className="h-9" />
-                </div>
-              </>
-            )}
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">Client ID</label>
               <Input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="您的 Client ID" className="h-9" />
@@ -297,10 +280,33 @@ export default function ImaSettingsPage() {
               <label className="block text-xs font-medium text-muted-foreground mb-1">API Key</label>
               <Input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="您的 API Key" className="h-9" />
             </div>
+
             {isAdmin && (
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">知识库 ID</label>
-                <Input value={knowledgeBaseId} onChange={(e) => setKnowledgeBaseId(e.target.value)} placeholder="目标知识库 ID" className="h-9" />
+              <div className="border-t pt-3">
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                >
+                  <span className="transition-transform">{showAdvanced ? "▼" : "▶"}</span>
+                  高级配置
+                </button>
+                {showAdvanced && (
+                  <div className="space-y-4 mt-3">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">名称</label>
+                      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：我的 IMA 知识库（默认自动填充）" className="h-9" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">API Base URL</label>
+                      <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.ima.qq.com（默认）" className="h-9" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">知识库 ID</label>
+                      <Input value={knowledgeBaseId} onChange={(e) => setKnowledgeBaseId(e.target.value)} placeholder="目标知识库 ID（默认 default）" className="h-9" />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <div className="flex items-center gap-2 pt-2">

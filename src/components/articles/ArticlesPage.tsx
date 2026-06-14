@@ -328,7 +328,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
 
   // AI 批量评估
   async function handleAssess() {
-    const idsToAssess = selected.size > 0
+    let idsToAssess = selected.size > 0
       ? Array.from(selected)
       : items.filter((i) => i.qualityStatus === "candidate" && !i.aiDecision).map((i) => i.id);
 
@@ -337,13 +337,33 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
       return;
     }
 
+    // 检查已评估文章数量，如有则弹窗确认
+    const itemsToCheck = selected.size > 0
+      ? items.filter((i) => selected.has(i.id))
+      : items.filter((i) => i.qualityStatus === "candidate" && !i.aiDecision);
+    const evaluatedCount = itemsToCheck.filter((i) => i.aiDecision).length;
+
+    if (evaluatedCount > 0) {
+      const confirmed = window.confirm(
+        `确认重新 AI 评估？\n\n` +
+        `你已选择 ${itemsToCheck.length} 篇文章，其中 ${evaluatedCount} 篇已有 AI 评估结果。\n` +
+        `重新评估会覆盖旧结果。\n\n是否继续？`
+      );
+      if (!confirmed) return;
+
+      // 重新评估模式：需要包含所有选中的文章 ID
+      idsToAssess = Array.from(selected.size > 0 ? selected : new Set(itemsToCheck.map((i) => i.id)));
+    }
+
+    const reassess = evaluatedCount > 0;
+
     setAssessing(true);
     setAssessProgress(`正在评估 ${idsToAssess.length} 个条目...`);
     try {
       const res = await fetch("/api/content-items/assess", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: idsToAssess }),
+        body: JSON.stringify({ ids: idsToAssess, reassess }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -561,7 +581,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
           <div className="flex-1 min-w-[240px]">
             <label className="text-xs font-medium text-muted-foreground mb-1 block">关键词</label>
             <Input
-              placeholder="搜索标题、正文、来源"
+              placeholder="搜索标题、正文、来源或文章 ID"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={handleKeyDown}

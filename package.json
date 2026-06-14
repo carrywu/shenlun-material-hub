@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/run-next.mjs dev",
+    "dev:up": "bash scripts/dev.sh",
     "build": "next build",
     "start": "node scripts/run-next.mjs start",
     "lint": "eslint",
