@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
-import { assessRelevanceWithRetry, AiServiceError } from "@/services/ai";
+import { assessRelevanceWithRetry, scoreContentItem, AiServiceError } from "@/services/ai";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 const DEFAULT_CONCURRENCY = 3;
@@ -34,6 +34,28 @@ async function assessSingleItem(
       { userId }
     );
 
+    // 评估通过后自动评分（reject 的文章不浪费 AI 调用）。
+    // 评分失败不影响评估结果，只记日志。
+    let scoreOverall: number | null = null;
+    let scoreDetail: string | null = null;
+    let scoredAt: Date | null = null;
+    if (result.decision === "accept") {
+      try {
+        const scoreResult = await scoreContentItem(
+          item.title,
+          item.source?.name ?? "未知来源",
+          content,
+          item.contentType,
+          userId
+        );
+        scoreOverall = scoreResult.overall;
+        scoreDetail = JSON.stringify(scoreResult.detail);
+        scoredAt = new Date();
+      } catch (e) {
+        console.error("assess 自动评分失败:", e instanceof Error ? e.message : e);
+      }
+    }
+
     await db.contentItem.update({
       where: { id: item.id },
       data: {
@@ -55,6 +77,10 @@ async function assessSingleItem(
         qualityStatus: result.decision === "accept" ? "accepted" : "filtered",
         adminReviewStatus:
           result.decision === "accept" ? "pending_admin" : "rejected",
+        // 自动评分（仅 accept 时有值，reject 时清空旧分）
+        aiScore: scoreOverall,
+        aiScoreDetail: scoreDetail,
+        aiScoredAt: scoredAt,
         processingStatus:
           result.decision === "accept" ? "pending" : "filtered",
         filterReason:

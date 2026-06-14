@@ -44,6 +44,7 @@ vi.mock("@/lib/db", () => ({
 
 const aiMocks = vi.hoisted(() => ({
   assessRelevanceWithRetry: vi.fn(),
+  scoreContentItem: vi.fn(),
 }));
 
 vi.mock("@/services/ai", () => {
@@ -61,6 +62,7 @@ vi.mock("@/services/ai", () => {
   return {
     AiServiceError,
     assessRelevanceWithRetry: aiMocks.assessRelevanceWithRetry,
+    scoreContentItem: aiMocks.scoreContentItem,
   };
 });
 
@@ -106,7 +108,9 @@ describe("POST /api/content-items/reassess", () => {
     vi.clearAllMocks();
     authMocks.currentUser.value = null;
     dbMocks.findUnique.mockResolvedValue(ARTICLE);
+    dbMocks.update.mockResolvedValue({ ...ARTICLE, id: "article-1" });
     taskMocks.createAsyncTask.mockResolvedValue({ id: "task-1", type: "AI_ASSESS" });
+    taskMocks.completeAsyncTask.mockResolvedValue(undefined);
   });
 
   it("rejects verified users because reassessment changes public AI fields", async () => {
@@ -142,5 +146,101 @@ describe("POST /api/content-items/reassess", () => {
         }),
       })
     );
+  });
+
+  it("writes adminReviewStatus and auto-scores on accept", async () => {
+    authMocks.currentUser.value = USERS.ADMIN;
+    aiMocks.assessRelevanceWithRetry.mockResolvedValue({
+      decision: "accept",
+      reason: "高质量素材",
+      contentGenre: "policy_interpretation",
+      categories: ["治理"],
+      usableFor: ["申论"],
+      summary: "摘要",
+      quotes: ["金句"],
+    });
+    aiMocks.scoreContentItem.mockResolvedValue({
+      overall: 8.5,
+      detail: { relevance: 9, quality: 8, freshness: 8, uniqueness: 7, usability: 10 },
+    });
+
+    const res = await POST(makeReq("auth_token=t", { id: "article-1" }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    // 自动评分应被触发
+    expect(aiMocks.scoreContentItem).toHaveBeenCalledTimes(1);
+    // update 写入应包含评分字段
+    expect(dbMocks.update).toHaveBeenCalledWith({
+      where: { id: "article-1" },
+      data: expect.objectContaining({
+        aiScore: 8.5,
+        aiScoreDetail: expect.any(String),
+        aiScoredAt: expect.any(Date),
+        // 与 assess 接口一致：accept 时审核状态置为 pending_admin
+        adminReviewStatus: "pending_admin",
+        aiDecision: "accept",
+      }),
+    });
+  });
+
+  it("does not auto-score when rejected and clears old score", async () => {
+    authMocks.currentUser.value = USERS.ADMIN;
+    aiMocks.assessRelevanceWithRetry.mockResolvedValue({
+      decision: "reject",
+      reason: "不相关",
+      contentGenre: null,
+      categories: [],
+      usableFor: [],
+      summary: null,
+      quotes: [],
+    });
+
+    const res = await POST(makeReq("auth_token=t", { id: "article-1" }));
+
+    expect(res.status).toBe(200);
+    // reject 不应触发评分
+    expect(aiMocks.scoreContentItem).not.toHaveBeenCalled();
+    // 旧评分应被清空
+    expect(dbMocks.update).toHaveBeenCalledWith({
+      where: { id: "article-1" },
+      data: expect.objectContaining({
+        aiScore: null,
+        aiScoreDetail: null,
+        aiScoredAt: null,
+        adminReviewStatus: "rejected",
+        aiDecision: "reject",
+      }),
+    });
+  });
+
+  it("keeps evaluation result when auto-scoring fails", async () => {
+    authMocks.currentUser.value = USERS.ADMIN;
+    aiMocks.assessRelevanceWithRetry.mockResolvedValue({
+      decision: "accept",
+      reason: "高质量素材",
+      contentGenre: "policy_interpretation",
+      categories: ["治理"],
+      usableFor: ["申论"],
+      summary: "摘要",
+      quotes: ["金句"],
+    });
+    aiMocks.scoreContentItem.mockRejectedValue(new Error("评分服务超时"));
+
+    const res = await POST(makeReq("auth_token=t", { id: "article-1" }));
+
+    // 评估仍应成功（评分失败不阻断）
+    expect(res.status).toBe(200);
+    expect(dbMocks.update).toHaveBeenCalledWith({
+      where: { id: "article-1" },
+      data: expect.objectContaining({
+        aiDecision: "accept",
+        // 评分失败时三个字段为 null
+        aiScore: null,
+        aiScoreDetail: null,
+        aiScoredAt: null,
+      }),
+    });
   });
 });

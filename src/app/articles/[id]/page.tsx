@@ -257,6 +257,23 @@ function AiEvaluationPanel({
   const categories = parseStringList(article.aiCategories);
   const usableFor = parseStringList(article.aiUsableFor);
   const quotes = parseStringList(article.aiQuotes);
+  // 解析评分详情（5 维度：relevance/quality/freshness/uniqueness/usability）
+  const scoreDetail: Record<string, number> | null = (() => {
+    if (!article.aiScoreDetail) return null;
+    try {
+      const parsed = JSON.parse(article.aiScoreDetail);
+      return typeof parsed === "object" && parsed !== null ? parsed : null;
+    } catch {
+      return null;
+    }
+  })();
+  const scoreLabels: Record<string, string> = {
+    relevance: "相关性",
+    quality: "质量",
+    freshness: "时效性",
+    uniqueness: "独特性",
+    usability: "可用性",
+  };
   const hasEvaluation = Boolean(
     article.aiAssessedAt ||
     article.aiDecision ||
@@ -276,7 +293,14 @@ function AiEvaluationPanel({
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-3">
-          <CardTitle className="text-sm">AI 评估结果</CardTitle>
+          <div className="flex items-center gap-2 min-w-0">
+            <CardTitle className="text-sm">AI 评估结果</CardTitle>
+            {article.aiAssessedAt && (
+              <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                {new Date(article.aiAssessedAt).toLocaleString("zh-CN")}
+              </span>
+            )}
+          </div>
           <Badge
             variant={article.aiDecision === "accept" ? "default" : article.aiDecision === "reject" ? "destructive" : "secondary"}
             className="text-xs"
@@ -286,6 +310,30 @@ function AiEvaluationPanel({
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
+        {article.aiScore !== null && (
+          <div className="rounded-md border bg-muted/30 px-3 py-2.5">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl font-semibold tabular-nums">
+                {article.aiScore.toFixed(1)}
+              </span>
+              <span className="text-xs text-muted-foreground">/ 10 综合评分</span>
+            </div>
+            {scoreDetail && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
+                {Object.entries(scoreDetail).map(([dim, val]) => (
+                  <div key={dim} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">
+                      {scoreLabels[dim] ?? dim}
+                    </span>
+                    <span className="tabular-nums font-medium">
+                      {typeof val === "number" ? val.toFixed(1) : val}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {!hasEvaluation && (
           <div className="rounded-md border border-dashed bg-muted/30 px-3 py-2 text-muted-foreground">
             尚未评估。请点击重新评估后再查看 AI 结论。
