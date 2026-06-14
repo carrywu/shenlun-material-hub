@@ -170,3 +170,17 @@ Result: PASS
 Key output: No lint errors reported.
 Follow-up: Commit Task 4 backend service/API slice.
 ```
+
+```text
+Command: pnpm test src/components/__tests__/SyncToIma.test.tsx
+Result: PASS
+Key output: Test Files 1 passed; Tests 2 passed
+Follow-up: Run target lint for batch sync UI.
+```
+
+```text
+Command: pnpm exec eslint src/components/SyncToIma.tsx src/components/__tests__/SyncToIma.test.tsx src/app/cards/page.tsx
+Result: PASS
+Key output: No lint errors reported.
+Follow-up: Commit Task 5 batch sync UI slice.
+```

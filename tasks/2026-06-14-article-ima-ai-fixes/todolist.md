@@ -56,10 +56,10 @@
 
 ## Task 5: Material Card Batch Sync UI
 
-- [ ] Add E2E or component test for no-selection feedback.
-- [ ] Add E2E or component test for partial result display.
-- [ ] Update batch sync UI.
-- [ ] Run targeted UI/E2E validation.
+- [x] Add E2E or component test for no-selection feedback.
+- [x] Add E2E or component test for partial result display.
+- [x] Update batch sync UI.
+- [x] Run targeted UI/E2E validation.
 - [ ] Commit batch sync UI slice.
 
 ## Task 6: Article Detail IMA Sync UI

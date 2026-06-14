@@ -19,11 +19,14 @@ interface BatchSyncResult {
   total: number;
   success: number;
   failed: number;
-  results: Array<{
-    cardId: string;
-    success: boolean;
+  skipped?: number;
+  items: Array<{
+    materialCardId: string;
+    status: "success" | "failed" | "skipped";
     syncRecordId?: string;
-    error?: string;
+    imaDocumentId?: string;
+    errorCode?: string;
+    errorMessage?: string;
   }>;
 }
 
@@ -178,6 +181,17 @@ export function BatchSyncToIma({
   if (!isAdmin) return null;
 
   async function handleBatchSync() {
+    if (cardIds.length === 0) {
+      setResult({
+        total: 0,
+        success: 0,
+        failed: 0,
+        skipped: 0,
+        items: [],
+      });
+      return;
+    }
+
     setSyncing(true);
     setResult(null);
 
@@ -201,10 +215,11 @@ export function BatchSyncToIma({
         total: cardIds.length,
         success: 0,
         failed: cardIds.length,
-        results: cardIds.map((id) => ({
-          cardId: id,
-          success: false,
-          error: error instanceof Error ? error.message : "同步失败",
+        skipped: 0,
+        items: cardIds.map((id) => ({
+          materialCardId: id,
+          status: "failed",
+          errorMessage: error instanceof Error ? error.message : "同步失败",
         })),
       });
     } finally {
@@ -217,7 +232,7 @@ export function BatchSyncToIma({
       <Button
         variant="outline"
         size="sm"
-        disabled={syncing || cardIds.length === 0}
+        disabled={syncing}
         onClick={handleBatchSync}
       >
         {syncing ? (
@@ -227,7 +242,9 @@ export function BatchSyncToIma({
         )}
         {syncing
           ? "同步中..."
-          : `批量同步到 IMA (${cardIds.length})`}
+          : cardIds.length > 0
+            ? `批量同步到 IMA (${cardIds.length})`
+            : "批量同步"}
       </Button>
 
       {result && (
@@ -244,26 +261,35 @@ export function BatchSyncToIma({
                     失败 {result.failed}
                   </Badge>
                 )}
+                {(result.skipped ?? 0) > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    已跳过 {result.skipped}
+                  </Badge>
+                )}
               </div>
             </CardTitle>
           </CardHeader>
-          {result.failed > 0 && (
+          {result.total === 0 ? (
+            <CardContent className="pt-0">
+              <p className="text-xs text-muted-foreground">请先选择要同步的素材卡</p>
+            </CardContent>
+          ) : result.failed > 0 ? (
             <CardContent className="pt-0">
               <div className="space-y-1 max-h-32 overflow-auto">
-                {result.results
-                  .filter((r) => !r.success)
+                {result.items
+                  .filter((r) => r.status === "failed")
                   .map((r) => (
                     <div
-                      key={r.cardId}
+                      key={r.materialCardId}
                       className="flex items-center gap-2 text-xs text-destructive"
                     >
                       <XCircle className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{translateSyncError(r.error)}</span>
+                      <span className="truncate">失败原因：{translateSyncError(r.errorMessage)}</span>
                     </div>
                   ))}
               </div>
             </CardContent>
-          )}
+          ) : null}
         </Card>
       )}
     </div>

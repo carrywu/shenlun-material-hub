@@ -19,7 +19,6 @@ import {
   RefreshCw,
   Search,
   X,
-  Upload,
   FileText,
   BookOpen,
   BarChart3,
@@ -87,7 +86,6 @@ export default function CardsPage() {
 
   // Batch selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showBatchSync, setShowBatchSync] = useState(false);
 
   // Archive tab
   const [showArchived, setShowArchived] = useState(false);
@@ -199,7 +197,6 @@ export default function CardsPage() {
 
   function deselectAll() {
     setSelectedIds(new Set());
-    setShowBatchSync(false);
   }
 
   return (
@@ -210,10 +207,19 @@ export default function CardsPage() {
           title="素材卡管理"
           description="查看和管理 AI 生成的申论素材卡"
           actions={
-            <Button variant="outline" size="sm" onClick={fetchCards}>
-              <RefreshCw className="mr-1.5 h-4 w-4" />
-              刷新
-            </Button>
+            <div className="flex items-center gap-2">
+              <BatchSyncToIma
+                cardIds={Array.from(selectedIds)}
+                onSyncComplete={() => {
+                  deselectAll();
+                  fetchCards();
+                }}
+              />
+              <Button variant="outline" size="sm" onClick={fetchCards}>
+                <RefreshCw className="mr-1.5 h-4 w-4" />
+                刷新
+              </Button>
+            </div>
           }
         />
       </div>
@@ -302,30 +308,11 @@ export default function CardsPage() {
             <span className="text-sm text-muted-foreground">
               已选 {selectedIds.size} / {cards.length} 张
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowBatchSync(!showBatchSync)}
-            >
-              <Upload className="mr-1.5 h-4 w-4" />
-              批量同步
-            </Button>
             <Button variant="ghost" size="sm" onClick={deselectAll}>
               <X className="mr-1 h-4 w-4" />
               取消选择
             </Button>
           </div>
-          {showBatchSync && (
-            <div className="mt-3">
-              <BatchSyncToIma
-                cardIds={Array.from(selectedIds)}
-                onSyncComplete={() => {
-                  deselectAll();
-                  fetchCards();
-                }}
-              />
-            </div>
-          )}
         </div>
       )}
 

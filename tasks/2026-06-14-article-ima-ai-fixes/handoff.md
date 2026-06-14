@@ -2,7 +2,7 @@
 
 ## Current State
 
-Task 4 unified IMA service backend/API slice is implemented and targeted tests pass. The current unblocked next slice is Task 5 material card batch sync UI.
+Task 5 material card batch sync UI is implemented and targeted tests pass. The current unblocked next slice is Task 6 article detail IMA sync.
 
 ## Completed
 
@@ -21,6 +21,9 @@ Task 4 unified IMA service backend/API slice is implemented and targeted tests p
 - Added `ImaService` in `src/services/ima-sync.ts` with structured single-card sync, batch sync, duplicate-success skip, health check, and operation logging.
 - Updated `/api/sync` to call `ImaService` and return batch `items` with success/failed/skipped status details.
 - Added admin-only `/api/ima/health` for IMA health checks.
+- Updated material card batch sync UI to keep a visible batch sync action in the page header.
+- Empty selection now shows `请先选择要同步的素材卡` instead of silently doing nothing.
+- Batch sync UI now consumes the new `items` result shape and displays success, failed, skipped, and failure reasons.
 
 ## IMA Call Chain Conclusion
 
@@ -65,6 +68,9 @@ Task 4 unified IMA service backend/API slice is implemented and targeted tests p
 - `src/app/api/sync/__tests__/route.test.ts`
 - `src/app/api/ima/health/route.ts`
 - `src/app/api/ima/health/__tests__/route.test.ts`
+- `src/components/SyncToIma.tsx`
+- `src/components/__tests__/SyncToIma.test.tsx`
+- `src/app/cards/page.tsx`
 
 ## Verification
 
@@ -81,7 +87,9 @@ Task 4 unified IMA service backend/API slice is implemented and targeted tests p
 - `pnpm test src/app/api/sync/__tests__/route.test.ts` passed with 2 tests.
 - `pnpm test src/app/api/ima/health/__tests__/route.test.ts` passed with 2 tests.
 - `pnpm exec eslint src/services/ima-sync.ts src/services/__tests__/ima-sync.test.ts src/app/api/sync/route.ts src/app/api/sync/__tests__/route.test.ts src/app/api/ima/health/route.ts src/app/api/ima/health/__tests__/route.test.ts` passed.
+- `pnpm test src/components/__tests__/SyncToIma.test.tsx` passed with 2 tests.
+- `pnpm exec eslint src/components/SyncToIma.tsx src/components/__tests__/SyncToIma.test.tsx src/app/cards/page.tsx` passed.
 
 ## Next Action
 
-Commit Task 4 backend service/API slice, then start Task 5 batch sync UI.
+Commit Task 5 batch sync UI slice, then start Task 6 article detail IMA sync.
