@@ -35,7 +35,7 @@ import {
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import { useAuth } from "@/lib/auth-context";
-import { CONTENT_TYPE_LABELS, CONTENT_GENRE_LABELS, translateTag, parseTopicTags } from "@/lib/display-labels";
+import { CONTENT_TYPE_LABELS, CONTENT_GENRE_LABELS, getAiDecisionLabel, translateTag, parseTopicTags } from "@/lib/display-labels";
 import type { CardType } from "@/types";
 
 interface Annotation {
@@ -183,11 +183,7 @@ function AiEvaluationPanel({ article }: { article: ArticleDetail }) {
   const categories = parseStringList(article.aiCategories);
   const usableFor = parseStringList(article.aiUsableFor);
   const quotes = parseStringList(article.aiQuotes);
-  const decisionLabel = article.aiDecision === "accept"
-    ? "已接受"
-    : article.aiDecision === "reject"
-      ? "已拒绝"
-      : "待评估";
+  const decisionLabel = getAiDecisionLabel(article.aiDecision);
 
   return (
     <Card>
@@ -1188,7 +1184,7 @@ export default function ArticleDetailPage() {
                 <p>来源：{article.source?.name ?? article.platform}</p>
                 <p>类型：{article.contentType ? (CONTENT_TYPE_LABELS[article.contentType] ?? article.contentType) : "未分类"}</p>
                 <p>字数：{article.effectiveTextLength}</p>
-                <p>AI 状态：{article.aiDecision === "accept" ? "已接受" : article.aiDecision === "reject" ? "已拒绝" : "待评估"}</p>
+                <p>AI 状态：{getAiDecisionLabel(article.aiDecision)}</p>
                 <Separator className="my-2" />
                 <p>创建时间：{new Date(article.createdAt).toLocaleString("zh-CN")}</p>
                 <p>ID：{article.id}</p>

@@ -90,6 +90,32 @@ export const STATUS_LABELS: Record<string, string> = {
   card_generated: "已生成素材卡",
 };
 
+export const AI_DECISION_LABELS: Record<string, string> = {
+  accept: "已通过",
+  accepted: "已通过",
+  reject: "已拒绝",
+  rejected: "已拒绝",
+  pending: "待评估",
+  unknown: "未知",
+};
+
+export const SYNC_STATUS_LABELS: Record<string, string> = {
+  pending: "待同步",
+  success: "成功",
+  failed: "失败",
+  skipped: "已跳过",
+};
+
+export function getAiDecisionLabel(value: string | null | undefined): string {
+  if (!value) return "尚未评估";
+  return AI_DECISION_LABELS[value] ?? "未知";
+}
+
+export function getSyncStatusLabel(value: string | null | undefined): string {
+  if (!value) return "未知";
+  return SYNC_STATUS_LABELS[value] ?? "未知";
+}
+
 export const AI_FIELD_LABELS: Record<string, string> = {
   expression: "表达原文",
   oral: "通俗解释",

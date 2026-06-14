@@ -32,24 +32,21 @@ import {
   Check,
 } from "lucide-react";
 import { SYNC_STATUSES, DOCUMENT_ROLES } from "@/types";
+import { getSyncStatusLabel, SYNC_STATUS_LABELS } from "@/lib/display-labels";
 import { translateSyncError } from "@/lib/error-messages";
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "待同步",
-  success: "成功",
-  failed: "失败",
-};
 
 const STATUS_ICONS: Record<string, React.ElementType> = {
   pending: Clock,
   success: CheckCircle2,
   failed: XCircle,
+  skipped: AlertTriangle,
 };
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "text-yellow-600",
   success: "text-green-600",
   failed: "text-destructive",
+  skipped: "text-muted-foreground",
 };
 
 const DOC_ROLE_LABELS: Record<string, string> = {
@@ -199,7 +196,7 @@ export default function SyncRecordsPage() {
         {/* Header */}
         <PageHeader
           title="同步记录"
-          description="查看素材卡同步到 ima 知识库的历史记录"
+          description="查看素材卡同步到 IMA 知识库的历史记录"
           actions={
             <Button variant="outline" size="sm" onClick={fetchRecords} disabled={loading}>
               <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -215,14 +212,14 @@ export default function SyncRecordsPage() {
             <Select value={statusFilter} onValueChange={(v) => { if (v) setStatusFilter(v); }}>
               <SelectTrigger className="w-32" aria-label="同步状态">
                 <SelectValue>
-                  {statusFilter === "all" ? "全部" : (STATUS_LABELS[statusFilter] ?? statusFilter)}
+                  {statusFilter === "all" ? "全部" : getSyncStatusLabel(statusFilter)}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部</SelectItem>
                 {SYNC_STATUSES.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {STATUS_LABELS[s]}
+                    {SYNC_STATUS_LABELS[s] ?? getSyncStatusLabel(s)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -352,7 +349,7 @@ export default function SyncRecordsPage() {
                       <TableCell>
                         <div className={`flex items-center gap-1.5 ${STATUS_COLORS[record.status]}`}>
                           <StatusIcon className="h-3.5 w-3.5" />
-                          <span className="text-sm">{STATUS_LABELS[record.status]}</span>
+                          <span className="text-sm">{getSyncStatusLabel(record.status)}</span>
                         </div>
                         {record.errorMessage && (
                           <div className="text-xs text-destructive mt-1 max-w-48 truncate" title={record.errorMessage}>

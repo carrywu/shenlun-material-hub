@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Loader2, CheckCircle2, XCircle, RefreshCw, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { getSyncStatusLabel } from "@/lib/display-labels";
 import { translateSyncError } from "@/lib/error-messages";
 
 interface SyncResult {
@@ -105,7 +106,7 @@ export function SyncToIma({
         size="sm"
         disabled={syncing}
         onClick={handleSync}
-        title={lastResult?.error ?? "同步到 ima"}
+        title={lastResult?.error ?? "同步到 IMA"}
       >
         {syncing ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -129,7 +130,7 @@ export function SyncToIma({
         ) : (
           <Upload className="mr-1.5 h-4 w-4" />
         )}
-        {syncing ? "同步中..." : "同步到 ima"}
+        {syncing ? "同步中..." : "同步到 IMA"}
       </Button>
 
       {lastResult && (
@@ -226,7 +227,7 @@ export function BatchSyncToIma({
         )}
         {syncing
           ? "同步中..."
-          : `批量同步到 ima (${cardIds.length})`}
+          : `批量同步到 IMA (${cardIds.length})`}
       </Button>
 
       {result && (
@@ -314,7 +315,7 @@ function SyncStatusCard({ syncRecordId }: { syncRecordId: string }) {
 
   return (
     <div className="text-xs text-muted-foreground space-y-1">
-      <p>状态：{record.status === "success" ? "成功" : record.status === "failed" ? "失败" : "待同步"}</p>
+      <p>状态：{getSyncStatusLabel(record.status)}</p>
       {record.remoteDocumentId && <p>文档 ID：{record.remoteDocumentId}</p>}
       {record.errorMessage && <p className="text-destructive">{translateSyncError(record.errorMessage)}</p>}
       <p>时间：{new Date(record.syncedAt).toLocaleString("zh-CN")}</p>

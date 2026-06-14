@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getAiDecisionLabel,
   getSafeDisplayLabel,
+  getSyncStatusLabel,
   MATERIAL_TYPE_LABELS,
   MATERIAL_TYPE_OPTIONS,
   translateTag,
@@ -24,6 +26,30 @@ describe("display labels", () => {
 
   it("does not fall back to unknown internal values in user display", () => {
     expect(getSafeDisplayLabel("unexpected_internal_code", MATERIAL_TYPE_LABELS)).toBe("未分类");
+  });
+});
+
+describe("AI decision labels", () => {
+  it("maps AI decision machine values to Chinese labels", () => {
+    expect(getAiDecisionLabel("accept")).toBe("已通过");
+    expect(getAiDecisionLabel("accepted")).toBe("已通过");
+    expect(getAiDecisionLabel("reject")).toBe("已拒绝");
+    expect(getAiDecisionLabel("rejected")).toBe("已拒绝");
+    expect(getAiDecisionLabel("pending")).toBe("待评估");
+    expect(getAiDecisionLabel(null)).toBe("尚未评估");
+    expect(getAiDecisionLabel(undefined)).toBe("尚未评估");
+    expect(getAiDecisionLabel("unexpected_internal_code")).toBe("未知");
+  });
+});
+
+describe("sync status labels", () => {
+  it("maps sync status machine values to Chinese labels", () => {
+    expect(getSyncStatusLabel("success")).toBe("成功");
+    expect(getSyncStatusLabel("failed")).toBe("失败");
+    expect(getSyncStatusLabel("skipped")).toBe("已跳过");
+    expect(getSyncStatusLabel("pending")).toBe("待同步");
+    expect(getSyncStatusLabel(null)).toBe("未知");
+    expect(getSyncStatusLabel("unexpected_internal_code")).toBe("未知");
   });
 });
 
