@@ -2,7 +2,7 @@
 
 ## Current State
 
-Task 2 AI evaluation provenance is implemented and targeted tests pass. The current unblocked next slice is Task 3 article content rendering.
+Task 3 article content rendering is implemented and targeted tests pass. The current unblocked next slice is Task 4 unified IMA service and APIs.
 
 ## Completed
 
@@ -15,6 +15,9 @@ Task 2 AI evaluation provenance is implemented and targeted tests pass. The curr
 - Restricted single article reassessment to admin.
 - Updated article detail AI panel to show unassessed, stale, and latest failure states.
 - Added AI provenance debug info for admin/development; content hashes are only shown to admins.
+- Added `ArticleContentRenderer` to centralize article body rendering.
+- The renderer sanitizes HTML, preserves paragraphs/lists/tables/images, converts relative URLs with `sourceUrl`, proxies WeChat images, and falls back to paragraphized plain text.
+- Article detail now uses the renderer instead of inline HTML sanitization; existing annotation highlights are preserved for annotated plain-text articles.
 
 ## AI Evaluation Source Conclusion
 
@@ -41,6 +44,8 @@ Task 2 AI evaluation provenance is implemented and targeted tests pass. The curr
 - `src/app/articles/[id]/page.tsx`
 - `src/lib/__tests__/display-labels.test.ts`
 - `src/lib/display-labels.ts`
+- `src/components/articles/ArticleContentRenderer.tsx`
+- `src/components/articles/__tests__/ArticleContentRenderer.test.tsx`
 
 ## Verification
 
@@ -51,7 +56,9 @@ Task 2 AI evaluation provenance is implemented and targeted tests pass. The curr
 - `pnpm test src/app/api/content-items/assess/__tests__/route.test.ts` passed with 3 tests.
 - `pnpm db:generate` passed and regenerated Prisma Client.
 - `pnpm exec tsc --noEmit` is blocked by an existing unrelated TS2774 error in `tests/e2e/permissions.spec.ts:78`.
+- `pnpm test src/components/articles/__tests__/ArticleContentRenderer.test.tsx` passed with 4 tests.
+- `pnpm exec eslint src/components/articles/ArticleContentRenderer.tsx src/components/articles/__tests__/ArticleContentRenderer.test.tsx 'src/app/articles/[id]/page.tsx'` passed.
 
 ## Next Action
 
-Commit Task 2, then start Task 3 article content rendering tests.
+Commit Task 3, then start Task 4 unified IMA service/API tests.

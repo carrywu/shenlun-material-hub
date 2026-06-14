@@ -30,13 +30,13 @@
 
 ## Task 3: Article Content Renderer
 
-- [ ] Add renderer tests for paragraphs.
-- [ ] Add renderer tests for HTML structure preservation.
-- [ ] Add renderer tests for XSS sanitization.
-- [ ] Add renderer tests for relative image URLs.
-- [ ] Implement `ArticleContentRenderer`.
-- [ ] Replace inline article detail renderer.
-- [ ] Run renderer tests.
+- [x] Add renderer tests for paragraphs.
+- [x] Add renderer tests for HTML structure preservation.
+- [x] Add renderer tests for XSS sanitization.
+- [x] Add renderer tests for relative image URLs.
+- [x] Implement `ArticleContentRenderer`.
+- [x] Replace inline article detail renderer.
+- [x] Run renderer tests.
 - [ ] Commit content rendering slice.
 
 ## Task 4: Unified IMA Service and APIs

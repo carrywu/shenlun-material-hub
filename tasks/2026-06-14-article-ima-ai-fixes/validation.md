@@ -107,3 +107,31 @@ Result: PASS
 Key output: Test Files 4 passed; Tests 28 passed
 Follow-up: Commit Task 2 slice.
 ```
+
+```text
+Command: pnpm test src/components/articles/__tests__/ArticleContentRenderer.test.tsx
+Result: FAIL as expected
+Key output: Failed to resolve import ../ArticleContentRenderer.
+Follow-up: Implement ArticleContentRenderer.
+```
+
+```text
+Command: pnpm test src/components/articles/__tests__/ArticleContentRenderer.test.tsx
+Result: FAIL
+Key output: Paragraph newline assertion used toHaveTextContent, which normalizes whitespace.
+Follow-up: Change assertion to inspect textContent directly.
+```
+
+```text
+Command: pnpm test src/components/articles/__tests__/ArticleContentRenderer.test.tsx
+Result: PASS
+Key output: Test Files 1 passed; Tests 4 passed
+Follow-up: Run target lint for renderer and article detail integration.
+```
+
+```text
+Command: pnpm exec eslint src/components/articles/ArticleContentRenderer.tsx src/components/articles/__tests__/ArticleContentRenderer.test.tsx 'src/app/articles/[id]/page.tsx'
+Result: PASS
+Key output: No lint errors reported.
+Follow-up: Commit Task 3 slice.
+```

@@ -33,8 +33,8 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import DOMPurify from "dompurify";
 import { useAuth } from "@/lib/auth-context";
+import { ArticleContentRenderer } from "@/components/articles/ArticleContentRenderer";
 import {
   CONTENT_TYPE_LABELS,
   CONTENT_GENRE_LABELS,
@@ -317,69 +317,6 @@ function AiEvaluationPanel({
       </CardContent>
     </Card>
   );
-}
-
-/**
- * 清洗微信文章 HTML，保留图片并通过代理加载
- */
-function sanitizeWechatHtml(rawHtml: string): string {
-  const clean = DOMPurify.sanitize(rawHtml, {
-    ALLOWED_TAGS: [
-      "p", "img", "strong", "em", "b", "i", "u", "s",
-      "h1", "h2", "h3", "h4", "h5", "h6",
-      "ul", "ol", "li", "blockquote", "br", "hr",
-      "table", "thead", "tbody", "tr", "th", "td",
-      "a", "span", "div", "section",
-    ],
-    ALLOWED_ATTR: [
-      "src", "alt", "class", "style", "href", "target", "rel",
-      "width", "height", "data-src",
-    ],
-    FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"],
-  });
-
-  if (typeof window === "undefined") return clean;
-
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(clean, "text/html");
-    const imgs = doc.querySelectorAll("img");
-
-    imgs.forEach((img) => {
-      const srcVal = img.getAttribute("src") || "";
-      const dataSrcVal = img.getAttribute("data-src") || "";
-
-      let targetUrl = "";
-      if (
-        dataSrcVal.includes("mmbiz.qpic.cn") ||
-        dataSrcVal.includes("wx.qpic.cn") ||
-        dataSrcVal.includes("mmbiz.qlogo.cn")
-      ) {
-        targetUrl = dataSrcVal;
-      } else if (
-        srcVal.includes("mmbiz.qpic.cn") ||
-        srcVal.includes("wx.qpic.cn") ||
-        srcVal.includes("mmbiz.qlogo.cn")
-      ) {
-        targetUrl = srcVal;
-      }
-
-      if (targetUrl) {
-        img.setAttribute("src", `/api/proxy/image?url=${encodeURIComponent(targetUrl)}`);
-        img.removeAttribute("data-src");
-      }
-
-      img.style.maxWidth = "100%";
-      img.style.height = "auto";
-      img.style.display = "block";
-      img.style.margin = "1rem auto";
-      img.style.borderRadius = "0.375rem";
-    });
-
-    return doc.body.innerHTML;
-  } catch {
-    return clean;
-  }
 }
 
 export default function ArticleDetailPage() {
@@ -923,34 +860,18 @@ export default function ArticleDetailPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* WeChat articles: render HTML with images */}
-                {article.platform === "wechat" && article.rawHtml ? (
-                  <div
-                    ref={textRef}
-                    className="text-sm leading-relaxed select-text article-content prose prose-sm max-w-none cursor-pointer"
+                <div ref={textRef}>
+                  <ArticleContentRenderer
+                    platform={article.platform}
+                    rawHtml={article.rawHtml}
+                    fullText={article.fullText}
+                    sourceUrl={article.originalUrl}
                     onMouseUp={handleTextSelection}
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === "IMG") {
-                        const src = target.getAttribute("src");
-                        if (src) {
-                          setPreviewImageUrl(src);
-                        }
-                      }
-                    }}
-                    dangerouslySetInnerHTML={{
-                      __html: sanitizeWechatHtml(article.rawHtml),
-                    }}
-                  />
-                ) : (
-                  <div
-                    ref={textRef}
-                    className="text-sm leading-relaxed whitespace-pre-wrap select-text"
-                    onMouseUp={handleTextSelection}
+                    onImageClick={setPreviewImageUrl}
                   >
-                    {renderAnnotatedText()}
-                  </div>
-                )}
+                    {article.annotations.length > 0 ? renderAnnotatedText() : undefined}
+                  </ArticleContentRenderer>
+                </div>
               </CardContent>
             </Card>
 
