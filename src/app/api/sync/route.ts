@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { syncToIma, syncBatchToIma, getSyncStatus, getSyncHistory } from "@/services/ima-sync";
+import { ImaService, getSyncStatus, getSyncHistory } from "@/services/ima-sync";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import { auditLog } from "@/lib/audit-logger";
 
@@ -38,7 +38,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "素材卡尚未确认，请先确认后再同步" }, { status: 400 });
       }
 
-      const result = await syncToIma(cardId, user.id);
+      const item = await ImaService.syncMaterialCard({ materialCardId: cardId, userId: user.id });
+      const result = {
+        success: item.status !== "failed",
+        status: item.status,
+        syncRecordId: item.syncRecordId,
+        imaDocumentId: item.imaDocumentId,
+        errorCode: item.errorCode,
+        error: item.errorMessage,
+      };
 
       await auditLog({
         userId: user.id,
@@ -51,7 +59,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Batch sync
-    if (cardIds && cardIds.length > 0) {
+    if (cardIds) {
+      if (cardIds.length === 0) {
+        return NextResponse.json(
+          { error: "请先选择要同步的素材卡" },
+          { status: 400 }
+        );
+      }
+
       if (cardIds.length > 50) {
         return NextResponse.json(
           { error: "单次最多批量同步 50 张素材卡" },
@@ -93,7 +108,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await syncBatchToIma(cardIds, undefined, user.id);
+      const result = await ImaService.batchSyncMaterialCards({
+        materialCardIds: cardIds,
+        userId: user.id,
+      });
 
       await auditLog({
         userId: user.id,

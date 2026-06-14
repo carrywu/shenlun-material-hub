@@ -41,16 +41,17 @@
 
 ## Task 4: Unified IMA Service and APIs
 
-- [ ] Add service tests for config missing.
-- [ ] Add service tests for sync success.
-- [ ] Add service tests for duplicate skip.
-- [ ] Add service tests for batch partial failure.
+- [x] Add service tests for config missing.
+- [x] Add service tests for sync success.
+- [x] Add service tests for duplicate skip.
+- [x] Add service tests for batch partial failure.
 - [ ] Add API tests for article sync permission boundaries.
-- [ ] Add API tests for health check.
+- [x] Add API tests for health check.
 - [ ] Update `SyncRecord` schema for article-only sync.
-- [ ] Implement unified service operations.
-- [ ] Add article sync and health routes.
-- [ ] Run targeted IMA tests.
+- [x] Implement unified service operations.
+- [x] Add IMA health route.
+- [ ] Add article sync route.
+- [x] Run targeted IMA tests.
 - [ ] Commit IMA service slice.
 
 ## Task 5: Material Card Batch Sync UI

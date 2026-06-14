@@ -51,6 +51,78 @@ interface ImaSyncResult {
   documentId: string;
 }
 
+export type ImaSyncItemStatus = "success" | "failed" | "skipped";
+
+export interface ImaSyncItemResult {
+  materialCardId: string;
+  status: ImaSyncItemStatus;
+  syncRecordId?: string;
+  imaDocumentId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+}
+
+export interface ImaBatchSyncResult {
+  total: number;
+  success: number;
+  failed: number;
+  skipped: number;
+  items: ImaSyncItemResult[];
+}
+
+export interface ImaHealthResult {
+  configured: boolean;
+  reachable: boolean;
+  authValid: boolean;
+  workspace?: string;
+  lastCheckedAt: string;
+  errorCode?: string;
+  errorMessage?: string;
+}
+
+class ImaSyncError extends Error {
+  constructor(
+    public code: string,
+    message: string,
+    public status?: number
+  ) {
+    super(message);
+    this.name = "ImaSyncError";
+  }
+}
+
+function normalizeImaError(error: unknown): { errorCode: string; errorMessage: string } {
+  if (error instanceof ImaSyncError) {
+    return { errorCode: error.code, errorMessage: error.message };
+  }
+  if (error instanceof Error) {
+    if (error.message.startsWith("IMA_CONFIG_MISSING")) {
+      return {
+        errorCode: "IMA_CONFIG_MISSING",
+        errorMessage: error.message.replace(/^IMA_CONFIG_MISSING:\s*/, ""),
+      };
+    }
+    return { errorCode: "IMA_SYNC_FAILED", errorMessage: error.message };
+  }
+  return { errorCode: "IMA_SYNC_FAILED", errorMessage: "同步失败" };
+}
+
+function logImaOperation(
+  level: "info" | "error",
+  detail: Record<string, unknown>
+) {
+  const payload = {
+    requestId: detail.requestId ?? crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    ...detail,
+  };
+  if (level === "error") {
+    console.error("[IMA]", payload);
+  } else {
+    console.info("[IMA]", payload);
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -139,7 +211,8 @@ async function callImaApi(
 
   if (!res.ok) {
     const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`ima API error (${res.status}): ${errorText}`);
+    const code = res.status === 401 || res.status === 403 ? "IMA_AUTH_FAILED" : "IMA_API_ERROR";
+    throw new ImaSyncError(code, `IMA API 错误（${res.status}）：${errorText}`, res.status);
   }
 
   return res.json();
@@ -213,37 +286,90 @@ export async function syncToIma(
   cardId: string,
   userId?: string
 ): Promise<{ success: boolean; syncRecordId: string; error?: string }> {
+  const result = await ImaService.syncMaterialCard({ materialCardId: cardId, userId });
+  return {
+    success: result.status !== "failed",
+    syncRecordId: result.syncRecordId ?? "",
+    error: result.errorMessage,
+  };
+}
+
+async function syncMaterialCard(params: {
+  materialCardId: string;
+  userId?: string;
+  requestId?: string;
+}): Promise<ImaSyncItemResult> {
+  const { materialCardId, userId, requestId = crypto.randomUUID() } = params;
+  const startedAt = Date.now();
   const card = await db.materialCard.findUnique({
-    where: { id: cardId },
+    where: { id: materialCardId },
     include: {
       contentItem: { select: { id: true, title: true, topicTags: true, regionScopes: true } },
     },
   });
 
   if (!card) {
-    throw new Error("素材卡不存在");
+    return {
+      materialCardId,
+      status: "failed",
+      errorCode: "MATERIAL_CARD_NOT_FOUND",
+      errorMessage: "素材卡不存在",
+    };
   }
 
   if (!card.confirmed) {
-    throw new Error("素材卡尚未确认，请先确认后再同步");
+    return {
+      materialCardId,
+      status: "failed",
+      errorCode: "MATERIAL_CARD_UNCONFIRMED",
+      errorMessage: "素材卡尚未确认，请先确认后再同步",
+    };
   }
 
   const { regionFolder, typeFolder } = deriveFolders(card.contentItem, card.cardType);
-
-  const syncRecord = await db.syncRecord.create({
-    data: {
-      materialCardId: cardId,
-      contentItemId: card.contentItemId,
-      documentRole: "material_card",
-      regionFolder,
-      typeFolder,
-      status: "pending",
-      userId: userId ?? null,
-    },
-  });
+  let syncRecord: { id: string } | null = null;
 
   try {
     const config = await resolveImaConfig(userId);
+    const existingSuccess = await db.syncRecord.findFirst({
+      where: {
+        materialCardId,
+        userId: userId ?? null,
+        documentRole: "material_card",
+        status: "success",
+      },
+      orderBy: { syncedAt: "desc" },
+    });
+
+    if (existingSuccess) {
+      logImaOperation("info", {
+        requestId,
+        operation: "syncMaterialCard",
+        status: "skipped",
+        cardId: materialCardId,
+        userId,
+        duration: Date.now() - startedAt,
+      });
+      return {
+        materialCardId,
+        status: "skipped",
+        syncRecordId: existingSuccess.id,
+        imaDocumentId: existingSuccess.remoteDocumentId ?? undefined,
+      };
+    }
+
+    syncRecord = await db.syncRecord.create({
+      data: {
+        materialCardId,
+        contentItemId: card.contentItemId,
+        documentRole: "material_card",
+        regionFolder,
+        typeFolder,
+        status: "pending",
+        userId: userId ?? null,
+      },
+    });
+
     const displayContent = card.userEditedContent ?? card.markdownContent ?? card.aiSummary ?? "";
     const topicTags = card.contentItem?.topicTags ?? "[]";
     let parsedTags: string;
@@ -271,23 +397,53 @@ export async function syncToIma(
       },
     });
 
-    return { success: true, syncRecordId: syncRecord.id };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "同步失败";
-
-    await db.syncRecord.update({
-      where: { id: syncRecord.id },
-      data: {
-        status: "failed",
-        errorMessage,
-      },
+    logImaOperation("info", {
+      requestId,
+      operation: "syncMaterialCard",
+      status: "success",
+      cardId: materialCardId,
+      userId,
+      imaConfigId: config.knowledgeBaseId,
+      duration: Date.now() - startedAt,
     });
 
     return {
-      success: false,
+      materialCardId,
+      status: "success",
       syncRecordId: syncRecord.id,
-      error: errorMessage,
+      imaDocumentId: result.documentId,
+    };
+  } catch (error) {
+    const { errorCode, errorMessage } = normalizeImaError(error);
+
+    if (syncRecord) {
+      await db.syncRecord.update({
+        where: { id: syncRecord.id },
+        data: {
+          status: "failed",
+          errorCode,
+          errorMessage,
+        },
+      });
+    }
+
+    logImaOperation("error", {
+      requestId,
+      operation: "syncMaterialCard",
+      status: "failed",
+      cardId: materialCardId,
+      userId,
+      duration: Date.now() - startedAt,
+      errorCode,
+      errorMessage,
+    });
+
+    return {
+      materialCardId,
+      status: "failed",
+      syncRecordId: syncRecord?.id,
+      errorCode,
+      errorMessage,
     };
   }
 }
@@ -307,44 +463,104 @@ export async function syncBatchToIma(
     error?: string;
   }>;
 }> {
-  const results: Array<{
-    cardId: string;
-    success: boolean;
-    syncRecordId?: string;
-    error?: string;
-  }> = [];
-
-  for (let i = 0; i < cardIds.length; i += concurrency) {
-    const batch = cardIds.slice(i, i + concurrency);
-    const batchResults = await Promise.all(
-      batch.map(async (cardId) => {
-        try {
-          const result = await syncToIma(cardId, userId);
-          return {
-            cardId,
-            success: result.success,
-            syncRecordId: result.syncRecordId,
-            error: result.error,
-          };
-        } catch (error) {
-          return {
-            cardId,
-            success: false,
-            error: error instanceof Error ? error.message : "同步失败",
-          };
-        }
-      })
-    );
-    results.push(...batchResults);
-  }
-
+  const result = await ImaService.batchSyncMaterialCards({
+    materialCardIds: cardIds,
+    concurrency,
+    userId,
+  });
+  const results = result.items.map((item) => ({
+    cardId: item.materialCardId,
+    success: item.status !== "failed",
+    syncRecordId: item.syncRecordId,
+    error: item.errorMessage,
+  }));
   return {
-    total: results.length,
-    success: results.filter((r) => r.success).length,
-    failed: results.filter((r) => !r.success).length,
+    total: result.total,
+    success: result.success + result.skipped,
+    failed: result.failed,
     results,
   };
 }
+
+async function batchSyncMaterialCards(params: {
+  materialCardIds: string[];
+  concurrency?: number;
+  userId?: string;
+  requestId?: string;
+}): Promise<ImaBatchSyncResult> {
+  const { materialCardIds, concurrency = 3, userId, requestId = crypto.randomUUID() } = params;
+  const items: ImaSyncItemResult[] = [];
+
+  for (let i = 0; i < materialCardIds.length; i += concurrency) {
+    const batch = materialCardIds.slice(i, i + concurrency);
+    const batchItems = await Promise.all(
+      batch.map((materialCardId) =>
+        syncMaterialCard({ materialCardId, userId, requestId })
+      )
+    );
+    items.push(...batchItems);
+  }
+
+  return {
+    total: items.length,
+    success: items.filter((item) => item.status === "success").length,
+    failed: items.filter((item) => item.status === "failed").length,
+    skipped: items.filter((item) => item.status === "skipped").length,
+    items,
+  };
+}
+
+async function healthCheck(userId: string): Promise<ImaHealthResult> {
+  const lastCheckedAt = new Date().toISOString();
+  try {
+    const config = await resolveImaConfig(userId);
+    const res = await fetch(`${config.baseUrl}/v1/knowledge_bases/${config.knowledgeBaseId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Client-Id": config.clientId,
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+    });
+
+    if (!res.ok) {
+      const errorMessage = await res.text().catch(() => "连接检查失败");
+      return {
+        configured: true,
+        reachable: res.status !== 0,
+        authValid: res.status !== 401 && res.status !== 403,
+        workspace: config.knowledgeBaseId,
+        lastCheckedAt,
+        errorCode: res.status === 401 || res.status === 403 ? "IMA_AUTH_FAILED" : "IMA_HEALTH_FAILED",
+        errorMessage,
+      };
+    }
+
+    return {
+      configured: true,
+      reachable: true,
+      authValid: true,
+      workspace: config.knowledgeBaseId,
+      lastCheckedAt,
+    };
+  } catch (error) {
+    const { errorCode, errorMessage } = normalizeImaError(error);
+    return {
+      configured: errorCode !== "IMA_CONFIG_MISSING",
+      reachable: false,
+      authValid: false,
+      lastCheckedAt,
+      errorCode,
+      errorMessage,
+    };
+  }
+}
+
+export const ImaService = {
+  syncMaterialCard,
+  batchSyncMaterialCards,
+  healthCheck,
+};
 
 export async function getSyncStatus(syncRecordId: string) {
   const record = await db.syncRecord.findUnique({

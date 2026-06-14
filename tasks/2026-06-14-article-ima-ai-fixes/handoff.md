@@ -2,7 +2,7 @@
 
 ## Current State
 
-Task 3 article content rendering is implemented and targeted tests pass. The current unblocked next slice is Task 4 unified IMA service and APIs.
+Task 4 unified IMA service backend/API slice is implemented and targeted tests pass. The current unblocked next slice is Task 5 material card batch sync UI.
 
 ## Completed
 
@@ -18,6 +18,19 @@ Task 3 article content rendering is implemented and targeted tests pass. The cur
 - Added `ArticleContentRenderer` to centralize article body rendering.
 - The renderer sanitizes HTML, preserves paragraphs/lists/tables/images, converts relative URLs with `sourceUrl`, proxies WeChat images, and falls back to paragraphized plain text.
 - Article detail now uses the renderer instead of inline HTML sanitization; existing annotation highlights are preserved for annotated plain-text articles.
+- Added `ImaService` in `src/services/ima-sync.ts` with structured single-card sync, batch sync, duplicate-success skip, health check, and operation logging.
+- Updated `/api/sync` to call `ImaService` and return batch `items` with success/failed/skipped status details.
+- Added admin-only `/api/ima/health` for IMA health checks.
+
+## IMA Call Chain Conclusion
+
+- Configuration source: `ImaTarget` rows scoped to the current logged-in user; no environment fallback is used for user sync.
+- Service: `ImaService.syncMaterialCard`, `ImaService.batchSyncMaterialCards`, and `ImaService.healthCheck`.
+- Single material-card sync: `/api/sync` validates ownership/confirmation, then calls `ImaService.syncMaterialCard`.
+- Batch material-card sync: `/api/sync` validates all selected cards, then calls `ImaService.batchSyncMaterialCards`.
+- Health check: `/api/ima/health` requires admin and calls `ImaService.healthCheck`.
+- Duplicate behavior: an existing successful sync record for the same user/card/document role is returned as `skipped` and does not create another IMA document.
+- Error handling: service returns `errorCode` and `errorMessage`; failed remote calls update `SyncRecord` when a pending record exists.
 
 ## AI Evaluation Source Conclusion
 
@@ -46,6 +59,12 @@ Task 3 article content rendering is implemented and targeted tests pass. The cur
 - `src/lib/display-labels.ts`
 - `src/components/articles/ArticleContentRenderer.tsx`
 - `src/components/articles/__tests__/ArticleContentRenderer.test.tsx`
+- `src/services/ima-sync.ts`
+- `src/services/__tests__/ima-sync.test.ts`
+- `src/app/api/sync/route.ts`
+- `src/app/api/sync/__tests__/route.test.ts`
+- `src/app/api/ima/health/route.ts`
+- `src/app/api/ima/health/__tests__/route.test.ts`
 
 ## Verification
 
@@ -58,7 +77,11 @@ Task 3 article content rendering is implemented and targeted tests pass. The cur
 - `pnpm exec tsc --noEmit` is blocked by an existing unrelated TS2774 error in `tests/e2e/permissions.spec.ts:78`.
 - `pnpm test src/components/articles/__tests__/ArticleContentRenderer.test.tsx` passed with 4 tests.
 - `pnpm exec eslint src/components/articles/ArticleContentRenderer.tsx src/components/articles/__tests__/ArticleContentRenderer.test.tsx 'src/app/articles/[id]/page.tsx'` passed.
+- `pnpm test src/services/__tests__/ima-sync.test.ts` passed with 5 tests.
+- `pnpm test src/app/api/sync/__tests__/route.test.ts` passed with 2 tests.
+- `pnpm test src/app/api/ima/health/__tests__/route.test.ts` passed with 2 tests.
+- `pnpm exec eslint src/services/ima-sync.ts src/services/__tests__/ima-sync.test.ts src/app/api/sync/route.ts src/app/api/sync/__tests__/route.test.ts src/app/api/ima/health/route.ts src/app/api/ima/health/__tests__/route.test.ts` passed.
 
 ## Next Action
 
-Commit Task 3, then start Task 4 unified IMA service/API tests.
+Commit Task 4 backend service/API slice, then start Task 5 batch sync UI.

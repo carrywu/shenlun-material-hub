@@ -135,3 +135,38 @@ Result: PASS
 Key output: No lint errors reported.
 Follow-up: Commit Task 3 slice.
 ```
+
+```text
+Command: pnpm test src/services/__tests__/ima-sync.test.ts
+Result: FAIL as expected
+Key output: ImaService was undefined; current service did not expose unified structured operations.
+Follow-up: Implement ImaService with structured item results, duplicate skip, batch summary, and health check.
+```
+
+```text
+Command: pnpm test src/services/__tests__/ima-sync.test.ts
+Result: PASS
+Key output: Test Files 1 passed; Tests 5 passed
+Follow-up: Add API route tests for /api/sync and /api/ima/health.
+```
+
+```text
+Command: pnpm test src/app/api/sync/__tests__/route.test.ts
+Result: PASS
+Key output: Test Files 1 passed; Tests 2 passed
+Follow-up: Verify health route.
+```
+
+```text
+Command: pnpm test src/app/api/ima/health/__tests__/route.test.ts
+Result: PASS
+Key output: Test Files 1 passed; Tests 2 passed
+Follow-up: Run target lint.
+```
+
+```text
+Command: pnpm exec eslint src/services/ima-sync.ts src/services/__tests__/ima-sync.test.ts src/app/api/sync/route.ts src/app/api/sync/__tests__/route.test.ts src/app/api/ima/health/route.ts src/app/api/ima/health/__tests__/route.test.ts
+Result: PASS
+Key output: No lint errors reported.
+Follow-up: Commit Task 4 backend service/API slice.
+```
