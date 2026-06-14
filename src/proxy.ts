@@ -50,7 +50,7 @@ export async function proxy(req: NextRequest) {
       if (token) {
         const user = await validateSession(token);
         if (user) {
-          const dest = pathname === ADMIN_LOGIN_PAGE ? "/" : "/articles";
+          const dest = pathname === ADMIN_LOGIN_PAGE ? "/admin" : "/articles";
           return NextResponse.redirect(new URL(dest, req.url));
         }
       }

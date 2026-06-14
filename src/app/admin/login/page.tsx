@@ -24,7 +24,7 @@ function LoginForm() {
         if (cancelled) return;
         if (data?.authenticated) {
           const redirect = searchParams.get("redirect");
-          router.replace(redirect && redirect !== "/admin/login" ? redirect : "/");
+          router.replace(redirect && redirect !== "/admin/login" ? redirect : "/admin");
         }
       })
       .catch(() => {
@@ -57,8 +57,8 @@ function LoginForm() {
         throw new Error(data.error || "登录失败");
       }
 
-      // Redirect to the page user originally requested, or homepage
-      const redirect = searchParams.get("redirect") || "/";
+      // Redirect to the page user originally requested, or admin dashboard
+      const redirect = searchParams.get("redirect") || "/admin";
       router.push(redirect);
       router.refresh();
     } catch (err) {

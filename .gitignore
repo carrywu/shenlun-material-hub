@@ -25,6 +25,7 @@ coverage
 
 # Playwright test output
 playwright-report/
+playwright-report-new/
 test-results/
 
 # nyc test coverage
