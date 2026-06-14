@@ -215,9 +215,7 @@ test.describe('文章详情页', () => {
   });
 });
 
-// AI 评估按钮仅在 !isAdmin 时渲染（admin 看到的是"前往后台文章管理"提示卡）。
-// 该用例验证普通用户视角，用独立 describe 覆盖文件级 admin storageState。
-test.describe('文章详情页 — 普通用户视角', () => {
+test.describe('文章详情页 — 认证用户视角', () => {
   test.use({ storageState: '.auth/verified-storage.json' });
   let articleId: string;
 
@@ -229,7 +227,7 @@ test.describe('文章详情页 — 普通用户视角', () => {
     }
   });
 
-  test('文章详情：AI 评估按钮', async ({ page }) => {
+  test('文章详情：认证用户可生成素材卡且不显示 AI 评估', async ({ page }) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
@@ -239,13 +237,38 @@ test.describe('文章详情页 — 普通用户视角', () => {
     // Wait for sidebar to load
     await expect(page.getByText('快捷操作')).toBeVisible({ timeout: 10000 });
 
-    // Find AI assess button in the sidebar (only renders for non-admin)
-    const assessButton = page.getByRole('button', { name: 'AI 评估' });
-    await expect(assessButton).toBeVisible();
+    await expect(page.getByRole('button', { name: 'AI 评估' })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: '生成素材卡' })).toBeVisible();
+    await expect(page.getByText('使用你的个人 AI 配置生成私有素材卡')).toBeVisible();
 
-    // Click the button — verify it's clickable and doesn't crash
-    await assessButton.click();
-    await page.waitForTimeout(500);
+    guard.report(test.info());
+  });
+});
+
+test.describe('文章详情页 — 普通用户视角', () => {
+  test.use({ storageState: '.auth/usera-storage.json' });
+  let articleId: string;
+
+  test.beforeAll(async () => {
+    const article = await ensureArticleExists();
+    articleId = article.id;
+    if (!articleId) {
+      throw new Error('ensureArticleExists returned no ID — cannot run article detail tests');
+    }
+  });
+
+  test('文章详情：普通用户看到升级引导', async ({ page }) => {
+    test.setTimeout(60000);
+    const guard = attachConsoleGuard(page);
+
+    await page.goto(`/articles/${articleId}`);
+    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+
+    await expect(page.getByText('快捷操作')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: 'AI 评估' })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: '生成素材卡' })).not.toBeVisible();
+    await expect(page.getByText('升级为认证用户后可使用个人 AI 配置生成素材卡')).toBeVisible();
+    await expect(page.getByRole('link', { name: '去账号设置升级' })).toHaveAttribute('href', '/settings/account');
 
     guard.report(test.info());
   });

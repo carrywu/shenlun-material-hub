@@ -174,7 +174,7 @@ test.describe('API 安全认证 — 图片代理', () => {
 });
 
 test.describe('API 安全 — 浏览器级别', () => {
-  test('未认证用户访问 admin API 页面被重定向', async ({ browser }, testInfo) => {
+  test('未认证用户访问 admin API 页面被重定向', async ({ browser }) => {
     const context = await browser.newContext({ storageState: undefined });
     const page = await context.newPage();
 
@@ -250,5 +250,30 @@ test.describe('采集接口权限 — VERIFIED_USER 被拒绝', () => {
       data: {},
     });
     expect(res.status()).toBe(403);
+  });
+});
+
+test.describe('AI 能力权限 — VERIFIED_USER 边界', () => {
+  test.use({ storageState: '.auth/verified-storage.json' });
+
+  test('VERIFIED_USER POST content-items assess → 403', async ({ request }) => {
+    const res = await request.post('/api/content-items/assess', {
+      data: { ids: ['permission-boundary-check'] },
+    });
+    expect(res.status()).toBe(403);
+  });
+
+  test('VERIFIED_USER POST generate-card 不因角色返回 403', async ({ request }) => {
+    const list = await request.get('/api/explore?pageSize=1');
+    expect(list.status()).toBe(200);
+    const body = await list.json();
+    const id = body.data?.[0]?.id;
+    expect(id).toBeTruthy();
+
+    const res = await request.post(`/api/content-items/${id}/generate-card`, {
+      data: { cardType: 'golden_sentence' },
+    });
+    expect(res.status()).not.toBe(401);
+    expect(res.status()).not.toBe(403);
   });
 });

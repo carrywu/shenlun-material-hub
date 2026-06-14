@@ -33,6 +33,7 @@ export default function UserAiSettingsPage() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   // Form state
   const [baseUrl, setBaseUrl] = useState("https://api.deepseek.com/v1");
@@ -66,6 +67,7 @@ export default function UserAiSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     setError("");
+    setSuccessMessage("");
     setTestResult(null);
     try {
       const res = await fetch("/api/settings/ai-config", {
@@ -76,6 +78,7 @@ export default function UserAiSettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "保存失败");
       setApiKey(""); // 清空输入的 key
+      setSuccessMessage("保存成功，当前个人 AI 配置已启用。");
       const res2 = await fetch("/api/settings/ai-config");
       if (res2.ok) {
         const data = await res2.json();
@@ -104,6 +107,7 @@ export default function UserAiSettingsPage() {
         setTemperature(0.3);
         setApiKey("");
         setTestResult(null);
+        setSuccessMessage("");
       }
     } catch {
       setError("删除失败");
@@ -168,6 +172,12 @@ export default function UserAiSettingsPage() {
 
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
+      )}
+
+      {successMessage && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+          {successMessage}
+        </div>
       )}
 
       <Card>

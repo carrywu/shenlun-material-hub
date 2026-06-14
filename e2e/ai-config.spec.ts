@@ -198,4 +198,49 @@ test.describe('User AI Settings', () => {
 
     guard.report(testInfo);
   });
+
+  test('用户 AI 配置：保存成功后清空输入并显示成功提示', async ({ page }, testInfo) => {
+    const guard = attachConsoleGuard(page);
+    let saved = false;
+
+    await page.route('**/api/settings/ai-config', async route => {
+      if (route.request().method() === 'POST') {
+        saved = true;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(saved
+          ? {
+              configured: true,
+              baseUrl: 'https://api.example.test/v1',
+              maskedKey: 'sk-t****',
+              model: 'test-model',
+              temperature: 0.3,
+              isEnabled: true,
+            }
+          : { configured: false }),
+      });
+    });
+
+    await page.goto('/settings/ai');
+    await expect(page.getByRole('heading', { name: 'AI 配置', level: 1 })).toBeVisible({ timeout: 10000 });
+
+    const keyInput = page.getByPlaceholder('输入 API Key');
+    await keyInput.fill('sk-test-save-feedback');
+    await page.getByRole('button', { name: '保存配置' }).click();
+
+    await expect(page.getByText('保存成功，当前个人 AI 配置已启用。')).toBeVisible();
+    await expect(page.getByText('当前: sk-t****')).toBeVisible();
+    await expect(page.getByPlaceholder('留空则保持不变')).toHaveValue('');
+
+    guard.report(testInfo);
+  });
 });

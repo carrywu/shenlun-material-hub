@@ -9,7 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowLeft,
+  CreditCard,
   ExternalLink,
   Loader2,
   FileText,
@@ -28,6 +36,7 @@ import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import { useAuth } from "@/lib/auth-context";
 import { CONTENT_TYPE_LABELS, CONTENT_GENRE_LABELS, translateTag, parseTopicTags } from "@/lib/display-labels";
+import type { CardType } from "@/types";
 
 interface Annotation {
   id: string;
@@ -67,6 +76,7 @@ interface ArticleDetail {
   aiAssessedAt: string | null;
   aiScoreDetail: string | null;
   aiScoredAt: string | null;
+  adminReviewStatus: string;
   effectiveTextLength: number;
   bookmarked: boolean;
   read: boolean;
@@ -104,6 +114,18 @@ const CARD_TYPE_CONFIG: Record<string, { label: string }> = {
   policy_compare: { label: "政策表述" },
   case_study: { label: "案例素材" },
 };
+
+const GENERATE_CARD_TYPE_OPTIONS: Array<{ value: CardType; label: string }> = [
+  { value: "golden_sentence", label: "申论金句" },
+  { value: "standard_expression", label: "规范词" },
+  { value: "case_material", label: "案例素材" },
+  { value: "countermeasure", label: "对策表达" },
+  { value: "problem_statement", label: "问题表述" },
+  { value: "reason_analysis", label: "原因分析" },
+  { value: "policy_expression", label: "政策表述" },
+  { value: "person_story", label: "人物事迹" },
+  { value: "article_structure", label: "文章框架" },
+];
 
 function cleanHtmlClientSide(html: string): string {
   try {
@@ -297,12 +319,13 @@ export default function ArticleDetailPage() {
   const params = useParams();
   const router = useRouter();
   const articleId = params.id as string;
-  const { isAdmin } = useAuth();
+  const { isAdmin, isVerifiedUser, user } = useAuth();
 
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [assessing, setAssessing] = useState(false);
+  const [cardType, setCardType] = useState<CardType>("golden_sentence");
+  const [generatingCard, setGeneratingCard] = useState(false);
 
   // Annotation state
   const [selectedText, setSelectedText] = useState("");
@@ -501,24 +524,46 @@ export default function ArticleDetailPage() {
     }
   }
 
-  async function handleAssess() {
-    setAssessing(true);
+  async function handleGenerateCard() {
+    if (!article || generatingCard) return;
+    setGeneratingCard(true);
     try {
-      const res = await fetch(`/api/content-items/assess`, {
+      const res = await fetch(`/api/content-items/${articleId}/generate-card`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentItemIds: [articleId] }),
+        body: JSON.stringify({ cardType }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json();
-        toast.error(data.error || "AI 评估失败");
-      } else {
-        toast.success("AI 评估已提交，请稍后刷新查看结果");
+        const message = data.message || data.error || "素材卡生成失败";
+        if (data.code === "AI_CONFIG_MISSING" || data.code === "AI_CONFIG_DECRYPT_FAILED") {
+          toast.error(message, {
+            description: "请先检查个人 AI 配置。",
+            action: {
+              label: "去配置",
+              onClick: () => router.push("/settings/ai"),
+            },
+          });
+        } else {
+          toast.error(message);
+        }
+        return;
       }
+
+      const task = Array.isArray(data.tasks) ? data.tasks[0] : null;
+      if (task?.duplicated) {
+        toast.info("该类型素材卡已存在", { description: "可在右侧已生成素材卡中查看。" });
+        return;
+      }
+
+      toast.success("素材卡生成任务已提交", { description: "稍后会出现在右侧已生成素材卡列表中。" });
+      setTimeout(() => {
+        fetchArticle();
+      }, 2000);
     } catch {
-      toast.error("AI 评估请求失败");
+      toast.error("素材卡生成请求失败", { description: "请检查网络后重试。" });
     } finally {
-      setAssessing(false);
+      setGeneratingCard(false);
     }
   }
 
@@ -629,6 +674,12 @@ export default function ArticleDetailPage() {
   }
 
   const tags = parseTopicTags(article.topicTags);
+  const canGenerateCard = isVerifiedUser && !isAdmin;
+  const generateDisabledReason = !article.fullText
+    ? "该文章暂无全文，无法生成素材卡。"
+    : article.adminReviewStatus !== "approved"
+      ? "该文章尚未通过管理员审核，无法生成素材卡。"
+      : null;
 
   const scoreDetail = article.aiScoreDetail
     ? (() => { try { return JSON.parse(article.aiScoreDetail); } catch { return null; } })()
@@ -911,20 +962,63 @@ export default function ArticleDetailPage() {
                       前往后台文章管理
                     </Link>
                   </div>
-                ) : (
-                  <div className="space-y-2">
+                ) : canGenerateCard ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      使用你的个人 AI 配置生成私有素材卡。
+                    </p>
+                    <Select
+                      value={cardType}
+                      onValueChange={(value) => setCardType(value as CardType)}
+                    >
+                      <SelectTrigger className="h-8 text-xs" aria-label="素材卡类型">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GENERATE_CARD_TYPE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Button
-                      onClick={handleAssess}
-                      disabled={assessing}
-                      variant="outline"
+                      onClick={handleGenerateCard}
+                      disabled={generatingCard || !!generateDisabledReason}
                       size="sm"
                       className="w-full text-xs"
                     >
-                      {assessing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
-                      AI 评估
+                      {generatingCard ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <CreditCard className="h-3 w-3 mr-1" />
+                      )}
+                      生成素材卡
                     </Button>
+                    {generateDisabledReason ? (
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        {generateDisabledReason}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        生成后可在素材卡页复习和确认。
+                      </p>
+                    )}
+                    <Link href="/settings/ai" className="block text-center text-[10px] underline text-muted-foreground">
+                      管理个人 AI 配置
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground space-y-2">
+                    <p>升级为认证用户后可使用个人 AI 配置生成素材卡。</p>
+                    <Link href="/settings/account" className="underline">
+                      去账号设置升级
+                    </Link>
+                    {user?.role && (
+                      <p className="text-[10px]">当前角色：{user.role}</p>
+                    )}
                     <p className="text-[10px] text-muted-foreground text-center">
-                      AI 评估和素材卡生成功能
+                      AI 评估由管理员在后台完成。
                     </p>
                   </div>
                 )}
