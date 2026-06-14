@@ -3,6 +3,17 @@ import { test, expect } from '@playwright/test';
 import { mockApiFailure, mockApiResponse } from './helpers/api';
 import { expectNoInfiniteLoading } from './helpers/assertions';
 
+type HealthResponse = {
+  status: string;
+};
+
+type ArticlesResponse = {
+  data?: unknown;
+  total?: unknown;
+  page?: unknown;
+  pageSize?: unknown;
+};
+
 test.describe('API 404 处理', () => {
   test.use({ storageState: path.resolve(__dirname, '.auth/admin.json') });
 
@@ -48,14 +59,14 @@ test.describe('API 返回结构验证', () => {
   test('health API 返回正确结构', async ({ request }) => {
     const res = await request.get('http://localhost:3001/api/health');
     expect(res.ok()).toBeTruthy();
-    const data = await res.json() as any;
+    const data = await res.json() as HealthResponse;
     expect(data.status).toBe('ok');
   });
 
   test('articles API 返回正确结构', async ({ request }) => {
     const res = await request.get('http://localhost:3001/api/articles');
     expect(res.ok()).toBeTruthy();
-    const data = await res.json() as any;
+    const data = await res.json() as ArticlesResponse;
     expect(data).toHaveProperty('data');
     expect(data).toHaveProperty('total');
     expect(data).toHaveProperty('page');
