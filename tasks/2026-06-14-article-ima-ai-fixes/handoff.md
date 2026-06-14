@@ -2,7 +2,7 @@
 
 ## Current State
 
-Task 5 material card batch sync UI is implemented and targeted tests pass. The current unblocked next slice is Task 6 article detail IMA sync.
+Task 6 article detail IMA sync is implemented and targeted API/UI checks pass. The current unblocked next slice is Task 7 IMA health UI and Playwright E2E coverage.
 
 ## Completed
 
@@ -24,6 +24,10 @@ Task 5 material card batch sync UI is implemented and targeted tests pass. The c
 - Updated material card batch sync UI to keep a visible batch sync action in the page header.
 - Empty selection now shows `请先选择要同步的素材卡` instead of silently doing nothing.
 - Batch sync UI now consumes the new `items` result shape and displays success, failed, skipped, and failure reasons.
+- Added `/api/articles/[id]/sync-to-ima` for article detail sync.
+- Added `ImaService.syncArticle`, which syncs confirmed material cards first and falls back to approved article body content when no confirmed card exists.
+- Made `SyncRecord.materialCardId` nullable so article-only sync records can be stored.
+- Added the article detail `同步到 IMA` button beside `查看原文` with loading and toast feedback.
 
 ## IMA Call Chain Conclusion
 
@@ -32,6 +36,7 @@ Task 5 material card batch sync UI is implemented and targeted tests pass. The c
 - Single material-card sync: `/api/sync` validates ownership/confirmation, then calls `ImaService.syncMaterialCard`.
 - Batch material-card sync: `/api/sync` validates all selected cards, then calls `ImaService.batchSyncMaterialCards`.
 - Health check: `/api/ima/health` requires admin and calls `ImaService.healthCheck`.
+- Article detail sync: `/api/articles/[id]/sync-to-ima` validates article access and calls `ImaService.syncArticle`.
 - Duplicate behavior: an existing successful sync record for the same user/card/document role is returned as `skipped` and does not create another IMA document.
 - Error handling: service returns `errorCode` and `errorMessage`; failed remote calls update `SyncRecord` when a pending record exists.
 
@@ -71,6 +76,9 @@ Task 5 material card batch sync UI is implemented and targeted tests pass. The c
 - `src/components/SyncToIma.tsx`
 - `src/components/__tests__/SyncToIma.test.tsx`
 - `src/app/cards/page.tsx`
+- `prisma/migrations/20260614192000_sync_record_article_fallback/migration.sql`
+- `src/app/api/articles/[id]/sync-to-ima/route.ts`
+- `src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts`
 
 ## Verification
 
@@ -89,7 +97,9 @@ Task 5 material card batch sync UI is implemented and targeted tests pass. The c
 - `pnpm exec eslint src/services/ima-sync.ts src/services/__tests__/ima-sync.test.ts src/app/api/sync/route.ts src/app/api/sync/__tests__/route.test.ts src/app/api/ima/health/route.ts src/app/api/ima/health/__tests__/route.test.ts` passed.
 - `pnpm test src/components/__tests__/SyncToIma.test.tsx` passed with 2 tests.
 - `pnpm exec eslint src/components/SyncToIma.tsx src/components/__tests__/SyncToIma.test.tsx src/app/cards/page.tsx` passed.
+- `pnpm test 'src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts'` passed with 3 tests.
+- `pnpm exec eslint src/services/ima-sync.ts 'src/app/api/articles/[id]/sync-to-ima/route.ts' 'src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts' 'src/app/articles/[id]/page.tsx'` passed.
 
 ## Next Action
 
-Commit Task 5 batch sync UI slice, then start Task 6 article detail IMA sync.
+Commit Task 6 article detail sync slice, then start Task 7 IMA health UI and Playwright E2E coverage.

@@ -80,6 +80,16 @@ export interface ImaHealthResult {
   errorMessage?: string;
 }
 
+export interface ImaArticleSyncResult {
+  success: boolean;
+  sourceType: "article" | "material-card";
+  imaDocumentId?: string;
+  syncedAt?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  message?: string;
+}
+
 class ImaSyncError extends Error {
   constructor(
     public code: string,
@@ -184,6 +194,30 @@ function formatCardContent(
     title,
     content: sections.join("\n"),
     metadata: { cardType, topicTags },
+  };
+}
+
+function formatArticleContent(item: {
+  title: string;
+  fullText: string | null;
+  excerpt: string | null;
+  originalUrl: string;
+  topicTags: string | null;
+}): ImaDocument {
+  const sections = [`# ${item.title}`, ""];
+  if (item.originalUrl) sections.push(`原文链接：${item.originalUrl}`, "");
+  if (item.excerpt) sections.push(`## 摘要\n${item.excerpt}`, "");
+  sections.push("## 正文");
+  sections.push(item.fullText ?? item.excerpt ?? "");
+
+  return {
+    title: item.title,
+    content: sections.join("\n"),
+    metadata: {
+      sourceType: "article",
+      originalUrl: item.originalUrl,
+      topicTags: item.topicTags ?? "[]",
+    },
   };
 }
 
@@ -556,9 +590,164 @@ async function healthCheck(userId: string): Promise<ImaHealthResult> {
   }
 }
 
+async function syncArticle(params: {
+  articleId: string;
+  userId: string;
+  requestId?: string;
+}): Promise<ImaArticleSyncResult> {
+  const { articleId, userId, requestId = crypto.randomUUID() } = params;
+  const startedAt = Date.now();
+  const item = await db.contentItem.findUnique({
+    where: { id: articleId },
+    include: {
+      materialCards: {
+        where: { confirmed: true },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!item) {
+    return {
+      success: false,
+      sourceType: "article",
+      errorCode: "ARTICLE_NOT_FOUND",
+      errorMessage: "文章不存在",
+    };
+  }
+
+  const confirmedCardIds = item.materialCards.map((card) => card.id);
+  if (confirmedCardIds.length > 0) {
+    const result = await batchSyncMaterialCards({
+      materialCardIds: confirmedCardIds,
+      userId,
+      requestId,
+    });
+    const firstSynced = result.items.find((entry) => entry.status === "success" || entry.status === "skipped");
+    return {
+      success: result.failed === 0,
+      sourceType: "material-card",
+      imaDocumentId: firstSynced?.imaDocumentId,
+      syncedAt: new Date().toISOString(),
+      errorCode: result.failed > 0 ? "IMA_BATCH_PARTIAL_FAILED" : undefined,
+      errorMessage: result.failed > 0 ? `成功 ${result.success + result.skipped} 条，失败 ${result.failed} 条` : undefined,
+    };
+  }
+
+  if (item.adminReviewStatus !== "approved") {
+    return {
+      success: false,
+      sourceType: "article",
+      errorCode: "ARTICLE_NOT_APPROVED",
+      errorMessage: "文章尚未通过审核，无法同步正文",
+    };
+  }
+
+  const content = item.fullText ?? item.excerpt ?? "";
+  if (!content.trim()) {
+    return {
+      success: false,
+      sourceType: "article",
+      errorCode: "ARTICLE_CONTENT_EMPTY",
+      errorMessage: "文章正文为空，无法同步",
+    };
+  }
+
+  let syncRecord: { id: string } | null = null;
+  try {
+    const config = await resolveImaConfig(userId);
+    const existingSuccess = await db.syncRecord.findFirst({
+      where: {
+        materialCardId: null,
+        contentItemId: articleId,
+        userId,
+        documentRole: "original_archive",
+        status: "success",
+      },
+      orderBy: { syncedAt: "desc" },
+    });
+
+    if (existingSuccess) {
+      return {
+        success: true,
+        sourceType: "article",
+        imaDocumentId: existingSuccess.remoteDocumentId ?? undefined,
+        syncedAt: new Date().toISOString(),
+        message: "当前文章内容此前已同步，已跳过重复创建",
+      };
+    }
+
+    syncRecord = await db.syncRecord.create({
+      data: {
+        materialCardId: null,
+        contentItemId: articleId,
+        documentRole: "original_archive",
+        status: "pending",
+        userId,
+      },
+    });
+
+    const doc = formatArticleContent(item);
+    const result = await uploadDocumentWithRetry(doc, config);
+
+    await db.syncRecord.update({
+      where: { id: syncRecord.id },
+      data: {
+        status: "success",
+        targetRemoteId: result.knowledgeBaseId,
+        remoteDocumentId: result.documentId,
+      },
+    });
+
+    logImaOperation("info", {
+      requestId,
+      operation: "syncArticle",
+      status: "success",
+      articleId,
+      userId,
+      imaConfigId: config.knowledgeBaseId,
+      duration: Date.now() - startedAt,
+    });
+
+    return {
+      success: true,
+      sourceType: "article",
+      imaDocumentId: result.documentId,
+      syncedAt: new Date().toISOString(),
+      message: "当前文章尚未生成素材卡，已同步文章内容",
+    };
+  } catch (error) {
+    const { errorCode, errorMessage } = normalizeImaError(error);
+    if (syncRecord) {
+      await db.syncRecord.update({
+        where: { id: syncRecord.id },
+        data: { status: "failed", errorCode, errorMessage },
+      });
+    }
+    logImaOperation("error", {
+      requestId,
+      operation: "syncArticle",
+      status: "failed",
+      articleId,
+      userId,
+      duration: Date.now() - startedAt,
+      errorCode,
+      errorMessage,
+    });
+    return {
+      success: false,
+      sourceType: "article",
+      errorCode,
+      errorMessage,
+    };
+  }
+}
+
 export const ImaService = {
   syncMaterialCard,
   batchSyncMaterialCards,
+  syncArticle,
   healthCheck,
 };
 

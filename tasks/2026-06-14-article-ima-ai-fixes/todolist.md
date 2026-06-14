@@ -67,9 +67,9 @@
 - [ ] Add E2E for sync button presence.
 - [ ] Add E2E for material-card selection.
 - [ ] Add E2E for unconfirmed card disabled.
-- [ ] Add E2E for article-body sync confirmation.
-- [ ] Implement article detail sync UI.
-- [ ] Run targeted E2E validation.
+- [x] Add API test for article-body sync confirmation.
+- [x] Implement article detail sync UI.
+- [x] Run targeted API/UI validation.
 - [ ] Commit article detail sync slice.
 
 ## Task 7: IMA Health UI

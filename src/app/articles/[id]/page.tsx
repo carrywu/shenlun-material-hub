@@ -30,6 +30,7 @@ import {
   Trash2,
   Highlighter,
   MessageSquarePlus,
+  Upload,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -330,6 +331,7 @@ export default function ArticleDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [cardType, setCardType] = useState<CardType>("golden_sentence");
   const [generatingCard, setGeneratingCard] = useState(false);
+  const [syncingToIma, setSyncingToIma] = useState(false);
 
   // Annotation state
   const [selectedText, setSelectedText] = useState("");
@@ -571,6 +573,42 @@ export default function ArticleDetailPage() {
     }
   }
 
+  async function handleSyncArticleToIma() {
+    if (!article || syncingToIma) return;
+    setSyncingToIma(true);
+    try {
+      const res = await fetch(`/api/articles/${article.id}/sync-to-ima`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        const message = data.errorMessage || data.error || "同步到 IMA 失败";
+        if (data.errorCode === "IMA_CONFIG_MISSING") {
+          toast.error(message, {
+            action: {
+              label: "去配置",
+              onClick: () => router.push("/settings/ima"),
+            },
+          });
+        } else {
+          toast.error(message);
+        }
+        return;
+      }
+
+      const description = data.imaDocumentId
+        ? `IMA 文档 ID：${data.imaDocumentId}`
+        : data.syncedAt
+          ? `同步时间：${new Date(data.syncedAt).toLocaleString("zh-CN")}`
+          : undefined;
+      toast.success(data.message || "已同步到 IMA", { description });
+    } catch {
+      toast.error("同步到 IMA 请求失败，请检查网络后重试");
+    } finally {
+      setSyncingToIma(false);
+    }
+  }
+
   // Render text with annotation highlights
   function renderAnnotatedText() {
     if (!article?.fullText) return "暂无正文，请重新采集或查看原文";
@@ -781,6 +819,19 @@ export default function ArticleDetailPage() {
               <ExternalLink className="h-4 w-4" />
               查看原文
             </a>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncArticleToIma}
+              disabled={syncingToIma}
+            >
+              {syncingToIma ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {syncingToIma ? "同步中..." : "同步到 IMA"}
+            </Button>
           </div>
         </div>
       </div>

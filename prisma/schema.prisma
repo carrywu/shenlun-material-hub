@@ -306,7 +306,7 @@ model RoleQuota {
 // 同步记录
 model SyncRecord {
   id                String   @id @default(cuid())
-  materialCardId    String
+  materialCardId    String?
   contentItemId     String
   documentRole      String                 // original_archive / material_card
   regionFolder      String?                // 地区文件夹
@@ -319,7 +319,7 @@ model SyncRecord {
   syncedAt          DateTime @default(now())
   userId            String?                // Phase 2: 同步发起用户
 
-  materialCard MaterialCard @relation(fields: [materialCardId], references: [id], onDelete: Cascade)
+  materialCard MaterialCard? @relation(fields: [materialCardId], references: [id], onDelete: Cascade)
   contentItem  ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
   user         User?        @relation(fields: [userId], references: [id])
 

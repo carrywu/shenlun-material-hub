@@ -184,3 +184,31 @@ Result: PASS
 Key output: No lint errors reported.
 Follow-up: Commit Task 5 batch sync UI slice.
 ```
+
+```text
+Command: pnpm db:generate
+Result: PASS
+Key output: Generated Prisma Client (7.8.0) to ./src/generated/prisma
+Follow-up: Run article sync route tests.
+```
+
+```text
+Command: pnpm test 'src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts'
+Result: PASS
+Key output: Test Files 1 passed; Tests 3 passed
+Follow-up: Run IMA service regression tests.
+```
+
+```text
+Command: pnpm test src/services/__tests__/ima-sync.test.ts
+Result: PASS
+Key output: Test Files 1 passed; Tests 5 passed
+Follow-up: Run target lint.
+```
+
+```text
+Command: pnpm exec eslint src/services/ima-sync.ts 'src/app/api/articles/[id]/sync-to-ima/route.ts' 'src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts' 'src/app/articles/[id]/page.tsx'
+Result: PASS
+Key output: No lint errors reported.
+Follow-up: Commit Task 6 article detail sync slice.
+```
