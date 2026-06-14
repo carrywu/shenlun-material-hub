@@ -14,18 +14,18 @@
 - [x] Implement sync status label helpers.
 - [x] Run targeted display-label tests.
 - [x] Update handoff and validation notes.
-- [ ] Commit label localization slice.
+- [x] Commit label localization slice.
 
 ## Task 2: AI Evaluation Provenance
 
-- [ ] Add failing tests for AI provenance writes.
-- [ ] Add failing tests for admin-only reassess.
-- [ ] Add failing tests for reassess failure preserving old result.
-- [ ] Add nullable Prisma AI provenance fields.
-- [ ] Add migration SQL.
-- [ ] Update AI assess/reassess write paths.
-- [ ] Update article detail AI provenance display.
-- [ ] Run targeted route tests.
+- [x] Add failing tests for AI provenance writes.
+- [x] Add failing tests for admin-only reassess.
+- [x] Add failing tests for reassess failure preserving old result.
+- [x] Add nullable Prisma AI provenance fields.
+- [x] Add migration SQL.
+- [x] Update AI assess/reassess write paths.
+- [x] Update article detail AI provenance display.
+- [x] Run targeted route tests.
 - [ ] Commit AI provenance slice.
 
 ## Task 3: Article Content Renderer

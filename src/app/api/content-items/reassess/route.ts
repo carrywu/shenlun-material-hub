@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assessRelevanceWithRetry, AiServiceError } from "@/services/ai";
-import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
-import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
+import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { createAsyncTask } from "@/lib/async-task";
 
 // POST /api/content-items/reassess — 重新评估单个条目
 export async function POST(request: NextRequest) {
-  const user = await requireVerifiedUser(request);
+  const user = await requireAdmin(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) {
@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     }
     return forbiddenResponse();
   }
+  let reassessItemId: string | null = null;
   try {
     const body = await request.json();
     const { id } = body;
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
     if (!item) {
       return NextResponse.json({ error: "未找到条目" }, { status: 404 });
     }
+    reassessItemId = item.id;
 
     const content = item.fullText ?? item.excerpt ?? "";
     if (!content || content.length < 300) {
@@ -63,6 +65,12 @@ export async function POST(request: NextRequest) {
         aiQuotes: JSON.stringify(result.quotes),
         aiAssessedAt: new Date(),
         aiAssessmentError: null,
+        aiAssessmentSource: "ai-runtime",
+        aiAssessmentModel: process.env.AI_MODEL ?? process.env.OPENAI_MODEL ?? null,
+        aiPromptVersion: "article_evaluation:v1",
+        aiContentHash: item.contentHash ?? null,
+        aiLastError: null,
+        aiLastFailedAt: null,
         qualityStatus: result.decision === "accept" ? "accepted" : "filtered",
         processingStatus:
           result.decision === "accept" ? "pending" : "filtered",
@@ -91,13 +99,23 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    const msg = error instanceof Error ? error.message : "评估失败";
+    if (reassessItemId) {
+      await db.contentItem.update({
+        where: { id: reassessItemId },
+        data: {
+          aiLastError: msg,
+          aiLastFailedAt: new Date(),
+          aiAssessmentError: msg,
+        },
+      });
+    }
     if (error instanceof AiServiceError) {
       return NextResponse.json(
         { error: error.message, code: error.code },
         { status: error.status ?? 500 }
       );
     }
-    const msg = error instanceof Error ? error.message : "评估失败";
     console.error("Reassess error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

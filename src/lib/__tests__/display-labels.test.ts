@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getAiDecisionLabel,
+  getAiAssessmentSourceLabel,
   getSafeDisplayLabel,
   getSyncStatusLabel,
   MATERIAL_TYPE_LABELS,
@@ -39,6 +40,17 @@ describe("AI decision labels", () => {
     expect(getAiDecisionLabel(null)).toBe("尚未评估");
     expect(getAiDecisionLabel(undefined)).toBe("尚未评估");
     expect(getAiDecisionLabel("unexpected_internal_code")).toBe("未知");
+  });
+});
+
+describe("AI assessment source labels", () => {
+  it("maps AI assessment provenance to Chinese labels", () => {
+    expect(getAiAssessmentSourceLabel("ai-runtime")).toBe("真实 AI 评估");
+    expect(getAiAssessmentSourceLabel("database")).toBe("数据库记录");
+    expect(getAiAssessmentSourceLabel("seed")).toBe("种子数据");
+    expect(getAiAssessmentSourceLabel("mock")).toBe("模拟数据");
+    expect(getAiAssessmentSourceLabel(null)).toBe("历史数据库记录 / 来源未知");
+    expect(getAiAssessmentSourceLabel("unexpected_internal_code")).toBe("来源未知");
   });
 });
 

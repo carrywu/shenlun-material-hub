@@ -106,6 +106,14 @@ export const SYNC_STATUS_LABELS: Record<string, string> = {
   skipped: "已跳过",
 };
 
+export const AI_ASSESSMENT_SOURCE_LABELS: Record<string, string> = {
+  "ai-runtime": "真实 AI 评估",
+  database: "数据库记录",
+  seed: "种子数据",
+  mock: "模拟数据",
+  unknown: "来源未知",
+};
+
 export function getAiDecisionLabel(value: string | null | undefined): string {
   if (!value) return "尚未评估";
   return AI_DECISION_LABELS[value] ?? "未知";
@@ -114,6 +122,11 @@ export function getAiDecisionLabel(value: string | null | undefined): string {
 export function getSyncStatusLabel(value: string | null | undefined): string {
   if (!value) return "未知";
   return SYNC_STATUS_LABELS[value] ?? "未知";
+}
+
+export function getAiAssessmentSourceLabel(value: string | null | undefined): string {
+  if (!value) return "历史数据库记录 / 来源未知";
+  return AI_ASSESSMENT_SOURCE_LABELS[value] ?? "来源未知";
 }
 
 export const AI_FIELD_LABELS: Record<string, string> = {

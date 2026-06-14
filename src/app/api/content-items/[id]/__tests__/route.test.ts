@@ -83,6 +83,35 @@ describe("GET /api/content-items/[id] — adminReviewStatus (P3)", () => {
     expect(res.status).toBe(200);
   });
 
+  it("详情响应保留 AI 评估来源元数据", async () => {
+    authMocks.getUserFromRequest.mockResolvedValue(USERS.ADMIN);
+    mocks.findUnique.mockResolvedValue({
+      id: "x",
+      ownerUserId: null,
+      visibility: "public",
+      adminReviewStatus: "approved",
+      aiAssessmentSource: "ai-runtime",
+      aiAssessmentModel: "test-model",
+      aiPromptVersion: "article_evaluation:v1",
+      aiContentHash: "hash-at-eval",
+      aiLastError: null,
+      aiLastFailedAt: null,
+      contentHash: "hash-current",
+      materialCards: [],
+      annotations: [],
+      source: { id: "s", name: "n", platform: "website" },
+    });
+    const [req, ctx] = makeReq("x", "auth_token=t");
+    const res = await GET(req, ctx);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.aiAssessmentSource).toBe("ai-runtime");
+    expect(body.aiAssessmentModel).toBe("test-model");
+    expect(body.aiPromptVersion).toBe("article_evaluation:v1");
+    expect(body.aiContentHash).toBe("hash-at-eval");
+    expect(body.contentHash).toBe("hash-current");
+  });
+
   // ── P0-001: 子资源隔离（A 看不到 B 的卡/批注）──────────────────────────
   it("非 ADMIN 详情只返回自己的 materialCards（不含别人的）", async () => {
     authMocks.getUserFromRequest.mockResolvedValue(USERS.VERIFIED);

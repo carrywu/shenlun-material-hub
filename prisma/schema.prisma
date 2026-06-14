@@ -164,6 +164,12 @@ model ContentItem {
   aiQuotes            String?                // JSON 数组：AI 提取的金句
   aiAssessedAt        DateTime?              // AI 评估时间
   aiAssessmentError   String?                // AI 评估错误信息
+  aiAssessmentSource  String?                // ai-runtime / database / seed / mock / unknown
+  aiAssessmentModel   String?                // AI 评估模型
+  aiPromptVersion     String?                // AI 评估提示词版本
+  aiContentHash       String?                // AI 评估所基于的正文 hash
+  aiLastError         String?                // 最近一次 AI 评估失败信息
+  aiLastFailedAt      DateTime?              // 最近一次 AI 评估失败时间
 
   // P0-2: 内容体裁
   contentGenre        String?                // commentary/policy_interpretation/case_practice/ordinary_news/meeting_news/notice/other
@@ -527,4 +533,3 @@ model AuditLog {
   @@index([resource])
   @@index([createdAt])
 }
-

@@ -13,6 +13,7 @@ async function assessSingleItem(
     contentType: string;
     fullText: string | null;
     excerpt: string | null;
+    contentHash: string | null;
     source: { name: string } | null;
   },
   errors: string[],
@@ -45,6 +46,12 @@ async function assessSingleItem(
         aiQuotes: JSON.stringify(result.quotes),
         aiAssessedAt: new Date(),
         aiAssessmentError: null,
+        aiAssessmentSource: "ai-runtime",
+        aiAssessmentModel: process.env.AI_MODEL ?? process.env.OPENAI_MODEL ?? null,
+        aiPromptVersion: "article_evaluation:v1",
+        aiContentHash: item.contentHash ?? null,
+        aiLastError: null,
+        aiLastFailedAt: null,
         qualityStatus: result.decision === "accept" ? "accepted" : "filtered",
         adminReviewStatus:
           result.decision === "accept" ? "pending_admin" : "rejected",
@@ -64,6 +71,8 @@ async function assessSingleItem(
       where: { id: item.id },
       data: {
         aiAssessmentError: msg,
+        aiLastError: msg,
+        aiLastFailedAt: new Date(),
         aiAssessedAt: new Date(),
         adminReviewStatus: "pending_ai",
       },

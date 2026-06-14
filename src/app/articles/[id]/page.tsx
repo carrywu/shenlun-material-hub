@@ -35,7 +35,14 @@ import {
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import { useAuth } from "@/lib/auth-context";
-import { CONTENT_TYPE_LABELS, CONTENT_GENRE_LABELS, getAiDecisionLabel, translateTag, parseTopicTags } from "@/lib/display-labels";
+import {
+  CONTENT_TYPE_LABELS,
+  CONTENT_GENRE_LABELS,
+  getAiAssessmentSourceLabel,
+  getAiDecisionLabel,
+  translateTag,
+  parseTopicTags,
+} from "@/lib/display-labels";
 import type { CardType } from "@/types";
 
 interface Annotation {
@@ -63,6 +70,7 @@ interface ArticleDetail {
   topicTags: string;
   publishedAt: string | null;
   createdAt: string;
+  updatedAt?: string;
   processingStatus: string;
   qualityStatus: string;
   aiScore: number | null;
@@ -74,8 +82,15 @@ interface ArticleDetail {
   aiQuotes: string | null;
   contentGenre: string | null;
   aiAssessedAt: string | null;
+  aiAssessmentSource?: string | null;
+  aiAssessmentModel?: string | null;
+  aiPromptVersion?: string | null;
+  aiContentHash?: string | null;
+  aiLastError?: string | null;
+  aiLastFailedAt?: string | null;
   aiScoreDetail: string | null;
   aiScoredAt: string | null;
+  contentHash?: string | null;
   adminReviewStatus: string;
   effectiveTextLength: number;
   bookmarked: boolean;
@@ -179,11 +194,33 @@ function parseStringList(value: string | null): string[] {
   return [];
 }
 
-function AiEvaluationPanel({ article }: { article: ArticleDetail }) {
+function AiEvaluationPanel({
+  article,
+  showDebugInfo,
+  showHashDebugInfo,
+}: {
+  article: ArticleDetail;
+  showDebugInfo: boolean;
+  showHashDebugInfo: boolean;
+}) {
   const categories = parseStringList(article.aiCategories);
   const usableFor = parseStringList(article.aiUsableFor);
   const quotes = parseStringList(article.aiQuotes);
+  const hasEvaluation = Boolean(
+    article.aiAssessedAt ||
+    article.aiDecision ||
+    article.aiScore !== null ||
+    article.aiSummary ||
+    article.aiReason
+  );
   const decisionLabel = getAiDecisionLabel(article.aiDecision);
+  const hashStale = Boolean(article.aiContentHash && article.contentHash && article.aiContentHash !== article.contentHash);
+  const timeStale = Boolean(
+    article.aiAssessedAt &&
+    article.updatedAt &&
+    new Date(article.aiAssessedAt).getTime() < new Date(article.updatedAt).getTime()
+  );
+  const stale = hasEvaluation && (hashStale || timeStale);
 
   return (
     <Card>
@@ -199,6 +236,21 @@ function AiEvaluationPanel({ article }: { article: ArticleDetail }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
+        {!hasEvaluation && (
+          <div className="rounded-md border border-dashed bg-muted/30 px-3 py-2 text-muted-foreground">
+            尚未评估。请点击重新评估后再查看 AI 结论。
+          </div>
+        )}
+        {stale && (
+          <div className="rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-yellow-800">
+            评估可能已过期，请重新评估。
+          </div>
+        )}
+        {article.aiLastError && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+            最近一次重新评估失败：{article.aiLastError}
+          </div>
+        )}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-1">AI 摘要</p>
           <p className="leading-relaxed whitespace-pre-wrap">{article.aiSummary || "暂无 AI 摘要"}</p>
@@ -243,6 +295,25 @@ function AiEvaluationPanel({ article }: { article: ArticleDetail }) {
             <p className="text-muted-foreground">暂无金句预览</p>
           )}
         </div>
+        {showDebugInfo && (
+          <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">AI 评估调试信息</p>
+            <p>数据来源：{getAiAssessmentSourceLabel(article.aiAssessmentSource)}</p>
+            <p>评估时间：{article.aiAssessedAt ? new Date(article.aiAssessedAt).toLocaleString("zh-CN") : "无"}</p>
+            <p>模型：{article.aiAssessmentModel || "未记录"}</p>
+            <p>Prompt 版本：{article.aiPromptVersion || "未记录"}</p>
+            <p>文章 ID：{article.id}</p>
+            {showHashDebugInfo && (
+              <>
+                <p>评估正文 hash：{article.aiContentHash || "未记录"}</p>
+                <p>当前正文 hash：{article.contentHash || "未记录"}</p>
+              </>
+            )}
+            {article.aiLastFailedAt && (
+              <p>最近失败时间：{new Date(article.aiLastFailedAt).toLocaleString("zh-CN")}</p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -831,7 +902,11 @@ export default function ArticleDetailPage() {
               </div>
             )}
 
-            <AiEvaluationPanel article={article} />
+            <AiEvaluationPanel
+              article={article}
+              showDebugInfo={isAdmin || process.env.NODE_ENV !== "production"}
+              showHashDebugInfo={isAdmin}
+            />
 
             {/* Full text with annotations */}
             <Card>
