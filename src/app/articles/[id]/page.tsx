@@ -265,13 +265,12 @@ function AiEvaluationPanel({
     article.aiReason
   );
   const decisionLabel = getAiDecisionLabel(article.aiDecision);
+  // 判断评估是否过期：只看正文 hash 是否变化（评估时记录的 aiContentHash vs 当前 contentHash）。
+  // 不能用 updatedAt 判断——任何无关 UPDATE（收藏/阅读/批注/重新评估本身）都会刷新
+  // ContentItem.updatedAt，导致 updatedAt 永远 >= aiAssessedAt，从而误报"评估过期"。
+  // hash 才是正文是否真的变化的可靠依据。
   const hashStale = Boolean(article.aiContentHash && article.contentHash && article.aiContentHash !== article.contentHash);
-  const timeStale = Boolean(
-    article.aiAssessedAt &&
-    article.updatedAt &&
-    new Date(article.aiAssessedAt).getTime() < new Date(article.updatedAt).getTime()
-  );
-  const stale = hasEvaluation && (hashStale || timeStale);
+  const stale = hasEvaluation && hashStale;
 
   return (
     <Card>
