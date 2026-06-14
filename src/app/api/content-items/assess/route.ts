@@ -85,6 +85,7 @@ async function assessSingleItem(
 async function runAssessTask(
   ids: string[] | undefined,
   retryFailed: boolean | undefined,
+  reassess: boolean | undefined,
   concurrency: number,
   userId?: string
 ) {
@@ -99,6 +100,12 @@ async function runAssessTask(
     if (ids && ids.length > 0) {
       whereClause.id = { in: ids };
     }
+  } else if (reassess) {
+    // 重新评估：允许对已有评估结果的文章再次评估
+    whereClause = {
+      id: { in: ids ?? [] },
+      qualityStatus: "candidate",
+    };
   } else {
     whereClause = {
       id: { in: ids ?? [] },
@@ -153,7 +160,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json();
-    const { ids, retryFailed, concurrency: rawConcurrency } = body;
+    const { ids, retryFailed, reassess, concurrency: rawConcurrency } = body;
 
     const concurrency = Math.min(
       10,
@@ -177,6 +184,12 @@ export async function POST(request: NextRequest) {
       if (ids && Array.isArray(ids) && ids.length > 0) {
         whereClause.id = { in: ids };
       }
+    } else if (reassess) {
+      // 重新评估：允许对已有评估结果的文章再次评估
+      whereClause = {
+        id: { in: ids },
+        qualityStatus: "candidate",
+      };
     } else {
       whereClause = {
         id: { in: ids },
@@ -202,7 +215,7 @@ export async function POST(request: NextRequest) {
       itemCount: count,
     });
 
-    enqueueAsyncTask(task, () => runAssessTask(ids, retryFailed, concurrency, user.id));
+    enqueueAsyncTask(task, () => runAssessTask(ids, retryFailed, reassess, concurrency, user.id));
 
     return NextResponse.json(
       {

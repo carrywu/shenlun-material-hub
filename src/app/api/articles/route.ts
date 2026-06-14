@@ -38,11 +38,12 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let where: any = {};
 
-    // 关键词搜索：标题 + 摘要
+    // 关键词搜索：标题 + 摘要 + 文章 ID
     if (keyword) {
       where.OR = [
         { title: { contains: keyword } },
         { excerpt: { contains: keyword } },
+        { id: { equals: keyword } },
       ];
     }
 

@@ -70,22 +70,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, baseUrl, clientId, apiKey, knowledgeBaseId } = body;
 
-    // 非管理员只需提供 clientId 和 apiKey，其他字段使用默认值
-    const isAdmin = user.role === "ADMIN";
-    if (isAdmin) {
-      if (!name || !baseUrl || !clientId || !apiKey || !knowledgeBaseId) {
-        return NextResponse.json(
-          { error: "请填写所有必填字段：名称、Base URL、Client ID、API Key、知识库 ID" },
-          { status: 400 }
-        );
-      }
-    } else {
-      if (!clientId || !apiKey) {
-        return NextResponse.json(
-          { error: "请填写 Client ID 和 API Key" },
-          { status: 400 }
-        );
-      }
+    // 所有角色只需提供 clientId 和 apiKey，其他字段使用默认值
+    if (!clientId || !apiKey) {
+      return NextResponse.json(
+        { error: "请填写 Client ID 和 API Key" },
+        { status: 400 }
+      );
     }
 
     const target = await db.imaTarget.create({
