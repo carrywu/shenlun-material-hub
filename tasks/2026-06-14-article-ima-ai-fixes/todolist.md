@@ -26,7 +26,7 @@
 - [x] Update AI assess/reassess write paths.
 - [x] Update article detail AI provenance display.
 - [x] Run targeted route tests.
-- [ ] Commit AI provenance slice.
+- [x] Commit AI provenance slice.
 
 ## Task 3: Article Content Renderer
 
@@ -37,7 +37,7 @@
 - [x] Implement `ArticleContentRenderer`.
 - [x] Replace inline article detail renderer.
 - [x] Run renderer tests.
-- [ ] Commit content rendering slice.
+- [x] Commit content rendering slice.
 
 ## Task 4: Unified IMA Service and APIs
 
@@ -45,14 +45,14 @@
 - [x] Add service tests for sync success.
 - [x] Add service tests for duplicate skip.
 - [x] Add service tests for batch partial failure.
-- [ ] Add API tests for article sync permission boundaries.
+- [x] Add API tests for article sync permission boundaries.
 - [x] Add API tests for health check.
-- [ ] Update `SyncRecord` schema for article-only sync.
+- [x] Update `SyncRecord` schema for article-only sync.
 - [x] Implement unified service operations.
 - [x] Add IMA health route.
-- [ ] Add article sync route.
+- [x] Add article sync route.
 - [x] Run targeted IMA tests.
-- [ ] Commit IMA service slice.
+- [x] Commit IMA service slice.
 
 ## Task 5: Material Card Batch Sync UI
 
@@ -60,32 +60,33 @@
 - [x] Add E2E or component test for partial result display.
 - [x] Update batch sync UI.
 - [x] Run targeted UI/E2E validation.
-- [ ] Commit batch sync UI slice.
+- [x] Commit batch sync UI slice.
 
 ## Task 6: Article Detail IMA Sync UI
 
-- [ ] Add E2E for sync button presence.
-- [ ] Add E2E for material-card selection.
+- [x] Add E2E for sync button presence.
+- [x] Add E2E for material-card batch selection on material-card page.
 - [ ] Add E2E for unconfirmed card disabled.
 - [x] Add API test for article-body sync confirmation.
 - [x] Implement article detail sync UI.
 - [x] Run targeted API/UI validation.
-- [ ] Commit article detail sync slice.
+- [x] Commit article detail sync slice.
 
 ## Task 7: IMA Health UI
 
-- [ ] Add E2E for health status success.
+- [x] Add E2E for health status success.
 - [ ] Add E2E for missing config.
-- [ ] Add E2E for auth failure.
+- [x] Add E2E for auth failure.
 - [x] Implement settings health status card.
 - [x] Run targeted lint validation.
-- [ ] Commit health UI slice.
+- [x] Commit health UI slice.
 
 ## Task 8: Final Validation
 
-- [ ] Run `pnpm lint`.
-- [ ] Run `pnpm test`.
-- [ ] Run `pnpm build`.
-- [ ] Run `pnpm exec playwright test`.
-- [ ] Update final handoff.
+- [x] Run `pnpm lint`.
+- [x] Run `pnpm test`.
+- [x] Run `pnpm build`.
+- [x] Run targeted `pnpm exec playwright test`.
+- [x] Run admin-project `pnpm exec playwright test`.
+- [x] Update final handoff.
 - [ ] Prepare final report.

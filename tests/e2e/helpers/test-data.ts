@@ -14,6 +14,7 @@ type StorageState = {
 };
 
 type ListResponse<T = { id?: string }> = {
+  data?: T[];
   items?: T[];
   length?: number;
   0?: T;
@@ -34,7 +35,7 @@ export async function hasApprovedArticles(request: APIRequestContext): Promise<b
   const res = await request.get(`${BASE_URL}/api/articles?limit=1`, { headers: cookies });
   if (!res.ok()) return false;
   const data = await res.json() as ListResponse;
-  return (data.items?.length ?? 0) > 0;
+  return (data.data?.length ?? data.items?.length ?? 0) > 0;
 }
 
 /** Check if material cards exist */
@@ -43,7 +44,7 @@ export async function hasMaterialCards(request: APIRequestContext): Promise<bool
   const res = await request.get(`${BASE_URL}/api/material-cards?limit=1`, { headers: cookies });
   if (!res.ok()) return false;
   const data = await res.json() as ListResponse;
-  return (data.items?.length ?? data.length ?? 0) > 0;
+  return (data.data?.length ?? data.items?.length ?? data.length ?? 0) > 0;
 }
 
 /** Check if candidate articles exist (for AI assessment) */
@@ -55,7 +56,7 @@ export async function hasCandidateArticles(request: APIRequestContext): Promise<
   );
   if (!res.ok()) return false;
   const data = await res.json() as ListResponse;
-  return (data.items?.length ?? data.length ?? 0) > 0;
+  return (data.data?.length ?? data.items?.length ?? data.length ?? 0) > 0;
 }
 
 /** Check if sources exist */
@@ -64,7 +65,7 @@ export async function hasSources(request: APIRequestContext): Promise<boolean> {
   const res = await request.get(`${BASE_URL}/api/sources?limit=1`, { headers: cookies });
   if (!res.ok()) return false;
   const data = await res.json() as ListResponse;
-  return (data.items?.length ?? data.length ?? 0) > 0;
+  return (data.data?.length ?? data.items?.length ?? data.length ?? 0) > 0;
 }
 
 /** Get first approved article ID */
@@ -73,7 +74,7 @@ export async function getFirstApprovedArticleId(request: APIRequestContext): Pro
   const res = await request.get(`${BASE_URL}/api/articles?limit=1`, { headers: cookies });
   if (!res.ok()) return null;
   const data = await res.json() as ListResponse;
-  return data.items?.[0]?.id ?? null;
+  return data.data?.[0]?.id ?? data.items?.[0]?.id ?? null;
 }
 
 /** Get first material card ID */
@@ -82,7 +83,7 @@ export async function getFirstCardId(request: APIRequestContext): Promise<string
   const res = await request.get(`${BASE_URL}/api/material-cards?limit=1`, { headers: cookies });
   if (!res.ok()) return null;
   const data = await res.json() as ListResponse;
-  return (data.items?.[0]?.id ?? data[0]?.id) ?? null;
+  return (data.data?.[0]?.id ?? data.items?.[0]?.id ?? data[0]?.id) ?? null;
 }
 
 /** Get first candidate article ID */
@@ -94,7 +95,7 @@ export async function getFirstCandidateArticleId(request: APIRequestContext): Pr
   );
   if (!res.ok()) return null;
   const data = await res.json() as ListResponse;
-  return (data.items?.[0]?.id ?? data[0]?.id) ?? null;
+  return (data.data?.[0]?.id ?? data.items?.[0]?.id ?? data[0]?.id) ?? null;
 }
 
 /** Check WeWe RSS service availability */

@@ -36,4 +36,33 @@ test.describe('文章详情页', () => {
     // Learning state badges may or may not be visible
     await expect(page.locator('main')).toBeVisible();
   });
+
+  test('详情页 AI 状态和正文应全中文且保留内容结构', async ({ page, request }) => {
+    const articleId = await getFirstApprovedArticleId(request);
+    test.skip(!articleId, '没有已审核文章');
+
+    await page.goto(`/articles/${articleId}`);
+    await expectNoInfiniteLoading(page);
+    await expect(page.getByText('AI 评估结果')).toBeVisible();
+    await expect(page.getByText('accepted')).not.toBeVisible();
+    await expect(page.getByText('rejected')).not.toBeVisible();
+    await expect(page.getByText('pending')).not.toBeVisible();
+    await expect(page.getByText('unknown')).not.toBeVisible();
+    await expect(page.getByText(/已通过|已拒绝|待评估|尚未评估|未知/).first()).toBeVisible();
+
+    const content = page.getByTestId('article-content');
+    await expect(content).toBeVisible();
+    const paragraphCount = await content.locator('p').count();
+    expect(paragraphCount).toBeGreaterThan(0);
+  });
+
+  test('详情页应显示查看原文和同步到 IMA', async ({ page, request }) => {
+    const articleId = await getFirstApprovedArticleId(request);
+    test.skip(!articleId, '没有已审核文章');
+
+    await page.goto(`/articles/${articleId}`);
+    await expectNoInfiniteLoading(page);
+    await expect(page.getByRole('link', { name: '查看原文' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '同步到 IMA' })).toBeVisible();
+  });
 });

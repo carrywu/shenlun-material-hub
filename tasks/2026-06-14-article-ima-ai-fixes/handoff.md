@@ -2,7 +2,7 @@
 
 ## Current State
 
-Task 7 IMA health UI is implemented and targeted lint passes. The current unblocked next slice is Playwright E2E coverage and final validation.
+Task 7 IMA health UI is implemented. Targeted Playwright coverage and the full `tests/e2e` admin project now pass. The current unblocked next slice is the final git commit and final report.
 
 ## Completed
 
@@ -29,6 +29,7 @@ Task 7 IMA health UI is implemented and targeted lint passes. The current unbloc
 - Made `SyncRecord.materialCardId` nullable so article-only sync records can be stored.
 - Added the article detail `同步到 IMA` button beside `查看原文` with loading and toast feedback.
 - Added IMA settings health status card with `未配置 / 已配置但不可达 / 鉴权失败 / 正常 / 待检查` states and a `检查连接` action.
+- Added Playwright E2E coverage for article detail Chinese labels/content, article detail IMA sync success/config-missing feedback, material-card batch sync empty/partial/repeated-click paths, and IMA health success/auth-failure paths.
 
 ## IMA Call Chain Conclusion
 
@@ -81,6 +82,11 @@ Task 7 IMA health UI is implemented and targeted lint passes. The current unbloc
 - `src/app/api/articles/[id]/sync-to-ima/route.ts`
 - `src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts`
 - `src/app/settings/ima/page.tsx`
+- `tests/e2e/article-detail.spec.ts`
+- `tests/e2e/article-ima-sync.spec.ts`
+- `tests/e2e/material-card-batch-sync.spec.ts`
+- `tests/e2e/ima-health.spec.ts`
+- `tests/e2e/helpers/test-data.ts`
 
 ## Verification
 
@@ -102,7 +108,14 @@ Task 7 IMA health UI is implemented and targeted lint passes. The current unbloc
 - `pnpm test 'src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts'` passed with 3 tests.
 - `pnpm exec eslint src/services/ima-sync.ts 'src/app/api/articles/[id]/sync-to-ima/route.ts' 'src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts' 'src/app/articles/[id]/page.tsx'` passed.
 - `pnpm exec eslint src/app/settings/ima/page.tsx` passed.
+- `pnpm build` passed after the article/IMA changes.
+- `DATABASE_URL='postgresql://shenlun:shenlun_dev@localhost:5432/shenlun_material_hub?schema=public' pnpm db:migrate` applied the two pending non-destructive migrations used by the E2E environment.
+- `pnpm exec playwright test -c tests/e2e/playwright.config.ts --project=admin tests/e2e/article-detail.spec.ts tests/e2e/article-ima-sync.spec.ts tests/e2e/material-card-batch-sync.spec.ts tests/e2e/ima-health.spec.ts` passed with 13 tests.
+- `pnpm exec eslint tests/e2e/article-detail.spec.ts tests/e2e/article-ima-sync.spec.ts tests/e2e/material-card-batch-sync.spec.ts tests/e2e/ima-health.spec.ts tests/e2e/helpers/test-data.ts` passed.
+- `pnpm lint` passed with 27 warnings and 0 errors.
+- `pnpm test` passed with 62 files and 410 tests.
+- `pnpm exec playwright test -c tests/e2e/playwright.config.ts --project=admin` passed with 119 tests and 1 skipped test.
 
 ## Next Action
 
-Commit Task 7 health UI slice, then add Playwright E2E coverage and run final validation.
+Commit the E2E coverage slice, then prepare the final report.

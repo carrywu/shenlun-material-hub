@@ -219,3 +219,66 @@ Result: PASS
 Key output: No lint errors reported.
 Follow-up: Commit Task 7 health UI slice; Playwright coverage remains pending.
 ```
+
+```text
+Command: pnpm exec playwright test -c tests/e2e/playwright.config.ts --project=admin tests/e2e/article-detail.spec.ts tests/e2e/article-ima-sync.spec.ts tests/e2e/material-card-batch-sync.spec.ts tests/e2e/ima-health.spec.ts
+Result: FAIL
+Key output: App served stale build before production rebuild; article detail sync button and new routes were not present in the running app.
+Follow-up: Run production build before rerunning Playwright.
+```
+
+```text
+Command: pnpm build
+Result: PASS
+Key output: Compiled successfully; type checking completed; Next route list generated.
+Follow-up: Apply pending non-destructive Prisma migrations before E2E.
+```
+
+```text
+Command: DATABASE_URL='postgresql://shenlun:shenlun_dev@localhost:5432/shenlun_material_hub?schema=public' pnpm db:migrate
+Result: PASS
+Key output: Applied migrations 20260614185100_article_ai_provenance and 20260614192000_sync_record_article_fallback.
+Follow-up: Rerun targeted Playwright.
+```
+
+```text
+Command: pnpm exec playwright test -c tests/e2e/playwright.config.ts --project=admin tests/e2e/article-detail.spec.ts tests/e2e/article-ima-sync.spec.ts tests/e2e/material-card-batch-sync.spec.ts tests/e2e/ima-health.spec.ts
+Result: FAIL
+Key output: 11 passed, 2 failed; strict text locator on AI status matched multiple nodes; sync-success loading assertion was too fast for immediate mocked response.
+Follow-up: Narrow status locator with first() and add a short mocked response delay to observe loading state.
+```
+
+```text
+Command: pnpm exec playwright test -c tests/e2e/playwright.config.ts --project=admin tests/e2e/article-detail.spec.ts tests/e2e/article-ima-sync.spec.ts tests/e2e/material-card-batch-sync.spec.ts tests/e2e/ima-health.spec.ts
+Result: PASS
+Key output: 13 passed (32.6s).
+Follow-up: Commit E2E coverage slice, then run broader final validation.
+```
+
+```text
+Command: pnpm exec eslint tests/e2e/article-detail.spec.ts tests/e2e/article-ima-sync.spec.ts tests/e2e/material-card-batch-sync.spec.ts tests/e2e/ima-health.spec.ts tests/e2e/helpers/test-data.ts
+Result: PASS
+Key output: No lint errors reported for changed E2E files.
+Follow-up: Run project-level lint/test.
+```
+
+```text
+Command: pnpm lint
+Result: PASS with warnings
+Key output: 0 errors, 27 warnings. Warnings are unused variables in existing e2e/source/test files and not blocking under the current ESLint config.
+Follow-up: Run full unit/integration test suite.
+```
+
+```text
+Command: pnpm test
+Result: PASS
+Key output: Test Files 62 passed; Tests 410 passed.
+Follow-up: Run broader Playwright admin-project validation.
+```
+
+```text
+Command: pnpm exec playwright test -c tests/e2e/playwright.config.ts --project=admin
+Result: PASS
+Key output: 119 passed, 1 skipped (2.2m).
+Follow-up: Commit E2E coverage slice.
+```
