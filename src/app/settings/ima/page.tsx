@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 interface ImaTarget {
@@ -20,6 +20,16 @@ interface ImaTarget {
   createdAt: string;
 }
 
+interface ImaHealth {
+  configured: boolean;
+  reachable: boolean;
+  authValid: boolean;
+  workspace?: string;
+  lastCheckedAt: string;
+  errorCode?: string;
+  errorMessage?: string;
+}
+
 export default function ImaSettingsPage() {
   const router = useRouter();
   const { isAdmin, user } = useAuth();
@@ -30,6 +40,8 @@ export default function ImaSettingsPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [health, setHealth] = useState<ImaHealth | null>(null);
+  const [checkingHealth, setCheckingHealth] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -126,6 +138,40 @@ export default function ImaSettingsPage() {
     }
   };
 
+  const handleHealthCheck = async () => {
+    setCheckingHealth(true);
+    setError("");
+    try {
+      const res = await fetch("/api/ima/health");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.errorMessage || data.error || "检查连接失败");
+      setHealth(data);
+    } catch (err) {
+      setHealth({
+        configured: false,
+        reachable: false,
+        authValid: false,
+        lastCheckedAt: new Date().toISOString(),
+        errorCode: "IMA_HEALTH_FAILED",
+        errorMessage: err instanceof Error ? err.message : "检查连接失败",
+      });
+    } finally {
+      setCheckingHealth(false);
+    }
+  };
+
+  const healthLabel = health
+    ? !health.configured
+      ? "未配置"
+      : !health.reachable
+        ? "已配置但不可达"
+        : !health.authValid
+          ? "鉴权失败"
+          : "正常"
+    : targets.length > 0
+      ? "待检查"
+      : "未配置";
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -149,6 +195,41 @@ export default function ImaSettingsPage() {
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>IMA 状态</span>
+            <Badge
+              variant={health?.configured && health.reachable && health.authValid ? "default" : "secondary"}
+              className="text-xs"
+            >
+              {healthLabel}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {health?.workspace && (
+            <p className="text-sm text-muted-foreground">知识库：{health.workspace}</p>
+          )}
+          {health?.lastCheckedAt && (
+            <p className="text-xs text-muted-foreground">
+              检查时间：{new Date(health.lastCheckedAt).toLocaleString("zh-CN")}
+            </p>
+          )}
+          {health?.errorMessage && (
+            <p className="text-sm text-destructive">{health.errorMessage}</p>
+          )}
+          <Button onClick={handleHealthCheck} disabled={checkingHealth} size="sm" variant="outline">
+            {checkingHealth ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+            )}
+            {checkingHealth ? "检查中..." : "检查连接"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Existing targets */}
       {targets.length > 0 && (

@@ -2,7 +2,7 @@
 
 ## Current State
 
-Task 6 article detail IMA sync is implemented and targeted API/UI checks pass. The current unblocked next slice is Task 7 IMA health UI and Playwright E2E coverage.
+Task 7 IMA health UI is implemented and targeted lint passes. The current unblocked next slice is Playwright E2E coverage and final validation.
 
 ## Completed
 
@@ -28,6 +28,7 @@ Task 6 article detail IMA sync is implemented and targeted API/UI checks pass. T
 - Added `ImaService.syncArticle`, which syncs confirmed material cards first and falls back to approved article body content when no confirmed card exists.
 - Made `SyncRecord.materialCardId` nullable so article-only sync records can be stored.
 - Added the article detail `同步到 IMA` button beside `查看原文` with loading and toast feedback.
+- Added IMA settings health status card with `未配置 / 已配置但不可达 / 鉴权失败 / 正常 / 待检查` states and a `检查连接` action.
 
 ## IMA Call Chain Conclusion
 
@@ -79,6 +80,7 @@ Task 6 article detail IMA sync is implemented and targeted API/UI checks pass. T
 - `prisma/migrations/20260614192000_sync_record_article_fallback/migration.sql`
 - `src/app/api/articles/[id]/sync-to-ima/route.ts`
 - `src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts`
+- `src/app/settings/ima/page.tsx`
 
 ## Verification
 
@@ -99,7 +101,8 @@ Task 6 article detail IMA sync is implemented and targeted API/UI checks pass. T
 - `pnpm exec eslint src/components/SyncToIma.tsx src/components/__tests__/SyncToIma.test.tsx src/app/cards/page.tsx` passed.
 - `pnpm test 'src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts'` passed with 3 tests.
 - `pnpm exec eslint src/services/ima-sync.ts 'src/app/api/articles/[id]/sync-to-ima/route.ts' 'src/app/api/articles/[id]/sync-to-ima/__tests__/route.test.ts' 'src/app/articles/[id]/page.tsx'` passed.
+- `pnpm exec eslint src/app/settings/ima/page.tsx` passed.
 
 ## Next Action
 
-Commit Task 6 article detail sync slice, then start Task 7 IMA health UI and Playwright E2E coverage.
+Commit Task 7 health UI slice, then add Playwright E2E coverage and run final validation.

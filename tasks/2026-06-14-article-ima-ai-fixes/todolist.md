@@ -77,8 +77,8 @@
 - [ ] Add E2E for health status success.
 - [ ] Add E2E for missing config.
 - [ ] Add E2E for auth failure.
-- [ ] Implement settings health status card.
-- [ ] Run targeted E2E validation.
+- [x] Implement settings health status card.
+- [x] Run targeted lint validation.
 - [ ] Commit health UI slice.
 
 ## Task 8: Final Validation

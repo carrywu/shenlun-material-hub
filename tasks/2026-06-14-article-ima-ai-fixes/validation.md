@@ -212,3 +212,10 @@ Result: PASS
 Key output: No lint errors reported.
 Follow-up: Commit Task 6 article detail sync slice.
 ```
+
+```text
+Command: pnpm exec eslint src/app/settings/ima/page.tsx
+Result: PASS
+Key output: No lint errors reported.
+Follow-up: Commit Task 7 health UI slice; Playwright coverage remains pending.
+```
