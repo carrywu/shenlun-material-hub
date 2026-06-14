@@ -97,7 +97,7 @@ test.describe('文章列表页', () => {
     guard.report(test.info());
   });
 
-  test('文章列表：点击行打开详情面板', async ({ page }) => {
+  test('文章列表：点击行跳转详情页', async ({ page }) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
@@ -116,11 +116,9 @@ test.describe('文章列表页', () => {
       throw new Error('没有文章数据，无法测试行点击');
     }
 
-    // 直接点行触发 onClick（ArticlesPage TableRow onClick=setDetailItem）。
-    const detailPanel = page.locator('div.border-l');
     await firstDataRow.click();
-    // 详情面板打开后挂载 .border-l 容器（ArticlesPage line ~989）
-    await expect(detailPanel).toBeVisible({ timeout: 5000 });
+    await expect(page).toHaveURL(/\/articles\/[^/?#]+$/, { timeout: 10000 });
+    await expect(page.locator('body')).toBeVisible();
 
     guard.report(test.info());
   });
@@ -203,9 +201,13 @@ test.describe('文章列表页', () => {
     await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
 
     // Management mode buttons should be visible
-    await expect(page.getByRole('button', { name: '开始采集' })).toBeVisible();
+    const collectButton = page.getByRole('button', { name: '开始采集' });
+    await expect(collectButton).toBeVisible();
     await expect(page.getByRole('button', { name: 'AI 评估' })).toBeVisible();
     await expect(page.getByRole('button', { name: '刷新' })).toBeVisible();
+
+    await collectButton.click();
+    await expect(page.getByRole('dialog').getByText('选择要采集的来源，点击开始采集')).toBeVisible({ timeout: 10000 });
 
     guard.report(test.info());
   });

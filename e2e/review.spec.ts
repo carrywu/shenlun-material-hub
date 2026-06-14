@@ -78,11 +78,11 @@ test.describe('复习页', () => {
 
     // Wait for cards or empty state
     await expect(
-      page.locator('text=当前没有需要复习的素材卡').or(page.locator('text=已掌握').first())
+      page.getByText(/还没有可复习的素材卡|还没有复习数据/).or(page.locator('text=已掌握').first())
     ).toBeVisible({ timeout: 15000 });
 
     // Check if empty state
-    const emptyState = page.getByText('当前没有需要复习的素材卡');
+    const emptyState = page.getByText(/还没有可复习的素材卡|还没有复习数据/);
     if (await emptyState.isVisible()) {
       guard.report(testInfo);
       return;
@@ -115,11 +115,11 @@ test.describe('复习页', () => {
 
     // Wait for cards or empty state
     await expect(
-      page.locator('text=当前没有需要复习的素材卡').or(page.locator('text=已掌握').first())
+      page.getByText(/还没有可复习的素材卡|还没有复习数据/).or(page.locator('text=已掌握').first())
     ).toBeVisible({ timeout: 15000 });
 
     // Check if empty state
-    const emptyState = page.getByText('当前没有需要复习的素材卡');
+    const emptyState = page.getByText(/还没有可复习的素材卡|还没有复习数据/);
     if (await emptyState.isVisible()) {
       guard.report(testInfo);
       return;
@@ -134,7 +134,7 @@ test.describe('复习页', () => {
     await expect(page.getByText('本次已复习')).toBeVisible();
 
     // The counter card should show at least 1
-    const counterCard = page.locator('text=当前没有需要复习的素材卡').or(page.locator('.text-lg.font-bold'));
+    const counterCard = page.getByText(/还没有可复习的素材卡|还没有复习数据/).or(page.locator('.text-lg.font-bold'));
     await expect(counterCard.first()).toBeVisible();
 
     guard.report(testInfo);
@@ -158,24 +158,18 @@ test.describe('复习页', () => {
 
   test('复习页：无卡片时显示空状态', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
+    await page.route('**/api/review**', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: [], mode: 'random' }) })
+    );
 
     await page.goto('/review');
 
     await expect(page.getByRole('heading', { name: '复习模式' })).toBeVisible();
 
-    // Wait for content to settle — either cards load or empty state appears
-    await page.waitForTimeout(3000);
-
-    // If cards exist, this test is not applicable — but we verify the empty state UI
-    // can appear by checking that the page structure supports it
-    const emptyStateMessage = page.getByText('当前没有需要复习的素材卡');
-    const hasCards = await page.getByRole('button', { name: '已掌握' }).first().isVisible().catch(() => false);
-
-    if (!hasCards) {
-      await expect(emptyStateMessage).toBeVisible();
-      // The "换一批" button should also appear in the empty state
-      await expect(page.getByRole('button', { name: '换一批' })).toBeVisible();
-    }
+    await expect(page.getByText('还没有可复习的素材卡')).toBeVisible();
+    await expect(page.getByText('先从已审核文章生成自己的素材卡')).toBeVisible();
+    await expect(page.getByRole('link', { name: '去文章页生成素材卡' })).toHaveAttribute('href', '/articles');
+    await expect(page.getByRole('button', { name: '换一批' })).toBeVisible();
 
     guard.report(testInfo);
   });
@@ -183,18 +177,13 @@ test.describe('复习页', () => {
   test('复习页空状态有跳转按钮', async ({ page }, testInfo) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
+    await page.route('**/api/review**', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: [], mode: 'random' }) })
+    );
     await page.goto('/review');
     await expect(page.getByRole('heading', { name: '复习模式' })).toBeVisible();
-    await page.waitForTimeout(3000);
 
-    // 空状态时应有"查看素材卡"链接
-    const cardsLink = page.locator('a', { hasText: '查看素材卡' });
-    const emptyState = page.getByText('当前没有需要复习的素材卡');
-
-    if (await emptyState.isVisible()) {
-      // 空状态下应有 CTA 跳转链接
-      await expect(cardsLink).toBeVisible();
-    }
+    await expect(page.getByRole('link', { name: '去文章页生成素材卡' })).toBeVisible();
     guard.report(testInfo);
   });
 
@@ -212,6 +201,25 @@ test.describe('复习页', () => {
     const hasLoading = await page.getByText('加载中').isVisible().catch(() => false);
     const hasContent = await page.locator('h1, h2, h3, [role="combobox"]').first().isVisible().catch(() => false);
     expect(hasContent).toBe(true);
+    guard.report(testInfo);
+  });
+});
+
+test.describe('复习页 - 普通用户空状态', () => {
+  test.use({ storageState: '.auth/usera-storage.json' });
+
+  test('USER 无卡时引导到账号设置升级', async ({ page }, testInfo) => {
+    const guard = attachConsoleGuard(page);
+    await page.route('**/api/review**', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: [], mode: 'random' }) })
+    );
+
+    await page.goto('/review');
+    await expect(page.getByRole('heading', { name: '复习模式' })).toBeVisible();
+    await expect(page.getByText('还没有复习数据')).toBeVisible();
+    await expect(page.getByText('升级认证后即可基于已审核文章生成自己的素材卡')).toBeVisible();
+    await expect(page.getByRole('link', { name: '去账号设置升级' })).toHaveAttribute('href', '/settings/account');
+
     guard.report(testInfo);
   });
 });

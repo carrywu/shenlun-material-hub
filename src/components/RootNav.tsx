@@ -13,7 +13,10 @@ import type { AuthUser } from "@/lib/auth";
 // Base nav items for all logged-in users
 const baseNavItems = [
   { href: "/articles", label: "文章", icon: FileText },
-  { href: "/review", label: "复习", icon: RotateCcw },
+];
+
+// Tail nav items (always shown, after verified items)
+const tailNavItems = [
   { href: "/settings", label: "设置", icon: Settings },
 ];
 
@@ -22,6 +25,8 @@ const verifiedNavItems = [
   { href: "/cards", label: "素材卡", icon: CreditCard },
   { href: "/search", label: "检索", icon: Search },
 ];
+
+const reviewNavItem = { href: "/review", label: "复习", icon: RotateCcw };
 
 const roleLabels: Record<string, { label: string; color: string }> = {
   ADMIN: { label: "管理员", color: "bg-violet-100 text-violet-700" },
@@ -43,6 +48,8 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
     { href: "/", label: "首页", icon: Home },
     ...baseNavItems,
     ...(role === "VERIFIED_USER" || role === "ADMIN" ? verifiedNavItems : []),
+    reviewNavItem,
+    ...tailNavItems,
   ];
 
   const isAdmin = currentUser?.role === "ADMIN";

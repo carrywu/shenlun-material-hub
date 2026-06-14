@@ -241,3 +241,14 @@ test.describe('WeWe RSS 接口权限（P1 收紧）— ADMIN 回归 → 200', ()
     expect(res.status()).toBe(200);
   });
 });
+
+test.describe('采集接口权限 — VERIFIED_USER 被拒绝', () => {
+  test.use({ storageState: '.auth/verified-storage.json' });
+
+  test('VERIFIED_USER POST web collect → 403', async ({ request }) => {
+    const res = await request.post('/api/collectors/web/collect', {
+      data: {},
+    });
+    expect(res.status()).toBe(403);
+  });
+});

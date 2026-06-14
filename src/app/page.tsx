@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { CollectButton } from "@/components/CollectButton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CONTENT_TYPE_LABELS } from "@/lib/display-labels";
 
@@ -48,11 +47,11 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const isAdmin = currentUser.role === "ADMIN";
-
-  // Data isolation: non-admin users only see their own data for owned models
-  // Source is a shared/global entity — no ownerUserId field
-  const ownerFilter = isAdmin ? {} : { ownerUserId: currentUser.id };
+  const publicContentWhere = {
+    adminReviewStatus: "approved",
+    visibility: "public",
+  };
+  const personalCardWhere = { ownerUserId: currentUser.id };
 
   const [
     totalItems,
@@ -64,14 +63,14 @@ export default async function DashboardPage() {
     recentItems,
     cardsByType,
   ] = await Promise.all([
-    db.contentItem.count({ where: ownerFilter }),
-    db.materialCard.count({ where: ownerFilter }),
-    db.materialCard.count({ where: { ...ownerFilter, confirmed: false } }),
-    db.materialCard.count({ where: { ...ownerFilter, confirmed: true } }),
+    db.contentItem.count({ where: publicContentWhere }),
+    db.materialCard.count({ where: personalCardWhere }),
+    db.materialCard.count({ where: { ...personalCardWhere, confirmed: false } }),
+    db.materialCard.count({ where: { ...personalCardWhere, confirmed: true } }),
     db.source.count(),
     db.source.count({ where: { verificationStatus: "verified" } }),
     db.contentItem.findMany({
-      where: ownerFilter,
+      where: publicContentWhere,
       orderBy: { createdAt: "desc" },
       take: 6,
       include: {
@@ -81,7 +80,7 @@ export default async function DashboardPage() {
     }),
     db.materialCard.groupBy({
       by: ["cardType"],
-      where: ownerFilter,
+      where: personalCardWhere,
       _count: { id: true },
     }),
   ]);
@@ -98,7 +97,7 @@ export default async function DashboardPage() {
       gradient: "from-blue-500 to-blue-600",
       bg: "bg-blue-50 dark:bg-blue-950/30",
       text: "text-blue-600 dark:text-blue-400",
-      desc: "已采集内容",
+      desc: "已审核公开",
     },
     {
       label: "素材卡",
@@ -107,7 +106,7 @@ export default async function DashboardPage() {
       gradient: "from-violet-500 to-violet-600",
       bg: "bg-violet-50 dark:bg-violet-950/30",
       text: "text-violet-600 dark:text-violet-400",
-      desc: "AI 生成卡片",
+      desc: "我的卡片",
     },
     {
       label: "待确认",
@@ -116,7 +115,7 @@ export default async function DashboardPage() {
       gradient: "from-amber-500 to-orange-500",
       bg: "bg-amber-50 dark:bg-amber-950/30",
       text: "text-amber-600 dark:text-amber-400",
-      desc: "待人工审核",
+      desc: "我的待确认",
     },
     {
       label: "已确认",
@@ -125,7 +124,7 @@ export default async function DashboardPage() {
       gradient: "from-emerald-500 to-green-600",
       bg: "bg-emerald-50 dark:bg-emerald-950/30",
       text: "text-emerald-600 dark:text-emerald-400",
-      desc: "可同步至 IMA",
+      desc: "我的已确认",
     },
     {
       label: "核验来源",
@@ -181,7 +180,6 @@ export default async function DashboardPage() {
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <CollectButton />
               <Link
                 href="/articles"
                 className={cn(
@@ -236,7 +234,20 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent>
                 {recentItems.length === 0 ? (
-                  <EmptyState icon={FileText} title="暂无内容" description="点击「浏览内容」开始采集" />
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                    <EmptyState
+                      icon={FileText}
+                      title="暂无已审核公开内容"
+                      description="可先浏览文章库，等待管理员采集并审核新内容。"
+                      className="py-0"
+                    />
+                    <Link
+                      href="/articles"
+                      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3")}
+                    >
+                      浏览文章
+                    </Link>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {recentItems.map((item) => (

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { testAiConfig } from "@/services/ai";
-import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 // POST /api/ai-config/test — 测试 AI 连接
 export async function POST(request: NextRequest) {
-  const user = await requireAdmin(request);
+  const user = await requireVerifiedUser(request);
   if (!user) {
     const cookieHeader = request.headers.get("cookie") || "";
     if (!cookieHeader.includes("auth_token")) {
@@ -14,29 +14,26 @@ export async function POST(request: NextRequest) {
     return forbiddenResponse();
   }
   try {
-    const result = await testAiConfig(user.id);
-
-    // 更新测试结果 — 写入用户的配置或全局配置
     const userConfig = await db.aiConfig.findFirst({
       where: { userId: user.id, isEnabled: true },
     });
-    if (userConfig) {
-      await db.aiConfig.update({
-        where: { id: userConfig.id },
-        data: {
-          lastTestedAt: new Date(),
-          lastTestError: result.success ? null : (result.error ?? "测试失败"),
-        },
-      });
-    } else {
-      await db.aiConfig.updateMany({
-        where: { name: "default" },
-        data: {
-          lastTestedAt: new Date(),
-          lastTestError: result.success ? null : (result.error ?? "测试失败"),
-        },
-      });
+
+    if (!userConfig) {
+      return NextResponse.json(
+        { success: false, error: "请先保存并启用您的个人 AI 配置后再测试连接" },
+        { status: 400 }
+      );
     }
+
+    const result = await testAiConfig(user.id);
+
+    await db.aiConfig.update({
+      where: { id: userConfig.id },
+      data: {
+        lastTestedAt: new Date(),
+        lastTestError: result.success ? null : (result.error ?? "测试失败"),
+      },
+    });
 
     return NextResponse.json(result);
   } catch (error) {

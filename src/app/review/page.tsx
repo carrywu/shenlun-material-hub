@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { ReviewCard } from "@/components/ReviewCard";
 import type { CardType } from "@/types";
+import { useAuth } from "@/lib/auth-context";
 
 interface ReviewCardData {
   id: string;
@@ -73,6 +74,7 @@ const CARD_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function ReviewPage() {
+  const { isAdmin, user } = useAuth();
   const [cards, setCards] = useState<ReviewCardData[]>([]);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState("random");
@@ -92,7 +94,9 @@ export default function ReviewPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setCards(data.data);
+        setCards(data.data ?? []);
+      } else {
+        setCards([]);
       }
     } finally {
       setLoading(false);
@@ -103,7 +107,7 @@ export default function ReviewPage() {
     try {
       const totalRes = await fetch("/api/material-cards?pageSize=1");
       const totalData = await totalRes.json();
-      if (totalRes.ok) setTotalCards(totalData.total);
+      if (totalRes.ok) setTotalCards(totalData.total ?? 0);
     } catch {
       // ignore
     }
@@ -145,6 +149,13 @@ export default function ReviewPage() {
     unreviewed: "未复习优先",
     weak: "薄弱环节",
   };
+  const canGenerateCards = isAdmin || user?.role === "VERIFIED_USER";
+  const emptyStateTitle = canGenerateCards ? "还没有可复习的素材卡" : "还没有复习数据";
+  const emptyStateDescription = canGenerateCards
+    ? "先从已审核文章生成自己的素材卡，再回到这里复习巩固。"
+    : "升级认证后即可基于已审核文章生成自己的素材卡并开始复习。";
+  const emptyStateHref = canGenerateCards ? "/articles" : "/settings/account";
+  const emptyStateActionLabel = canGenerateCards ? "去文章页生成素材卡" : "去账号设置升级";
 
   return (
     <div className="flex flex-col h-full">
@@ -255,12 +266,12 @@ export default function ReviewPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <CheckCircle2 className="h-10 w-10 mb-3 text-green-500 opacity-50" />
-              <p className="text-lg font-medium">太棒了！</p>
-              <p className="text-sm">当前没有需要复习的素材卡</p>
+              <p className="text-lg font-medium">{emptyStateTitle}</p>
+              <p className="text-sm">{emptyStateDescription}</p>
               <div className="flex items-center gap-3 mt-4">
-                <Link href="/cards">
+                <Link href={emptyStateHref}>
                   <Button variant="default" size="sm">
-                    查看素材卡
+                    {emptyStateActionLabel}
                   </Button>
                 </Link>
               </div>

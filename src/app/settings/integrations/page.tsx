@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, TestTube, Trash2, Rss, CheckCircle, XCircle, Loader2, Power, PowerOff } from "lucide-react";
+import { ArrowLeft, Save, TestTube, Trash2, Rss, CheckCircle, Loader2, Power, PowerOff } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ export default function UserWeWeRssSettingsPage() {
   // 当 user 已解析（非 null）且非 admin 时才重定向，避免 admin 初次加载被误伤。
   useEffect(() => {
     if (user !== null && !isAdmin) {
+      toast.warning("WeWe RSS 仅管理员可用");
       router.replace("/settings");
     }
   }, [user, isAdmin, router]);
@@ -55,6 +56,11 @@ export default function UserWeWeRssSettingsPage() {
 
   useEffect(() => {
     let cancelled = false;
+    if (user !== null && !isAdmin) {
+      return () => {
+        cancelled = true;
+      };
+    }
     fetch("/api/settings/integrations/wewe-rss")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -73,7 +79,7 @@ export default function UserWeWeRssSettingsPage() {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [user, isAdmin]);
 
   async function handleSave() {
     if (!baseUrl.trim()) {

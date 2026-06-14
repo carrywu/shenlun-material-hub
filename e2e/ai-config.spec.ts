@@ -131,6 +131,8 @@ test.describe('Admin AI Config', () => {
 });
 
 test.describe('User AI Settings', () => {
+  test.use({ storageState: '.auth/verified-storage.json' });
+
   test('用户 AI 配置：页面加载', async ({ page }, testInfo) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
@@ -148,6 +150,51 @@ test.describe('User AI Settings', () => {
     // since "模型参数" also appears as a substring inside the page subtitle
     // sentence ("配置您的个人 AI 模型参数，优先级高于系统默认配置").
     await expect(page.locator('[data-slot="card-title"]').filter({ hasText: '模型参数' })).toBeVisible();
+
+    guard.report(testInfo);
+  });
+
+  test('用户 AI 配置：未配置时禁用测试连接', async ({ page }, testInfo) => {
+    const guard = attachConsoleGuard(page);
+
+    await page.route('**/api/settings/ai-config', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ configured: false }) })
+    );
+
+    await page.goto('/settings/ai');
+    await expect(page.getByRole('heading', { name: 'AI 配置', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('请先保存并启用您的个人 AI 配置后再测试连接。')).toBeVisible();
+    await expect(page.getByRole('button', { name: '测试连接' })).toBeDisabled();
+
+    guard.report(testInfo);
+  });
+
+  test('用户 AI 配置：测试个人配置失败显示接口错误', async ({ page }, testInfo) => {
+    const guard = attachConsoleGuard(page);
+
+    await page.route('**/api/settings/ai-config', route =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          configured: true,
+          baseUrl: 'https://api.example.test/v1',
+          maskedKey: 'sk-t****',
+          model: 'test-model',
+          temperature: 0.3,
+          isEnabled: true,
+        }),
+      })
+    );
+    await page.route('**/api/ai-config/test', route =>
+      route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ success: false, error: '个人配置不可用' }) })
+    );
+
+    await page.goto('/settings/ai');
+    const testButton = page.getByRole('button', { name: '测试连接' });
+    await expect(testButton).toBeEnabled();
+    await testButton.click();
+    await expect(page.getByText('连接失败: 个人配置不可用')).toBeVisible();
 
     guard.report(testInfo);
   });

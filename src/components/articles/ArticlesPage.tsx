@@ -21,7 +21,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { BatchActions } from "@/components/BatchActions";
-import { ArticleDetail } from "@/components/ArticleDetail";
 import { Pagination } from "@/components/ui/pagination";
 import { PageHeader } from "@/components/ui/page-header";
 import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown, Star, CheckCircle, BookmarkCheck, EyeOff } from "lucide-react";
@@ -32,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { waitForAdminTask } from "@/lib/client-admin-task";
 import { CONTENT_GENRE_LABELS } from "@/lib/display-labels";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CollectDialog } from "@/components/CollectDialog";
 
 interface ContentItemData {
   id: string;
@@ -170,9 +170,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
   // 来源选项
   const [allSources, setAllSources] = useState<SourceOption[]>([]);
 
-  // Collection state
-  const [collecting, setCollecting] = useState(false);
-  const [collectProgress, setCollectProgress] = useState<string | null>(null);
+  const [collectDialogOpen, setCollectDialogOpen] = useState(false);
 
   // AI assessment state
   const [assessing, setAssessing] = useState(false);
@@ -183,9 +181,6 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
 
   // Selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  // Detail view
-  const [detailItem, setDetailItem] = useState<ContentItemData | null>(null);
 
   // Dev debug mode: show owner/visibility columns
   const [showDebugCols, setShowDebugCols] = useState(false);
@@ -329,40 +324,6 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
 
   function deselectAll() {
     setSelected(new Set());
-  }
-
-  // 开始采集
-  async function handleCollect() {
-    setCollecting(true);
-    setCollectProgress("正在采集...");
-    try {
-      const res = await fetch("/api/collectors/web/collect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setCollectProgress(data.message ?? "已加入后台采集队列");
-        if (data.taskId) {
-          const task = await waitForAdminTask(data.taskId);
-          const result = task.result ? JSON.parse(task.result) : null;
-          if (task.status === "FAILED") {
-            setCollectProgress(`采集失败: ${result?.message ?? "后台任务失败"}`);
-          } else {
-            setCollectProgress(`采集完成：发现 ${result?.discoveredCount ?? 0} 篇，导入 ${result?.importedCount ?? 0} 篇`);
-            fetchItems();
-          }
-        }
-      } else {
-        setCollectProgress(`采集失败: ${data.error}`);
-      }
-    } catch {
-      setCollectProgress("采集请求失败");
-    } finally {
-      setCollecting(false);
-      setTimeout(() => setCollectProgress(null), 5000);
-    }
   }
 
   // AI 批量评估
@@ -551,9 +512,9 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
             <div className="flex items-center gap-2">
               {managementMode && (
                 <>
-                  <Button variant="default" size="sm" onClick={handleCollect} disabled={collecting}>
-                    {collecting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Play className="mr-1.5 h-4 w-4" />}
-                    {collecting ? "采集中..." : "开始采集"}
+                  <Button variant="default" size="sm" onClick={() => setCollectDialogOpen(true)}>
+                    <Play className="mr-1.5 h-4 w-4" />
+                    开始采集
                   </Button>
                   <Button variant="outline" size="sm" onClick={handleAssess} disabled={assessing}>
                     {assessing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Brain className="mr-1.5 h-4 w-4" />}
@@ -576,9 +537,8 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
             </div>
           }
         />
-        {managementMode && (collectProgress || assessProgress) && (
+        {managementMode && assessProgress && (
           <div className="mt-2 text-sm text-muted-foreground">
-            {collectProgress && <p>{collectProgress}</p>}
             {assessProgress && <p>{assessProgress}</p>}
           </div>
         )}
@@ -836,7 +796,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
 
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
-        <div className={`flex-1 flex flex-col overflow-hidden ${detailItem ? "w-1/2" : "w-full"}`}>
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Batch actions (only show when items are selected) */}
           {managementMode && selected.size > 0 && (
             <div className="px-6 py-2.5 border-b bg-muted/10 tw-animate-css slide-in-down">
@@ -898,7 +858,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                     <TableRow
                       key={item.id}
                       className="cursor-pointer"
-                      onClick={() => setDetailItem(item)}
+                      onClick={() => router.push(`/articles/${item.id}`)}
                     >
                       {managementMode && (
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -930,7 +890,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                             className="w-full truncate text-left"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setDetailItem(item);
+                              router.push(`/articles/${item.id}`);
                             }}
                           >
                             {item.title}
@@ -1021,17 +981,14 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
           />
         </div>
 
-        {/* Detail panel */}
-        {detailItem && (
-          <div className="w-full md:w-1/2 border-l overflow-hidden fixed md:relative inset-0 md:inset-auto z-50 md:z-auto bg-background">
-            <ArticleDetail
-              article={detailItem}
-              managementMode={managementMode}
-              onClose={() => setDetailItem(null)}
-            />
-          </div>
-        )}
       </div>
+      {managementMode && (
+        <CollectDialog
+          open={collectDialogOpen}
+          onOpenChange={setCollectDialogOpen}
+          onComplete={fetchItems}
+        />
+      )}
     </div>
   );
 }

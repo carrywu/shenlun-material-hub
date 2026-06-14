@@ -94,7 +94,7 @@ export default function UserAiSettingsPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm("确定要删除您的个人 AI 配置吗？删除后将使用系统默认配置。")) return;
+    if (!confirm("确定要删除您的个人 AI 配置吗？删除后将无法使用个人 AI 生成功能。")) return;
     try {
       const res = await fetch("/api/settings/ai-config", { method: "DELETE" });
       if (res.ok) {
@@ -116,7 +116,10 @@ export default function UserAiSettingsPage() {
     try {
       const res = await fetch("/api/ai-config/test", { method: "POST" });
       const data = await res.json();
-      setTestResult(data);
+      setTestResult({
+        success: !!data.success,
+        error: data.error ?? data.message,
+      });
     } catch {
       setTestResult({ success: false, error: "测试请求失败" });
     } finally {
@@ -137,6 +140,8 @@ export default function UserAiSettingsPage() {
       </div>
     );
   }
+
+  const canTest = !!config?.configured && config.isEnabled !== false;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -230,18 +235,22 @@ export default function UserAiSettingsPage() {
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
               保存配置
             </Button>
+            <Button onClick={handleTest} disabled={testing || !canTest} variant="outline" size="sm">
+              {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : "测试连接"}
+            </Button>
             {config?.configured && (
-              <>
-                <Button onClick={handleTest} disabled={testing} variant="outline" size="sm">
-                  {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : "测试连接"}
-                </Button>
-                <Button onClick={handleDelete} variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                  删除
-                </Button>
-              </>
+              <Button onClick={handleDelete} variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                删除
+              </Button>
             )}
           </div>
+
+          {!canTest && (
+            <p className="text-xs text-muted-foreground">
+              请先保存并启用您的个人 AI 配置后再测试连接。
+            </p>
+          )}
 
           {testResult && (
             <div className={`flex items-center gap-2 text-sm ${testResult.success ? "text-emerald-700" : "text-red-700"}`}>
