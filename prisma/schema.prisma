@@ -491,6 +491,7 @@ model Invitation {
   createdBy   String                               // 创建者 userId
   maxUses     Int       @default(1)                // 最大使用次数
   usedCount   Int       @default(0)                // 已使用次数
+  status      String    @default("ACTIVE")         // ACTIVE | DISABLED
   expiresAt   DateTime?                            // 过期时间
   createdAt   DateTime  @default(now())
 
@@ -499,6 +500,7 @@ model Invitation {
 
   @@index([code])
   @@index([createdBy])
+  @@index([status])
   @@index([expiresAt])
 }
 
