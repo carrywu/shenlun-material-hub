@@ -8,6 +8,14 @@
 
 **Tech Stack:** Next.js 16 App Router, React 19 client pages, Prisma 7 with PostgreSQL, Vitest, Playwright, shadcn-style local UI components, sonner toast.
 
+## Implementation Status
+
+- [x] 邀请码增加停用状态，并兼容历史 `isEnabled` / `updatedAt` 数据库漂移。
+- [x] 注册接口拒绝已停用邀请码，后台邀请码列表支持创建、复制、作废和中文反馈。
+- [x] 后台用户管理支持角色升降级，变更前弹窗确认，后端保留最后管理员保护。
+- [x] 后台 AI 配置页明确展示“AI 默认提示词模板”，文章评估提示词走现有 `article_evaluation` 数据库模板链路。
+- [x] 已补充 Vitest 单测和 Playwright E2E：`admin-invitations.spec.ts`、`admin-user-roles.spec.ts`、`admin-ai-prompts.spec.ts`。
+
 ---
 
 ## File Structure
