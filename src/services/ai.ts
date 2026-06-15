@@ -391,6 +391,14 @@ export function normalizeMaterialCardTextField(value: unknown): string | null {
 
 // ==================== P0-6: AI 相关性评估 ====================
 
+const ARTICLE_EVALUATION_INPUT_TEMPLATE = `## 待评估文章
+
+标题：{{title}}
+来源：{{sourceName}}
+内容类型：{{contentType}}
+正文：
+{{content}}`;
+
 const RELEVANCE_SYSTEM_PROMPT = `你是一位拥有 10 年以上省考/国考申论阅卷与教学经验的申论辅导专家。你的任务是判断一篇文章是否值得纳入申论备考素材库。
 
 ## 核心评估维度
@@ -432,6 +440,8 @@ const RELEVANCE_SYSTEM_PROMPT = `你是一位拥有 10 年以上省考/国考申
 - 不要对所有评论文章一律接受——套话评论同样应拒绝
 - 不要在 summary 中重复标题内容
 
+${ARTICLE_EVALUATION_INPUT_TEMPLATE}
+
 ## 输出要求
 
 返回严格的 JSON（不要加 markdown 代码块标记）：
@@ -464,7 +474,7 @@ export async function assessRelevance(
 ): Promise<RelevanceResult> {
   const runtime = await getAiRuntime(userId);
   const temperature = await getTemperature(userId);
-  const systemPrompt = renderPromptTemplate(await getPromptTemplate("article_evaluation"), {
+  const systemPrompt = buildArticleEvaluationPrompt(await getPromptTemplate("article_evaluation"), {
     title,
     sourceName,
     contentType,
@@ -1124,6 +1134,22 @@ export function renderPromptTemplate(
     if (Array.isArray(value)) return value.join("、");
     return value ?? "";
   });
+}
+
+export function buildArticleEvaluationPrompt(
+  template: string,
+  variables: {
+    title: string;
+    sourceName: string;
+    contentType: string;
+    content: string;
+  }
+): string {
+  const templateWithInput = template.includes("{{content}}")
+    ? template
+    : `${template.trim()}\n\n${ARTICLE_EVALUATION_INPUT_TEMPLATE}`;
+
+  return renderPromptTemplate(templateWithInput, variables);
 }
 
 export interface AIGeneratedCardData {
