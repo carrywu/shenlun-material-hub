@@ -35,9 +35,9 @@ import { Pool } from "pg";
 const IS_DRY_RUN = !process.argv.includes("--execute");
 const BATCH_SIZE = 50;
 
-const LOCAL_DATABASE_URL =
-  process.env.LOCAL_DATABASE_URL || process.env.DATABASE_URL;
-const REMOTE_DATABASE_URL = process.env.REMOTE_DATABASE_URL;
+const LOCAL_DATABASE_URL: string =
+  process.env.LOCAL_DATABASE_URL || process.env.DATABASE_URL || "";
+const REMOTE_DATABASE_URL: string = process.env.REMOTE_DATABASE_URL || "";
 
 if (!LOCAL_DATABASE_URL) {
   console.error("ERROR: LOCAL_DATABASE_URL (or DATABASE_URL) is required");
@@ -393,7 +393,7 @@ async function main() {
         await remote.collectionChannel.create({
           data: {
             sourceId: remoteSourceId.startsWith("NEW:")
-              ? undefined // dry-run 占位 ID，此处不会执行
+              ? "" // dry-run 占位 ID，此处不会执行
               : remoteSourceId,
             name: lc.name,
             listUrl: lc.listUrl,
