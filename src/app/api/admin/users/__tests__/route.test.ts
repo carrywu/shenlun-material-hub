@@ -171,3 +171,65 @@ describe("PUT /api/admin/users/[id] — malformed JSON", () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe("PUT /api/admin/users/[id] — role changes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setMockAdmin(ADMIN);
+    authMocks.countActiveAdmins.mockResolvedValue(2);
+  });
+
+  it("allows admin to upgrade a user role", async () => {
+    dbMocks.findUnique.mockResolvedValue({
+      id: "user-id",
+      username: "target",
+      role: "USER",
+      status: "ACTIVE",
+    });
+    dbMocks.update.mockResolvedValue({
+      id: "user-id",
+      username: "target",
+      role: "VERIFIED_USER",
+      status: "ACTIVE",
+      email: null,
+      displayName: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const req = createAuthenticatedRequest(
+      "http://localhost/api/admin/users/user-id",
+      ADMIN,
+      { method: "PUT", body: JSON.stringify({ role: "VERIFIED_USER" }) }
+    );
+    const res = await PUT(req, { params: Promise.resolve({ id: "user-id" }) });
+
+    expect(res.status).toBe(200);
+    expect(dbMocks.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "user-id" },
+      data: { role: "VERIFIED_USER" },
+    }));
+  });
+
+  it("rejects demoting the last active admin", async () => {
+    authMocks.countActiveAdmins.mockResolvedValue(1);
+    dbMocks.findUnique.mockResolvedValue({
+      id: "admin-id",
+      username: "admin",
+      role: "ADMIN",
+      status: "ACTIVE",
+    });
+
+    const req = createAuthenticatedRequest(
+      "http://localhost/api/admin/users/admin-id",
+      ADMIN,
+      { method: "PUT", body: JSON.stringify({ role: "USER" }) }
+    );
+    const res = await PUT(req, { params: Promise.resolve({ id: "admin-id" }) });
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.error).toBe("不能降级最后一个管理员");
+    expect(dbMocks.update).not.toHaveBeenCalled();
+  });
+});

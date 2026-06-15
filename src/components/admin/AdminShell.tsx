@@ -20,6 +20,7 @@ import {
   Rss,
   Settings,
   Terminal,
+  Ticket,
   User,
   Shield,
   X,
@@ -44,6 +45,7 @@ const navItems: SidebarItem[] = [
   { name: "AI 配置", href: "/admin/settings/ai", icon: Settings },
   { name: "数据备份", href: "/admin/backup", icon: Database },
   { name: "数据清洗", href: "/admin/clean", icon: Terminal },
+  { name: "邀请码管理", href: "/admin/invitations", icon: Ticket },
   { name: "用户管理", href: "/admin/users", icon: User },
 ];
 

@@ -43,12 +43,15 @@ export async function GET(request: NextRequest) {
   const result = invitations.map((inv) => ({
     id: inv.id,
     code: inv.code,
+    status: inv.status,
+    isEnabled: inv.isEnabled,
     createdBy: inv.createdBy,
     creator: inv.creator,
     maxUses: inv.maxUses,
     usedCount: inv.usedCount,
     remainingUses: inv.maxUses - inv.usedCount,
     expiresAt: inv.expiresAt,
+    isDisabled: inv.status === "DISABLED" || !inv.isEnabled,
     isExpired: inv.expiresAt ? new Date() > inv.expiresAt : false,
     isExhausted: inv.usedCount >= inv.maxUses,
     createdAt: inv.createdAt,
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { maxUses, expiresAt } = body;
+  const { maxUses, expiresAt, neverExpires } = body;
 
   // Validate maxUses
   const uses = typeof maxUses === "number" ? Math.max(1, Math.floor(maxUses)) : 1;
@@ -87,8 +90,15 @@ export async function POST(request: NextRequest) {
 
   // Validate expiresAt
   let expiry: Date | null = null;
-  if (expiresAt) {
+  if (neverExpires === true) {
+    expiry = null;
+  } else if (expiresAt) {
     expiry = new Date(expiresAt);
+  } else {
+    expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  }
+
+  if (expiry) {
     if (isNaN(expiry.getTime())) {
       return NextResponse.json(
         { error: "无效的过期时间" },
@@ -125,6 +135,8 @@ export async function POST(request: NextRequest) {
       code,
       createdBy: user.id,
       maxUses: uses,
+      status: "ACTIVE",
+      isEnabled: true,
       expiresAt: expiry,
     },
     include: {
@@ -145,6 +157,8 @@ export async function POST(request: NextRequest) {
       invitation: {
         id: invitation.id,
         code: invitation.code,
+        status: invitation.status,
+        isEnabled: invitation.isEnabled,
         createdBy: invitation.createdBy,
         creator: invitation.creator,
         maxUses: invitation.maxUses,

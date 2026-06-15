@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  UserPlus,
-  RefreshCw,
-  Shield,
-  ShieldCheck,
-  User,
-  Users,
-  Ban,
-  Key,
-} from "lucide-react";
+import { UserPlus, RefreshCw, Users, Ban, Key } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +10,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FormField } from "@/components/ui/form-field";
@@ -48,12 +38,6 @@ const ROLE_LABELS: Record<string, string> = {
   USER: "普通用户",
 };
 
-const ROLE_COLORS: Record<string, string> = {
-  ADMIN: "bg-purple-100 text-purple-800",
-  VERIFIED_USER: "bg-blue-100 text-blue-800",
-  USER: "bg-gray-100 text-gray-700",
-};
-
 const STATUS_LABELS: Record<string, string> = {
   ACTIVE: "正常",
   DISABLED: "已禁用",
@@ -71,7 +55,9 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState<string | null>(null);
+  const [roleChangeTarget, setRoleChangeTarget] = useState<{ user: UserItem; role: string } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [updatingRole, setUpdatingRole] = useState(false);
 
   // Create user form state
   const [newUsername, setNewUsername] = useState("");
@@ -167,7 +153,7 @@ export default function UsersPage() {
 
   // ─── Update user ─────────────────────────────────────────────────────────
 
-  async function updateField(id: string, field: string, value: string) {
+  async function updateField(id: string, field: string, value: string): Promise<boolean> {
     try {
       const res = await fetch(`/api/admin/users/${id}`, {
         method: "PUT",
@@ -177,7 +163,7 @@ export default function UsersPage() {
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || "更新失败");
-        return;
+        return false;
       }
       // Contextual success messages
       if (field === "status") {
@@ -186,12 +172,28 @@ export default function UsersPage() {
         } else {
           toast.success("用户已启用");
         }
+      } else if (field === "role") {
+        const updatedUser = users.find((u) => u.id === id);
+        toast.success(`已将 ${updatedUser?.username || "该用户"} 的身份调整为${ROLE_LABELS[value] || value}`);
       } else {
         toast.success("更新成功");
       }
       void fetchUsers();
+      return true;
     } catch {
       toast.error("更新失败");
+      return false;
+    }
+  }
+
+  async function confirmRoleChange() {
+    if (!roleChangeTarget) return;
+    setUpdatingRole(true);
+    try {
+      const ok = await updateField(roleChangeTarget.user.id, "role", roleChangeTarget.role);
+      if (ok) setRoleChangeTarget(null);
+    } finally {
+      setUpdatingRole(false);
     }
   }
 
@@ -277,14 +279,25 @@ export default function UsersPage() {
                   <TableCell className="text-muted-foreground">{u.displayName || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{u.email || "—"}</TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[u.role] || "bg-gray-100 text-gray-700"}`}>
-                      {(u.role === "ADMIN" ? Shield : u.role === "VERIFIED_USER" ? ShieldCheck : User) && (
-                        <span className="h-3 w-3">
-                          {u.role === "ADMIN" ? <Shield className="h-3 w-3" /> : u.role === "VERIFIED_USER" ? <ShieldCheck className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                        </span>
-                      )}
-                      {ROLE_LABELS[u.role] || u.role}
-                    </span>
+                    <Select
+                      value={u.role}
+                      onValueChange={(role) => {
+                        if (!role || role === u.role) return;
+                        setRoleChangeTarget({ user: u, role });
+                      }}
+                    >
+                      <SelectTrigger
+                        aria-label={`调整 ${u.username} 身份`}
+                        className="h-8 w-[128px]"
+                      >
+                        <span className="truncate">{ROLE_LABELS[u.role] || u.role}</span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USER">普通用户</SelectItem>
+                        <SelectItem value="VERIFIED_USER">认证用户</SelectItem>
+                        <SelectItem value="ADMIN">管理员</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[u.status] || "bg-gray-100"}`}>
@@ -371,7 +384,7 @@ export default function UsersPage() {
             <FormField label="角色">
               <Select value={newRole} onValueChange={(val) => setNewRole(val as string)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="选择角色" />
+                  <span className="truncate">{ROLE_LABELS[newRole] || "选择角色"}</span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USER">普通用户</SelectItem>
@@ -427,6 +440,35 @@ export default function UsersPage() {
               disabled={resetting || resetPassword.length < 6}
             >
               {resetting ? "重置中..." : "确认重置"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Change Dialog */}
+      <Dialog open={roleChangeTarget !== null} onOpenChange={(open) => { if (!open) setRoleChangeTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>确认调整用户身份</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            {roleChangeTarget
+              ? `确定将 ${roleChangeTarget.user.username} 的身份调整为「${ROLE_LABELS[roleChangeTarget.role] || roleChangeTarget.role}」吗？`
+              : ""}
+          </DialogDescription>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRoleChangeTarget(null)}
+              disabled={updatingRole}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={() => void confirmRoleChange()}
+              disabled={updatingRole}
+            >
+              {updatingRole ? "调整中..." : "确认调整"}
             </Button>
           </DialogFooter>
         </DialogContent>
