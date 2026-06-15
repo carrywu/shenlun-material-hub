@@ -286,7 +286,7 @@ export default function WeweRssIntegrationPage() {
               同步公众号列表
             </Button>
             <Button variant="outline">
-              <a href="http://localhost:4000" target="_blank" rel="noopener noreferrer" className="flex items-center">
+              <a href={baseUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
                 <ExternalLink className="h-4 w-4 mr-1" />
                 打开 WeWe 后台
               </a>
