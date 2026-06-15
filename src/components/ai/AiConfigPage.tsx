@@ -347,9 +347,9 @@ export default function AiConfigPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">提示词配置</CardTitle>
+            <CardTitle className="text-base">AI 默认提示词模板</CardTitle>
             <CardDescription>
-              自定义内容会优先生效；留空不会保存，运行异常时自动回退默认提示词。
+              管理文章评估和素材卡生成的默认提示词。自定义内容会优先生效；留空不会保存，运行异常时自动回退默认提示词。
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -372,7 +372,11 @@ export default function AiConfigPage() {
             ) : (
               <div className="space-y-4">
                 {promptTemplates.map((template) => (
-                  <div key={template.key} className="rounded-md border p-4 space-y-3">
+                  <div
+                    key={template.key}
+                    data-testid={`prompt-template-${template.key}`}
+                    className="rounded-md border p-4 space-y-3"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
@@ -404,6 +408,7 @@ export default function AiConfigPage() {
                       </div>
                     </div>
                     <Textarea
+                      aria-label={`${template.name}内容`}
                       value={promptDrafts[template.key] ?? ""}
                       onChange={(event) => setPromptDrafts((prev) => ({
                         ...prev,
