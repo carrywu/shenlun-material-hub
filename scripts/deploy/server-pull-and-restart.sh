@@ -99,6 +99,14 @@ else
   log "WARNING: Backup script not found at $BACKUP_SCRIPT, skipping backup"
 fi
 
+# ── Pre-migration schema check ────────────────────────────────────────────────
+
+log "Checking current migration status before applying new migrations"
+if ! docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --no-deps app npx prisma migrate status; then
+  warn "Migration status check reported issues — proceeding with migrate deploy"
+  warn "If migrate deploy fails, check the migration status output above"
+fi
+
 # ── Run migrations with the new image before restarting app ───────────────────
 
 log "Running database migrations with image tag: ${IMAGE_TAG}"

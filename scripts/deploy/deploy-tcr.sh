@@ -197,6 +197,14 @@ docker push "${TCR_IMAGE}:latest"
 
 log "All tags pushed to TCR"
 
+# ── Pre-deploy migration status check ─────────────────────────────────────────
+
+log "Checking production migration status before deploying"
+ssh $SSH_OPTS "$SSH_TARGET" \
+  "cd ${SERVER_DEPLOY_DIR} && set -a && source .env.production && set +a && \
+   docker compose -f docker-compose.prod.yml run --rm --no-deps app npx prisma migrate status" \
+  || warn "Production migration status check had warnings (proceeding with deploy)"
+
 # ── Trigger remote deploy ─────────────────────────────────────────────────────
 
 log "Triggering remote pull and restart on ${SSH_TARGET}"

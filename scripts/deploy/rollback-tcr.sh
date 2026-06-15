@@ -119,6 +119,10 @@ fi
 
 # ── Roll back ──────────────────────────────────────────────────────────────────
 
+log "WARNING: This rollback only reverts the app image, NOT the database schema."
+log "If the newer image had applied database migrations, the rolled-back app may fail due to schema mismatch."
+log "Consider running: docker compose -f ${COMPOSE_FILE} run --rm --no-deps app npx prisma migrate status"
+
 log "Stopping current app and starting with tag: ${TARGET_TAG}"
 export IMAGE_TAG="$TARGET_TAG"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-build app
