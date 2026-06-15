@@ -166,6 +166,7 @@ infra/wechat-rss/wewe-rss/.env
 # Agent orchestrator
 .ao/
 .claude/
+.worktrees/
 
 # Local server config override
 config/server.config.local.json
