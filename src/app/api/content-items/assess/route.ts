@@ -127,10 +127,10 @@ async function runAssessTask(
       whereClause.id = { in: ids };
     }
   } else if (reassess) {
-    // 重新评估：允许对已有评估结果的文章再次评估
+    // 重新评估：允许对任意已有评估结果的文章再次评估。
+    // 不限制 qualityStatus —— 已通过(accepted)或被过滤(filtered)的文章都应能重评。
     whereClause = {
       id: { in: ids ?? [] },
-      qualityStatus: "candidate",
     };
   } else {
     whereClause = {
@@ -211,10 +211,10 @@ export async function POST(request: NextRequest) {
         whereClause.id = { in: ids };
       }
     } else if (reassess) {
-      // 重新评估：允许对已有评估结果的文章再次评估
+      // 重新评估：允许已通过、已拒绝、已过滤等已有结果的文章再次评估。
+      // 与 runAssessTask 的执行查询保持一致，避免入队前 count 阶段误判为没有可评估条目。
       whereClause = {
         id: { in: ids },
-        qualityStatus: "candidate",
       };
     } else {
       whereClause = {

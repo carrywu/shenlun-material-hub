@@ -83,4 +83,24 @@ describe("POST /api/content-items/assess — permission lockdown (P4)", () => {
     expect(taskMocks.create).toHaveBeenCalled();
     expect(taskMocks.enqueue).toHaveBeenCalled();
   });
+
+  it("ADMIN reassess → count 查询不限制 qualityStatus，允许已评估文章重新入队", async () => {
+    authMocks.currentUser.value = USERS.ADMIN;
+    taskMocks.count.mockResolvedValue(1);
+    taskMocks.create.mockResolvedValue({ id: "task-reassess-1", type: "AI_ASSESS" });
+
+    const res = await POST(makeReq("auth_token=t", {
+      ids: ["cmqd2xygx0004x6vyeznvuhq6"],
+      reassess: true,
+    }));
+
+    expect(res.status).toBe(202);
+    expect(taskMocks.count).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["cmqd2xygx0004x6vyeznvuhq6"] },
+      },
+    });
+    expect(taskMocks.create).toHaveBeenCalled();
+    expect(taskMocks.enqueue).toHaveBeenCalled();
+  });
 });
