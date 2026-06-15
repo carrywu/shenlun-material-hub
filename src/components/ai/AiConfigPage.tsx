@@ -46,7 +46,7 @@ export default function AiConfigPage() {
   // 表单状态
   const [baseUrl, setBaseUrl] = useState("https://api.deepseek.com/v1");
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("deepseek-chat");
+  const [model, setModel] = useState("deepseek-v4-flash");
   const [temperature, setTemperature] = useState(0.3);
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null);
 
@@ -62,7 +62,7 @@ export default function AiConfigPage() {
       setConfig(data);
       if (data.configured) {
         setBaseUrl(data.baseUrl || "https://api.deepseek.com/v1");
-        setModel(data.model || "deepseek-chat");
+        setModel(data.model || "deepseek-v4-flash");
         setTemperature(data.temperature ?? 0.3);
       }
     } catch (err) {
@@ -141,7 +141,7 @@ export default function AiConfigPage() {
       setConfig(null);
       setApiKey("");
       setBaseUrl("https://api.deepseek.com/v1");
-      setModel("deepseek-chat");
+      setModel("deepseek-v4-flash");
       setTemperature(0.3);
       toast.success("AI 配置已删除");
     } catch {
@@ -313,7 +313,7 @@ export default function AiConfigPage() {
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                   className="mt-1"
-                  placeholder="deepseek-chat"
+                  placeholder="deepseek-v4-flash"
                 />
               </div>
               <div>

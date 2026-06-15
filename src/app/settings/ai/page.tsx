@@ -38,7 +38,7 @@ export default function UserAiSettingsPage() {
   // Form state
   const [baseUrl, setBaseUrl] = useState("https://api.deepseek.com/v1");
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("deepseek-chat");
+  const [model, setModel] = useState("deepseek-v4-flash");
   const [temperature, setTemperature] = useState(0.3);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export default function UserAiSettingsPage() {
           setConfig(data);
           if (data.configured) {
             setBaseUrl(data.baseUrl || "https://api.deepseek.com/v1");
-            setModel(data.model || "deepseek-chat");
+            setModel(data.model || "deepseek-v4-flash");
             setTemperature(data.temperature ?? 0.3);
           }
         }
@@ -85,7 +85,7 @@ export default function UserAiSettingsPage() {
         setConfig(data);
         if (data.configured) {
           setBaseUrl(data.baseUrl || "https://api.deepseek.com/v1");
-          setModel(data.model || "deepseek-chat");
+          setModel(data.model || "deepseek-v4-flash");
           setTemperature(data.temperature ?? 0.3);
         }
       }
@@ -103,7 +103,7 @@ export default function UserAiSettingsPage() {
       if (res.ok) {
         setConfig(null);
         setBaseUrl("https://api.deepseek.com/v1");
-        setModel("deepseek-chat");
+        setModel("deepseek-v4-flash");
         setTemperature(0.3);
         setApiKey("");
         setTestResult(null);
@@ -217,7 +217,7 @@ export default function UserAiSettingsPage() {
             <Input
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              placeholder="deepseek-chat"
+              placeholder="deepseek-v4-flash"
               className="h-9"
             />
           </div>

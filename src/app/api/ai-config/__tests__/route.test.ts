@@ -56,6 +56,8 @@ describe("/api/ai-config route", () => {
     expect(response.status).toBe(200);
     expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
+        name: "user-admin-1",
+        userId: "admin-1",
         encryptedKey: "encrypted:sk-test-1234",
         baseUrl: "https://api.example.com/v1",
         model: "model-a",
@@ -71,7 +73,7 @@ describe("/api/ai-config route", () => {
     const response = await DELETE(new NextRequest("http://localhost/api/ai-config", { method: "DELETE" }));
 
     expect(response.status).toBe(200);
-    expect(mocks.deleteMany).toHaveBeenCalledWith({ where: { name: "default" } });
+    expect(mocks.deleteMany).toHaveBeenCalledWith({ where: { userId: "admin-1" } });
     expect(mocks.resetAiConfigCache).toHaveBeenCalledTimes(1);
   });
 });

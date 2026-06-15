@@ -51,7 +51,7 @@ describe("AI runtime", () => {
       id: "cfg-db",
       encryptedKey: "  sk-db-secret-1234  ",
       baseUrl: " https://api.deepseek.com/v1 ",
-      model: " deepseek-chat ",
+      model: " deepseek-v4-flash ",
       updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     });
     process.env.AI_API_KEY = "sk-env-secret-9999";
@@ -60,7 +60,7 @@ describe("AI runtime", () => {
     const runtime = await getAiRuntime();
 
     expect(runtime.source).toBe("db");
-    expect(runtime.model).toBe("deepseek-chat");
+    expect(runtime.model).toBe("deepseek-v4-flash");
     expect(runtime.baseURL).toBe("https://api.deepseek.com/v1");
     expect(runtime.keySuffix).toBe("****1234");
     expect(runtime.cacheKey).toBe("db:cfg-db:2026-01-01T00:00:00.000Z");

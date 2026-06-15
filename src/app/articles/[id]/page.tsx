@@ -90,6 +90,7 @@ interface ArticleDetail {
   aiContentHash?: string | null;
   aiLastError?: string | null;
   aiLastFailedAt?: string | null;
+  aiAssessmentError?: string | null;
   aiScoreDetail: string | null;
   aiScoredAt: string | null;
   contentHash?: string | null;
@@ -334,9 +335,15 @@ function AiEvaluationPanel({
             )}
           </div>
         )}
-        {!hasEvaluation && (
+        {!hasEvaluation && !article.aiLastError && (
           <div className="rounded-md border border-dashed bg-muted/30 px-3 py-2 text-muted-foreground">
             尚未评估。请点击重新评估后再查看 AI 结论。
+          </div>
+        )}
+        {!hasEvaluation && article.aiLastError && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+            <p className="font-medium">评估失败：{article.aiLastError}</p>
+            <p className="text-xs mt-1">请检查您的 AI 配置后点击重新评估。</p>
           </div>
         )}
         {stale && (

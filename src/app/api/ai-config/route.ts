@@ -4,7 +4,7 @@ import { encrypt, decrypt, hasEncryptionKey } from "@/lib/crypto";
 import { resetAiConfigCache } from "@/services/ai";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
-// GET /api/ai-config — 获取 AI 配置
+// GET /api/ai-config — 获取管理员个人 AI 配置
 export async function GET(request: NextRequest) {
   const user = await requireAdmin(request);
   if (!user) {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     const config = await db.aiConfig.findFirst({
-      where: { name: "default" },
+      where: { userId: user.id },
     });
 
     if (!config) {
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/ai-config — 创建或更新 AI 配置
+// POST /api/ai-config — 创建或更新管理员个人 AI 配置
 export async function POST(request: NextRequest) {
   const user = await requireAdmin(request);
   if (!user) {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       encryptedKey = encrypt(trimmedApiKey);
     }
 
-    const existing = await db.aiConfig.findFirst({ where: { name: "default" } });
+    const existing = await db.aiConfig.findFirst({ where: { userId: user.id } });
 
     if (existing) {
       await db.aiConfig.update({
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         data: {
           baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.deepseek.com/v1",
           ...(encryptedKey ? { encryptedKey } : {}),
-          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-chat",
+          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-v4-flash",
           temperature: temp,
           lastTestError: null, // 重置测试错误
         },
@@ -106,10 +106,11 @@ export async function POST(request: NextRequest) {
       }
       await db.aiConfig.create({
         data: {
-          name: "default",
+          name: `user-${user.id}`,
+          userId: user.id,
           baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.deepseek.com/v1",
           encryptedKey: encrypt(trimmedApiKey),
-          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-chat",
+          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-v4-flash",
           temperature: temp,
         },
       });
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE /api/ai-config — 删除 AI 配置
+// DELETE /api/ai-config — 删除管理员个人 AI 配置
 export async function DELETE(request: NextRequest) {
   const user = await requireAdmin(request);
   if (!user) {
@@ -136,7 +137,7 @@ export async function DELETE(request: NextRequest) {
     return forbiddenResponse();
   }
   try {
-    await db.aiConfig.deleteMany({ where: { name: "default" } });
+    await db.aiConfig.deleteMany({ where: { userId: user.id } });
     // 清除缓存，确保下次调用使用环境变量 fallback
     resetAiConfigCache();
     return NextResponse.json({ success: true });

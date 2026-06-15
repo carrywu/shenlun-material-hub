@@ -9,9 +9,9 @@ describe("formatApiErrorMessage", () => {
       status: 401,
       source: "db",
       baseURL: "https://api.deepseek.com/v1",
-      model: "deepseek-chat",
+      model: "deepseek-v4-flash",
       keySuffix: "****1234",
       requestId: "req-1",
-    })).toBe("AI 请求失败：status=401，source=db，baseURL=https://api.deepseek.com/v1，model=deepseek-chat，key=****1234。请查看服务端日志 requestId=req-1");
+    })).toBe("AI 请求失败：status=401，source=db，baseURL=https://api.deepseek.com/v1，model=deepseek-v4-flash，key=****1234。请查看服务端日志 requestId=req-1");
   });
 });

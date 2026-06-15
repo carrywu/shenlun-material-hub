@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         data: {
           baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.deepseek.com/v1",
           ...(encryptedKey ? { encryptedKey } : {}),
-          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-chat",
+          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-v4-flash",
           temperature: temp,
         },
       });
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : "https://api.deepseek.com/v1",
           encryptedKey: encrypt(trimmedApiKey),
-          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-chat",
+          model: typeof model === "string" && model.trim() ? model.trim() : "deepseek-v4-flash",
           temperature: temp,
         },
       });

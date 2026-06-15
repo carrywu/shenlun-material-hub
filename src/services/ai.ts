@@ -153,7 +153,7 @@ async function resolveAiRuntimeConfig(userId?: string): Promise<{
 
       return {
         apiKey: trimmedApiKey,
-        model: trimConfigValue(config.model) ?? "deepseek-chat",
+        model: trimConfigValue(config.model) ?? "deepseek-v4-flash",
         source: "db",
         baseURL: trimConfigValue(config.baseUrl),
         cacheKey: `db:${config.id}:${config.updatedAt.toISOString()}`,
@@ -206,7 +206,7 @@ async function resolveAiRuntimeConfig(userId?: string): Promise<{
 
       return {
         apiKey: trimmedApiKey,
-        model: trimConfigValue(config.model) ?? "deepseek-chat",
+        model: trimConfigValue(config.model) ?? "deepseek-v4-flash",
         source: "db",
         baseURL: trimConfigValue(config.baseUrl),
         cacheKey: `db:${config.id}:${config.updatedAt.toISOString()}`,
@@ -219,7 +219,7 @@ async function resolveAiRuntimeConfig(userId?: string): Promise<{
 
   const envApiKey = trimConfigValue(process.env.AI_API_KEY) ?? trimConfigValue(process.env.OPENAI_API_KEY);
   const envBaseURL = trimConfigValue(process.env.AI_BASE_URL);
-  const envModel = trimConfigValue(process.env.AI_MODEL) ?? trimConfigValue(process.env.OPENAI_MODEL) ?? "deepseek-chat";
+  const envModel = trimConfigValue(process.env.AI_MODEL) ?? trimConfigValue(process.env.OPENAI_MODEL) ?? "deepseek-v4-flash";
 
   if (!envApiKey) {
     throw new AiServiceError(
@@ -284,13 +284,14 @@ export async function getOpenAI(): Promise<{ openai: OpenAI; model: string }> {
 
 async function getTemperature(userId?: string): Promise<number> {
   try {
-    // P1-4 fix: prefer user-specific config, fall back to global
     if (userId) {
       const userConfig = await db.aiConfig.findFirst({
         where: { userId, isEnabled: true },
         select: { temperature: true },
       });
       if (userConfig) return userConfig.temperature;
+      // 严格模式：有 userId 时不回退到全局配置，使用默认值
+      return 0.3;
     }
     const config = await db.aiConfig.findFirst({
       where: { name: "default", isEnabled: true },

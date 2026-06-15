@@ -23,7 +23,7 @@ import {
 import { BatchActions } from "@/components/BatchActions";
 import { Pagination } from "@/components/ui/pagination";
 import { PageHeader } from "@/components/ui/page-header";
-import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown, Star, CheckCircle, BookmarkCheck, EyeOff } from "lucide-react";
+import { RefreshCw, Search, Play, Brain, Loader2, RotateCcw, Calendar, ChevronDown, Star, CheckCircle, BookmarkCheck, EyeOff, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -73,6 +73,7 @@ interface ContentItemsResponse {
   page: number;
   pageSize: number;
   totalPages: number;
+  failedAssessmentCount?: number;
 }
 
 interface SourceOption {
@@ -175,6 +176,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
   // AI assessment state
   const [assessing, setAssessing] = useState(false);
   const [assessProgress, setAssessProgress] = useState<string | null>(null);
+  const [failedAssessmentCount, setFailedAssessmentCount] = useState(0);
 
   // Batch review state
   const [reviewing, setReviewing] = useState(false);
@@ -246,6 +248,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
       setItems(json.data);
       setTotal(json.total);
       setTotalPages(json.totalPages);
+      setFailedAssessmentCount(json.failedAssessmentCount ?? 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
@@ -384,6 +387,40 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
       }
     } catch {
       setAssessProgress("评估请求失败");
+    } finally {
+      setAssessing(false);
+      setTimeout(() => setAssessProgress(null), 5000);
+    }
+  }
+
+  async function handleRetryFailed() {
+    if (assessing) return;
+    setAssessing(true);
+    setAssessProgress(`正在重试 ${failedAssessmentCount} 个失败条目...`);
+    try {
+      const res = await fetch("/api/content-items/assess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ retryFailed: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAssessProgress(data.message ?? `已加入后台评估队列`);
+        if (data.taskId) {
+          const task = await waitForAdminTask(data.taskId);
+          const result = task.result ? JSON.parse(task.result) : null;
+          if (task.status === "FAILED") {
+            setAssessProgress(`重试失败: ${result?.message ?? "后台任务失败"}`);
+          } else {
+            setAssessProgress(`重试完成：接受 ${result?.accepted ?? 0} 篇，拒绝 ${result?.rejected ?? 0} 篇`);
+            fetchItems();
+          }
+        }
+      } else {
+        setAssessProgress(`重试失败: ${data.error}`);
+      }
+    } catch {
+      setAssessProgress("重试请求失败");
     } finally {
       setAssessing(false);
       setTimeout(() => setAssessProgress(null), 5000);
@@ -540,6 +577,12 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                     {assessing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Brain className="mr-1.5 h-4 w-4" />}
                     {assessing ? "评估中..." : "AI 评估"}
                   </Button>
+                  {failedAssessmentCount > 0 && (
+                    <Button variant="outline" size="sm" onClick={handleRetryFailed} disabled={assessing}>
+                      {assessing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <AlertTriangle className="mr-1.5 h-4 w-4" />}
+                      {assessing ? "重试中..." : `重试失败 (${failedAssessmentCount})`}
+                    </Button>
+                  )}
                   <Button
                     variant={showDebugCols ? "default" : "outline"}
                     size="sm"

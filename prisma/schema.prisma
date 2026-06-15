@@ -357,7 +357,7 @@ model AiConfig {
   userId        String?                    // Phase 3: 用户级配置（null = 全局）
   baseUrl       String   @default("https://api.deepseek.com/v1")
   encryptedKey  String                     // 加密后的 API Key
-  model         String   @default("deepseek-chat")
+  model         String   @default("deepseek-v4-flash")
   temperature   Float    @default(0.3)
   isEnabled     Boolean  @default(true)
   lastTestedAt  DateTime?

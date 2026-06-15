@@ -164,12 +164,26 @@ export async function GET(request: NextRequest) {
       db.contentItem.count({ where }),
     ]);
 
+    // 统计当前用户可见范围内 AI 评估失败的条目数（供"重试失败"按钮使用）
+    let failedAssessmentCount = 0;
+    if (user?.role === "ADMIN") {
+      failedAssessmentCount = await db.contentItem.count({
+        where: {
+          ...where,
+          qualityStatus: "candidate",
+          aiDecision: null,
+          aiAssessmentError: { not: null },
+        },
+      });
+    }
+
     const result = {
       data,
       total,
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),
+      ...(user?.role === "ADMIN" ? { failedAssessmentCount } : {}),
     };
 
     // If user is authenticated, fetch their learning states for these articles
