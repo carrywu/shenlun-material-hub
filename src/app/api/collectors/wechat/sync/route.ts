@@ -92,6 +92,7 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
       imported: result.imported,
       skipped: result.skipped,
       blocked: result.blocked,
+      refreshed: result.refreshed,
       durationMs: Date.now() - startedAtMs,
     });
 
@@ -101,6 +102,7 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
       importedCount: result.imported,
       skippedCount: result.skipped,
       blockedCount: result.blocked,
+      refreshedCount: result.refreshed,
       errors: result.errors.length > 0 ? result.errors : undefined,
       sourceName: source.name,
     };

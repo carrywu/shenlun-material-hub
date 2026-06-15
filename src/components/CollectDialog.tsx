@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Video,
   Camera,
+  RefreshCw,
 } from "lucide-react";
 import { waitForAdminTask } from "@/lib/client-admin-task";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -60,6 +61,7 @@ interface CollectResult {
   importedCount?: number;
   skippedCount?: number;
   blockedCount?: number;
+  refreshedCount?: number;
   error?: string;
 }
 
@@ -208,6 +210,7 @@ export function CollectDialog({
             importedCount: result?.importedCount,
             skippedCount: result?.skippedCount,
             blockedCount: result?.blockedCount,
+            refreshedCount: result?.refreshedCount,
             error: undefined,
           });
           setIntermediateResults([...allResults]);
@@ -222,6 +225,7 @@ export function CollectDialog({
           importedCount: data.importedCount,
           skippedCount: data.skippedCount,
           blockedCount: data.blockedCount,
+          refreshedCount: data.refreshedCount,
           error: data.error,
         });
       } catch (err) {
@@ -249,6 +253,8 @@ export function CollectDialog({
     results?.reduce((sum, r) => sum + (r.skippedCount ?? 0), 0) ?? 0;
   const totalBlocked =
     results?.reduce((sum, r) => sum + (r.blockedCount ?? 0), 0) ?? 0;
+  const totalRefreshed =
+    results?.reduce((sum, r) => sum + (r.refreshedCount ?? 0), 0) ?? 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -282,6 +288,12 @@ export function CollectDialog({
                   <span className="text-sm font-medium text-amber-600">{totalBlocked} 封禁</span>
                 </div>
               )}
+              {totalRefreshed > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <RefreshCw className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm font-medium text-blue-600">{totalRefreshed} 刷新封禁</span>
+                </div>
+              )}
               <div className="text-sm text-muted-foreground">
                 共导入 {totalImported} 条
                 {totalSkipped > 0 && `，跳过 ${totalSkipped} 条`}
@@ -304,7 +316,7 @@ export function CollectDialog({
                   </div>
                   <div className="text-muted-foreground text-xs">
                     {r.success
-                      ? `发现 ${r.discoveredCount ?? 0}，导入 ${r.importedCount ?? 0}${(r.blockedCount ?? 0) > 0 ? `，封禁 ${r.blockedCount}` : ""}${(r.skippedCount ?? 0) > 0 ? `，跳过 ${r.skippedCount}` : ""}`
+                      ? `发现 ${r.discoveredCount ?? 0}，导入 ${r.importedCount ?? 0}${(r.blockedCount ?? 0) > 0 ? `，封禁 ${r.blockedCount}` : ""}${(r.refreshedCount ?? 0) > 0 ? `，刷新封禁 ${r.refreshedCount}` : ""}${(r.skippedCount ?? 0) > 0 ? `，跳过 ${r.skippedCount}` : ""}`
                       : r.error ?? "失败"}
                   </div>
                 </div>
