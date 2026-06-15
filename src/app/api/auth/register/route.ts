@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       id: string;
       code: string;
       status: string;
+      isEnabled: boolean;
       usedCount: number;
       maxUses: number;
       expiresAt: Date | null;
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (invitation.status === "DISABLED") {
+      if (invitation.status === "DISABLED" || !invitation.isEnabled) {
         await auditLog({
           action: "create",
           resource: "User",

@@ -26,7 +26,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const existing = await db.invitation.findUnique({
     where: { id },
-    select: { id: true, code: true, status: true },
+    select: { id: true, code: true, status: true, isEnabled: true },
   });
   if (!existing) {
     return NextResponse.json({ error: "邀请码不存在" }, { status: 404 });
@@ -34,11 +34,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const invitation = await db.invitation.update({
     where: { id },
-    data: { status: "DISABLED" },
+    data: { status: "DISABLED", isEnabled: false },
     select: {
       id: true,
       code: true,
       status: true,
+      isEnabled: true,
       maxUses: true,
       usedCount: true,
       expiresAt: true,
@@ -54,6 +55,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     detail: {
       code: existing.code.slice(0, 2) + "****",
       previousStatus: existing.status,
+      previousIsEnabled: existing.isEnabled,
     },
   });
 

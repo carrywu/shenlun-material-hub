@@ -492,8 +492,11 @@ model Invitation {
   maxUses     Int       @default(1)                // 最大使用次数
   usedCount   Int       @default(0)                // 已使用次数
   status      String    @default("ACTIVE")         // ACTIVE | DISABLED
+  isEnabled   Boolean   @default(true)              // 历史字段：false 表示已作废
+  note        String?
   expiresAt   DateTime?                            // 过期时间
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   creator     User      @relation("CreatedInvitations", fields: [createdBy], references: [id], onDelete: Cascade)
   uses        InvitationUse[]
@@ -501,6 +504,7 @@ model Invitation {
   @@index([code])
   @@index([createdBy])
   @@index([status])
+  @@index([isEnabled])
   @@index([expiresAt])
 }
 

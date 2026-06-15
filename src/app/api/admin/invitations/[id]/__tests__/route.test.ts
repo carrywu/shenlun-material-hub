@@ -37,8 +37,8 @@ describe("PATCH /api/admin/invitations/[id]", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("disables an active invitation", async () => {
-    dbMocks.findUnique.mockResolvedValue({ id: "inv-1", code: "ABCD1234", status: "ACTIVE" });
-    dbMocks.update.mockResolvedValue({ id: "inv-1", code: "ABCD1234", status: "DISABLED" });
+    dbMocks.findUnique.mockResolvedValue({ id: "inv-1", code: "ABCD1234", status: "ACTIVE", isEnabled: true });
+    dbMocks.update.mockResolvedValue({ id: "inv-1", code: "ABCD1234", status: "DISABLED", isEnabled: false });
 
     const { PATCH } = await import("../route");
     const res = await PATCH(makeReq({ status: "DISABLED" }), { params: Promise.resolve({ id: "inv-1" }) });
@@ -48,7 +48,7 @@ describe("PATCH /api/admin/invitations/[id]", () => {
     expect(payload.invitation.status).toBe("DISABLED");
     expect(dbMocks.update).toHaveBeenCalledWith({
       where: { id: "inv-1" },
-      data: { status: "DISABLED" },
+      data: { status: "DISABLED", isEnabled: false },
       select: expect.any(Object),
     });
     expect(auditMock).toHaveBeenCalledWith(expect.objectContaining({

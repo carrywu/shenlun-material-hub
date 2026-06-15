@@ -48,6 +48,7 @@ describe("/api/admin/invitations", () => {
       id: "inv-1",
       code: "ABCD1234",
       status: "ACTIVE",
+      isEnabled: true,
       createdBy: "admin-1",
       creator: { id: "admin-1", username: "admin", displayName: null },
       maxUses: 2,
@@ -77,6 +78,7 @@ describe("/api/admin/invitations", () => {
       id: "inv-2",
       code: "WXYZ5678",
       status: "ACTIVE",
+      isEnabled: true,
       createdBy: "admin-1",
       creator: { id: "admin-1", username: "admin", displayName: null },
       maxUses: 1,
@@ -93,6 +95,7 @@ describe("/api/admin/invitations", () => {
       data: expect.objectContaining({
         maxUses: 1,
         status: "ACTIVE",
+        isEnabled: true,
         expiresAt: new Date("2026-06-22T00:00:00.000Z"),
       }),
     }));
@@ -104,6 +107,7 @@ describe("/api/admin/invitations", () => {
       id: "inv-3",
       code: "NEVER999",
       status: "ACTIVE",
+      isEnabled: true,
       createdBy: "admin-1",
       creator: { id: "admin-1", username: "admin", displayName: null },
       maxUses: 3,
