@@ -256,13 +256,83 @@ export async function normalizeWeRssArticle(
     where: { originalUrl },
   });
   if (existing) {
+    // 封禁文章：WeWe RSS 可能已有正确内容，尝试更新
+    if (existing.qualityStatus === "blocked") {
+      // 先清洗新内容，判断是否仍是封禁页面
+      const cleaned = cleanWechatHtml(article.content ?? "");
+      const fullText = cleaned.fullText || null;
+
+      if (detectWechatBlockPage(fullText)) {
+        // 新内容仍是封禁页面，不更新
+        await logger.info("采集跳过：封禁页面未更新", "CRAWLER", {
+          sourceId: options.sourceId,
+          title: article.title,
+          url: originalUrl,
+          existingStatus: existing.qualityStatus,
+        });
+        return { created: false, item: existing };
+      }
+
+      // 新内容正常：更新旧记录，保留 id / 用户数据
+      const contentHash = fullText
+        ? createHash("sha256").update(fullText).digest("hex").slice(0, 16)
+        : null;
+      const effectiveTextLength = fullText
+        ? fullText.replace(/\s+/g, "").trim().length
+        : 0;
+      const excerpt = article.summary ?? fullText?.slice(0, 200) ?? null;
+
+      const updated = await db.contentItem.update({
+        where: { id: existing.id },
+        data: {
+          fullText,
+          rawHtml: cleaned.rawHtml || null,
+          excerpt,
+          contentHash,
+          fullTextStored: !!fullText,
+          effectiveTextLength,
+          coverUrl: article.cover ?? existing.coverUrl,
+          // 重置状态：从封禁回到待检测
+          qualityStatus: "pending",
+          processingStatus: "fetched",
+          filterReason: null,
+          // 清除旧 AI 评估结果（内容已变，旧评估失效）
+          aiDecision: null,
+          aiReason: null,
+          aiAssessedAt: null,
+          aiAssessmentError: null,
+          aiScore: null,
+          aiScoreDetail: null,
+          aiScoredAt: null,
+          contentGenre: null,
+          aiCategories: null,
+          aiUsableFor: null,
+          aiSummary: null,
+          aiQuotes: null,
+          adminReviewStatus: "pending_ai",
+        },
+      });
+
+      await logger.info("采集刷新：封禁文章已更新", "CRAWLER", {
+        sourceId: options.sourceId,
+        title: article.title,
+        url: originalUrl,
+        previousQualityStatus: existing.qualityStatus,
+        newQualityStatus: "pending",
+        effectiveTextLength,
+      });
+
+      return { created: false, filtered: false, item: updated };
+    }
+
+    // 非封禁文章：保持原有跳过逻辑
     await logger.info("采集跳过：URL 已存在", "CRAWLER", {
       sourceId: options.sourceId,
       title: article.title,
       url: originalUrl,
       existingStatus: existing.processingStatus,
     });
-    return { created: false, item: existing };
+    return { created: false, filtered: true, filterReason: "URL 已存在（重复）", item: existing };
   }
 
   // 清洗正文
@@ -453,11 +523,12 @@ export async function normalizeWeRssArticle(
 export async function normalizeWeRssArticles(
   articles: WeRssArticle[],
   options: NormalizeOptions
-): Promise<{ discovered: number; imported: number; skipped: number; blocked: number; errors: string[] }> {
+): Promise<{ discovered: number; imported: number; skipped: number; blocked: number; refreshed: number; errors: string[] }> {
   const errors: string[] = [];
   let imported = 0;
   let skipped = 0;
   let blocked = 0;
+  let refreshed = 0;
 
   for (const article of articles) {
     try {
@@ -466,6 +537,9 @@ export async function normalizeWeRssArticles(
         imported++;
       } else if (result.filterReason?.includes("封禁")) {
         blocked++;
+      } else if (!result.created && !result.filtered && !result.filterReason) {
+        // 封禁文章被刷新成功：created=false, filtered=false, no filterReason
+        refreshed++;
       } else {
         skipped++;
       }
@@ -475,5 +549,5 @@ export async function normalizeWeRssArticles(
     }
   }
 
-  return { discovered: articles.length, imported, skipped, blocked, errors };
+  return { discovered: articles.length, imported, skipped, blocked, refreshed, errors };
 }

@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WeRssArticle } from "../weRssClient";
 
 // Mock db - must use vi.hoisted for variables used in vi.mock
-const { mockFindUnique, mockFindFirst, mockCreate } = vi.hoisted(() => ({
+const { mockFindUnique, mockFindFirst, mockCreate, mockUpdate } = vi.hoisted(() => ({
   mockFindUnique: vi.fn(),
   mockFindFirst: vi.fn().mockResolvedValue(null),
   mockCreate: vi.fn(),
+  mockUpdate: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -14,6 +15,7 @@ vi.mock("@/lib/db", () => ({
       findUnique: mockFindUnique,
       findFirst: mockFindFirst,
       create: mockCreate,
+      update: mockUpdate,
     },
   },
 }));
@@ -497,5 +499,192 @@ describe("cleanWechatHtml", () => {
 
     expect(fullText).toBe(text);
     expect(rawHtml).toBe(text);
+  });
+});
+
+describe("normalizeWeRssArticle — blocked record refresh", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRunContentFilters.mockResolvedValue({ filtered: false });
+    mockFindFirst.mockResolvedValue(null);
+  });
+
+  it("should skip non-blocked existing records (candidate)", async () => {
+    mockFindUnique.mockResolvedValue({
+      id: "existing-1",
+      title: "已存在文章",
+      originalUrl: "https://mp.weixin.qq.com/s/test123",
+      qualityStatus: "candidate",
+      processingStatus: "fetched",
+    });
+
+    const result = await normalizeWeRssArticle(makeArticle(), BASE_OPTIONS);
+
+    expect(result.created).toBe(false);
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("should skip non-blocked existing records (accepted)", async () => {
+    mockFindUnique.mockResolvedValue({
+      id: "existing-2",
+      title: "已接受文章",
+      originalUrl: "https://mp.weixin.qq.com/s/test123",
+      qualityStatus: "accepted",
+      processingStatus: "synced",
+    });
+
+    const result = await normalizeWeRssArticle(makeArticle(), BASE_OPTIONS);
+
+    expect(result.created).toBe(false);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("should update blocked record when new content is not blocked", async () => {
+    const blockedRecord = {
+      id: "blocked-1",
+      title: "被封禁的文章",
+      originalUrl: "https://mp.weixin.qq.com/s/test123",
+      qualityStatus: "blocked",
+      processingStatus: "blocked",
+      coverUrl: "https://example.com/old-cover.jpg",
+      aiDecision: "reject",
+      aiReason: "旧评估",
+      aiAssessedAt: new Date("2024-01-01"),
+      aiScore: 3.5,
+      aiScoreDetail: "{}",
+      aiScoredAt: new Date("2024-01-01"),
+      aiAssessmentError: null,
+    };
+
+    mockFindUnique.mockResolvedValue(blockedRecord);
+    mockUpdate.mockResolvedValue({
+      ...blockedRecord,
+      qualityStatus: "pending",
+      processingStatus: "fetched",
+    });
+
+    const result = await normalizeWeRssArticle(makeArticle(), BASE_OPTIONS);
+
+    expect(result.created).toBe(false);
+    expect(result.filtered).toBe(false);
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "blocked-1" },
+        data: expect.objectContaining({
+          qualityStatus: "pending",
+          processingStatus: "fetched",
+          filterReason: null,
+          aiDecision: null,
+          aiAssessedAt: null,
+        }),
+      })
+    );
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("should NOT update blocked record when new content is still blocked", async () => {
+    const blockedRecord = {
+      id: "blocked-2",
+      title: "仍被封禁的文章",
+      originalUrl: "https://mp.weixin.qq.com/s/still-blocked",
+      qualityStatus: "blocked",
+      processingStatus: "blocked",
+    };
+
+    mockFindUnique.mockResolvedValue(blockedRecord);
+
+    // Article content is a WeChat block page
+    const blockArticle = makeArticle({
+      url: "https://mp.weixin.qq.com/s/still-blocked",
+      content: "<p>当前环境异常，请先验证后即可继续访问</p>",
+    });
+
+    const result = await normalizeWeRssArticle(blockArticle, BASE_OPTIONS);
+
+    expect(result.created).toBe(false);
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("should clear all AI fields when refreshing blocked record", async () => {
+    const blockedRecord = {
+      id: "blocked-3",
+      title: "有AI评估的封禁文章",
+      originalUrl: "https://mp.weixin.qq.com/s/test123",
+      qualityStatus: "blocked",
+      processingStatus: "blocked",
+      aiDecision: "accept",
+      aiReason: "旧原因",
+      aiAssessedAt: new Date("2024-01-01"),
+      aiScore: 8.5,
+      aiScoreDetail: '{"relevance":9}',
+      aiScoredAt: new Date("2024-01-01"),
+      aiAssessmentError: null,
+      contentGenre: "commentary",
+      aiCategories: '["cat1"]',
+      aiUsableFor: '["use1"]',
+      aiSummary: "旧摘要",
+      aiQuotes: '["旧金句"]',
+    };
+
+    mockFindUnique.mockResolvedValue(blockedRecord);
+    mockUpdate.mockResolvedValue({
+      ...blockedRecord,
+      qualityStatus: "pending",
+    });
+
+    await normalizeWeRssArticle(makeArticle(), BASE_OPTIONS);
+
+    const updateCall = mockUpdate.mock.calls[0][0];
+    expect(updateCall.data).toMatchObject({
+      aiDecision: null,
+      aiReason: null,
+      aiAssessedAt: null,
+      aiAssessmentError: null,
+      aiScore: null,
+      aiScoreDetail: null,
+      aiScoredAt: null,
+      contentGenre: null,
+      aiCategories: null,
+      aiUsableFor: null,
+      aiSummary: null,
+      aiQuotes: null,
+      adminReviewStatus: "pending_ai",
+    });
+  });
+
+  it("should count refreshed blocked articles in normalizeWeRssArticles", async () => {
+    const blockedRecord = {
+      id: "blocked-batch",
+      title: "封禁文章",
+      originalUrl: "https://mp.weixin.qq.com/s/refresh1",
+      qualityStatus: "blocked",
+      processingStatus: "blocked",
+    };
+
+    mockFindUnique
+      .mockResolvedValueOnce(null) // first article: new
+      .mockResolvedValueOnce(blockedRecord); // second article: blocked → refresh
+
+    mockCreate.mockResolvedValue({ id: "new-id", title: "t", originalUrl: "u" });
+    mockUpdate.mockResolvedValue({
+      ...blockedRecord,
+      qualityStatus: "pending",
+      processingStatus: "fetched",
+    });
+
+    const articles = [
+      makeArticle({ url: "https://mp.weixin.qq.com/s/refresh-new", title: "新文章" }),
+      makeArticle({ url: "https://mp.weixin.qq.com/s/refresh1", title: "封禁刷新" }),
+    ];
+
+    const result = await normalizeWeRssArticles(articles, BASE_OPTIONS);
+
+    expect(result.discovered).toBe(2);
+    expect(result.imported).toBe(1);
+    expect(result.refreshed).toBe(1);
+    expect(result.skipped).toBe(0);
   });
 });
