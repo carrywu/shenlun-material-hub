@@ -93,16 +93,21 @@ async function assessSingleItem(
     const msg = error instanceof Error ? error.message : "评估失败";
     errors.push(`[${item.title}] ${msg}`);
 
-    await db.contentItem.update({
-      where: { id: item.id },
-      data: {
-        aiAssessmentError: msg,
-        aiLastError: msg,
-        aiLastFailedAt: new Date(),
-        aiAssessedAt: new Date(),
-        adminReviewStatus: "pending_ai",
-      },
-    });
+    try {
+      await db.contentItem.update({
+        where: { id: item.id },
+        data: {
+          aiAssessmentError: msg,
+          aiLastError: msg,
+          aiLastFailedAt: new Date(),
+          // aiAssessedAt 不在失败时设置 — 只有真正完成评估才标记已评估
+          adminReviewStatus: "pending_ai",
+        },
+      });
+    } catch (updateError) {
+      // 如果错误状态的写入也失败（如列不存在），至少记录日志不崩溃
+      console.error(`[assess] Failed to write error state for item ${item.id}:`, updateError);
+    }
 
     return "error";
   }

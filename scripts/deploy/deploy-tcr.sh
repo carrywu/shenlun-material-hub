@@ -197,6 +197,12 @@ docker push "${TCR_IMAGE}:latest"
 
 log "All tags pushed to TCR"
 
+# ── Schema consistency check (blocking) ────────────────────────────────────────
+
+log "Checking schema consistency between code migrations and production database"
+bash "$SCRIPT_DIR/check-schema-sync.sh" --env production \
+  || die "Schema drift detected! Resolve differences before deploying. Run with --verbose for details."
+
 # ── Pre-deploy migration status check ─────────────────────────────────────────
 
 log "Checking production migration status before deploying"

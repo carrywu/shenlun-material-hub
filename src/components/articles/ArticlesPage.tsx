@@ -331,9 +331,12 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
 
   // AI 批量评估
   async function handleAssess() {
-    let idsToAssess = selected.size > 0
-      ? Array.from(selected)
-      : items.filter((i) => i.qualityStatus === "candidate" && !i.aiDecision).map((i) => i.id);
+    if (selected.size === 0) {
+      toast.warning("请先选择文章", { description: "请勾选要评估的文章后再点击 AI 评估" });
+      return;
+    }
+
+    let idsToAssess = Array.from(selected);
 
     if (idsToAssess.length === 0) {
       toast.warning("没有可评估的条目", { description: "请先选择或确保有候选条目" });
@@ -341,9 +344,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     }
 
     // 检查已评估文章数量，如有则弹窗确认
-    const itemsToCheck = selected.size > 0
-      ? items.filter((i) => selected.has(i.id))
-      : items.filter((i) => i.qualityStatus === "candidate" && !i.aiDecision);
+    const itemsToCheck = items.filter((i) => selected.has(i.id));
     const evaluatedCount = itemsToCheck.filter((i) => i.aiDecision).length;
 
     if (evaluatedCount > 0) {
