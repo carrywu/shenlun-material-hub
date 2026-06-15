@@ -132,12 +132,12 @@ export async function cleanExpiredSessions(): Promise<number> {
 
 export const AUTH_COOKIE_NAME = "auth_token";
 
-// Secure cookie 判定：生产（HTTPS）启用，staging 走 HTTP 必须关闭，
-// 否则浏览器在 HTTP 下会丢弃 auth_token，导致登录后仍进不去后台。
+// Secure cookie 判定：只有显式启用 HTTPS 时才设置 Secure 标志。
+// 如果服务器运行在 HTTP 下但 Secure=true，浏览器会静默丢弃 cookie，
+// 导致登录成功后 session 丢失，用户看起来没登录。
+// 设置 HTTPS_ENABLED=true 启用 Secure cookie（仅 HTTPS 部署时使用）。
 function shouldUseSecureCookie(): boolean {
-  if (process.env.NODE_ENV !== "production") return false;
-  if (process.env.APP_ENV === "staging") return false;
-  return true;
+  return process.env.HTTPS_ENABLED === "true";
 }
 
 export function buildCookieHeader(token: string, maxAge = 86400): string {
