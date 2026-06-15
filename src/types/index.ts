@@ -71,6 +71,7 @@ export const PROCESSING_STATUSES = [
   "confirmed",            // 已确认
   "synced",               // 已同步
   "filtered",             // 已过滤
+  "blocked",              // 封禁（微信验证页面）
 ] as const;
 export type ProcessingStatus = (typeof PROCESSING_STATUSES)[number];
 
@@ -80,6 +81,7 @@ export const QUALITY_STATUSES = [
   "candidate",            // 候选（通过基础过滤）
   "filtered",             // 已过滤（质量不达标）
   "accepted",             // 已接受（通过 AI 评估）
+  "blocked",              // 封禁（微信验证页面）
 ] as const;
 export type QualityStatus = (typeof QUALITY_STATUSES)[number];
 
