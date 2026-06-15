@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     let invitation: {
       id: string;
       code: string;
+      status: string;
       usedCount: number;
       maxUses: number;
       expiresAt: Date | null;
@@ -56,6 +57,22 @@ export async function POST(request: NextRequest) {
       if (!invitation) {
         return NextResponse.json(
           { error: "邀请码无效" },
+          { status: 400 }
+        );
+      }
+
+      if (invitation.status === "DISABLED") {
+        await auditLog({
+          action: "create",
+          resource: "User",
+          detail: {
+            reason: "invitation_disabled",
+            invitationId: invitation.id,
+            attemptedUsername: username,
+          },
+        });
+        return NextResponse.json(
+          { error: "邀请码已停用" },
           { status: 400 }
         );
       }

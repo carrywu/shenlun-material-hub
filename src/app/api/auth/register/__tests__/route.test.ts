@@ -64,10 +64,10 @@ describe("POST /api/auth/register (P8)", () => {
 
   it("有有效邀请码 → 创建 VERIFIED_USER", async () => {
     mocks.invitationFindUnique.mockResolvedValue({
-      id: "inv1", code: "CODE", usedCount: 0, maxUses: 5, expiresAt: null,
+      id: "inv1", code: "CODE", status: "ACTIVE", usedCount: 0, maxUses: 5, expiresAt: null,
     });
     mocks.invUpdate.mockResolvedValue({
-      id: "inv1", code: "CODE", usedCount: 1, maxUses: 5, expiresAt: null,
+      id: "inv1", code: "CODE", status: "ACTIVE", usedCount: 1, maxUses: 5, expiresAt: null,
     });
     mocks.userFindUnique.mockResolvedValue(null);
     mocks.userCreate.mockResolvedValue({
@@ -80,6 +80,28 @@ describe("POST /api/auth/register (P8)", () => {
     expect(mocks.userCreate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ role: "VERIFIED_USER" }) })
     );
+  });
+
+  it("已停用邀请码 → 400", async () => {
+    mocks.invitationFindUnique.mockResolvedValue({
+      id: "inv-disabled",
+      code: "STOPPED",
+      status: "DISABLED",
+      usedCount: 0,
+      maxUses: 5,
+      expiresAt: null,
+    });
+
+    const res = await POST(makeReq({
+      username: "newuser3",
+      password: "pass123",
+      invitationCode: "STOPPED",
+    }));
+    const payload = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(payload.error).toBe("邀请码已停用");
+    expect(mocks.userCreate).not.toHaveBeenCalled();
   });
 
   it("无效邀请码 → 400", async () => {
