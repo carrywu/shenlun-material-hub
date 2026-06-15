@@ -526,8 +526,12 @@ export default function SubscriptionsPage() {
       if (!res.ok) throw new Error(data.error ?? "导入失败");
 
       const skipped = data.skippedCount ?? 0;
+      const blocked = data.blockedCount ?? 0;
+      const refreshed = data.refreshedCount ?? 0;
       alert(
         `导入完成：发现 ${data.discoveredCount ?? 0} 条，导入 ${data.importedCount ?? 0} 条` +
+          (blocked > 0 ? `，封禁 ${blocked}` : "") +
+          (refreshed > 0 ? `，刷新封禁 ${refreshed}` : "") +
           (skipped > 0 ? `，跳过 ${skipped} 条` : "")
       );
       fetchSources();

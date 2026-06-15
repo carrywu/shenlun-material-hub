@@ -5,7 +5,9 @@ import {
   fetchStandardRssArticles,
 } from "@/services/collectors/wechat/weRssClient";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
+import { refreshFeed } from "@/services/integrations/wewe-rss-api";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 // POST /api/collectors/wechat/sync/confirm — 确认导入选中的文章
 export async function POST(request: NextRequest) {
@@ -42,6 +44,17 @@ export async function POST(request: NextRequest) {
 
     if (!source.isEnabled) {
       return NextResponse.json({ error: "该来源已禁用" }, { status: 400 });
+    }
+
+    // 先刷新 WeWe RSS 缓存，确保获取最新内容（与 sync/route.ts、preview/route.ts 一致）
+    if (source.provider === "wewe-rss" && source.feedId) {
+      const weweBaseUrl = process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
+      try {
+        await refreshFeed(weweBaseUrl, source.feedId);
+      } catch (refreshErr) {
+        const refreshMsg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
+        console.warn(`WeWe RSS refresh failed for ${source.feedId}: ${refreshMsg}`);
+      }
     }
 
     // 重新拉取文章
@@ -113,6 +126,8 @@ export async function POST(request: NextRequest) {
         discoveredCount: result.discovered,
         importedCount: result.imported,
         skippedCount: result.skipped,
+        blockedCount: result.blocked,
+        refreshedCount: result.refreshed,
         errors: result.errors.length > 0 ? result.errors : undefined,
       });
     } catch (syncError) {
