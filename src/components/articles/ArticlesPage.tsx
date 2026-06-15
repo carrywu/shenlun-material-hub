@@ -88,6 +88,7 @@ const QUALITY_STATUS_OPTIONS = [
   { value: "candidate", label: "候选" },
   { value: "filtered", label: "已过滤" },
   { value: "accepted", label: "已接受" },
+  { value: "blocked", label: "封禁" },
 ];
 
 const AI_DECISION_OPTIONS = [
@@ -142,6 +143,7 @@ export function ArticlesPage({ managementMode = false }: { managementMode?: bool
 function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const basePath = managementMode ? "/admin/articles" : "/articles";
 
   const [items, setItems] = useState<ContentItemData[]>([]);
   const [total, setTotal] = useState(0);
@@ -273,7 +275,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     if (sortBy !== "createdAt") params.set("sortBy", sortBy);
     if (activeTab && activeTab !== "all") params.set("tab", activeTab);
     const qs = params.toString();
-    router.replace(`/articles${qs ? `?${qs}` : ""}`, { scroll: false });
+    router.replace(`${basePath}${qs ? `?${qs}` : ""}`, { scroll: false });
   }, [keyword, sourceType, sourceName, section, qualityStatus, aiDecision, adminReviewStatus, publishedStart, publishedEnd, collectedStart, collectedEnd, sortBy, activeTab, router]);
 
   useEffect(() => {
@@ -284,7 +286,24 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
   // 点击搜索按钮
   function handleSearch() {
     setPage(1);
-    syncUrl();
+    // Only sync URL if there are non-default filters — avoid empty URL change
+    const hasActiveFilter =
+      keyword ||
+      sourceType !== "all" ||
+      sourceName !== "all" ||
+      section !== "all" ||
+      qualityStatus !== "all" ||
+      aiDecision !== "all" ||
+      adminReviewStatus !== "all" ||
+      publishedStart ||
+      publishedEnd ||
+      collectedStart ||
+      collectedEnd ||
+      sortBy !== "createdAt" ||
+      (activeTab && activeTab !== "all");
+    if (hasActiveFilter) {
+      syncUrl();
+    }
     fetchItems();
   }
 
@@ -304,7 +323,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
     setSortBy("createdAt");
     setActiveTab("all");
     setPage(1);
-    router.replace("/articles", { scroll: false });
+    router.replace(basePath, { scroll: false });
   }
 
   // Enter 键触发搜索
@@ -922,7 +941,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                     <TableRow
                       key={item.id}
                       className="cursor-pointer"
-                      onClick={() => router.push(`/articles/${item.id}`)}
+                      onClick={() => router.push(`${basePath}/${item.id}`)}
                     >
                       {managementMode && (
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -954,7 +973,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                             className="w-full truncate text-left"
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/articles/${item.id}`);
+                              router.push(`${basePath}/${item.id}`);
                             }}
                           >
                             {item.title}
