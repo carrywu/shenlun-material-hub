@@ -17,6 +17,7 @@ export type AuditAction =
   | "role_change"
   | "user_disable"
   | "user_enable"
+  | "invitation_disable"
   | "archive"
   | "unarchive";
 

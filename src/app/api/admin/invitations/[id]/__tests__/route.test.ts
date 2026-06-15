@@ -52,7 +52,7 @@ describe("PATCH /api/admin/invitations/[id]", () => {
       select: expect.any(Object),
     });
     expect(auditMock).toHaveBeenCalledWith(expect.objectContaining({
-      action: "disable",
+      action: "invitation_disable",
       resource: "Invitation",
       resourceId: "inv-1",
     }));

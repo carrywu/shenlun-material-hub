@@ -49,7 +49,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   await auditLog({
     userId: user.id,
-    action: "disable",
+    action: "invitation_disable",
     resource: "Invitation",
     resourceId: id,
     detail: {
