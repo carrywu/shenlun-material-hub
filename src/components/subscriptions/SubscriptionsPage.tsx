@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -232,10 +232,14 @@ export default function SubscriptionsPage() {
   // WeChat Import Dialog state
   const [importWechatSource, setImportWechatSource] = useState<SourceItem | null>(null);
 
-  // WeWe RSS delete confirmation dialog
+  // 微信 RSS 删除确认弹窗
   const [weweDeleteDialogOpen, setWeweDeleteDialogOpen] = useState(false);
   const [pendingDeleteSources, setPendingDeleteSources] = useState<Array<{ id: string; feedId: string; name: string }>>([]);
   const [deletingSources, setDeletingSources] = useState(false);
+
+  // Q9: 刷新按钮防抖 30 秒
+  const [collectDisabledMap, setCollectDisabledMap] = useState<Record<string, boolean>>({});
+  const collectDebounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Channel expand state
   const [expandedSource, setExpandedSource] = useState<string | null>(null);
@@ -433,6 +437,15 @@ export default function SubscriptionsPage() {
   async function handleCollectNow(source: SourceItem) {
     if (collectingSource) return;
 
+    // Q9: we-mp-rss 来源防抖 30 秒
+    if (source.provider === "we-mp-rss") {
+      setCollectDisabledMap((prev) => ({ ...prev, [source.id]: true }));
+      collectDebounceRef.current[source.id] = setTimeout(() => {
+        setCollectDisabledMap((prev) => ({ ...prev, [source.id]: false }));
+        delete collectDebounceRef.current[source.id];
+      }, 30000);
+    }
+
     // 微信来源走预览流程
     if (source.platform === "wechat") {
       setPreviewSource(source);
@@ -577,7 +590,7 @@ export default function SubscriptionsPage() {
               variant="outline"
               size="sm"
               onClick={async () => {
-                const res = await fetch("/api/integrations/wewe-rss/sync-sources", {
+                const res = await fetch("/api/integrations/wechat-rss/sync-sources", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({}),
@@ -597,7 +610,7 @@ export default function SubscriptionsPage() {
               }}
             >
               <RefreshCw className="mr-1.5 h-4 w-4" />
-              同步 WeWe
+              同步公众号列表
             </Button>
             <Button size="sm" onClick={openCreate}>
               <Plus className="mr-1.5 h-4 w-4" />
@@ -778,13 +791,9 @@ export default function SubscriptionsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {source.provider === "wewe-rss" ? (
+                    {source.provider === "we-mp-rss" ? (
                       <Badge variant="default" className="text-xs bg-blue-600">
-                        WeWe RSS
-                      </Badge>
-                    ) : source.provider === "werss-external" ? (
-                      <Badge variant="secondary" className="text-xs">
-                        WeRSS
+                        we-mp-rss
                       </Badge>
                     ) : (
                       <span className="text-xs text-muted-foreground">手动</span>
@@ -881,8 +890,8 @@ export default function SubscriptionsPage() {
                         variant="ghost"
                         size="icon-xs"
                         onClick={() => handleCollectNow(source)}
-                        disabled={collectingSource === source.id || !source.isEnabled}
-                        title={source.provider === "wewe-rss" ? "刷新并采集" : "立即采集"}
+                        disabled={collectingSource === source.id || !source.isEnabled || !!collectDisabledMap[source.id]}
+                        title={source.provider === "we-mp-rss" ? "刷新并采集" : "立即采集"}
                       >
                         {collectingSource === source.id ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -1113,8 +1122,8 @@ export default function SubscriptionsPage() {
                 />
                 {form.platform === "wechat" && (
                   <p className="text-xs text-muted-foreground">
-                    本地 WeWe RSS / we-mp-rss 用户：填写 RSS 地址（如 http://localhost:4000/feeds/xxx.rss）。
-                    以 http(s):// 开头的地址走标准 RSS 解析，不需要 WERSS_ACCESS_KEY。
+                    本地 we-mp-rss 用户：填写 RSS 地址（如 http://localhost:8001/feeds/xxx.rss）。
+                    以 http(s):// 开头的地址走标准 RSS 解析，不需要 AK-SK 认证。
                   </p>
                 )}
               </div>
@@ -1296,13 +1305,13 @@ export default function SubscriptionsPage() {
         onConfirm={handlePreviewConfirm}
       />
 
-      {/* WeWe RSS 删除确认弹窗 */}
+      {/* we-mp-rss 删除确认弹窗 */}
       <Dialog open={weweDeleteDialogOpen} onOpenChange={setWeweDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>同步删除来源确认</DialogTitle>
             <DialogDescription>
-              检测到 WeWe RSS 中已删除以下公众号。是否同步删除申论项目中的对应来源？
+              检测到 we-mp-rss 中已删除以下公众号。是否同步删除申论项目中的对应来源？
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -1316,7 +1325,7 @@ export default function SubscriptionsPage() {
           </div>
           <div className="text-sm text-muted-foreground space-y-1">
             <p>注意：</p>
-            <p>1. 只会删除 WeWe RSS 同步来的来源</p>
+            <p>1. 只会删除 we-mp-rss 同步来的来源</p>
             <p>2. 不会删除你手动添加的来源</p>
             <p>3. 默认不会删除已入库文章</p>
             <p>4. 删除后可通过重新同步恢复</p>
@@ -1330,7 +1339,7 @@ export default function SubscriptionsPage() {
               onClick={async () => {
                 setDeletingSources(true);
                 try {
-                  const res = await fetch("/api/integrations/wewe-rss/delete-missing-sources", {
+                  const res = await fetch("/api/integrations/wechat-rss/delete-missing-sources", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

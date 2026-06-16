@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 import { logger } from "@/lib/logger";
-import { WeRssClient, fetchStandardRssArticles } from "@/services/collectors/wechat/weRssClient";
+import { triggerFeedSync, listArticles, SYNC_ARTICLE_LIMIT } from "@/services/integrations/wechat-rss";
+import { fromWeMpRssArticle } from "@/services/collectors/wechat/wechat-article-types";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
-import { refreshFeed } from "@/services/integrations/wewe-rss-api";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 
 interface WechatSyncTaskParams {
   sourceId: string;
-  werssSourceId?: string | null;
+  feedId?: string | null;
 }
 
 async function runWechatSyncTask(params: WechatSyncTaskParams) {
@@ -21,7 +21,7 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
   const runRecord = await db.collectorRun.create({
     data: {
       sourceId: source.id,
-      collectorType: "werss",
+      collectorType: "wechat-api",
       status: "running",
     },
   });
@@ -30,37 +30,40 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
   await logger.info("采集任务开始", "CRAWLER", {
     source: source.name,
     sourceId: source.id,
-    collectorType: "werss",
+    collectorType: "wechat-api",
   });
 
   try {
-    let articles;
-    const targetUrl = params.werssSourceId ?? source.baseUrl ?? source.externalId;
+    const baseUrl = process.env.WE_MP_RSS_BASE_URL ?? "";
+    const accessKey = process.env.WE_MP_RSS_ACCESS_KEY ?? "";
+    const secretKey = process.env.WE_MP_RSS_SECRET_KEY ?? "";
+    const feedId = params.feedId ?? source.feedId;
 
-    if (
-      targetUrl &&
-      (targetUrl.startsWith("http://") || targetUrl.startsWith("https://"))
-    ) {
-      if (source.provider === "wewe-rss" && source.feedId) {
-        const weweBaseUrl = process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
-        try {
-          await refreshFeed(weweBaseUrl, source.feedId);
-        } catch (refreshErr) {
-          const refreshMsg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
-          console.warn(`WeWe RSS refresh failed for ${source.feedId}: ${refreshMsg}`);
-        }
+    // 1. 触发 we-mp-rss 同步该公众号
+    if (feedId) {
+      try {
+        await triggerFeedSync(baseUrl, accessKey, secretKey, feedId);
+      } catch (refreshErr) {
+        const refreshMsg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
+        console.warn(`we-mp-rss sync failed for ${feedId}: ${refreshMsg}`);
+        // 同步触发失败不阻塞采集，继续用已有数据
       }
-      articles = await fetchStandardRssArticles(targetUrl);
-    } else {
-      const client = new WeRssClient();
-      if (params.werssSourceId) {
-        await client.syncArticles(params.werssSourceId);
-      }
-      const result = await client.getArticles(params.werssSourceId ?? source.id);
-      articles = result.articles;
     }
 
-    const result = await normalizeWeRssArticles(articles, {
+    // 2. 通过 API 获取文章列表
+    if (!feedId) {
+      throw new Error("该来源缺少 feedId，无法通过 we-mp-rss API 获取文章");
+    }
+    const articlesData = await listArticles(baseUrl, accessKey, secretKey, {
+      mpId: feedId,
+      limit: SYNC_ARTICLE_LIMIT,
+    });
+
+    // 3. 转换为 WechatArticle 并入库
+    const wechatArticles = articlesData.list.map((a) =>
+      fromWeMpRssArticle(a, source.name)
+    );
+    const result = await normalizeWeRssArticles(wechatArticles, {
       sourceId: source.id,
       trustLevel: source.trustLevel,
       contentType: source.contentType,
@@ -92,7 +95,6 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
       imported: result.imported,
       skipped: result.skipped,
       blocked: result.blocked,
-      refreshed: result.refreshed,
       durationMs: Date.now() - startedAtMs,
     });
 
@@ -102,7 +104,6 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
       importedCount: result.imported,
       skippedCount: result.skipped,
       blockedCount: result.blocked,
-      refreshedCount: result.refreshed,
       errors: result.errors.length > 0 ? result.errors : undefined,
       sourceName: source.name,
     };
@@ -134,7 +135,7 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
   }
 }
 
-// POST /api/collectors/wechat/sync — 触发 WeRSS 同步并导入为 ContentItem
+// POST /api/collectors/wechat/sync — 触发微信采集同步并导入为 ContentItem
 export async function POST(request: NextRequest) {
   const user = await requireAdmin(request);
   if (!user) {
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json();
-    const { sourceId, werssSourceId } = body;
+    const { sourceId, feedId } = body;
 
     if (!sourceId) {
       return NextResponse.json(
@@ -170,16 +171,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const task = await createAsyncTask("WEWE_RSS_SYNC", {
+    const task = await createAsyncTask("WECHAT_SYNC", {
       sourceId: source.id,
       sourceName: source.name,
-      werssSourceId: werssSourceId ?? null,
+      feedId: feedId ?? source.feedId ?? null,
     });
 
     enqueueAsyncTask(task, () =>
       runWechatSyncTask({
         sourceId: source.id,
-        werssSourceId: werssSourceId ?? null,
+        feedId: feedId ?? source.feedId ?? null,
       })
     );
 
@@ -197,7 +198,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: `WeRSS 同步失败: ${msg}` },
+      { error: `微信采集同步失败: ${msg}` },
       { status: 500 }
     );
   }

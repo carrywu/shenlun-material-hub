@@ -38,7 +38,7 @@ test.describe('受保护页面 Dead Link 检查', () => {
   const protectedRoutes = [
     '/admin', '/admin/tasks', '/admin/logs', '/admin/users',
     '/admin/backup', '/admin/clean', '/admin/settings/ai',
-    '/admin/integrations/wewe-rss', '/admin/articles',
+    '/admin/integrations/wechat-rss', '/admin/articles',
     '/admin/sync-records', '/settings', '/settings/account',
     '/settings/ai', '/settings/ima',
   ];

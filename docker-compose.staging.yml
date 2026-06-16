@@ -6,13 +6,13 @@
 #   - name: shenlun-staging —— 隔离 compose project，避免与任何环境容器/volume 冲突
 #   - app:       3001:3000（生产是 3000:3000）；env_file .env.staging；挂 ./data-staging/uploads
 #   - postgres:  独立 volume pgdata_staging；库 shenlun_material_hub；宿主端口 5433:5432（避开生产 5432）
-#   - wewe-rss:  inline 定义（不用 extends，避免 volume 合并冲突）；独立 volume wewe_data_staging；4000:4000
+#   - we-mp-rss:  inline 定义（不用 extends，避免 volume 合并冲突）；独立 volume wemp_data_staging；8001:8001
 #   - 无 caddy（Tailscale 已端到端加密，staging 无域名）
 #
 # 使用：
 #   docker compose -f docker-compose.staging.yml --env-file .env.staging up -d --build
 #
-# ⚠️ 前置：Linux 机 4000 端口必须空闲（ss -lntp | grep :4000）
+# ⚠️ 前置：Linux 机 8001 端口必须空闲（ss -lntp | grep :8001）
 
 name: shenlun-staging
 
@@ -70,24 +70,29 @@ services:
       retries: 5
       start_period: 20s
 
-  # ---------- wewe-rss（微信 RSS 采集 sidecar）----------
+  # ---------- we-mp-rss（微信 RSS 采集 sidecar）----------
   # inline 定义，不复用 extends（docker compose extends 对 volumes 是合并，
   # 会导致 ./data 与 named volume 同时挂载 /app/data 冲突）
-  # 镜像与 infra/wechat-rss/wewe-rss/docker-compose.yml 一致：sqlite 版
-  wewe-rss:
-    image: cooderl/wewe-rss-sqlite:v2.6.1
-    container_name: shenlun-staging-wewe
+  # 镜像与 infra/wechat-rss/we-mp-rss/docker-compose.yml 一致
+  we-mp-rss:
+    image: ghcr.io/rachelos/we-mp-rss:latest
+    container_name: shenlun-staging-we-mp-rss
     ports:
-      # 用户坚持用 4000（与生产一致）；前置：4000 端口必须空闲
-      # Mac 浏览器开 http://100.117.96.1:4000 微信扫码配置
-      - "4000:4000"
+      - "8001:8001"
     environment:
-      - DATABASE_TYPE=sqlite
+      - DB=sqlite:///data/we_mp_rss.db
+      - GATHER_CONTENT=True
+      - GATHER_CONTENT_AUTO_CHECK=True
+      - GATHER_CLEAN_HTML=True
+      - GATHER_CONTENT_MODE=web
+      - RSS_FULL_CONTEXT=True
+      - RSS_ADD_COVER=True
+      - RSS_PAGE_SIZE=30
     volumes:
-      # 独立 volume，不复用生产 wewe-rss 数据，不复用 infra/wechat-rss/wewe-rss/data
-      - wewe_data_staging:/app/data
+      # 独立 volume，不复用生产 we-mp-rss 数据，不复用 infra/wechat-rss/we-mp-rss/data
+      - wemp_data_staging:/app/data
     restart: unless-stopped
 
 volumes:
   pgdata_staging:
-  wewe_data_staging:
+  wemp_data_staging:

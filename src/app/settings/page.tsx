@@ -93,7 +93,7 @@ export default async function SettingsPage() {
         </Link>
         )}
 
-        {/* Integrations — ADMIN only (P1-T5: hide WeWe RSS entry from non-admin users) */}
+        {/* Integrations — ADMIN only (P1-T5: hide 微信 RSS entry from non-admin users) */}
         {isAdmin && (
         <Link
           href="/settings/integrations"
@@ -106,7 +106,7 @@ export default async function SettingsPage() {
             <div className="flex-1">
               <h3 className="font-semibold text-sm group-hover:text-primary transition-colors">外部集成</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                WeWe RSS 等集成配置，用于微信公众号内容采集。
+                we-mp-rss 等集成配置，用于微信公众号内容采集。
               </p>
             </div>
           </div>

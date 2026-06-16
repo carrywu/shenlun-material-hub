@@ -40,7 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const TASK_TYPE_LABELS: Record<string, string> = {
   WEB_CRAWL: "网页爬取",
-  WEWE_RSS_SYNC: "微信RSS同步",
+  WECHAT_SYNC: "微信采集",
   AI_ASSESS: "AI评估",
   CARD_GENERATE: "卡片生成",
 };
@@ -197,7 +197,7 @@ export default function AdminTasksPage() {
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
               <SelectItem value="WEB_CRAWL">网页爬取</SelectItem>
-              <SelectItem value="WEWE_RSS_SYNC">微信RSS同步</SelectItem>
+              <SelectItem value="WECHAT_SYNC">微信采集</SelectItem>
               <SelectItem value="AI_ASSESS">AI评估</SelectItem>
               <SelectItem value="CARD_GENERATE">卡片生成</SelectItem>
             </SelectContent>

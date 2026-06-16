@@ -159,9 +159,10 @@ vite.config.ts.timestamp-*
 *.sqlite
 *.sqlite3
 
-# WeWe RSS local data
+# 微信 RSS sidecar 本地数据（含密钥和数据库，绝不提交）
 infra/wechat-rss/wewe-rss/data/
 infra/wechat-rss/wewe-rss/.env
+infra/wechat-rss/we-mp-rss/data/
 
 # Agent orchestrator
 .ao/

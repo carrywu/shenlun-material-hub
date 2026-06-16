@@ -35,7 +35,7 @@ export default defineConfig({
         '**/admin-*.spec.ts',
         '**/ai-assessment.spec.ts',
         '**/sources.spec.ts',
-        '**/wewe-rss.spec.ts',
+        '**/wechat-rss.spec.ts',
         '**/material-cards.spec.ts',
       ],
     },

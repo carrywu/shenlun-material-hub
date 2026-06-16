@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import {
-  WeRssClient,
-  fetchStandardRssArticles,
-} from "@/services/collectors/wechat/weRssClient";
+import { triggerFeedSync, listArticles, SYNC_ARTICLE_LIMIT } from "@/services/integrations/wechat-rss";
+import { fromWeMpRssArticle } from "@/services/collectors/wechat/wechat-article-types";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
-import { refreshFeed } from "@/services/integrations/wewe-rss-api";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 
 // POST /api/collectors/wechat/sync/confirm — 确认导入选中的文章
+// Q8: confirm 时再调一次 API 重新获取文章，确保最新
 export async function POST(request: NextRequest) {
   const user = await requireAdmin(request);
   if (!user) {
@@ -21,7 +19,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json();
-    const { sourceId, werssSourceId, selectedUrls } = body;
+    const { sourceId, feedId, selectedUrls } = body;
 
     if (!sourceId) {
       return NextResponse.json(
@@ -46,32 +44,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "该来源已禁用" }, { status: 400 });
     }
 
-    // 先刷新 WeWe RSS 缓存，确保获取最新内容（与 sync/route.ts、preview/route.ts 一致）
-    if (source.provider === "wewe-rss" && source.feedId) {
-      const weweBaseUrl = process.env.WEWERSS_BASE_URL ?? "http://localhost:4000";
+    const baseUrl = process.env.WE_MP_RSS_BASE_URL ?? "";
+    const accessKey = process.env.WE_MP_RSS_ACCESS_KEY ?? "";
+    const secretKey = process.env.WE_MP_RSS_SECRET_KEY ?? "";
+    const mpId = feedId ?? source.feedId;
+
+    // Q8: 重新触发同步并拉取最新文章
+    if (mpId) {
       try {
-        await refreshFeed(weweBaseUrl, source.feedId);
+        await triggerFeedSync(baseUrl, accessKey, secretKey, mpId);
       } catch (refreshErr) {
         const refreshMsg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
-        console.warn(`WeWe RSS refresh failed for ${source.feedId}: ${refreshMsg}`);
+        console.warn(`we-mp-rss sync failed for ${mpId}: ${refreshMsg}`);
       }
     }
 
-    // 重新拉取文章
-    const targetUrl = werssSourceId ?? source.baseUrl ?? source.externalId;
-    let allArticles;
-    if (
-      targetUrl &&
-      (targetUrl.startsWith("http://") || targetUrl.startsWith("https://"))
-    ) {
-      allArticles = await fetchStandardRssArticles(targetUrl);
-    } else {
-      const client = new WeRssClient();
-      const result = await client.getArticles(werssSourceId ?? source.id);
-      allArticles = result.articles;
-    }
+    // 重新拉取文章列表
+    const articlesData = await listArticles(baseUrl, accessKey, secretKey, {
+      mpId: mpId ?? undefined,
+      limit: SYNC_ARTICLE_LIMIT,
+    });
 
-    // 过滤出用户选中的文章
+    // 转换为 WechatArticle 并过滤出用户选中的文章
+    const allArticles = articlesData.list.map((a) =>
+      fromWeMpRssArticle(a, source.name)
+    );
+
     const selectedSet = new Set(selectedUrls);
     const selectedArticles = allArticles.filter((a) =>
       selectedSet.has(a.url)
@@ -88,7 +86,7 @@ export async function POST(request: NextRequest) {
     const runRecord = await db.collectorRun.create({
       data: {
         sourceId: source.id,
-        collectorType: "werss",
+        collectorType: "wechat-api",
         status: "running",
       },
     });
@@ -127,7 +125,6 @@ export async function POST(request: NextRequest) {
         importedCount: result.imported,
         skippedCount: result.skipped,
         blockedCount: result.blocked,
-        refreshedCount: result.refreshed,
         errors: result.errors.length > 0 ? result.errors : undefined,
       });
     } catch (syncError) {

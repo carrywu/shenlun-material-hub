@@ -123,9 +123,9 @@ run '
   fi
 ' || warn "seed-admin 环节有警告（非致命）"
 
-# ---------- 8. up app + wewe-rss ----------
-log "启动 app + wewe-rss"
-run 'docker compose -f ${COMPOSE_FILE} up -d' || die "app/wewe-rss 启动失败"
+# ---------- 8. up app + we-mp-rss ----------
+log "启动 app + we-mp-rss"
+run 'docker compose -f ${COMPOSE_FILE} up -d' || die "app/we-mp-rss 启动失败"
 
 # ---------- 9. 等 app 健康（坑 C：healthcheck 已用 node override）----------
 log "等待 app 健康"
@@ -154,5 +154,5 @@ echo ""
 ok "Staging 部署完成"
 echo "   Linux 本机:  http://127.0.0.1:3001"
 echo "   Mac Tailscale: http://${LINUX_HOST:-100.117.96.1}:3001"
-echo "   wewe-rss:     http://${LINUX_HOST:-100.117.96.1}:4000"
+echo "   we-mp-rss:    http://${LINUX_HOST:-100.117.96.1}:8001"
 echo "   health:       curl http://${LINUX_HOST:-100.117.96.1}:3001/api/health"

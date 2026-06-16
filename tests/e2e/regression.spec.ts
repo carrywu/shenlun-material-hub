@@ -15,7 +15,7 @@ test.describe('回归测试 - 所有页面不白屏', () => {
     '/admin/sync-records',
     '/admin/backup',
     '/admin/clean',
-    '/admin/integrations/wewe-rss',
+    '/admin/integrations/wechat-rss',
     '/admin/settings/ai',
     '/admin/settings/quotas',
   ];

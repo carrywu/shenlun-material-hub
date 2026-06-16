@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
-export type AsyncTaskType = "WEWE_RSS_SYNC" | "WEB_CRAWL" | "AI_ASSESS" | "CARD_GENERATE";
+export type AsyncTaskType = "WECHAT_SYNC" | "WEB_CRAWL" | "AI_ASSESS" | "CARD_GENERATE";
 type AsyncTaskStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
 
 type DetachedTaskHandler = () => Promise<unknown>;

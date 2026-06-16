@@ -53,8 +53,8 @@ url() {
 section "1. docker compose ps"
 run "cd ${REMOTE_DIR} 2>/dev/null && docker compose -f ${COMPOSE_FILE} ps" || warn "compose ps 失败"
 
-section "2. 端口监听 (3001 / 4000 / 5433)"
-run "ss -lntp 2>/dev/null | grep -E ':3001|:4000|:5433' || echo '⚠ 没有发现 3001/4000/5433 监听'"
+section "2. 端口监听 (3001 / 8001 / 5433)"
+run "ss -lntp 2>/dev/null | grep -E ':3001|:8001|:5433' || echo '⚠ 没有发现 3001/8001/5433 监听'"
 
 section "3. /api/health (公开端点)"
 if curl -fsS --max-time 8 "http://$(url 3001)/api/health"; then

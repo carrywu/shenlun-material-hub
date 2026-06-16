@@ -42,14 +42,14 @@ services:
       retries: 3
       start_period: 10s
 
-  # Optional local WeWe RSS sidecar.
+  # Optional local we-mp-rss sidecar.
   # Keep it separate from the main app runtime boundary.
-  # NOTE: 本项目只读消费 WeWe RSS 数据，不写入其数据库。
-  wewe-rss:
-    profiles: ["wewe-rss"]
+  # NOTE: 本项目只读消费 we-mp-rss 数据，不写入其数据库。
+  we-mp-rss:
+    profiles: ["wechat-rss"]
     extends:
-      file: ./infra/wechat-rss/wewe-rss/docker-compose.yml
-      service: wewe-rss
+      file: ./infra/wechat-rss/we-mp-rss/docker-compose.yml
+      service: we-mp-rss
 
 volumes:
   pgdata:

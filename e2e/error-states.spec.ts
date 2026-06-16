@@ -56,7 +56,7 @@ test.describe('错误状态处理', () => {
     expect(bodyText!.length).toBeGreaterThan(0);
 
     // 不应有未处理的错误弹窗
-    const errorOverlay = page.locator('#__next-route-announcer, [role="alert"]');
+    const _errorOverlay = page.locator('#__next-route-announcer, [role="alert"]');
     // 页面仍然可用（有导航或内容区域）
 
     guard.report(testInfo);

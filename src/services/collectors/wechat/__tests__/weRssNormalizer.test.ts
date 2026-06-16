@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { WeRssArticle } from "../weRssClient";
+import type { WechatArticle } from "../wechat-article-types";
 
 // Mock db - must use vi.hoisted for variables used in vi.mock
 const { mockFindUnique, mockFindFirst, mockCreate, mockUpdate } = vi.hoisted(() => ({
@@ -39,7 +39,7 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { normalizeWeRssArticle, normalizeWeRssArticles, cleanWechatHtml, detectWechatBlockPage } from "../weRssNormalizer";
+import { normalizeWeRssArticle, normalizeWeRssArticles, extractPlainText, detectWechatBlockPage } from "../weRssNormalizer";
 
 const BASE_OPTIONS = {
   sourceId: "source-001",
@@ -47,7 +47,7 @@ const BASE_OPTIONS = {
   contentType: "policy_analysis",
 };
 
-function makeArticle(overrides: Partial<WeRssArticle> = {}): WeRssArticle {
+function makeArticle(overrides: Partial<WechatArticle> = {}): WechatArticle {
   return {
     id: "art-1",
     title: "测试文章",
@@ -56,9 +56,90 @@ function makeArticle(overrides: Partial<WeRssArticle> = {}): WeRssArticle {
     summary: "测试摘要",
     author: "测试作者",
     publishTime: "2024-01-01T00:00:00Z",
+    hasContent: 1,
+    fixFailCount: 0,
     ...overrides,
   };
 }
+
+describe("extractPlainText", () => {
+  it("应该从 HTML 中提取段落级纯文本", () => {
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script>console.log("bad");</script>
+  <style>body { color: red; }</style>
+</head>
+<body>
+  <div id="js_content">
+    <section>
+      <p>这是第一段内容。</p>
+      <p>这是第二段内容。</p>
+    </section>
+  </div>
+</body>
+</html>`;
+
+    const fullText = extractPlainText(html);
+
+    expect(fullText).toContain("这是第一段内容。");
+    expect(fullText).toContain("这是第二段内容。");
+    expect(fullText).not.toContain("bad");
+    expect(fullText).not.toContain("color: red");
+  });
+
+  it("当输入不是 HTML 时应该直接返回原文本", () => {
+    const text = "这是一段普通的纯文本内容。";
+    expect(extractPlainText(text)).toBe(text);
+  });
+
+  it("对 null 输入应返回空字符串", () => {
+    expect(extractPlainText(null)).toBe("");
+  });
+
+  it("对空字符串应返回空字符串", () => {
+    expect(extractPlainText("")).toBe("");
+  });
+});
+
+describe("detectWechatBlockPage", () => {
+  it("应该检测包含'环境异常'的封禁页文本", () => {
+    expect(detectWechatBlockPage("环境异常 当前环境异常，完成验证后即可继续访问。")).toBe(true);
+  });
+
+  it("应该检测包含'验证后即可继续'的封禁页文本", () => {
+    expect(detectWechatBlockPage("请完成验证后即可继续访问微信文章")).toBe(true);
+  });
+
+  it("应该检测包含'频繁访问'的封禁页文本", () => {
+    expect(detectWechatBlockPage("检测到频繁访问，请先验证")).toBe(true);
+  });
+
+  it("应该检测包含'为你的访问安全'的封禁页文本", () => {
+    expect(detectWechatBlockPage("为你的访问安全，请先验证")).toBe(true);
+  });
+
+  it("对空文本应返回 false", () => {
+    expect(detectWechatBlockPage(null)).toBe(false);
+    expect(detectWechatBlockPage("")).toBe(false);
+  });
+
+  it("对正常长文章应返回 false", () => {
+    const normalText = "这是一篇正常的微信文章内容，".repeat(20) + "环境异常只是偶然出现的词";
+    // 超过 200 字 → 即使包含关键词也返回 false
+    expect(detectWechatBlockPage(normalText)).toBe(false);
+  });
+
+  it("对正常短文应返回 false", () => {
+    expect(detectWechatBlockPage("这是一篇短文")).toBe(false);
+  });
+
+  it("对实际线上封禁页清洗结果应返回 true", () => {
+    const realBlockedText = "环境异常 当前环境异常，完成验证后即可继续访问。 去验证";
+    expect(detectWechatBlockPage(realBlockedText)).toBe(true);
+  });
+});
 
 describe("normalizeWeRssArticle", () => {
   beforeEach(() => {
@@ -110,18 +191,17 @@ describe("normalizeWeRssArticle", () => {
     expect(createCall.data.contentHash).toHaveLength(16);
   });
 
-  it("应该在没有 content 时标记为 filtered", async () => {
+  it("应该在 hasContent===0 时标记为 blocked（Q11 双重检测）", async () => {
     mockFindUnique.mockResolvedValue(null);
     mockCreate.mockResolvedValue({ id: "id", title: "t", originalUrl: "u" });
 
-    const result = await normalizeWeRssArticle(makeArticle({ content: undefined }), BASE_OPTIONS);
+    const result = await normalizeWeRssArticle(makeArticle({ hasContent: 0, content: undefined }), BASE_OPTIONS);
 
     const createCall = mockCreate.mock.calls[0][0];
-    expect(createCall.data.contentHash).toBeNull();
-    expect(createCall.data.processingStatus).toBe("filtered");
-    expect(createCall.data.qualityStatus).toBe("filtered");
+    expect(createCall.data.processingStatus).toBe("blocked");
+    expect(createCall.data.qualityStatus).toBe("blocked");
     expect(result.filtered).toBe(true);
-    expect(result.filterReason).toContain("无全文内容");
+    expect(result.filterReason).toContain("缺失");
   });
 
   it("应该在正文过短时标记为 filtered", async () => {
@@ -192,7 +272,7 @@ describe("normalizeWeRssArticle", () => {
     expect(createCall.data.processingStatus).toBe("fetched");
     expect(createCall.data.qualityStatus).toBe("candidate");
     expect(createCall.data.platform).toBe("wechat");
-    expect(createCall.data.discoveryChannel).toBe("werss");
+    expect(createCall.data.discoveryChannel).toBe("wechat-api"); // D7: werss → wechat-api
   });
 
   it("应该正确解析 publishTime", async () => {
@@ -234,7 +314,21 @@ describe("normalizeWeRssArticle", () => {
     const createCall = mockCreate.mock.calls[0][0];
     expect(createCall.data.coverUrl).toBeNull();
   });
+
+  it("应该在 fixFailCount>=3 时标记为 blocked", async () => {
+    mockFindUnique.mockResolvedValue(null);
+    mockCreate.mockResolvedValue({ id: "id", title: "t", originalUrl: "u" });
+
+    const result = await normalizeWeRssArticle(makeArticle({ fixFailCount: 3, hasContent: 1 }), BASE_OPTIONS);
+
+    const createCall = mockCreate.mock.calls[0][0];
+    expect(createCall.data.processingStatus).toBe("blocked");
+    expect(createCall.data.qualityStatus).toBe("blocked");
+    expect(result.filtered).toBe(true);
+    expect(result.filterReason).toContain("补抓失败");
+  });
 });
+
 describe("normalizeWeRssArticles", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -352,7 +446,7 @@ describe("normalizeWeRssArticles", () => {
     mockCreate.mockResolvedValue({ id: "id", title: "t", originalUrl: "u" });
 
     const articles = [
-      makeArticle({ url: "https://mp.weixin.qq.com/s/f1", title: "空内容", content: "" }),
+      makeArticle({ url: "https://mp.weixin.qq.com/s/f1", title: "空内容", content: "", hasContent: 1 }),
     ];
 
     const result = await normalizeWeRssArticles(articles, BASE_OPTIONS);
@@ -360,44 +454,6 @@ describe("normalizeWeRssArticles", () => {
     expect(result.discovered).toBe(1);
     expect(result.imported).toBe(0);
     expect(result.skipped).toBe(1); // 空正文 → filtered → skipped
-  });
-});
-
-describe("detectWechatBlockPage", () => {
-  it("应该检测包含'环境异常'的封禁页文本", () => {
-    expect(detectWechatBlockPage("环境异常 当前环境异常，完成验证后即可继续访问。")).toBe(true);
-  });
-
-  it("应该检测包含'验证后即可继续'的封禁页文本", () => {
-    expect(detectWechatBlockPage("请完成验证后即可继续访问微信文章")).toBe(true);
-  });
-
-  it("应该检测包含'频繁访问'的封禁页文本", () => {
-    expect(detectWechatBlockPage("检测到频繁访问，请先验证")).toBe(true);
-  });
-
-  it("应该检测包含'为你的访问安全'的封禁页文本", () => {
-    expect(detectWechatBlockPage("为你的访问安全，请先验证")).toBe(true);
-  });
-
-  it("对空文本应返回 false", () => {
-    expect(detectWechatBlockPage(null)).toBe(false);
-    expect(detectWechatBlockPage("")).toBe(false);
-  });
-
-  it("对正常长文章应返回 false", () => {
-    const normalText = "这是一篇正常的微信文章内容，".repeat(20) + "环境异常只是偶然出现的词";
-    // 超过 200 字 → 即使包含关键词也返回 false
-    expect(detectWechatBlockPage(normalText)).toBe(false);
-  });
-
-  it("对正常短文应返回 false", () => {
-    expect(detectWechatBlockPage("这是一篇短文")).toBe(false);
-  });
-
-  it("对实际线上封禁页清洗结果应返回 true", () => {
-    const realBlockedText = "环境异常 当前环境异常，完成验证后即可继续访问。 去验证";
-    expect(detectWechatBlockPage(realBlockedText)).toBe(true);
   });
 });
 
@@ -416,7 +472,7 @@ describe("normalizeWeRssArticle - 封禁页面检测", () => {
     const blockPageHtml = `<!DOCTYPE html><html><body><div class="weui-msg"><h2>环境异常</h2><p>当前环境异常，完成验证后即可继续访问。</p></div></body></html>`;
 
     const result = await normalizeWeRssArticle(
-      makeArticle({ content: blockPageHtml }),
+      makeArticle({ content: blockPageHtml, hasContent: 1 }),
       BASE_OPTIONS,
     );
 
@@ -433,8 +489,8 @@ describe("normalizeWeRssArticle - 封禁页面检测", () => {
 
     const blockPageHtml = `<div><h2>环境异常</h2><p>验证后即可继续访问</p></div>`;
     const articles = [
-      makeArticle({ url: "https://mp.weixin.qq.com/s/blocked1", content: blockPageHtml, title: "封禁1" }),
-      makeArticle({ url: "https://mp.weixin.qq.com/s/blocked2", content: blockPageHtml, title: "封禁2" }),
+      makeArticle({ url: "https://mp.weixin.qq.com/s/blocked1", content: blockPageHtml, title: "封禁1", hasContent: 1 }),
+      makeArticle({ url: "https://mp.weixin.qq.com/s/blocked2", content: blockPageHtml, title: "封禁2", hasContent: 1 }),
     ];
 
     const result = await normalizeWeRssArticles(articles, BASE_OPTIONS);
@@ -452,8 +508,8 @@ describe("normalizeWeRssArticle - 封禁页面检测", () => {
     const normalContent = "<p>" + "正常文章内容，足够长来通过所有检查。".repeat(30) + "</p>";
 
     const articles = [
-      makeArticle({ url: "https://mp.weixin.qq.com/s/m1", content: blockPageHtml, title: "封禁" }),
-      makeArticle({ url: "https://mp.weixin.qq.com/s/m2", content: normalContent, title: "正常" }),
+      makeArticle({ url: "https://mp.weixin.qq.com/s/m1", content: blockPageHtml, title: "封禁", hasContent: 1 }),
+      makeArticle({ url: "https://mp.weixin.qq.com/s/m2", content: normalContent, title: "正常", hasContent: 1 }),
     ];
 
     const result = await normalizeWeRssArticles(articles, BASE_OPTIONS);
@@ -462,43 +518,20 @@ describe("normalizeWeRssArticle - 封禁页面检测", () => {
     expect(result.imported).toBe(1);
     expect(result.skipped).toBe(0);
   });
-});
 
-describe("cleanWechatHtml", () => {
-  it("应该正确清洗包含 scripts/styles/head/meta 的完整微信 HTML 网页并提取正文", () => {
-    const rawHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <script>console.log("bad");</script>
-  <style>body { color: red; }</style>
-</head>
-<body>
-  <div id="js_content">
-    <section>
-      <p>这是第一段内容。</p>
-      <p>这是第二段内容。</p>
-    </section>
-  </div>
-</body>
-</html>`;
+  it("hasContent===0 应标记为 blocked（Q11 双重检测第一层）", async () => {
+    mockFindUnique.mockResolvedValue(null);
+    mockCreate.mockResolvedValue({ id: "id", title: "t", originalUrl: "u" });
 
-    const { fullText, rawHtml: extractedHtml } = cleanWechatHtml(rawHtml);
+    const result = await normalizeWeRssArticle(
+      makeArticle({ hasContent: 0, content: undefined }),
+      BASE_OPTIONS,
+    );
 
-    expect(fullText).toContain("这是第一段内容。");
-    expect(fullText).toContain("这是第二段内容。");
-    expect(fullText).not.toContain("bad");
-    expect(fullText).not.toContain("color: red");
-    expect(extractedHtml).toContain("这是第一段内容。");
-    expect(extractedHtml).not.toContain("<head>");
-  });
-
-  it("当输入不是 HTML 时应该直接返回原文本", () => {
-    const text = "这是一段普通的纯文本内容。";
-    const { fullText, rawHtml } = cleanWechatHtml(text);
-
-    expect(fullText).toBe(text);
-    expect(rawHtml).toBe(text);
+    const createCall = mockCreate.mock.calls[0][0];
+    expect(createCall.data.processingStatus).toBe("blocked");
+    expect(createCall.data.qualityStatus).toBe("blocked");
+    expect(result.filterReason).toContain("缺失");
   });
 });
 
@@ -599,6 +632,7 @@ describe("normalizeWeRssArticle — blocked record refresh", () => {
     const blockArticle = makeArticle({
       url: "https://mp.weixin.qq.com/s/still-blocked",
       content: "<p>当前环境异常，请先验证后即可继续访问</p>",
+      hasContent: 1,
     });
 
     const result = await normalizeWeRssArticle(blockArticle, BASE_OPTIONS);

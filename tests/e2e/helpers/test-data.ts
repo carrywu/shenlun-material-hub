@@ -98,10 +98,10 @@ export async function getFirstCandidateArticleId(request: APIRequestContext): Pr
   return (data.data?.[0]?.id ?? data.items?.[0]?.id ?? data[0]?.id) ?? null;
 }
 
-/** Check WeWe RSS service availability */
-export async function isWeWeRssAvailable(): Promise<boolean> {
+/** Check we-mp-rss service availability */
+export async function isWeMpRssAvailable(): Promise<boolean> {
   try {
-    const res = await fetch('http://localhost:4000', { signal: AbortSignal.timeout(3000) });
+    const res = await fetch('http://localhost:8001', { signal: AbortSignal.timeout(3000) });
     return res.ok;
   } catch {
     return false;

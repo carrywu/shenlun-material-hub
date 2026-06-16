@@ -66,7 +66,7 @@ test.describe('a11y 可访问性检查', () => {
       { route: '/admin/backup', name: '数据备份', waitFor: 'h1, h2, h3, main' },
       { route: '/admin/clean', name: '数据清洗', waitFor: 'h1, h2, h3, main' },
       { route: '/admin/settings/ai', name: 'AI 设置（管理）', waitFor: 'h1, h2, h3, main, form' },
-      { route: '/admin/integrations/wewe-rss', name: 'WeWe RSS 集成', waitFor: 'h1, h2, h3, main' },
+      { route: '/admin/integrations/wechat-rss', name: '微信 RSS 集成', waitFor: 'h1, h2, h3, main' },
       { route: '/admin/sources', name: '来源管理', waitFor: 'h1, h2, h3, main, table' },
       { route: '/admin/sync-records', name: '同步记录', waitFor: 'h1, h2, h3, main, table' },
       { route: '/settings', name: '设置首页', waitFor: 'h1, h2, h3, main' },

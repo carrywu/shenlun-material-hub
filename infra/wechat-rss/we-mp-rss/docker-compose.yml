@@ -1,0 +1,18 @@
+services:
+  we-mp-rss:
+    image: ghcr.io/rachelos/we-mp-rss:latest
+    container_name: we-mp-rss
+    restart: unless-stopped
+    ports:
+      - "${WE_MP_RSS_PORT:-8001}:8001"
+    environment:
+      - DB=sqlite:///data/we_mp_rss.db
+      - GATHER_CONTENT=True
+      - GATHER_CONTENT_AUTO_CHECK=True
+      - GATHER_CLEAN_HTML=True
+      - GATHER_CONTENT_MODE=web
+      - RSS_FULL_CONTEXT=True
+      - RSS_ADD_COVER=True
+      - RSS_PAGE_SIZE=30
+    volumes:
+      - ./data:/app/data

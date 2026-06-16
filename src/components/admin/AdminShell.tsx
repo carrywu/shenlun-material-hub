@@ -38,7 +38,7 @@ const navItems: SidebarItem[] = [
   { name: "系统概览", href: "/admin", icon: LayoutDashboard },
   { name: "文章管理", href: "/admin/articles", icon: BookText },
   { name: "来源管理", href: "/admin/sources", icon: FolderTree },
-  { name: "微信集成", href: "/admin/integrations/wewe-rss", icon: Rss },
+  { name: "微信集成", href: "/admin/integrations/wechat-rss", icon: Rss },
   { name: "同步记录", href: "/admin/sync-records", icon: History },
   { name: "异步任务", href: "/admin/tasks", icon: ListTodo },
   { name: "系统日志", href: "/admin/logs", icon: Terminal },

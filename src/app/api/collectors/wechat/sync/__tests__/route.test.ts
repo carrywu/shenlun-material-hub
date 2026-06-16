@@ -53,7 +53,7 @@ const SOURCE_RECORD = {
 describe("POST /api/collectors/wechat/sync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCreateAsyncTask.mockResolvedValue({ id: "task-001", type: "WEWE_RSS_SYNC" });
+    mockCreateAsyncTask.mockResolvedValue({ id: "task-001", type: "WECHAT_SYNC" });
   });
 
   it("queues wechat sync in background and returns 202", async () => {
@@ -71,11 +71,12 @@ describe("POST /api/collectors/wechat/sync", () => {
       sourceName: "测试公众号",
     });
     expect(mockCreateAsyncTask).toHaveBeenCalledWith(
-      "WEWE_RSS_SYNC",
-      expect.objectContaining({
+      "WECHAT_SYNC",
+      {
         sourceId: "src-wechat-001",
         sourceName: "测试公众号",
-      })
+        feedId: null,
+      }
     );
     expect(mockEnqueueAsyncTask).toHaveBeenCalledTimes(1);
   });

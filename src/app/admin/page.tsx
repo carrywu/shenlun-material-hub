@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const TASK_TYPE_LABELS: Record<string, string> = {
   WEB_CRAWL: "网页爬取",
-  WEWE_RSS_SYNC: "微信RSS同步",
+  WECHAT_SYNC: "微信采集",
   AI_ASSESS: "AI评估",
   CARD_GENERATE: "卡片生成",
 };

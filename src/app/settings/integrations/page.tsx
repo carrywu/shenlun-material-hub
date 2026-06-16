@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, TestTube, Trash2, Rss, CheckCircle, Loader2, Power, PowerOff } from "lucide-react";
+import { ArrowLeft, Save, TestTube, Trash2, Rss, CheckCircle, Loader2, Power, PowerOff, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,21 +22,22 @@ interface ConfigData {
   id?: string;
   isEnabled?: boolean;
   baseUrl?: string;
+  accessKey?: string;
+  secretKeyConfigured?: boolean;
   dbPath?: string;
   syncMode?: string;
   updatedAt?: string;
+  authStatus?: "valid" | "expired" | "unknown";
 }
 
-export default function UserWeWeRssSettingsPage() {
+export default function UserWechatRssSettingsPage() {
   const router = useRouter();
   const { isAdmin, user } = useAuth();
 
-  // P1-T6: 非 admin 直访此 URL → 重定向回 /settings
-  // useAuth 无 loading 信号（AuthProvider 由服务端组件同步注入 user），
-  // 当 user 已解析（非 null）且非 admin 时才重定向，避免 admin 初次加载被误伤。
+  // 非 admin 直访此 URL → 重定向回 /settings
   useEffect(() => {
     if (user !== null && !isAdmin) {
-      toast.warning("WeWe RSS 仅管理员可用");
+      toast.warning("微信 RSS 集成仅管理员可用");
       router.replace("/settings");
     }
   }, [user, isAdmin, router]);
@@ -49,25 +50,27 @@ export default function UserWeWeRssSettingsPage() {
     success: boolean;
     message: string;
     feedCount?: number;
+    authStatus?: "valid" | "expired" | "unknown";
   } | null>(null);
 
-  const [baseUrl, setBaseUrl] = useState("http://localhost:4000");
+  const [baseUrl, setBaseUrl] = useState("http://localhost:8001");
+  const [accessKey, setAccessKey] = useState("");
+  const [secretKey, setSecretKey] = useState("");
   const [dbPath, setDbPath] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     if (user !== null && !isAdmin) {
-      return () => {
-        cancelled = true;
-      };
+      return () => { cancelled = true; };
     }
-    fetch("/api/settings/integrations/wewe-rss")
+    fetch("/api/settings/integrations/wechat-rss")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!cancelled && data) {
           setConfig(data);
           if (data.configured) {
-            setBaseUrl(data.baseUrl || "http://localhost:4000");
+            setBaseUrl(data.baseUrl || "http://localhost:8001");
+            setAccessKey(data.accessKey || "");
             setDbPath(data.dbPath || "");
           }
         }
@@ -83,22 +86,29 @@ export default function UserWeWeRssSettingsPage() {
 
   async function handleSave() {
     if (!baseUrl.trim()) {
-      toast.warning("请填写 WeWe RSS 服务地址");
+      toast.warning("请填写 we-mp-rss 服务地址");
       return;
     }
 
     setSaving(true);
     try {
-      const res = await fetch("/api/settings/integrations/wewe-rss", {
+      const body: Record<string, string> = { baseUrl: baseUrl.trim(), dbPath: dbPath.trim(), syncMode: "auto" };
+      // 只有填了 secretKey 才提交（不填则保留旧值，后端处理）
+      if (accessKey.trim()) body.accessKey = accessKey.trim();
+      if (secretKey.trim()) body.secretKey = secretKey.trim();
+
+      const res = await fetch("/api/settings/integrations/wechat-rss", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baseUrl: baseUrl.trim(), dbPath: dbPath.trim(), syncMode: "auto" }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
         const data = await res.json();
         setConfig({ ...data });
-        toast.success("WeWe RSS 配置已保存");
+        // 清空 secretKey 输入（安全：不回填）
+        setSecretKey("");
+        toast.success("微信 RSS 配置已保存");
       } else {
         const data = await res.json();
         toast.error("保存失败", { description: data.error });
@@ -114,10 +124,14 @@ export default function UserWeWeRssSettingsPage() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch("/api/settings/integrations/wewe-rss/test", {
+      const body: Record<string, string> = { baseUrl: baseUrl.trim() };
+      if (accessKey.trim()) body.accessKey = accessKey.trim();
+      if (secretKey.trim()) body.secretKey = secretKey.trim();
+
+      const res = await fetch("/api/settings/integrations/wechat-rss/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baseUrl: baseUrl.trim() }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       setTestResult(data);
@@ -135,15 +149,17 @@ export default function UserWeWeRssSettingsPage() {
   }
 
   async function handleDelete() {
-    if (!confirm("确定删除 WeWe RSS 配置？已入库的文章不会被删除。")) return;
+    if (!confirm("确定删除微信 RSS 配置？已入库的文章不会被删除。")) return;
     try {
-      const res = await fetch("/api/settings/integrations/wewe-rss", { method: "DELETE" });
+      const res = await fetch("/api/settings/integrations/wechat-rss", { method: "DELETE" });
       if (res.ok) {
         setConfig({ configured: false });
-        setBaseUrl("http://localhost:4000");
+        setBaseUrl("http://localhost:8001");
+        setAccessKey("");
+        setSecretKey("");
         setDbPath("");
         setTestResult(null);
-        toast.success("WeWe RSS 配置已删除");
+        toast.success("微信 RSS 配置已删除");
       } else {
         toast.error("删除失败");
       }
@@ -156,7 +172,7 @@ export default function UserWeWeRssSettingsPage() {
     if (!config?.configured) return;
     const newEnabled = !config.isEnabled;
     try {
-      const res = await fetch("/api/settings/integrations/wewe-rss", {
+      const res = await fetch("/api/settings/integrations/wechat-rss", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isEnabled: newEnabled }),
@@ -170,7 +186,6 @@ export default function UserWeWeRssSettingsPage() {
     }
   }
 
-  // Auth still resolving (no user yet) — show loading until useEffect redirect fires
   if (loading || user === null) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -178,6 +193,20 @@ export default function UserWeWeRssSettingsPage() {
       </div>
     );
   }
+
+  // authStatus 图标
+  const authStatusBadge = () => {
+    const status = testResult?.authStatus ?? config?.authStatus;
+    if (!status) return null;
+    switch (status) {
+      case "valid":
+        return <Badge variant="outline" className="border-green-300 text-green-700"><ShieldCheck className="h-3 w-3 mr-1" />授权有效</Badge>;
+      case "expired":
+        return <Badge variant="outline" className="border-amber-300 text-amber-700"><ShieldAlert className="h-3 w-3 mr-1" />授权可能过期</Badge>;
+      default:
+        return <Badge variant="outline">授权状态未知</Badge>;
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -190,10 +219,10 @@ export default function UserWeWeRssSettingsPage() {
           <div>
             <h1 className="text-xl font-semibold flex items-center gap-2">
               <Rss className="h-5 w-5" />
-              WeWe RSS 集成
+              微信 RSS 集成
             </h1>
             <p className="text-sm text-muted-foreground">
-              配置你的 WeWe RSS 服务连接，用于微信公众号内容采集
+              配置 we-mp-rss 服务连接，用于微信公众号内容采集
             </p>
           </div>
         </div>
@@ -215,6 +244,12 @@ export default function UserWeWeRssSettingsPage() {
               {config?.configured && config.isEnabled !== undefined && (
                 <Badge variant={config.isEnabled ? "default" : "outline"}>
                   {config.isEnabled ? "已启用" : "已禁用"}
+                </Badge>
+              )}
+              {authStatusBadge()}
+              {config?.secretKeyConfigured && (
+                <Badge variant="outline" className="border-green-300 text-green-700">
+                  AK/SK 已配置
                 </Badge>
               )}
             </CardTitle>
@@ -259,21 +294,42 @@ export default function UserWeWeRssSettingsPage() {
           <CardHeader>
             <CardTitle className="text-base">服务配置</CardTitle>
             <CardDescription>
-              填写你本地部署的 WeWe RSS 服务地址，用于采集微信公众号文章
+              填写 we-mp-rss 服务地址和 AK-SK 认证信息，用于采集微信公众号文章
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium">WeWe RSS 服务地址</label>
+              <label className="text-sm font-medium">we-mp-rss 服务地址</label>
               <Input
                 type="text"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 className="mt-1"
-                placeholder="http://localhost:4000"
+                placeholder="http://localhost:8001"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                你的 WeWe RSS 实例地址，默认为本地部署的 http://localhost:4000
+                we-mp-rss 实例地址，默认为本地部署的 http://localhost:8001
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">AK-SK 认证</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <Input
+                  type="text"
+                  value={accessKey}
+                  onChange={(e) => setAccessKey(e.target.value)}
+                  placeholder="Access Key"
+                />
+                <Input
+                  type="password"
+                  value={secretKey}
+                  onChange={(e) => setSecretKey(e.target.value)}
+                  placeholder={config?.secretKeyConfigured ? "Secret Key（已配置，留空保留）" : "Secret Key"}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                we-mp-rss 的 AK-SK 认证密钥，格式：Authorization: AK-SK accessKey:secretKey
               </p>
             </div>
 
@@ -284,10 +340,10 @@ export default function UserWeWeRssSettingsPage() {
                 value={dbPath}
                 onChange={(e) => setDbPath(e.target.value)}
                 className="mt-1"
-                placeholder="infra/wechat-rss/wewe-rss/data/wewe-rss.db"
+                placeholder="infra/wechat-rss/we-mp-rss/data/we_mp_rss.db"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                当 API 不可用时，系统会尝试读取 SQLite 数据库作为备用数据源
+                当 API 不可用时，系统会尝试读取 SQLite 数据库作为备用数据源（只读）
               </p>
             </div>
 
@@ -312,10 +368,10 @@ export default function UserWeWeRssSettingsPage() {
             <CardTitle className="text-base">使用说明</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>1. 部署并启动你的 WeWe RSS 实例（<a href="https://github.com/cooderl/wewe-rss" target="_blank" rel="noopener noreferrer" className="underline">GitHub</a>）</p>
-            <p>2. 在 WeWe RSS 中订阅你感兴趣的微信公众号</p>
-            <p>3. 在此页面配置 WeWe RSS 的访问地址并保存</p>
-            <p>4. 系统将定期从 WeWe RSS 同步你订阅的公众号文章</p>
+            <p>1. 部署并启动 we-mp-rss 实例（<a href="https://github.com/rachelos/we-mp-rss" target="_blank" rel="noopener noreferrer" className="underline">GitHub</a>）</p>
+            <p>2. 在 we-mp-rss 中订阅你感兴趣的微信公众号</p>
+            <p>3. 在此页面配置 we-mp-rss 的访问地址和 AK-SK 并保存</p>
+            <p>4. 系统将通过 API 优先、SQLite 只读兜底的方式同步公众号文章</p>
             <p>5. 同步的文章仅你自己可见，其他用户无法访问</p>
           </CardContent>
         </Card>

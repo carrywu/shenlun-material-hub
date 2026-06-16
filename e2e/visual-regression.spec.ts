@@ -43,7 +43,7 @@ test.describe('Visual Regression 视觉回归', () => {
       { route: '/settings/ima', slug: 'settings-ima', waitSelector: 'h1, h2, h3, main' },
       { route: '/admin', slug: 'admin-dashboard', waitSelector: 'h1, h2, h3, main, table' },
       { route: '/admin/sources', slug: 'admin-sources', waitSelector: 'h1, h2, h3, main, table' },
-      { route: '/admin/integrations/wewe-rss', slug: 'admin-wewe-rss', waitSelector: 'h1, h2, h3, main' },
+      { route: '/admin/integrations/wechat-rss', slug: 'admin-wechat-rss', waitSelector: 'h1, h2, h3, main' },
     ];
 
     for (const { route, slug, waitSelector } of routes) {

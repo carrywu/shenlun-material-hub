@@ -25,13 +25,25 @@ const { mockDb } = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 
-// Mock wechatParser
-const { mockParseWechatArticle } = vi.hoisted(() => ({
-  mockParseWechatArticle: vi.fn(),
+// Mock wechat-rss integration (importArticle + getImportTaskStatus + listArticles + FEATURED_MP_ID)
+const { mockImportArticle, mockGetImportTaskStatus, mockListArticles, mockFromWeMpRssArticle } = vi.hoisted(() => ({
+  mockImportArticle: vi.fn(),
+  mockGetImportTaskStatus: vi.fn(),
+  mockListArticles: vi.fn(),
+  mockFromWeMpRssArticle: vi.fn(),
 }));
 
-vi.mock("@/services/collectors/wechat/wechatParser", () => ({
-  parseWechatArticle: mockParseWechatArticle,
+vi.mock("@/services/integrations/wechat-rss", () => ({
+  importArticle: mockImportArticle,
+  getImportTaskStatus: mockGetImportTaskStatus,
+  listArticles: mockListArticles,
+  IMPORT_POLL_TIMEOUT: 120000,
+  IMPORT_POLL_INTERVAL: 3000,
+  FEATURED_MP_ID: "MP_WXS_FEATURED_ARTICLES",
+}));
+
+vi.mock("@/services/collectors/wechat/wechat-article-types", () => ({
+  fromWeMpRssArticle: mockFromWeMpRssArticle,
 }));
 
 // Mock normalizer
@@ -98,19 +110,28 @@ describe("POST /api/collectors/wechat/import", () => {
     expect(data.errors[0]).toContain("无效的链接格式");
   });
 
-  it("应该正确处理有效的微信文章链接", async () => {
+  it("应该正确处理有效的微信文章链接（通过 importArticle API）", async () => {
     mockDb.source.findUnique.mockResolvedValue(SOURCE_RECORD);
 
-    mockParseWechatArticle.mockResolvedValue({
+    // importArticle 返回异步任务
+    mockImportArticle.mockResolvedValue({ taskId: "task-1" });
+    // 轮询任务状态：第一次返回 PENDING，第二次返回 SUCCESS
+    mockGetImportTaskStatus
+      .mockResolvedValueOnce({ taskId: "task-1", status: "PENDING" })
+      .mockResolvedValueOnce({ taskId: "task-1", status: "SUCCESS" });
+    // listArticles 返回匹配的文章
+    mockListArticles.mockResolvedValue({
+      list: [{ id: "art-1", url: "https://mp.weixin.qq.com/s/abc123", title: "微信文章" }],
+      total: 1,
+    });
+    // fromWeMpRssArticle 转换
+    mockFromWeMpRssArticle.mockReturnValue({
       id: "art-1",
       title: "微信文章",
       url: "https://mp.weixin.qq.com/s/abc123",
-      content: "<p>文章正文</p>",
-      author: "作者",
-      publishTime: "2024-01-01T00:00:00Z",
+      content: "<p>正文</p>",
     });
-
-    mockNormalize.mockResolvedValue({ discovered: 1, imported: 1, skipped: 0, errors: [] });
+    mockNormalize.mockResolvedValue({ discovered: 1, imported: 1, skipped: 0, blocked: 0, errors: [] });
 
     const req = makeRequest({
       urls: ["https://mp.weixin.qq.com/s/abc123"],
@@ -122,7 +143,45 @@ describe("POST /api/collectors/wechat/import", () => {
     expect(res.status).toBe(200);
     expect(data.success).toBe(true);
     expect(data.importedCount).toBe(1);
-    expect(mockParseWechatArticle).toHaveBeenCalledWith("https://mp.weixin.qq.com/s/abc123");
+    expect(mockImportArticle).toHaveBeenCalledWith(
+      expect.any(String), expect.any(String), expect.any(String),
+      "https://mp.weixin.qq.com/s/abc123"
+    );
+  });
+
+  it("应该在 importArticle 失败时返回错误", async () => {
+    mockDb.source.findUnique.mockResolvedValue(SOURCE_RECORD);
+
+    mockImportArticle.mockRejectedValue(new Error("we-mp-rss 服务不可达"));
+
+    const req = makeRequest({
+      urls: ["https://mp.weixin.qq.com/s/abc123"],
+      sourceId: "src-wechat-001",
+    });
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(false);
+    expect(data.errors[0]).toContain("we-mp-rss 服务不可达");
+  });
+
+  it("应该在异步任务 FAILED 时返回错误", async () => {
+    mockDb.source.findUnique.mockResolvedValue(SOURCE_RECORD);
+
+    mockImportArticle.mockResolvedValue({ taskId: "task-fail" });
+    mockGetImportTaskStatus.mockResolvedValueOnce({ taskId: "task-fail", status: "FAILED", message: "文章解析错误" });
+
+    const req = makeRequest({
+      urls: ["https://mp.weixin.qq.com/s/abc123"],
+      sourceId: "src-wechat-001",
+    });
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(data.success).toBe(false);
+    expect(data.errors[0]).toContain("导入失败");
+    expect(data.errors[0]).toContain("文章解析错误");
   });
 
   it("应该拒绝空 urls 数组", async () => {
@@ -155,69 +214,13 @@ describe("POST /api/collectors/wechat/import", () => {
     expect(res.status).toBe(404);
   });
 
-  it("应该在重复文章时返回 importedCount=0", async () => {
-    mockDb.source.findUnique.mockResolvedValue(SOURCE_RECORD);
-
-    mockParseWechatArticle.mockResolvedValue({
-      id: "art-dup",
-      title: "重复文章",
-      url: "https://mp.weixin.qq.com/s/dup123",
-      content: "<p>重复内容</p>",
-    });
-
-    mockNormalize.mockResolvedValue({ discovered: 1, imported: 0, skipped: 1, errors: [] });
-
-    const req = makeRequest({
-      urls: ["https://mp.weixin.qq.com/s/dup123"],
-      sourceId: "src-wechat-001",
-    });
-    const res = await POST(req);
-    const data = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.importedCount).toBe(0);
-  });
-
-  it("应该在部分 URL 失败时继续处理其他 URL", async () => {
-    mockDb.source.findUnique.mockResolvedValue(SOURCE_RECORD);
-
-    mockParseWechatArticle
-      .mockRejectedValueOnce(new Error("解析失败"))
-      .mockResolvedValueOnce({
-        id: "art-ok",
-        title: "成功文章",
-        url: "https://mp.weixin.qq.com/s/ok123",
-        content: "<p>成功内容</p>",
-      });
-
-    mockNormalize.mockResolvedValue({ discovered: 1, imported: 1, skipped: 0, errors: [] });
-
-    const req = makeRequest({
-      urls: [
-        "https://mp.weixin.qq.com/s/fail123",
-        "https://mp.weixin.qq.com/s/ok123",
-      ],
-      sourceId: "src-wechat-001",
-    });
-    const res = await POST(req);
-    const data = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(data.success).toBe(false); // 有错误
-    expect(data.importedCount).toBe(1); // 但还是导入了 1 篇
-    expect(data.errors).toHaveLength(1);
-  });
-
   it("应该正确更新 CollectorRun 状态（成功）", async () => {
     mockDb.source.findUnique.mockResolvedValue(SOURCE_RECORD);
-    mockParseWechatArticle.mockResolvedValue({
-      id: "art-1",
-      title: "文章",
-      url: "https://mp.weixin.qq.com/s/test",
-      content: "内容",
-    });
-    mockNormalize.mockResolvedValue({ discovered: 1, imported: 1, skipped: 0, errors: [] });
+    mockImportArticle.mockResolvedValue({ taskId: "task-ok" });
+    mockGetImportTaskStatus.mockResolvedValueOnce({ taskId: "task-ok", status: "SUCCESS" });
+    mockListArticles.mockResolvedValue({ list: [{ id: "a1", url: "https://mp.weixin.qq.com/s/test" }], total: 1 });
+    mockFromWeMpRssArticle.mockReturnValue({ id: "a1", title: "文章", url: "https://mp.weixin.qq.com/s/test", content: "<p>内容</p>" });
+    mockNormalize.mockResolvedValue({ discovered: 1, imported: 1, skipped: 0, blocked: 0, errors: [] });
 
     const req = makeRequest({
       urls: ["https://mp.weixin.qq.com/s/test"],
@@ -234,21 +237,17 @@ describe("POST /api/collectors/wechat/import", () => {
 
   it("应该正确更新 CollectorRun 状态（partial）", async () => {
     mockDb.source.findUnique.mockResolvedValue(SOURCE_RECORD);
-    mockParseWechatArticle
-      .mockResolvedValueOnce({
-        id: "art-ok",
-        title: "成功",
-        url: "https://mp.weixin.qq.com/s/ok",
-        content: "内容",
-      })
-      .mockRejectedValueOnce(new Error("失败"));
-
-    mockNormalize.mockResolvedValue({ discovered: 1, imported: 1, skipped: 0, errors: [] });
+    // 第一个 URL 失败（非微信域名），第二个 URL 成功
+    mockImportArticle.mockResolvedValue({ taskId: "task-ok" });
+    mockGetImportTaskStatus.mockResolvedValueOnce({ taskId: "task-ok", status: "SUCCESS" });
+    mockListArticles.mockResolvedValue({ list: [{ id: "a1", url: "https://mp.weixin.qq.com/s/ok" }], total: 1 });
+    mockFromWeMpRssArticle.mockReturnValue({ id: "a1", title: "成功", url: "https://mp.weixin.qq.com/s/ok", content: "<p>内容</p>" });
+    mockNormalize.mockResolvedValue({ discovered: 1, imported: 1, skipped: 0, blocked: 0, errors: [] });
 
     const req = makeRequest({
       urls: [
+        "https://example.com/fail",  // 非微信域名 → 错误
         "https://mp.weixin.qq.com/s/ok",
-        "https://mp.weixin.qq.com/s/fail",
       ],
       sourceId: "src-wechat-001",
     });

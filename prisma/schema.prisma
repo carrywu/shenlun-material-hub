@@ -74,10 +74,10 @@ model Source {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  // WeWe RSS / 外部 WeRSS 集成字段
-  provider           String?                // "wewe-rss" | "werss-external" | null(手动)
-  feedId             String?                // WeWe RSS feed ID (如 MP_WXS_xxx)
-  lastSyncedAt       DateTime?              // 最近同步时间（从 WeWe RSS 同步列表）
+  // 微信 RSS 集成字段（we-mp-rss / 手动来源）
+  provider           String?                // "we-mp-rss" | null(手动)
+  feedId             String?                // we-mp-rss 公众号 ID (如 MP_WXS_xxx)
+  lastSyncedAt       DateTime?              // 最近同步时间（从 we-mp-rss 同步列表）
 
   // 来源质量指标（缓存，定期重算）
   hitRate            Float    @default(0)    // 命中率 = accepted / total
@@ -429,7 +429,7 @@ model SystemLog {
 // 异步采集与处理任务
 model AsyncTask {
   id          String    @id @default(uuid())
-  type        String    // WEWE_RSS_SYNC | WEB_CRAWL | AI_ASSESS
+  type        String    // WECHAT_SYNC | WEB_CRAWL | AI_ASSESS
   status      String    // PENDING | RUNNING | COMPLETED | FAILED
   params      String?   // JSON 格式请求参数
   result      String?   // JSON 格式运行结果/报错信息
@@ -451,7 +451,7 @@ model AsyncTask {
 model UserIntegration {
   id        String   @id @default(cuid())
   userId    String
-  provider  String                     // wewe-rss | werss-external | other
+  provider  String                     // we-mp-rss | other
   config    String                     // JSON 格式配置（baseUrl, apiKey 等）
   isEnabled Boolean  @default(true)
   createdAt DateTime @default(now())

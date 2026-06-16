@@ -186,58 +186,58 @@ test.describe('API 安全 — 浏览器级别', () => {
   });
 });
 
-// ── P1-T7: WeWe RSS settings route lockdown（admin-only 收紧）──
+// ── P1-T7: wechat-rss settings route lockdown（admin-only 收紧）──
 //
 // P0-004 (B3): playwright.config.ts 顶层不再设 storageState，{ request } 默认匿名。
 // 下方两块分别用 test.use 显式声明：
 // - 匿名 401（5 个端点）：storageState 清空。
 // - ADMIN 200 回归（防过度收紧）：storageState = admin。
 // - VERIFIED_USER → 403：当前 e2e 无 VERIFIED_USER fixture（属 P8-T7），该路径已由
-//   src/app/api/settings/integrations/wewe-rss/__tests__/route.test.ts 单测覆盖，此处不重复。
+//   src/app/api/settings/integrations/wechat-rss/__tests__/route.test.ts 单测覆盖，此处不重复。
 
-test.describe('WeWe RSS 接口权限（P1 收紧）— 未认证 → 401', () => {
+test.describe('微信 RSS 接口权限（P1 收紧）— 未认证 → 401', () => {
   // 清空全局 admin storageState，使 { request } 真正匿名
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test('未认证 GET settings/wewe-rss → 401', async ({ request }) => {
-    const res = await request.get('/api/settings/integrations/wewe-rss');
+  test('未认证 GET settings/wechat-rss → 401', async ({ request }) => {
+    const res = await request.get('/api/settings/integrations/wechat-rss');
     expect(res.status()).toBe(401);
   });
 
-  test('未认证 POST settings/wewe-rss → 401', async ({ request }) => {
-    const res = await request.post('/api/settings/integrations/wewe-rss', {
-      data: { baseUrl: 'http://localhost:4000' },
+  test('未认证 POST settings/wechat-rss → 401', async ({ request }) => {
+    const res = await request.post('/api/settings/integrations/wechat-rss', {
+      data: { baseUrl: 'http://localhost:8001' },
     });
     expect(res.status()).toBe(401);
   });
 
-  test('未认证 DELETE settings/wewe-rss → 401', async ({ request }) => {
-    const res = await request.delete('/api/settings/integrations/wewe-rss');
+  test('未认证 DELETE settings/wechat-rss → 401', async ({ request }) => {
+    const res = await request.delete('/api/settings/integrations/wechat-rss');
     expect(res.status()).toBe(401);
   });
 
-  test('未认证 PUT settings/wewe-rss → 401', async ({ request }) => {
-    const res = await request.put('/api/settings/integrations/wewe-rss', {
+  test('未认证 PUT settings/wechat-rss → 401', async ({ request }) => {
+    const res = await request.put('/api/settings/integrations/wechat-rss', {
       data: { isEnabled: false },
     });
     expect(res.status()).toBe(401);
   });
 
-  test('未认证 POST settings/wewe-rss/test → 401', async ({ request }) => {
-    const res = await request.post('/api/settings/integrations/wewe-rss/test', {
-      data: { baseUrl: 'http://localhost:4000' },
+  test('未认证 POST settings/wechat-rss/test → 401', async ({ request }) => {
+    const res = await request.post('/api/settings/integrations/wechat-rss/test', {
+      data: { baseUrl: 'http://localhost:8001' },
     });
     expect(res.status()).toBe(401);
   });
 });
 
-test.describe('WeWe RSS 接口权限（P1 收紧）— ADMIN 回归 → 200', () => {
+test.describe('微信 RSS 接口权限（P1 收紧）— ADMIN 回归 → 200', () => {
   // P0-004 (B3): 顶层 storageState 已移除；用 admin storageState 确保 admin 仍可访问，
   // 防止权限收紧过度把 admin 也挡在外面。
   test.use({ storageState: '.auth/admin-storage.json' });
-  test('ADMIN GET settings/wewe-rss → 200（regression：管理员仍可用）', async ({ request }) => {
+  test('ADMIN GET settings/wechat-rss → 200（regression：管理员仍可用）', async ({ request }) => {
     await loginAsAdminAPI(request);
-    const res = await request.get('/api/settings/integrations/wewe-rss');
+    const res = await request.get('/api/settings/integrations/wechat-rss');
     expect(res.status()).toBe(200);
   });
 });

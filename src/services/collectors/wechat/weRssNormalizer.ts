@@ -3,7 +3,9 @@ import * as cheerio from "cheerio";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { runContentFilters } from "@/services/content-filter";
-import type { WeRssArticle } from "./weRssClient";
+import type { WechatArticle } from "./wechat-article-types";
+
+// ── 类型 ────────────────────────────────────────────────────────────────
 
 interface NormalizeOptions {
   sourceId: string;
@@ -32,9 +34,11 @@ export interface PreviewArticle {
   isDuplicate: boolean;
 }
 
+// ── 常量 ────────────────────────────────────────────────────────────────
+
 /**
  * 微信封禁/验证页面的特征关键词。
- * 当 WeWe RSS 服务器被微信反爬封禁时，返回的文章内容为验证页面，
+ * 当 we-mp-rss 服务器被微信反爬封禁时，返回的文章内容为验证页面，
  * 清洗后文本包含这些关键词。此时应明确提示"封禁"，而非当作"全文过短"跳过。
  */
 const WECHAT_BLOCK_KEYWORDS = [
@@ -47,6 +51,8 @@ const WECHAT_BLOCK_KEYWORDS = [
   "为你的访问安全",
 ];
 
+// ── 工具函数 ────────────────────────────────────────────────────────────
+
 /**
  * 检测清洗后的文本是否为微信封禁/验证页面。
  */
@@ -58,58 +64,46 @@ export function detectWechatBlockPage(fullText: string | null): boolean {
 }
 
 /**
- * 清洗微信公众号文章 HTML，提取干净的正文文本和 HTML 片段。
+ * 从 HTML 中提取纯文本，按段落分割（Q10 段落版）。
+ * 与旧版 cleanWechatHtml 不同：
+ *   - 旧版查找 #js_content / .rich_media_content 容器再提段落
+ *   - 新版直接按语义块元素分段落，不依赖微信特定容器
+ *   - we-mp-rss 已做 GATHER_CLEAN_HTML，输入已是较干净的 HTML
+ *
+ * @returns 段落分割的纯文本（\n\n 连接）
  */
-export function cleanWechatHtml(html: string): { fullText: string; rawHtml: string } {
-  if (!html) {
-    return { fullText: "", rawHtml: "" };
-  }
+export function extractPlainText(html: string | null): string {
+  if (!html) return "";
 
   // 如果不包含任何 HTML 标签，直接返回文本
   if (!/<[a-z/][^>]*>/i.test(html)) {
-    return { fullText: html.trim(), rawHtml: html };
+    return html.trim();
   }
 
   const $ = cheerio.load(html);
 
-  // 查找微信文章的正文容器
-  const contentEl = $("#js_content").length > 0
-    ? $("#js_content")
-    : $(".rich_media_content").length > 0
-      ? $(".rich_media_content")
-      : $("article").length > 0
-        ? $("article")
-        : $("body").length > 0
-          ? $("body")
-          : $("html");
+  // 移除无关元素
+  $("script, style, head, iframe, noscript, svg, link, meta").remove();
 
-  // 提取原始 HTML 片段作为 rawHtml
-  const rawHtml = contentEl.html() || html;
-
-  // 清洗：移除 script, style, head, iframe, noscript, svg, link, meta
-  contentEl.find("script, style, head, iframe, noscript, svg, link, meta").remove();
-
-  // 提取干净的正文文本，保留段落换行
+  // 提取段落级文本：按 p/div/section/h1-h6/li/blockquote/pre 分段
   const paragraphs: string[] = [];
-  const blocks = contentEl.find("p, section, h1, h2, h3, h4, h5, h6, li, tr");
+  const blockSelector = "p, div, section, h1, h2, h3, h4, h5, h6, li, blockquote, pre";
 
-  if (blocks.length > 0) {
-    blocks.each((_, el) => {
-      // 避免重复提取嵌套块的文本
-      const hasBlockChild = $(el).find("p, section, h1, h2, h3, h4, h5, h6, li, tr").length > 0;
-      if (!hasBlockChild) {
-        const txt = $(el).text().trim();
-        if (txt) {
-          paragraphs.push(txt);
-        }
+  $(blockSelector).each((_, el) => {
+    // 避免重复提取嵌套块的文本
+    const hasBlockChild = $(el).find(blockSelector).length > 0;
+    if (!hasBlockChild) {
+      const txt = $(el).text().trim();
+      if (txt) {
+        paragraphs.push(txt);
       }
-    });
-  }
+    }
+  });
 
   let fullText = paragraphs.join("\n\n");
   if (!fullText) {
-    // 兜底：直接取 cleaned contentEl 的文本
-    fullText = contentEl.text().trim();
+    // 兜底：直接取文本
+    fullText = $("body").length > 0 ? $("body").text().trim() : $.root().text().trim();
   }
 
   // 格式化段落多余空格
@@ -119,15 +113,17 @@ export function cleanWechatHtml(html: string): { fullText: string; rawHtml: stri
     .filter(Boolean)
     .join("\n\n");
 
-  return { fullText, rawHtml };
+  return fullText;
 }
+
+// ── 预览函数 ────────────────────────────────────────────────────────────
 
 /**
  * 纯计算：对单篇文章运行所有过滤逻辑，不写数据库。
  * 用于预览阶段展示 title / 字数 / 过滤原因。
  */
 export async function computeArticlePreview(
-  article: WeRssArticle
+  article: WechatArticle
 ): Promise<PreviewArticle> {
   const originalUrl = article.url;
   if (!originalUrl) {
@@ -151,15 +147,14 @@ export async function computeArticlePreview(
   const isDuplicate = !!existing;
 
   // 清洗正文
-  const cleaned = cleanWechatHtml(article.content ?? "");
-  const fullText = cleaned.fullText || null;
+  const fullText = extractPlainText(article.content ?? article.rawHtml ?? null);
   const excerpt = article.summary ?? fullText?.slice(0, 200) ?? null;
 
   const contentHash = fullText
     ? createHash("sha256").update(fullText).digest("hex").slice(0, 16)
     : null;
 
-  // 正文长度（清洗后直接统计）
+  // 正文长度
   const effectiveTextLength = fullText
     ? fullText.replace(/\s+/g, "").trim().length
     : 0;
@@ -168,8 +163,13 @@ export async function computeArticlePreview(
     ? fullText.replace(/\s+/g, " ").trim().slice(0, 200)
     : "";
 
-  // 封禁检测：先于"全文过短"检查，明确区分封禁与正常短文
-  if (detectWechatBlockPage(fullText)) {
+  // 双重封禁检测（Q11）：
+  // 1. hasContent===0 → 内容缺失（we-mp-rss 明确标记）
+  // 2. hasContent===1 但 detectWechatBlockPage 检测到封禁页
+  if (article.hasContent === 0 || detectWechatBlockPage(fullText)) {
+    const reason = article.hasContent === 0
+      ? "文章内容缺失（we-mp-rss 未获取到正文）"
+      : "微信封禁/验证页面，文章内容无法获取";
     return {
       id: article.id ?? originalUrl,
       title: article.title ?? "(无标题)",
@@ -179,7 +179,24 @@ export async function computeArticlePreview(
       cover: article.cover,
       effectiveTextLength,
       filtered: true,
-      filterReason: "微信封禁/验证页面，文章内容无法获取",
+      filterReason: reason,
+      contentPreview,
+      isDuplicate,
+    };
+  }
+
+  // fixFailCount >= 3 → 内容补抓多次失败，标记封禁
+  if ((article.fixFailCount ?? 0) >= 3) {
+    return {
+      id: article.id ?? originalUrl,
+      title: article.title ?? "(无标题)",
+      url: originalUrl,
+      author: article.author ?? article.accountName,
+      publishTime: article.publishTime,
+      cover: article.cover,
+      effectiveTextLength,
+      filtered: true,
+      filterReason: `内容补抓失败 ${article.fixFailCount} 次，请在 we-mp-rss 管理界面手动刷新`,
       contentPreview,
       isDuplicate,
     };
@@ -237,13 +254,15 @@ export async function computeArticlePreview(
   };
 }
 
+// ── 入库函数 ────────────────────────────────────────────────────────────
+
 /**
- * 将 WeRSS 文章转换为 ContentItem 并写入数据库。
- * discoveryChannel = 'werss'，platform = 'wechat'。
+ * 将微信文章转换为 ContentItem 并写入数据库。
+ * discoveryChannel = 'wechat-api'（D7），platform = 'wechat'。
  * 接入 runContentFilters 进行 contentHash 去重和内容质量检查。
  */
 export async function normalizeWeRssArticle(
-  article: WeRssArticle,
+  article: WechatArticle,
   options: NormalizeOptions
 ): Promise<NormalizeResult> {
   const originalUrl = article.url;
@@ -256,14 +275,14 @@ export async function normalizeWeRssArticle(
     where: { originalUrl },
   });
   if (existing) {
-    // 封禁文章：WeWe RSS 可能已有正确内容，尝试更新
+    // 封禁文章：we-mp-rss 可能已有正确内容，尝试更新
     if (existing.qualityStatus === "blocked") {
-      // 先清洗新内容，判断是否仍是封禁页面
-      const cleaned = cleanWechatHtml(article.content ?? "");
-      const fullText = cleaned.fullText || null;
+      // 提取正文，判断是否仍是封禁页面
+      const fullText = extractPlainText(article.content ?? article.rawHtml ?? null);
 
-      if (detectWechatBlockPage(fullText)) {
-        // 新内容仍是封禁页面，不更新
+      // 双重封禁检测（Q11）
+      if (article.hasContent === 0 || detectWechatBlockPage(fullText)) {
+        // 新内容仍是封禁/缺失，不更新
         await logger.info("采集跳过：封禁页面未更新", "CRAWLER", {
           sourceId: options.sourceId,
           title: article.title,
@@ -274,6 +293,7 @@ export async function normalizeWeRssArticle(
       }
 
       // 新内容正常：更新旧记录，保留 id / 用户数据
+      const rawHtml = article.rawHtml ?? null;
       const contentHash = fullText
         ? createHash("sha256").update(fullText).digest("hex").slice(0, 16)
         : null;
@@ -286,7 +306,7 @@ export async function normalizeWeRssArticle(
         where: { id: existing.id },
         data: {
           fullText,
-          rawHtml: cleaned.rawHtml || null,
+          rawHtml,
           excerpt,
           contentHash,
           fullTextStored: !!fullText,
@@ -335,10 +355,9 @@ export async function normalizeWeRssArticle(
     return { created: false, filtered: true, filterReason: "URL 已存在（重复）", item: existing };
   }
 
-  // 清洗正文
-  const cleaned = cleanWechatHtml(article.content ?? "");
-  const fullText = cleaned.fullText || null;
-  const rawHtml = cleaned.rawHtml || null;
+  // 提取正文
+  const fullText = extractPlainText(article.content ?? article.rawHtml ?? null) || null;
+  const rawHtml = article.rawHtml ?? null;
   const excerpt = article.summary ?? fullText?.slice(0, 200) ?? null;
   const publishedAt = article.publishTime
     ? new Date(article.publishTime)
@@ -353,9 +372,11 @@ export async function normalizeWeRssArticle(
     ? fullText.replace(/\s+/g, "").trim().length
     : 0;
 
-  // 封禁检测：先于"全文过短"检查，明确区分封禁与正常短文
-  if (detectWechatBlockPage(fullText)) {
-    const reason = "微信封禁/验证页面，文章内容无法获取";
+  // 双重封禁检测（Q11）
+  if (article.hasContent === 0 || detectWechatBlockPage(fullText)) {
+    const reason = article.hasContent === 0
+      ? "文章内容缺失（we-mp-rss 未获取到正文）"
+      : "微信封禁/验证页面，文章内容无法获取";
     const item = await db.contentItem.create({
       data: {
         sourceId: options.sourceId,
@@ -378,7 +399,7 @@ export async function normalizeWeRssArticle(
         effectiveTextLength,
         regionScopes: "[]",
         topicTags: "[]",
-        discoveryChannel: "werss",
+        discoveryChannel: "wechat-api",
         coverUrl: article.cover ?? null,
       },
     });
@@ -388,6 +409,45 @@ export async function normalizeWeRssArticle(
       title: article.title,
       url: originalUrl,
       effectiveTextLength,
+    });
+    return { created: true, filtered: true, filterReason: reason, item };
+  }
+
+  // fixFailCount >= 3 → 标记封禁
+  if ((article.fixFailCount ?? 0) >= 3) {
+    const reason = `内容补抓失败 ${article.fixFailCount} 次，请在 we-mp-rss 管理界面手动刷新`;
+    const item = await db.contentItem.create({
+      data: {
+        sourceId: options.sourceId,
+        title: article.title,
+        originalUrl,
+        platform: "wechat",
+        contentType: options.contentType ?? "policy_analysis",
+        trustLevel: options.trustLevel ?? "unverified",
+        authorOrAccount: article.author ?? article.accountName ?? null,
+        publishedAt,
+        section: null,
+        excerpt,
+        fullText,
+        rawHtml,
+        fullTextStored: !!fullText,
+        contentHash,
+        processingStatus: "blocked",
+        filterReason: reason,
+        qualityStatus: "blocked",
+        effectiveTextLength,
+        regionScopes: "[]",
+        topicTags: "[]",
+        discoveryChannel: "wechat-api",
+        coverUrl: article.cover ?? null,
+      },
+    });
+
+    await logger.warn("采集封禁：补抓多次失败", "CRAWLER", {
+      sourceId: options.sourceId,
+      title: article.title,
+      url: originalUrl,
+      fixFailCount: article.fixFailCount,
     });
     return { created: true, filtered: true, filterReason: reason, item };
   }
@@ -420,7 +480,7 @@ export async function normalizeWeRssArticle(
         effectiveTextLength,
         regionScopes: "[]",
         topicTags: "[]",
-        discoveryChannel: "werss",
+        discoveryChannel: "wechat-api",
         coverUrl: article.cover ?? null,
       },
     });
@@ -487,7 +547,7 @@ export async function normalizeWeRssArticle(
       effectiveTextLength,
       regionScopes: "[]",
       topicTags: "[]",
-      discoveryChannel: "werss",
+      discoveryChannel: "wechat-api",
       coverUrl: article.cover ?? null,
     },
   });
@@ -518,10 +578,10 @@ export async function normalizeWeRssArticle(
 }
 
 /**
- * 批量转换 WeRSS 文章
+ * 批量转换微信文章
  */
 export async function normalizeWeRssArticles(
-  articles: WeRssArticle[],
+  articles: WechatArticle[],
   options: NormalizeOptions
 ): Promise<{ discovered: number; imported: number; skipped: number; blocked: number; refreshed: number; errors: string[] }> {
   const errors: string[] = [];
@@ -535,7 +595,7 @@ export async function normalizeWeRssArticles(
       const result = await normalizeWeRssArticle(article, options);
       if (result.created && !result.filtered) {
         imported++;
-      } else if (result.filterReason?.includes("封禁")) {
+      } else if (result.filterReason?.includes("封禁") || result.filterReason?.includes("缺失") || result.filterReason?.includes("补抓失败")) {
         blocked++;
       } else if (!result.created && !result.filtered && !result.filterReason) {
         // 封禁文章被刷新成功：created=false, filtered=false, no filterReason
