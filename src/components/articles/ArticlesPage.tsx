@@ -144,6 +144,9 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const basePath = managementMode ? "/admin/articles" : "/articles";
+  // 列表 base 仅用于分页/筛选 URL；详情页固定指向用户态详情路由（admin 与普通共用同一组件，已按 role 自适应）。
+  // 不能用 basePath 拼：managementMode 下会拼成不存在的 /admin/articles/[id] → 404。
+  const detailBase = "/articles";
 
   const [items, setItems] = useState<ContentItemData[]>([]);
   const [total, setTotal] = useState(0);
@@ -941,7 +944,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                     <TableRow
                       key={item.id}
                       className="cursor-pointer"
-                      onClick={() => router.push(`${basePath}/${item.id}`)}
+                      onClick={() => router.push(`${detailBase}/${item.id}`)}
                     >
                       {managementMode && (
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -973,7 +976,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                             className="w-full truncate text-left"
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`${basePath}/${item.id}`);
+                              router.push(`${detailBase}/${item.id}`);
                             }}
                           >
                             {item.title}
