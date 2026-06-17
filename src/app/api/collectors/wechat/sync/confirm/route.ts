@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json();
-    const { sourceId, feedId, selectedUrls } = body;
+    const { sourceId, feedId, selectedUrls, forceReimport } = body;
 
     if (!sourceId) {
       return NextResponse.json(
@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
         sourceId: source.id,
         trustLevel: source.trustLevel,
         contentType: source.contentType,
+        forceReimport: !!forceReimport,
       });
 
       await db.collectorRun.update({
