@@ -194,42 +194,6 @@ const GENERATE_CARD_TYPE_OPTIONS: Array<{ value: CardType; label: string }> = [
   { value: "article_structure", label: "文章框架" },
 ];
 
-function cleanHtmlClientSide(html: string): string {
-  try {
-    if (typeof window === "undefined") return html;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-    const contentEl = doc.getElementById("js_content") ||
-                      doc.querySelector(".rich_media_content") ||
-                      doc.querySelector("article") ||
-                      doc.body;
-
-    contentEl.querySelectorAll("script, style, head, iframe, noscript, svg, link, meta").forEach(el => el.remove());
-
-    const paragraphs: string[] = [];
-    contentEl.querySelectorAll("p, section, h1, h2, h3, h4, h5, h6, li, tr").forEach(el => {
-      const hasBlockChild = el.querySelector("p, section, h1, h2, h3, h4, h5, h6, li, tr") !== null;
-      if (!hasBlockChild) {
-        const txt = el.textContent?.trim();
-        if (txt) paragraphs.push(txt);
-      }
-    });
-
-    let text = paragraphs.join("\n\n");
-    if (!text) {
-      text = contentEl.textContent?.trim() || "";
-    }
-
-    return text.split("\n").map(l => l.trim()).filter(Boolean).join("\n\n");
-  } catch {
-    return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-               .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
-               .replace(/<[^>]+>/g, " ")
-               .replace(/\s+/g, " ")
-               .trim();
-  }
-}
-
 function parseStringList(value: string | null): string[] {
   if (!value) return [];
   try {
@@ -714,91 +678,6 @@ export default function ArticleDetailPage() {
     }
   }
 
-  // Render text with annotation highlights
-  function renderAnnotatedText() {
-    if (!article?.fullText) return "暂无正文，请重新采集或查看原文";
-
-    const isDirtyHtml = !!(article.fullText.startsWith("<!DOCTYPE html") || article.fullText.includes("<html") || article.fullText.includes("<head>"));
-    const text = isDirtyHtml ? cleanHtmlClientSide(article.fullText) : article.fullText;
-    const annotations = article.annotations ?? [];
-
-    if (annotations.length === 0) return text;
-
-    // Sort annotations by position in text
-    // P1-10 fix: prefer startOffset over indexOf to handle duplicate text
-    const usedOffsets = new Set<number>();
-    const sortedAnnotations = [...annotations]
-      .map((a) => {
-        let index = -1;
-        // Prefer stored offset if available
-        if (a.startOffset != null && a.startOffset >= 0 && a.startOffset < text.length) {
-          const candidate = text.slice(a.startOffset, a.startOffset + a.selectedText.length);
-          if (candidate === a.selectedText) {
-            index = a.startOffset;
-          }
-        }
-        // Fallback: find next occurrence that hasn't been used
-        if (index === -1) {
-          let searchFrom = 0;
-          while (searchFrom < text.length) {
-            const found = text.indexOf(a.selectedText, searchFrom);
-            if (found === -1) break;
-            if (!usedOffsets.has(found)) {
-              index = found;
-              break;
-            }
-            searchFrom = found + 1;
-          }
-        }
-        if (index >= 0) usedOffsets.add(index);
-        return { ...a, index };
-      })
-      .filter((a) => a.index >= 0)
-      .sort((a, b) => a.index - b.index);
-
-    if (sortedAnnotations.length === 0) return text;
-
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-
-    sortedAnnotations.forEach((annotation, i) => {
-      // Add text before this annotation
-      if (annotation.index > lastIndex) {
-        parts.push(
-          <span key={`text-${i}`}>
-            {text.slice(lastIndex, annotation.index)}
-          </span>
-        );
-      }
-
-      parts.push(
-        <span
-          key={`annotation-${annotation.id}`}
-          data-annotation-id={annotation.id}
-          className="relative cursor-pointer scroll-mt-20"
-          style={{
-            backgroundColor: annotation.color + "40",
-            borderBottom: `2px solid ${annotation.color}`,
-          }}
-          title={annotation.comment}
-          onMouseEnter={() => setHoveredAnnotation(annotation)}
-          onMouseLeave={() => setHoveredAnnotation(null)}
-        >
-          {annotation.selectedText}
-        </span>
-      );
-
-      lastIndex = annotation.index + annotation.selectedText.length;
-    });
-
-    // Add remaining text
-    if (lastIndex < text.length) {
-      parts.push(<span key="text-end">{text.slice(lastIndex)}</span>);
-    }
-
-    return parts;
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -1023,9 +902,8 @@ export default function ArticleDetailPage() {
                     annotations={article.annotations.length > 0 ? article.annotations : undefined}
                     onMouseUp={handleTextSelection}
                     onImageClick={setPreviewImageUrl}
-                  >
-                    {!article.rawHtml && article.annotations.length > 0 ? renderAnnotatedText() : undefined}
-                  </ArticleContentRenderer>
+                    onAnnotationHover={setHoveredAnnotation}
+                  />
                 </div>
                 {/* Portal tooltip for annotations — placed outside overflow containers */}
                 <AnnotationTooltip
