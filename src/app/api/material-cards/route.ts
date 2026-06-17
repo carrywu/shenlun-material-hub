@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
+import { requireAuth, requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import { ownedResourceWhere, mergeWhere, canAccessResource } from "@/lib/data-isolation";
 
 // GET /api/material-cards — 分页 + 筛选
@@ -79,9 +79,12 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/material-cards — 手动创建素材卡
+// P0-5: 仅 VERIFIED_USER / ADMIN 可建卡（与 AI 生成一致），USER 不可（需求 2.1/4）
 export async function POST(request: NextRequest) {
-  const user = await requireAuth(request);
+  const user = await requireVerifiedUser(request);
   if (!user) return unauthorizedResponse();
+  // 防御层：即使 requireVerifiedUser 被绕过，USER 仍显式拒绝
+  if (user.role === "USER") return forbiddenResponse("普通用户不能创建素材卡，请升级为认证用户");
   try {
     const body = await request.json();
     const {
