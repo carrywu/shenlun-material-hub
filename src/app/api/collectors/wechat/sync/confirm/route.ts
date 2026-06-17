@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { triggerFeedSync, listArticles, SYNC_ARTICLE_LIMIT } from "@/services/integrations/wechat-rss";
+import { triggerFeedSync, listArticles, getArticle, SYNC_ARTICLE_LIMIT } from "@/services/integrations/wechat-rss";
 import { fromWeMpRssArticle } from "@/services/collectors/wechat/wechat-article-types";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
@@ -65,8 +65,25 @@ export async function POST(request: NextRequest) {
       limit: SYNC_ARTICLE_LIMIT,
     });
 
+    // we-mp-rss LIST 端点返回 ArticleBase（无 content/content_html），
+    // 需要对 has_content=1 的文章调用 DETAIL 端点补充完整内容
+    const enrichedArticles = await Promise.all(
+      articlesData.list.map(async (a) => {
+        if (a.hasContent === 1 && !a.content) {
+          try {
+            const detail = await getArticle(baseUrl, accessKey, secretKey, a.id);
+            return { ...a, content: detail.content, contentHtml: detail.contentHtml };
+          } catch {
+            // 获取详情失败，保持原数据（后续会因无内容被标记 blocked）
+            return a;
+          }
+        }
+        return a;
+      })
+    );
+
     // 转换为 WechatArticle 并过滤出用户选中的文章
-    const allArticles = articlesData.list.map((a) =>
+    const allArticles = enrichedArticles.map((a) =>
       fromWeMpRssArticle(a, source.name)
     );
 
@@ -105,6 +122,9 @@ export async function POST(request: NextRequest) {
           finishedAt: new Date(),
           discoveredCount: result.discovered,
           importedCount: result.imported,
+          refreshedCount: result.refreshed,
+          skippedCount: result.skipped,
+          blockedCount: result.blocked,
           errorSummary:
             result.errors.length > 0 ? result.errors.join("\n") : null,
         },
@@ -123,6 +143,7 @@ export async function POST(request: NextRequest) {
         success: result.errors.length === 0,
         discoveredCount: result.discovered,
         importedCount: result.imported,
+        refreshedCount: result.refreshed,
         skippedCount: result.skipped,
         blockedCount: result.blocked,
         errors: result.errors.length > 0 ? result.errors : undefined,
