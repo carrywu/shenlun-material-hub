@@ -34,7 +34,7 @@ interface ArticlePreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   articles: PreviewArticle[];
   loading: boolean;
-  onConfirm: (selectedUrls: string[]) => void;
+  onConfirm: (selectedUrls: string[], forceReimport: boolean) => void;
   sourceName?: string;
 }
 
@@ -204,7 +204,20 @@ export function ArticlePreviewDialog({
             取消
           </Button>
           <Button
-            onClick={() => onConfirm(Array.from(selected))}
+            onClick={() => {
+              const hardDuplicateCount = articles.filter(
+                (a) => selected.has(a.url) && a.isDuplicate && !a.isRefreshable
+              ).length;
+              if (hardDuplicateCount > 0) {
+                const ok = window.confirm(
+                  `选中文章中有 ${hardDuplicateCount} 篇为已存在的重复文章，导入将覆盖原有内容。是否继续？`
+                );
+                if (!ok) return;
+                onConfirm(Array.from(selected), true);
+              } else {
+                onConfirm(Array.from(selected), false);
+              }
+            }}
             disabled={selectedCount === 0}
           >
             确认导入（{selectedCount} 篇）
