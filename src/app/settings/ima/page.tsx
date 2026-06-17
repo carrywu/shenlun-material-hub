@@ -6,8 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ArrowLeft, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+
+interface KnowledgeBase {
+  id: string;
+  name: string;
+  description?: string;
+  roleType?: string;
+  baseType?: string;
+}
 
 interface ImaTarget {
   id: string;
@@ -50,6 +65,8 @@ export default function ImaSettingsPage() {
   const [clientId, setClientId] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [knowledgeBaseId, setKnowledgeBaseId] = useState("");
+  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
+  const [fetchingKbs, setFetchingKbs] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,9 +92,39 @@ export default function ImaSettingsPage() {
     setClientId("");
     setApiKey("");
     setKnowledgeBaseId("");
+    setKnowledgeBases([]);
     setShowForm(false);
     setShowAdvanced(false);
     setError("");
+  };
+
+  // 用填入的 clientId + apiKey 调官方接口拉取该账号下的真实知识库列表。
+  const handleFetchKnowledgeBases = async () => {
+    if (!clientId || !apiKey) {
+      setError("请先填写 Client ID 和 API Key");
+      return;
+    }
+    setFetchingKbs(true);
+    setError("");
+    try {
+      const res = await fetch("/api/ima/knowledge-bases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId, apiKey, baseUrl }),
+      });
+      const data = await res.json();
+      const list: KnowledgeBase[] = data.data || [];
+      if (!res.ok || list.length === 0) {
+        setError(data.error || "未找到知识库，请检查 Client ID / API Key 是否正确");
+        setKnowledgeBases([]);
+      } else {
+        setKnowledgeBases(list);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "拉取知识库列表失败");
+    } finally {
+      setFetchingKbs(false);
+    }
   };
 
   // Role guard — redirect non-verified users
@@ -87,9 +134,12 @@ export default function ImaSettingsPage() {
   }
 
   const handleCreate = async () => {
-    // 所有角色只需 clientId 和 apiKey
     if (!clientId || !apiKey) {
       setError("请填写 Client ID 和 API Key");
+      return;
+    }
+    if (!knowledgeBaseId) {
+      setError("请先拉取并选择目标知识库");
       return;
     }
 
@@ -281,6 +331,41 @@ export default function ImaSettingsPage() {
               <Input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="您的 API Key" className="h-9" />
             </div>
 
+            {/* 选择目标知识库：先用上方凭证拉取该账号真实知识库列表，再下拉选择（不暴露原始 id） */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-medium text-muted-foreground">目标知识库</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={handleFetchKnowledgeBases}
+                  disabled={fetchingKbs || !clientId || !apiKey}
+                >
+                  {fetchingKbs ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                  拉取知识库
+                </Button>
+              </div>
+              {knowledgeBases.length > 0 ? (
+                <Select value={knowledgeBaseId} onValueChange={(v) => setKnowledgeBaseId(v ?? "")}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="选择目标知识库" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {knowledgeBases.map((kb) => (
+                      <SelectItem key={kb.id} value={kb.id}>
+                        {kb.name}
+                        {kb.baseType ? `（${kb.baseType}）` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-xs text-muted-foreground">填写 Client ID 和 API Key 后点「拉取知识库」选择目标。</p>
+              )}
+            </div>
+
             {isAdmin && (
               <div className="border-t pt-3">
                 <button
@@ -299,11 +384,7 @@ export default function ImaSettingsPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1">API Base URL</label>
-                      <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.ima.qq.com（默认）" className="h-9" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">知识库 ID</label>
-                      <Input value={knowledgeBaseId} onChange={(e) => setKnowledgeBaseId(e.target.value)} placeholder="目标知识库 ID（默认 default）" className="h-9" />
+                      <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://ima.qq.com（默认）" className="h-9" />
                     </div>
                   </div>
                 )}

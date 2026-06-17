@@ -70,10 +70,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, baseUrl, clientId, apiKey, knowledgeBaseId } = body;
 
-    // 所有角色只需提供 clientId 和 apiKey，其他字段使用默认值
+    // 必须提供 clientId、apiKey 和一个真实知识库（官方写入的必填目标）。
     if (!clientId || !apiKey) {
       return NextResponse.json(
         { error: "请填写 Client ID 和 API Key" },
+        { status: 400 }
+      );
+    }
+    if (!knowledgeBaseId || knowledgeBaseId === "default") {
+      return NextResponse.json(
+        { error: "请选择目标知识库" },
         { status: 400 }
       );
     }
@@ -82,10 +88,10 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         name: (name || "IMA 知识库").trim(),
-        baseUrl: (baseUrl || "https://api.ima.qq.com").trim(),
+        baseUrl: (baseUrl || "https://ima.qq.com").trim(),
         clientId: clientId.trim(),
         encryptedApiKey: encrypt(apiKey.trim()),
-        knowledgeBaseId: (knowledgeBaseId || "default").trim(),
+        knowledgeBaseId: knowledgeBaseId.trim(),
       },
     });
 

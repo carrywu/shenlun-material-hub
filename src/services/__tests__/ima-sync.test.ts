@@ -70,20 +70,46 @@ describe("ImaService", () => {
     expect(result.errorMessage).toContain("请先在设置中配置个人 IMA 知识库");
   });
 
-  it("素材卡同步成功时写入远程文档 ID", async () => {
-    vi.mocked(global.fetch).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ document_id: "doc-1" }),
-    } as Response);
+  it("素材卡同步成功时（import_doc → add_knowledge）写入远程 note_id", async () => {
+    // 官方两步流程：先建笔记拿 note_id，再关联知识库。两次 fetch，均返回 code:0。
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ code: 0, msg: "success", data: { note_id: "note-1" } }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ code: 0, msg: "success", data: {} }),
+      } as Response);
 
     const result = await ImaService.syncMaterialCard({ materialCardId: "card-1", userId: "user-1" });
 
     expect(result.status).toBe("success");
-    expect(result.imaDocumentId).toBe("doc-1");
+    expect(result.imaDocumentId).toBe("note-1");
+    // 断言请求形状：用官方鉴权头 + 官方路径。
+    const calls = vi.mocked(global.fetch).mock.calls;
+    expect(calls[0][0]).toContain("openapi/note/v1/import_doc");
+    expect(calls[1][0]).toContain("openapi/wiki/v1/add_knowledge");
+    const headers = calls[0][1]?.headers as Record<string, string>;
+    expect(headers["ima-openapi-clientid"]).toBe("client-1");
+    expect(headers["ima-openapi-apikey"]).toBe("token-1");
     expect(dbMocks.syncUpdate).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "sync-1" },
-      data: expect.objectContaining({ status: "success", remoteDocumentId: "doc-1" }),
+      data: expect.objectContaining({ status: "success", remoteDocumentId: "note-1" }),
     }));
+  });
+
+  it("官方返回业务错误（code!==0）时透出 msg", async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ code: 200002, msg: "skill auth failed", data: {} }),
+    } as Response);
+
+    const result = await ImaService.syncMaterialCard({ materialCardId: "card-1", userId: "user-1" });
+
+    expect(result.status).toBe("failed");
+    expect(result.errorCode).toBe("IMA_AUTH_FAILED");
+    expect(result.errorMessage).toContain("skill auth failed");
   });
 
   it("已成功同步过的素材卡再次同步时返回跳过结果", async () => {
@@ -119,10 +145,16 @@ describe("ImaService", () => {
   });
 
   it("批量同步返回成功、失败和跳过明细", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ document_id: "doc-1" }),
-    } as Response);
+    // card-1 成功（两步 fetch）；card-2 未确认→failed（不发请求）；card-3 已存在→skipped。
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ code: 0, msg: "success", data: { note_id: "note-1" } }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ code: 0, msg: "success", data: {} }),
+      } as Response);
     dbMocks.cardFindUnique
       .mockResolvedValueOnce(CARD)
       .mockResolvedValueOnce({ ...CARD, id: "card-2", confirmed: false })

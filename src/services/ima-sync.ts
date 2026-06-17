@@ -2,8 +2,9 @@ import { db } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
 import type { MaterialCardStructuredContent } from "@/types";
 
-// IMA API 基础 URL（非敏感，用于构造请求地址）
-const DEFAULT_IMA_API_BASE = "https://api.ima.qq.com";
+// IMA 官方 OpenAPI 基础 URL（非敏感，仅用于构造请求地址）。
+// 官方契约：所有请求为 POST + JSON，发往 https://ima.qq.com/{apiPath}。
+const DEFAULT_IMA_API_BASE = "https://ima.qq.com";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
@@ -13,6 +14,17 @@ export interface ImaConfig {
   clientId: string;
   apiKey: string;
   knowledgeBaseId: string;
+}
+
+/**
+ * 把历史/错误配置的 baseUrl 归一化为官方主机。
+ * 旧记录可能存了不存在的 https://api.ima.qq.com（DNS 失败 → fetch failed），
+ * 统一回退到官方 https://ima.qq.com。
+ */
+function normalizeBaseUrl(baseUrl?: string | null): string {
+  if (!baseUrl) return DEFAULT_IMA_API_BASE;
+  if (baseUrl.includes("api.ima.qq.com")) return DEFAULT_IMA_API_BASE;
+  return baseUrl;
 }
 
 /**
@@ -27,11 +39,16 @@ export async function resolveImaConfig(userId?: string): Promise<ImaConfig> {
     });
 
     if (target) {
+      const knowledgeBaseId = target.knowledgeBaseId ?? "";
+      // 占位值 "default" 是旧 UI 的假默认，官方无此知识库 → 视为未配置。
+      if (!knowledgeBaseId || knowledgeBaseId === "default") {
+        throw new Error("IMA_CONFIG_MISSING: 请先在设置中选择目标知识库");
+      }
       return {
-        baseUrl: target.baseUrl || DEFAULT_IMA_API_BASE,
+        baseUrl: normalizeBaseUrl(target.baseUrl),
         clientId: target.clientId ?? "",
         apiKey: target.encryptedApiKey ? decrypt(target.encryptedApiKey) : "",
-        knowledgeBaseId: target.knowledgeBaseId ?? "",
+        knowledgeBaseId,
       };
     }
   }
@@ -221,35 +238,80 @@ function formatArticleContent(item: {
   };
 }
 
+/**
+ * 调用官方 IMA OpenAPI。统一 POST + JSON，发往 {baseUrl}/{apiPath}，
+ * 鉴权头为 ima-openapi-clientid / ima-openapi-apikey（官方契约，非 X-Client-Id/Bearer）。
+ * 官方响应：{ code, msg, data }；code===0 成功，否则把 msg 透出给用户。
+ */
 async function callImaApi(
-  endpoint: string,
-  method: string,
-  body?: unknown,
+  apiPath: string,
+  body: unknown,
   config?: ImaConfig
-): Promise<unknown> {
+): Promise<Record<string, unknown>> {
   const baseUrl = config?.baseUrl ?? DEFAULT_IMA_API_BASE;
   const clientId = config?.clientId ?? "";
   const apiKey = config?.apiKey ?? "";
-  const url = `${baseUrl}${endpoint}`;
+  const url = `${baseUrl}/${apiPath}`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-Client-Id": clientId,
-    Authorization: `Bearer ${apiKey}`,
+    "ima-openapi-clientid": clientId,
+    "ima-openapi-apikey": apiKey,
   };
 
   const res = await fetch(url, {
-    method,
+    method: "POST",
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: JSON.stringify(body),
   });
 
+  // 网络层失败（DNS/连接）→ fetch 直接抛；HTTP 非 2xx 也按错误处理。
   if (!res.ok) {
     const errorText = await res.text().catch(() => "Unknown error");
     const code = res.status === 401 || res.status === 403 ? "IMA_AUTH_FAILED" : "IMA_API_ERROR";
     throw new ImaSyncError(code, `IMA API 错误（${res.status}）：${errorText}`, res.status);
   }
 
-  return res.json();
+  const json = (await res.json()) as { code: number; msg?: string; data?: unknown };
+  // 官方业务错误：code !== 0（如 200002 skill auth failed、20004 鉴权失败等）。
+  if (json.code !== 0) {
+    const msg = json.msg || `IMA 业务错误（code ${json.code}）`;
+    const code = json.code === 200002 || json.code === 20004 ? "IMA_AUTH_FAILED" : "IMA_API_ERROR";
+    throw new ImaSyncError(code, `IMA：${msg}`, res.status);
+  }
+
+  return (json.data as Record<string, unknown>) ?? {};
+}
+
+/** 官方 notes：新建一篇笔记，返回 note_id。content 为 Markdown（content_format=1）。 */
+async function notesImportDoc(content: string, config?: ImaConfig): Promise<string> {
+  const data = await callImaApi(
+    "openapi/note/v1/import_doc",
+    { content_format: 1, content },
+    config
+  );
+  const noteId = (data.note_id ?? data.id) as string | undefined;
+  if (!noteId) {
+    throw new ImaSyncError("IMA_API_ERROR", "IMA 未返回 note_id");
+  }
+  return noteId;
+}
+
+/** 官方 wiki：把已建好的笔记关联到知识库（media_type=11）。返回 media 记录。 */
+async function wikiAddKnowledge(params: {
+  knowledgeBaseId: string;
+  title: string;
+  noteId: string;
+}, config?: ImaConfig): Promise<Record<string, unknown>> {
+  return callImaApi(
+    "openapi/wiki/v1/add_knowledge",
+    {
+      media_type: 11,
+      note_info: { content_id: params.noteId },
+      title: params.title,
+      knowledge_base_id: params.knowledgeBaseId,
+    },
+    config
+  );
 }
 
 async function uploadDocument(
@@ -257,20 +319,17 @@ async function uploadDocument(
   config?: ImaConfig
 ): Promise<ImaSyncResult> {
   const kbId = config?.knowledgeBaseId ?? "";
-  const result = (await callImaApi(
-    `/v1/knowledge_bases/${kbId}/documents`,
-    "POST",
-    {
-      title: doc.title,
-      content: doc.content,
-      metadata: doc.metadata,
-    },
-    config
-  )) as { document_id: string };
+  if (!kbId) {
+    throw new ImaSyncError("IMA_CONFIG_MISSING", "未选择目标知识库");
+  }
+  // 官方流程：先建笔记拿 note_id，再关联到知识库。
+  // import_doc 无独立 title 字段，标题作为 Markdown 首行（formatCardContent 已含 # 标题）。
+  const noteId = await notesImportDoc(doc.content, config);
+  await wikiAddKnowledge({ knowledgeBaseId: kbId, title: doc.title, noteId }, config);
 
   return {
     knowledgeBaseId: kbId,
-    documentId: result.document_id,
+    documentId: noteId,
   };
 }
 
@@ -548,27 +607,13 @@ async function healthCheck(userId: string): Promise<ImaHealthResult> {
   const lastCheckedAt = new Date().toISOString();
   try {
     const config = await resolveImaConfig(userId);
-    const res = await fetch(`${config.baseUrl}/v1/knowledge_bases/${config.knowledgeBaseId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Client-Id": config.clientId,
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-    });
-
-    if (!res.ok) {
-      const errorMessage = await res.text().catch(() => "连接检查失败");
-      return {
-        configured: true,
-        reachable: res.status !== 0,
-        authValid: res.status !== 401 && res.status !== 403,
-        workspace: config.knowledgeBaseId,
-        lastCheckedAt,
-        errorCode: res.status === 401 || res.status === 403 ? "IMA_AUTH_FAILED" : "IMA_HEALTH_FAILED",
-        errorMessage,
-      };
-    }
+    // 官方契约：get_knowledge_base 验证「可达 + 鉴权 + 知识库存在」。
+    // code===0 表示三者皆通过；否则 callImaApi 抛出 ImaSyncError（含官方 msg）。
+    await callImaApi(
+      "openapi/wiki/v1/get_knowledge_base",
+      { ids: [config.knowledgeBaseId] },
+      config
+    );
 
     return {
       configured: true,
@@ -581,13 +626,44 @@ async function healthCheck(userId: string): Promise<ImaHealthResult> {
     const { errorCode, errorMessage } = normalizeImaError(error);
     return {
       configured: errorCode !== "IMA_CONFIG_MISSING",
-      reachable: false,
+      reachable: errorCode !== "IMA_AUTH_FAILED" && errorCode !== "IMA_API_ERROR" ? false : true,
       authValid: false,
       lastCheckedAt,
       errorCode,
       errorMessage,
     };
   }
+}
+
+/**
+ * 列出当前账号下可用的知识库（用于配置页下拉选择）。
+ * 凭证由调用方临时提供（不落库）：clientId + 明文 apiKey。
+ * 官方：search_knowledge_base 空 query 返回该账号全部知识库。
+ */
+export async function listKnowledgeBasesForCredentials(params: {
+  clientId: string;
+  apiKey: string;
+  baseUrl?: string;
+}): Promise<Array<{ id: string; name: string; description?: string; roleType?: string; baseType?: string }>> {
+  const config: ImaConfig = {
+    baseUrl: normalizeBaseUrl(params.baseUrl),
+    clientId: params.clientId,
+    apiKey: params.apiKey,
+    knowledgeBaseId: "",
+  };
+  const data = await callImaApi(
+    "openapi/wiki/v1/search_knowledge_base",
+    { query: "", cursor: "", limit: 20 },
+    config
+  );
+  const list = (data.info_list as Array<Record<string, unknown>>) ?? [];
+  return list.map((kb) => ({
+    id: String(kb.kb_id ?? ""),
+    name: String(kb.kb_name ?? ""),
+    description: kb.description ? String(kb.description) : undefined,
+    roleType: kb.role_type ? String(kb.role_type) : undefined,
+    baseType: kb.base_type ? String(kb.base_type) : undefined,
+  }));
 }
 
 async function syncArticle(params: {
