@@ -508,8 +508,12 @@ export default function SubscriptionsPage() {
           throw new Error(result?.message ?? "后台采集任务失败");
         }
         const skipped = result?.skippedCount ?? 0;
+        const blocked = result?.blockedCount ?? 0;
+        const refreshed = result?.refreshedCount ?? 0;
         alert(
           `采集完成：发现 ${result?.discoveredCount ?? 0} 条，导入 ${result?.importedCount ?? 0} 条` +
+            (refreshed > 0 ? `，刷新 ${refreshed} 条` : "") +
+            (blocked > 0 ? `，封禁 ${blocked} 条` : "") +
             (skipped > 0 ? `，跳过 ${skipped} 条` : "")
         );
         fetchSources();
@@ -543,8 +547,8 @@ export default function SubscriptionsPage() {
       const refreshed = data.refreshedCount ?? 0;
       alert(
         `导入完成：发现 ${data.discoveredCount ?? 0} 条，导入 ${data.importedCount ?? 0} 条` +
-          (blocked > 0 ? `，封禁 ${blocked}` : "") +
-          (refreshed > 0 ? `，刷新封禁 ${refreshed}` : "") +
+          (refreshed > 0 ? `，刷新 ${refreshed} 条` : "") +
+          (blocked > 0 ? `，封禁 ${blocked} 条` : "") +
           (skipped > 0 ? `，跳过 ${skipped} 条` : "")
       );
       fetchSources();

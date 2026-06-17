@@ -291,7 +291,7 @@ export function CollectDialog({
               {totalRefreshed > 0 && (
                 <div className="flex items-center gap-1.5">
                   <RefreshCw className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm font-medium text-blue-600">{totalRefreshed} 刷新封禁</span>
+                  <span className="text-sm font-medium text-blue-600">{totalRefreshed} 刷新</span>
                 </div>
               )}
               <div className="text-sm text-muted-foreground">
@@ -316,7 +316,7 @@ export function CollectDialog({
                   </div>
                   <div className="text-muted-foreground text-xs">
                     {r.success
-                      ? `发现 ${r.discoveredCount ?? 0}，导入 ${r.importedCount ?? 0}${(r.blockedCount ?? 0) > 0 ? `，封禁 ${r.blockedCount}` : ""}${(r.refreshedCount ?? 0) > 0 ? `，刷新封禁 ${r.refreshedCount}` : ""}${(r.skippedCount ?? 0) > 0 ? `，跳过 ${r.skippedCount}` : ""}`
+                      ? `发现 ${r.discoveredCount ?? 0}，导入 ${r.importedCount ?? 0}${(r.refreshedCount ?? 0) > 0 ? `，刷新 ${r.refreshedCount}` : ""}${(r.blockedCount ?? 0) > 0 ? `，封禁 ${r.blockedCount}` : ""}${(r.skippedCount ?? 0) > 0 ? `，跳过 ${r.skippedCount}` : ""}`
                       : r.error ?? "失败"}
                   </div>
                 </div>
