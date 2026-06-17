@@ -930,4 +930,123 @@ describe("normalizeWeRssArticle — blocked record refresh", () => {
     expect(mockUpdate).not.toHaveBeenCalled();
     expect(mockCreate).not.toHaveBeenCalled();
   });
+
+  describe("hard duplicate with forceReimport", () => {
+    it("should update existing record when forceReimport is true", async () => {
+      const existingRecord = {
+        id: "existing-force-1",
+        title: "已存在的非封禁文章",
+        originalUrl: "https://mp.weixin.qq.com/s/test123",
+        qualityStatus: "pending",
+        processingStatus: "fetched",
+        coverUrl: "https://example.com/old-cover.jpg",
+        aiDecision: "relevant",
+        aiReason: "旧评估原因",
+        aiAssessedAt: new Date("2024-01-01"),
+        aiScore: 85,
+        aiScoreDetail: '{"relevance":9}',
+        aiScoredAt: new Date("2024-01-01"),
+        aiAssessmentError: null,
+        contentGenre: "commentary",
+        aiCategories: ["政策解读"],
+        aiUsableFor: ["素材"],
+        aiSummary: "旧摘要",
+        aiQuotes: ["旧引用"],
+      };
+
+      mockFindUnique.mockResolvedValue(existingRecord);
+      mockUpdate.mockResolvedValue({
+        ...existingRecord,
+        qualityStatus: "pending",
+        processingStatus: "fetched",
+        filterReason: null,
+        aiDecision: null,
+        aiScore: null,
+      });
+
+      const result = await normalizeWeRssArticle(
+        makeArticle(),
+        { ...BASE_OPTIONS, forceReimport: true },
+      );
+
+      expect(result.created).toBe(false);
+      expect(result.filtered).toBe(false);
+      expect(result.filterReason).toBeUndefined();
+      expect(mockUpdate).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "existing-force-1" },
+          data: expect.objectContaining({
+            qualityStatus: "pending",
+            processingStatus: "fetched",
+            filterReason: null,
+            aiDecision: null,
+            aiReason: null,
+            aiAssessedAt: null,
+            aiScore: null,
+            aiScoreDetail: null,
+            aiScoredAt: null,
+            contentGenre: null,
+            aiCategories: null,
+            aiUsableFor: null,
+            aiSummary: null,
+            aiQuotes: null,
+            adminReviewStatus: "pending_ai",
+          }),
+        }),
+      );
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("should skip existing record when forceReimport is false (default)", async () => {
+      const existingRecord = {
+        id: "existing-skip-1",
+        title: "已存在的非封禁文章",
+        originalUrl: "https://mp.weixin.qq.com/s/test123",
+        qualityStatus: "pending",
+        processingStatus: "fetched",
+        fullText: "old content that should remain unchanged",
+      };
+
+      mockFindUnique.mockResolvedValue(existingRecord);
+
+      const result = await normalizeWeRssArticle(
+        makeArticle(),
+        BASE_OPTIONS,
+      );
+
+      expect(result.created).toBe(false);
+      expect(result.filtered).toBe(true);
+      expect(result.filterReason).toBe("URL 已存在（重复）");
+      expect(mockUpdate).not.toHaveBeenCalled();
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("should count forceReimport updated records as refreshed in batch", async () => {
+      const existingRecord = {
+        id: "existing-batch-1",
+        title: "已存在文章",
+        originalUrl: "https://mp.weixin.qq.com/s/refresh-force",
+        qualityStatus: "accepted",
+        processingStatus: "synced",
+      };
+
+      mockFindUnique.mockResolvedValue(existingRecord);
+      mockUpdate.mockResolvedValue({
+        ...existingRecord,
+        qualityStatus: "pending",
+        processingStatus: "fetched",
+      });
+
+      const articles = [
+        makeArticle({ url: "https://mp.weixin.qq.com/s/refresh-force", title: "强制刷新" }),
+      ];
+
+      const result = await normalizeWeRssArticles(articles, { ...BASE_OPTIONS, forceReimport: true });
+
+      expect(result.discovered).toBe(1);
+      expect(result.refreshed).toBe(1);
+      expect(result.skipped).toBe(0);
+    });
+  });
 });
