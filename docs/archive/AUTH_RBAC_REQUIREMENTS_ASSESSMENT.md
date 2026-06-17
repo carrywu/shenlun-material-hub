@@ -15,7 +15,7 @@
 
 - 当前项目是一个**单管理员、全局公开**的内容管理工具，无用户表、无角色系统、无 API 认证
 - 增加多用户系统需要**新建 6-8 张数据表**、**改造全部 30+ 个 API 路由**、**重构前端导航和权限控制**
-- **最大技术风险**：(1) 全局数据迁移为用户隔离数据的工作量；(2) 后台异步任务的用户上下文传递；(3) IMA/WeWe RSS 从全局配置改为用户级配置的改造深度
+- **最大技术风险**：(1) 全局数据迁移为用户隔离数据的工作量；(2) 后台异步任务的用户上下文传递；(3) IMA/we-mp-rss 从全局配置改为用户级配置的改造深度
 - **推荐实施顺序**：先做认证基础和 API 保护 → 用户管理和邀请码 → 数据隔离 → 用户级配置 → 高级功能
 
 **建议调整的需求**：
@@ -137,7 +137,7 @@ PostgreSQL 数据库，通过 Prisma 管理。当前 12 张表：
 | IMA Client ID | 环境变量 `IMA_CLIENT_ID` | 全局唯一 |
 | IMA Knowledge Base ID | 环境变量 `IMA_KNOWLEDGE_BASE_ID` | 全局唯一 |
 | IMA API Base | 环境变量 `IMA_API_BASE` | 全局唯一 |
-| WeWe RSS Base URL | 环境变量 `WEWERSS_BASE_URL` | 全局唯一 |
+| we-mp-rss Base URL | 环境变量 `WE_MP_RSS_BASE_URL` | 全局唯一 |
 | 管理员账号 | 环境变量 `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` | 单一账号 |
 | JWT Secret | 环境变量 `JWT_SECRET` | 全局唯一 |
 | 加密密钥 | 环境变量 `AI_CONFIG_ENCRYPTION_KEY` | 全局唯一 |
@@ -158,7 +158,7 @@ Docker Compose 单容器部署：
 - Next.js standalone 模式
 - PostgreSQL 数据通过 docker volume 持久化
 - 上传文件挂载到 `./data/uploads`
-- 可选 WeWe RSS sidecar（Docker profile 门控）
+- 可选 we-mp-rss sidecar（Docker profile 门控）
 - 非 root 用户运行
 
 ---
@@ -195,12 +195,12 @@ Docker Compose 单容器部署：
           → db.contentItem.create() — 写入数据
 ```
 
-### 3.3 WeWe RSS 同步
+### 3.3 we-mp-rss 同步
 
 ```
-管理后台 /admin/integrations/wewe-rss
+管理后台 /admin/integrations/we-mp-rss
   → WeweRssIntegrationPage 组件
-    → POST /api/integrations/wewe-rss/sync-sources
+    → POST /api/integrations/we-mp-rss/sync-sources
       → listFeedsAuto(baseUrl, syncMode, dbPath)
         → API 模式: listFeeds(baseUrl)
         → SQLite 模式: listFeedsFromSqlite(dbPath)
@@ -349,12 +349,12 @@ Docker Compose 单容器部署：
 2. 重构 `callImaApi()`、`syncToIma()`、`syncBatchToIma()` 等所有函数接受配置参数
 3. 修改所有调用方（`/api/sync` 路由）传入用户配置
 
-### 4.5 用户自己的 AI 与 WeWe RSS 配置
+### 4.5 用户自己的 AI 与 we-mp-rss 配置
 
 | 需求 | 当前支持程度 | 可行性 | 主要改动 | 风险 | 推荐处理 |
 |---|---|---|---|---|---|
 | 用户级 AI 配置 | 部分支持（DB 有 AiConfig 表） | 需要重大重构 | AiConfig 添加 userId，重构 ai.ts 服务层 | 缓存失效、并发 | 第二阶段实现 |
-| 用户级 WeWe RSS 配置 | 不支持（纯参数传入） | 需要中等改造 | 新建 UserIntegration 表，重构 API 路由 | 服务层改造 | 第三阶段实现 |
+| 用户级 we-mp-rss 配置 | 不支持（纯参数传入） | 需要中等改造 | 新建 UserIntegration 表，重构 API 路由 | 服务层改造 | 第三阶段实现 |
 | 密钥加密 | 支持（已有 AES-256-CBC） | 可直接实现 | 复用现有 crypto.ts | 低 | 随用户级配置一起实现 |
 | 管理员查看明文密钥 | 不支持 | **强烈不建议实现** | 需要可逆加密 + 审计日志 | **高安全风险** | 建议放弃 |
 
@@ -493,7 +493,7 @@ Docker Compose 单容器部署：
 |---|---|---|
 | id | String (CUID) | 主键 |
 | userId | String | 关联用户 |
-| provider | String | ai / ima / wewe-rss |
+| provider | String | ai / ima / we-mp-rss |
 | config | String (JSON) | 加密的配置数据 |
 | isEnabled | Boolean | 是否启用 |
 | createdAt | DateTime | 创建时间 |
@@ -617,7 +617,7 @@ Docker Compose 单容器部署：
 | POST /api/ai-config/test | 无认证 | ❌ | ❌ | ❌ | ✅ (系统级) | M — 同上 |
 | GET/PUT/POST /api/ai-config/prompts | 无认证 | ❌ | ❌ | ❌ | ✅ | S — 添加认证 |
 | GET/POST /api/sources | 无认证 | ❌ | ❌ | ❌ | ✅ | S — 添加认证 |
-| POST /api/integrations/wewe-rss/* | 无认证 | ❌ | ❌ | ❌ | ✅ | S — 添加认证 |
+| POST /api/integrations/we-mp-rss/* | 无认证 | ❌ | ❌ | ❌ | ✅ | S — 添加认证 |
 
 ---
 
@@ -701,16 +701,16 @@ Docker Compose 单容器部署：
 - `ai-annotation.ts` 的所有函数 → 需要传入 userId
 - 所有 AI 相关 API 路由 → 需要从 session 获取 userId
 
-### 8.2 WeWe RSS 用户级配置
+### 8.2 we-mp-rss 用户级配置
 
 **当前代码中的配置读取位置**：
-- `src/app/api/integrations/wewe-rss/status/route.ts` — `process.env.WEWERSS_BASE_URL`
-- `src/app/api/integrations/wewe-rss/test/route.ts` — 从请求体读取 baseUrl
-- `src/app/api/integrations/wewe-rss/sync-sources/route.ts` — 从请求体或环境变量读取
-- `src/app/api/collectors/wechat/sync/route.ts` — `process.env.WEWERSS_BASE_URL`
+- `src/app/api/integrations/we-mp-rss/status/route.ts` — `process.env.WE_MP_RSS_BASE_URL`
+- `src/app/api/integrations/we-mp-rss/test/route.ts` — 从请求体读取 baseUrl
+- `src/app/api/integrations/we-mp-rss/sync-sources/route.ts` — 从请求体或环境变量读取
+- `src/app/api/collectors/wechat/sync/route.ts` — `process.env.WE_MP_RSS_BASE_URL`
 
 **改为用户级配置**：
-1. 新建 `user_integrations` 表存储用户 WeWe RSS 配置
+1. 新建 `user_integrations` 表存储用户 we-mp-rss 配置
 2. API 路由从 session 获取 userId，查询用户配置
 3. 服务层函数改为接受 baseUrl 参数（当前已是参数化设计，改动较小）
 
@@ -736,7 +736,7 @@ Docker Compose 单容器部署：
 
 建议保留系统级配置作为默认值：
 - 环境变量作为最终 fallback
-- 管理员可在后台配置系统级 AI/IMA/WeWe RSS
+- 管理员可在后台配置系统级 AI/IMA/we-mp-rss
 - 用户配置优先于系统配置
 
 ### 8.5 密钥加密
@@ -895,7 +895,7 @@ Docker Compose 单容器部署：
 
 ### 阶段 3：用户级配置与集成（建议工期：2-3 周）
 
-**目标**：AI/IMA/WeWe RSS 配置用户化
+**目标**：AI/IMA/we-mp-rss 配置用户化
 
 **涉及模块**：
 - `src/services/ai.ts` — 重构为用户级配置
@@ -903,14 +903,14 @@ Docker Compose 单容器部署：
 - 新建 UserIntegration 表
 - AI 配置页面改造
 - IMA 配置页面改造
-- WeWe RSS 配置页面改造
+- we-mp-rss 配置页面改造
 
 **依赖关系**：依赖阶段 2
 
 **验收条件**：
 - [ ] 每个用户可配置自己的 AI Provider
 - [ ] 每个用户可配置自己的 IMA 知识库
-- [ ] 每个用户可配置自己的 WeWe RSS
+- [ ] 每个用户可配置自己的 we-mp-rss
 - [ ] 后台任务使用正确用户的配置
 - [ ] 系统级配置作为默认值
 
@@ -957,7 +957,7 @@ Docker Compose 单容器部署：
 | AsyncTask 用户关联 | M | 添加字段 + 任务执行时传递上下文 |
 | AI 配置用户化 | L | 重构 ai.ts 服务层 + 缓存隔离 + 所有调用方 |
 | IMA 配置用户化 | L | 重构 ima-sync.ts + 消除模块级常量 |
-| WeWe RSS 配置用户化 | M | 服务层已是参数化，改动较小 |
+| we-mp-rss 配置用户化 | M | 服务层已是参数化，改动较小 |
 | 多 IMA 目标 | L | 新建数据模型 + UI + 同步逻辑 |
 | 审计日志 | M | 新建数据模型 + 记录逻辑 |
 | 任务限额 | M | 并发控制 + 去重逻辑 |
@@ -1014,16 +1014,16 @@ Docker Compose 单容器部署：
 - `ownerUserId` 在 ContentItem 上（第一个采集者）
 - 素材卡独立：`MaterialCard.ownerUserId` 表示创建者
 
-### 12.7 认证用户使用个人 WeWe RSS 是否与当前 WeWe RSS 架构兼容
+### 12.7 认证用户使用个人 we-mp-rss 是否与当前 we-mp-rss 架构兼容
 
-**基本兼容**。当前 WeWe RSS 服务层已经是参数化设计：
-- `wewe-rss-api.ts` 的所有函数接受 `baseUrl` 参数
-- `wewe-rss.ts` 的 `listFeedsAuto()` 接受 `baseUrl` 和 `dbPath`
+**基本兼容**。当前 we-mp-rss 服务层已经是参数化设计：
+- `we-mp-rss-api.ts` 的所有函数接受 `baseUrl` 参数
+- `we-mp-rss.ts` 的 `listFeedsAuto()` 接受 `baseUrl` 和 `dbPath`
 - 改为用户级配置只需从数据库读取用户的 baseUrl 传入
 
 但需要注意：
-- WeWe RSS sidecar 是共享服务，不是每个用户独立部署
-- 用户的 WeWe RSS 实例地址不同，需要网络可达
+- we-mp-rss sidecar 是共享服务，不是每个用户独立部署
+- 用户的 we-mp-rss 实例地址不同，需要网络可达
 - SQLite fallback 模式下，`dbPath` 指向服务器本地文件，多用户场景不适用
 
 ---
@@ -1151,5 +1151,5 @@ Docker Compose 单容器部署：
 | 文件阅读（68 个文件） | 已完成 | 是 | 核心代码全覆盖 |
 | 数据库 schema 分析 | 已完成 | 是 | 11 张表，无用户表 |
 | API 路由认证检查 | 已完成 | 是 | 31/35 无认证 |
-| 配置系统分析 | 已完成 | 是 | AI/IMA/WeWe RSS 配置方式 |
+| 配置系统分析 | 已完成 | 是 | AI/IMA/we-mp-rss 配置方式 |
 | 任务系统分析 | 已完成 | 是 | 进程内队列，无用户关联 |

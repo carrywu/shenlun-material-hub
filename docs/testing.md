@@ -81,7 +81,7 @@ pnpm exec playwright test
 | review.spec.ts | 9 | 复习 |
 | admin.spec.ts | 21 | 管理后台 |
 | ai-config.spec.ts | 7 | AI 配置 |
-| wewe-rss.spec.ts | 6 | WeWe RSS |
+| we-mp-rss.spec.ts | 6 | we-mp-rss |
 | settings.spec.ts | 7 | 设置 |
 | dead-link.spec.ts | 22 | 死链检查 |
 | accessibility.spec.ts | 24 | a11y 扫描 |

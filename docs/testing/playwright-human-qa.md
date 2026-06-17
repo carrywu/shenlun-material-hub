@@ -15,7 +15,7 @@ pnpm dev
 pnpm exec playwright test
 
 # 运行指定文件
-pnpm exec playwright test e2e/subscriptions-wewe-rss.spec.ts
+pnpm exec playwright test e2e/subscriptions-we-mp-rss.spec.ts
 
 # 带 UI 模式（交互式调试）
 pnpm exec playwright test --ui

@@ -91,7 +91,7 @@ Agent 最终报告必须包含：
 
 | 页面 | 必须验证 |
 |------|----------|
-| `/integrations/wewe-rss` | 连接状态、同步操作、错误处理 |
+| `/integrations/we-mp-rss` | 连接状态、同步操作、错误处理 |
 | `/subscriptions` | 列表展示、搜索过滤、分页 |
 | `/articles/[id]` | 正文渲染、AI 评分、素材卡 |
 | `/materials` | 素材卡列表、筛选 |

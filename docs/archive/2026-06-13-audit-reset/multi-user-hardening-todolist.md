@@ -8,7 +8,7 @@
 >
 > **详细 task 步骤**：见 `docs/superpowers/plans/2026-06-12-p0-00{1,2,3,4}-*.md` 四份独立 plan。
 >
-> **总纲**：见 `/Users/apple/.claude/plans/wewerss-admin-review-user-ai-material-c-tingly-nova.md`（10 个锁定决策）。
+> **总纲**：见 `/Users/apple/.claude/plans/we-mp-rss-admin-review-user-ai-material-c-tingly-nova.md`（10 个锁定决策）。
 
 ---
 

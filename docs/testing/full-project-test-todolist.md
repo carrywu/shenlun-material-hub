@@ -45,7 +45,7 @@
 - [x] 3.14 `/admin/backup` — 数据备份
 - [x] 3.15 `/admin/clean` — 数据清洗
 - [x] 3.16 `/admin/settings/ai` — AI 配置（管理）
-- [x] 3.17 `/admin/integrations/wewe-rss` — WeWe RSS 集成
+- [x] 3.17 `/admin/integrations/we-mp-rss` — we-mp-rss 集成
 - [x] 3.18 `/admin/sources` — 来源管理
 - [x] 3.19 `/admin/articles` — 管理员文章列表
 - [x] 3.20 `/admin/sync-records` — 同步记录
@@ -304,7 +304,7 @@
 - [x] 15.13 数据备份 WCAG 2.x 扫描
 - [x] 15.14 数据清洗 WCAG 2.x 扫描
 - [x] 15.15 AI 设置（管理）WCAG 2.x 扫描
-- [x] 15.16 WeWe RSS 集成 WCAG 2.x 扫描
+- [x] 15.16 we-mp-rss 集成 WCAG 2.x 扫描
 - [x] 15.17 来源管理 WCAG 2.x 扫描
 - [x] 15.18 同步记录 WCAG 2.x 扫描
 - [x] 15.19 设置首页 WCAG 2.x 扫描
@@ -339,7 +339,7 @@
 - [x] 16.11 IMA 设置截图基线
 - [x] 16.12 管理后台首页截图基线
 - [x] 16.13 来源管理截图基线
-- [x] 16.14 WeWe RSS 集成截图基线
+- [x] 16.14 we-mp-rss 集成截图基线
 
 ---
 
@@ -365,7 +365,7 @@
 - [x] 17.13 `/admin/backup` 非空白页
 - [x] 17.14 `/admin/clean` 非空白页
 - [x] 17.15 `/admin/settings/ai` 非空白页
-- [x] 17.16 `/admin/integrations/wewe-rss` 非空白页
+- [x] 17.16 `/admin/integrations/we-mp-rss` 非空白页
 - [x] 17.17 `/admin/articles` 非空白页
 - [x] 17.18 `/admin/sync-records` 非空白页
 - [x] 17.19 `/settings` 非空白页

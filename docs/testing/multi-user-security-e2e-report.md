@@ -37,12 +37,12 @@ P0-004 重建了 E2E 测试可信度：
 | Admin authenticated | Admin storageState | 4 | content-items/material-cards/admin-users/admin-metrics return 200 |
 | Image proxy SSRF | Anonymous | 3 | Private IP, file protocol, non-whitelist domain all blocked (400/403) |
 | Browser-level auth | Fresh context (no cookie) | 1 | Unauthenticated user redirected to `/admin/login` |
-| WeWe RSS 403 (unauth) | Anonymous | 5 | GET/POST/DELETE/PUT/test all return 401 without auth |
-| WeWe RSS 200 (admin) | Admin storageState | 1 | Admin GET still works (regression: no over-restriction) |
+| we-mp-rss 403 (unauth) | Anonymous | 5 | GET/POST/DELETE/PUT/test all return 401 without auth |
+| we-mp-rss 200 (admin) | Admin storageState | 1 | Admin GET still works (regression: no over-restriction) |
 
 **Key P0-004 Fix:** The 16 unauthenticated 401 cases now use `test.use({ storageState: { cookies: [], origins: [] } })` ensuring zero cookies. Previously these ran with admin cookie leaked from top-level config.
 
-**Key P1 Fix:** WeWe RSS endpoints are now admin-only. 5 unauthenticated cases verify 401; 1 admin regression case verifies admin still has access.
+**Key P1 Fix:** we-mp-rss endpoints are now admin-only. 5 unauthenticated cases verify 401; 1 admin regression case verifies admin still has access.
 
 ---
 
@@ -112,7 +112,7 @@ P0-004 重建了 E2E 测试可信度：
 
 ## Staging Results
 
-**Environment:** `100.117.96.1:3001`, 3 containers (app + db + wewe-rss), migration + seed applied.
+**Environment:** `100.117.96.1:3001`, 3 containers (app + db + we-mp-rss), migration + seed applied.
 
 ```
 Total:    184 passed
@@ -145,7 +145,7 @@ Skipped:   16 (fixture-dependent)
 | Concurrent favorite quota bypass | P0-002 unit test (advisory lock) | Unit |
 | Concurrent task creation race | P0-003 unit test (createDedupTask) | Unit |
 | Non-admin imports articles | P1-002 (POST returns 403) | Unit |
-| Non-admin configures WeWe RSS | api-security (5 cases) | E2E |
+| Non-admin configures we-mp-rss | api-security (5 cases) | E2E |
 | Legacy null-owner data leak | P1-001 unit test (ownedResourceWhere) | Unit |
 | SSRF via image proxy | api-security (3 cases) | E2E |
 | USER generates cards | role-upgrade (403) | E2E |

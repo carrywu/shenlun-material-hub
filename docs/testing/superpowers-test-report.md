@@ -19,7 +19,7 @@
 
 ### Skipped Tests (17, all intentional)
 
-All skipped tests are conditional — they skip when prerequisites are not met (e.g. no candidate articles for AI assessment, WeWe RSS already available). These are by design, not failures.
+All skipped tests are conditional — they skip when prerequisites are not met (e.g. no candidate articles for AI assessment, we-mp-rss already available). These are by design, not failures.
 
 ---
 
@@ -53,7 +53,7 @@ The admin layout renders an outer `<main>` wrapper and an inner page-specific `<
 
 Solution: Changed `page.locator('main')` to `page.locator('main').first()` in all admin-page test assertions.
 
-Files modified: `tests/e2e/admin-content.spec.ts`, `tests/e2e/admin-ai-config.spec.ts`, `tests/e2e/admin-review.spec.ts`, `tests/e2e/ai-assessment.spec.ts`, `tests/e2e/loading-states.spec.ts`, `tests/e2e/sources.spec.ts`, `tests/e2e/wewe-rss.spec.ts`
+Files modified: `tests/e2e/admin-content.spec.ts`, `tests/e2e/admin-ai-config.spec.ts`, `tests/e2e/admin-review.spec.ts`, `tests/e2e/ai-assessment.spec.ts`, `tests/e2e/loading-states.spec.ts`, `tests/e2e/sources.spec.ts`, `tests/e2e/we-mp-rss.spec.ts`
 
 ---
 
@@ -86,7 +86,7 @@ Files modified: `tests/e2e/admin-content.spec.ts`, `tests/e2e/admin-ai-config.sp
 | permissions | 11 | Unauth/user/verified/admin access boundaries |
 | regression | 22 | All pages no white screen (20 routes + 3 public pages) |
 | sources | 1 | Source management page |
-| wewe-rss | 2 | WeWe RSS page, unavailability handling |
+| we-mp-rss | 2 | we-mp-rss page, unavailability handling |
 
 ### Files Changed Summary
 
@@ -103,4 +103,4 @@ Test code (9 files):
 - `tests/e2e/ai-assessment.spec.ts` — double-main selector fix
 - `tests/e2e/loading-states.spec.ts` — double-main selector fix
 - `tests/e2e/sources.spec.ts` — double-main selector fix
-- `tests/e2e/wewe-rss.spec.ts` — double-main selector fix
+- `tests/e2e/we-mp-rss.spec.ts` — double-main selector fix

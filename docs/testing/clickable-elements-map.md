@@ -172,13 +172,13 @@
 | 84 | 测试连接 | button | test button | 测试 API | ai-config.spec.ts |
 | 85 | 删除配置 | button | delete button | 删除 | (未测试) |
 
-## /admin/integrations/wewe-rss — WeWe RSS
+## /admin/integrations/we-mp-rss — we-mp-rss
 
 | # | 元素 | 类型 | Selector | 点击后预期 | 测试文件 |
 |---|------|------|----------|-----------|---------|
-| 86 | 测试连接 | button | test button | 测试连接 | wewe-rss.spec.ts |
-| 87 | 预览同步 | button | preview button | 预览 | wewe-rss.spec.ts |
-| 88 | 同步来源 | button | sync button | 同步 | wewe-rss.spec.ts |
+| 86 | 测试连接 | button | test button | 测试连接 | we-mp-rss.spec.ts |
+| 87 | 预览同步 | button | preview button | 预览 | we-mp-rss.spec.ts |
+| 88 | 同步来源 | button | sync button | 同步 | we-mp-rss.spec.ts |
 
 ## /settings — 设置首页
 

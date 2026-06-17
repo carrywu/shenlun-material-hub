@@ -205,23 +205,23 @@
 - 需求要求所有用户包括 ADMIN 都必须使用自己的 `ImaTarget`，不允许 env fallback。
 - 需求要求 IMA 同步文章 + 素材卡；当前主链路偏素材卡同步。
 
-### WeWe RSS 与来源
+### we-mp-rss 与来源
 
 证据：
 
-- `src/app/integrations/wewe-rss/page.tsx:1` 到 `src/app/integrations/wewe-rss/page.tsx:5` 公开路径直接 redirect 到后台管理路径。
-- `src/app/admin/integrations/wewe-rss/page.tsx`
-- `src/app/api/settings/integrations/wewe-rss/*`
-- `src/app/api/integrations/wewe-rss/*`
+- `src/app/integrations/we-mp-rss/page.tsx:1` 到 `src/app/integrations/we-mp-rss/page.tsx:5` 公开路径直接 redirect 到后台管理路径。
+- `src/app/admin/integrations/we-mp-rss/page.tsx`
+- `src/app/api/settings/integrations/we-mp-rss/*`
+- `src/app/api/integrations/we-mp-rss/*`
 
 当前实现：
 
-- `/integrations/wewe-rss` 当前直接 redirect 到 `/admin/integrations/wewe-rss`。
+- `/integrations/we-mp-rss` 当前直接 redirect 到 `/admin/integrations/we-mp-rss`。
 
 需求冲突：
 
-- `/integrations/wewe-rss` 应是公开权限说明页。
-- 真正管理和同步只允许 ADMIN 在 `/admin/integrations/wewe-rss`。
+- `/integrations/we-mp-rss` 应是公开权限说明页。
+- 真正管理和同步只允许 ADMIN 在 `/admin/integrations/we-mp-rss`。
 
 ### 管理后台
 
@@ -361,7 +361,7 @@
 | P0 | IMA fallback 到 env | `src/services/ima-sync.ts` | 用户数据同步到错误目标 |
 | P1 | 全局 read/bookmarked/ignored | `prisma/schema.prisma` | 多用户学习状态污染 |
 | P1 | Playwright globalSetup DB 连接关闭 | `src/scripts/seed-e2e-accounts.ts`, `e2e/global-setup.ts` | 阻塞浏览器证据采集 |
-| P1 | `/integrations/wewe-rss` 直接跳后台 | `src/app/integrations/wewe-rss/page.tsx` | 公开说明页缺失 |
+| P1 | `/integrations/we-mp-rss` 直接跳后台 | `src/app/integrations/we-mp-rss/page.tsx` | 公开说明页缺失 |
 | P1 | 后台用户删除仍存在 | `src/app/api/admin/users/[id]/route.ts` | 与“禁用优先”冲突 |
 | P1 | 旧路由仍存在 | `src/app/discover`, `src/app/explore`, `src/app/my-articles` | 前端 IA 分裂 |
 | P2 | 素材卡软删除缺模型字段 | `prisma/schema.prisma` | 无法实现归档箱 |
@@ -415,7 +415,7 @@
 | 私有学习状态 | 文章阅读/收藏/忽略仍有全局字段，收藏复习字段不足 | `prisma/schema.prisma:173`, `prisma/schema.prisma:254` | 已完成 |
 | 素材卡生命周期 | 有 owner 字段，缺软删除/归档字段 | `prisma/schema.prisma:235`, `prisma/schema.prisma:220` | 已完成 |
 | IMA | 用户 target 后仍 fallback env，不符合确认需求 | `src/services/ima-sync.ts:20`, `src/services/ima-sync.ts:40` | 已完成 |
-| WeWe RSS | 公开说明页缺失，路径直接跳后台 | `src/app/integrations/wewe-rss/page.tsx:1` | 已完成 |
+| we-mp-rss | 公开说明页缺失，路径直接跳后台 | `src/app/integrations/we-mp-rss/page.tsx:1` | 已完成 |
 | 后台用户 | 仍有物理删除，PUT malformed JSON 未统一 400 | `src/app/api/admin/users/[id]/route.ts:55`, `src/app/api/admin/users/[id]/route.ts:165` | 已完成 |
 | AdminLogs | React key warning 有明确代码位置 | `src/app/admin/logs/page.tsx:230` | 已完成 |
 | 测试基线 | lint/test/build 通过，Playwright 被 DB 阻塞 | 命令输出已写入本节 | 已完成 |

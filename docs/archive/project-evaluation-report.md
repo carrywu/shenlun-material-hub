@@ -35,7 +35,7 @@
 
 ### 支线链路（已打通但使用感受较差）
 
-- 微信公众号采集：通过 WeWe RSS sidecar 接入，需要 Docker 服务配合
+- 微信公众号采集：通过 we-mp-rss sidecar 接入，需要 Docker 服务配合
 - 探索区 (`/explore`)：展示未通过核验的内容，但与"今日推荐"区分不明
 - 复习模式 (`/review`)：按类型随机展示素材卡，逻辑简单但可用
 - 批注功能：文章详情页支持手动/AI 自动批注，功能完整
@@ -143,7 +143,7 @@
 
 ---
 
-### WeWe RSS 集成 (`/integrations/wewe-rss`)
+### we-mp-rss 集成 (`/integrations/we-mp-rss`)
 
 > 注意：该页面**没有出现在导航栏**，用户只能通过直接访问 URL 打开。
 
@@ -220,7 +220,7 @@
 | `GET/POST /api/ai-config` | AI 配置管理 | ✅ 是 | 无 | 保留 |
 | `GET/POST /api/ai-config/prompts` | Prompt 模板 | ✅ 是 | 无 | 保留 |
 | `POST /api/annotations/[id]` | 批注管理 | ✅ 是 | 无 | 保留 |
-| `POST /api/integrations/wewe-rss/sync-sources` | 同步 WeWe RSS 公众号 | ✅ 是（集成页） | 集成页入口不在导航栏 | 加入导航 |
+| `POST /api/integrations/we-mp-rss/sync-sources` | 同步 we-mp-rss 公众号 | ✅ 是（集成页） | 集成页入口不在导航栏 | 加入导航 |
 | `GET /api/proxy/image` | 微信图片代理 | ✅ 是 | 无 | 保留 |
 | `GET/POST /api/admin/clean` | 数据清洗 | ✅ 是（admin 页） | admin 页在主导航 | 移至管理后台 |
 | `GET /api/sources` | 来源列表 | ✅ 是 | 无 | 保留 |
@@ -237,8 +237,8 @@
 - ✅ 通过 `registry.ts` 按 source name 匹配
 - ⚠️ 栏目（CollectionChannel）配置后，采集器内部是否真正按栏目 URL 分页采集需要实际测试
 
-**微信采集**（WeWe RSS）：
-- ✅ 完整打通，需要 WeWe RSS Docker 服务
+**微信采集**（we-mp-rss）：
+- ✅ 完整打通，需要 we-mp-rss Docker 服务
 - ✅ 有 fallback（WeRSS 外部服务）
 
 **B站/小红书**（MediaCrawler）：
@@ -328,7 +328,7 @@
 | 历史兼容字段 | `prisma/schema.prisma` - `Source.sourceGrade`、`hitRate`、`filterRate`、`effectiveRate` | 来源质量指标，代码中无更新逻辑 | 确认是否有计划实现，否则移除 | P3 |
 | 数据库注释不一致 | `prisma/schema.prisma` L163 | `MaterialCard.cardType` 注释写"5 种"，实际支持 10 种 | 更新注释 | P3 |
 | 配置字段空接口 | `export/route.ts`、`sync/route.ts` | 是否有前端调用？未找到明确入口 | 需确认是否废弃 | P2 |
-| 隐藏页面 | `/integrations/wewe-rss` | 功能完整但导航栏无入口，用户无法发现 | 加入导航或在来源管理页提供入口 | P1 |
+| 隐藏页面 | `/integrations/we-mp-rss` | 功能完整但导航栏无入口，用户无法发现 | 加入导航或在来源管理页提供入口 | P1 |
 
 ---
 
@@ -340,7 +340,7 @@
 pnpm lint    → 20 warnings (全部 warning，无 error)   ✅ 通过
 pnpm test    → 20 test files, 137 tests 全部通过       ✅ 通过
 pnpm build   → 未在本次评估中运行（上次 build 通过）
-E2E tests    → 3 spec files（ui-chinese-integrity、article-detail-content、subscriptions-wewe-rss）
+E2E tests    → 3 spec files（ui-chinese-integrity、article-detail-content、subscriptions-we-mp-rss）
 ```
 
 ### 当前测试覆盖
@@ -348,8 +348,8 @@ E2E tests    → 3 spec files（ui-chinese-integrity、article-detail-content、
 | 覆盖范围 | 状态 |
 |---|---|
 | 微信采集解析 (`wechatParser`) | ✅ 11 个测试 |
-| WeWe RSS 集成 | ✅ 10 个测试 |
-| WeWe RSS SQLite 接入 | ✅ 3 个测试 |
+| we-mp-rss 集成 | ✅ 10 个测试 |
+| we-mp-rss SQLite 接入 | ✅ 3 个测试 |
 | WeRSS 同步路由 | ✅ 13 个测试 |
 | 微信导入路由 | ✅ 10 个测试 |
 | AI 配置路由 | ✅ 2 个测试 |
@@ -394,7 +394,7 @@ E2E tests    → 3 spec files（ui-chinese-integrity、article-detail-content、
 | 批量生成调错接口 | 🔴 高 | 用户以为生成了素材卡，实际没有执行 AI，无任何提示 |
 | B站/小红书入口无前置提示 | 🔴 高 | 用户点击采集直接收到 503 错误，体验极差 |
 | 评估结果大量字段从未展示 | 🟡 中 | 浪费 AI 调用，用户无法看到评估细节 |
-| WeWe RSS 集成页无导航入口 | 🟡 中 | 功能存在但用户无法发现 |
+| we-mp-rss 集成页无导航入口 | 🟡 中 | 功能存在但用户无法发现 |
 | 来源质量指标字段无更新逻辑 | 🟡 中 | `hitRate`、`sourceGrade` 等字段永远是默认值 |
 | 旧版评分死代码 | 🟢 低 | 不影响功能，但增加维护成本 |
 | `data_fact` 废弃类型残留在多处注释和映射 | 🟢 低 | 已有向后兼容映射（`data_fact → 案例素材`），不影响功能 |
@@ -412,7 +412,7 @@ E2E tests    → 3 spec files（ui-chinese-integrity、article-detail-content、
 ### P1：优先修（影响主要使用体验）
 
 3. **文章详情页展示 AI 评估结果**：在侧边栏展示 `aiCategories`（主题标签）、`aiUsableFor`（可用场景）、`aiQuotes`（金句预览）——字段已有，只需加 JSX
-4. **WeWe RSS 集成页加入导航栏**：在 `layout.tsx` 的 `navItems` 中增加"微信集成"入口
+4. **we-mp-rss 集成页加入导航栏**：在 `layout.tsx` 的 `navItems` 中增加"微信集成"入口
 5. **今日推荐/探索区区分说明**：给两个页面加页面级别说明文案，帮助用户理解区别
 
 ### P2：继续优化（提升体验）
@@ -441,7 +441,7 @@ E2E tests    → 3 spec files（ui-chinese-integrity、article-detail-content、
 1. 修复文章列表"批量生成"逻辑（调正确接口）
 2. B站/小红书添加前置说明 banner 或暂时隐藏
 3. 文章详情侧边栏展示 aiCategories、aiUsableFor、aiQuotes
-4. 导航栏增加"微信集成"入口（指向 /integrations/wewe-rss）
+4. 导航栏增加"微信集成"入口（指向 /integrations/we-mp-rss）
 ```
 
 ### 第二阶段（3-5 天）：体验打磨
@@ -520,7 +520,7 @@ pnpm test
 | `SyncToIma.tsx` | `cardTitle` 定义未使用 |
 | `collectors/web/*.ts` | `source` 参数定义未使用（多个采集器） |
 | `sync-sources/route.ts` | `message` 变量赋值未使用 |
-| `wewe-rss.test.ts` | `urlWithQuery` 赋值未使用 |
+| `we-mp-rss.test.ts` | `urlWithQuery` 赋值未使用 |
 
 ---
 

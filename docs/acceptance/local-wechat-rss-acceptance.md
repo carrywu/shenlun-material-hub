@@ -16,7 +16,7 @@ cd /path/to/shenlun-material-hub
 pnpm install
 
 # 检查端口
-lsof -i :4000           # WeWe RSS 端口，应为空
+lsof -i :4000           # we-mp-rss 端口，应为空
 lsof -i :3001           # shenlun-material-hub 端口，应为空
 ```
 
@@ -28,10 +28,10 @@ lsof -i :3001           # shenlun-material-hub 端口，应为空
 
 ---
 
-## 2. 启动 WeWe RSS
+## 2. 启动 we-mp-rss
 
 ```bash
-cd infra/wechat-rss/wewe-rss
+cd infra/wechat-rss/we-mp-rss
 
 # 复制环境变量
 cp .env.example .env
@@ -46,7 +46,7 @@ docker compose up -d
 docker compose ps
 ```
 
-预期输出：`wewe-rss` 容器状态为 `running`，端口映射 `0.0.0.0:4000->4000/tcp`。
+预期输出：`we-mp-rss` 容器状态为 `running`，端口映射 `0.0.0.0:4000->4000/tcp`。
 
 - [ ] `.env` 已创建
 - [ ] `AUTH_CODE` 已修改
@@ -55,9 +55,9 @@ docker compose ps
 
 ---
 
-## 3. 登录 WeWe RSS
+## 3. 登录 we-mp-rss
 
-1. 浏览器打开 http://localhost:4000
+1. 浏览器打开 http://localhost:8001
 2. 输入你在 `.env` 中设置的 `AUTH_CODE`
 3. 按页面提示完成微信读书扫码登录
 4. **重要**：扫码时不要勾选"24 小时后自动退出"
@@ -70,14 +70,14 @@ docker compose ps
 
 ## 4. 添加公众号
 
-1. 在 WeWe RSS 后台搜索你要订阅的微信公众号
+1. 在 we-mp-rss 后台搜索你要订阅的微信公众号
 2. 点击添加/订阅
 3. 等待文章同步（首次可能需要几分钟）
 4. 在公众号详情页复制 RSS 地址
 
 RSS 地址格式如：
 ```
-http://localhost:4000/feeds/MP_WXS_xxx.rss
+http://localhost:8001/feeds/MP_WXS_xxx.rss
 ```
 
 - [ ] 公众号搜索成功
@@ -108,7 +108,7 @@ pnpm dev
 3. 填写：
    - **名称**：任意（如"人民日报公众号"）
    - **平台**：wechat
-   - **基础 URL**：粘贴 WeWe RSS 的 RSS 地址
+   - **基础 URL**：粘贴 we-mp-rss 的 RSS 地址
 4. 保存
 
 填入 RSS 地址后，应能看到帮助文案提示"以 http(s):// 开头的地址走标准 RSS 解析"。
@@ -142,7 +142,7 @@ pnpm dev
 
 验收标准：
 - [ ] 文章能出现在列表中
-- [ ] title 正确（与 WeWe RSS 后台显示一致）
+- [ ] title 正确（与 we-mp-rss 后台显示一致）
 - [ ] originalUrl 正确（指向 mp.weixin.qq.com）
 - [ ] fullText 有正文内容（非空）
 - [ ] coverUrl 如 RSS feed 提供则能保存
@@ -170,7 +170,7 @@ pnpm dev
 
 ## 常见失败与处理
 
-### 1. localhost:4000 打不开
+### 1. localhost:8001 打不开
 
 ```bash
 docker compose ps                    # 检查容器状态
@@ -201,16 +201,16 @@ docker compose up -d
 
 ### 5. RSS 地址为空
 
-在 WeWe RSS 后台确认公众号已成功添加且有文章。RSS 地址在公众号详情页显示。
+在 we-mp-rss 后台确认公众号已成功添加且有文章。RSS 地址在公众号详情页显示。
 
 ### 6. 主项目采集失败
 
 ```bash
 # 检查 RSS 地址是否可访问
-curl http://localhost:4000/feeds/MP_WXS_xxx.rss
+curl http://localhost:8001/feeds/MP_WXS_xxx.rss
 
-# 检查 WeWe RSS 日志
-cd infra/wechat-rss/wewe-rss
+# 检查 we-mp-rss 日志
+cd infra/wechat-rss/we-mp-rss
 docker compose logs --tail=50
 ```
 
@@ -226,7 +226,7 @@ docker compose logs --tail=50
 
 ### 9. 正文太短被过滤
 
-shenlun-material-hub 对全文不足 300 字的文章标记为 `filtered`。这是正常行为，不是错误。确认 WeWe RSS 配置了 `FEED_MODE=fulltext`。
+shenlun-material-hub 对全文不足 300 字的文章标记为 `filtered`。这是正常行为，不是错误。确认 we-mp-rss 配置了 `FEED_MODE=fulltext`。
 
 ### 10. Docker 数据清理
 
@@ -245,7 +245,7 @@ rm -rf ./data
 
 ### 背景
 
-微信公众号文章通过 WeWe RSS 采集后，`fullText` 字段可能包含未清洗的 HTML（如 `<!DOCTYPE html>`、`<html>`、`<head>`、`<script>` 等标签）。`scripts/repair-wechat-content.ts` 脚本用于批量修复这些脏数据。
+微信公众号文章通过 we-mp-rss 采集后，`fullText` 字段可能包含未清洗的 HTML（如 `<!DOCTYPE html>`、`<html>`、`<head>`、`<script>` 等标签）。`scripts/repair-wechat-content.ts` 脚本用于批量修复这些脏数据。
 
 ### 11.1 dry-run 使用方法
 

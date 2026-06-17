@@ -20,7 +20,7 @@
 - `/review` — 复习页
 - `/subscriptions` — 订阅页
 - `/sync-records` — 同步记录
-- `/integrations/wewe-rss` — WeWe RSS 集成
+- `/integrations/we-mp-rss` — we-mp-rss 集成
 
 ### 设置页面
 - `/settings` — 设置中心
@@ -39,7 +39,7 @@
 - `/admin/sync-records` — 同步记录
 - `/admin/backup` — 备份/恢复
 - `/admin/clean` — 数据清理
-- `/admin/integrations/wewe-rss` — WeWe RSS 管理
+- `/admin/integrations/we-mp-rss` — we-mp-rss 管理
 - `/admin/settings/ai` — AI 设置
 - `/admin/settings/quotas` — 配额管理
 
@@ -108,7 +108,7 @@
 - `admin-review.spec.ts` — 管理员审核
 - `admin-ai-config.spec.ts` — AI 配置
 - `sources.spec.ts` — 采集源
-- `wewe-rss.spec.ts` — WeWe RSS
+- `we-mp-rss.spec.ts` — we-mp-rss
 - `permissions.spec.ts` — 权限边界
 - `loading-states.spec.ts` — Loading 卡死专项
 - `api-errors.spec.ts` — API 异常处理

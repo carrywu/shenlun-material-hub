@@ -10,7 +10,7 @@
 ## 阶段 0：测试可信度修复（前置）
 
 - [x] T0-1：修复 `e2e/admin.spec.ts` 永真断言 ✅ `397cb6c`
-- [x] T0-2：修复 `e2e/wewe-rss.spec.ts` 永真断言 ✅ `397cb6c`
+- [x] T0-2：修复 `e2e/we-mp-rss.spec.ts` 永真断言 ✅ `397cb6c`
 - [x] T0-3：修复 `e2e/ai-config.spec.ts` 永真断言 ✅ `397cb6c`
 - [x] T0-4：修复 `e2e/middleware.spec.ts` 受保护页面测试继承 admin cookie ✅ `397cb6c`
 - [x] T0-5：修复 `e2e/api-security.spec.ts` 公开 API 断言不一致 ✅ `397cb6c`
@@ -81,7 +81,7 @@
 - [x] P3-9：SHA-256 比较消除长度泄露 ✅ `6523417`
 - [x] P3-10：改密码保留当前会话 ✅ `6523417`
 - [x] P3-11：永真断言修复（admin.spec.ts）✅ `397cb6c`（T0 已完成）
-- [x] P3-12：永真断言修复（wewe-rss.spec.ts）✅ `397cb6c`（T0 已完成）
+- [x] P3-12：永真断言修复（we-mp-rss.spec.ts）✅ `397cb6c`（T0 已完成）
 - [x] P3-13：受保护页面测试继承 admin cookie ✅ `397cb6c`（T0 已完成）
 - [x] P3-14：SyncToIma 权限扩展 VERIFIED_USER ✅ `6523417`
 - [x] P3-15：注册页用 Input 组件 ✅ `6523417`

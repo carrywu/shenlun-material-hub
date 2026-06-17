@@ -66,7 +66,7 @@ pnpm exec playwright show-report   # 查看报告
 | 21 | `/admin/clean` | admin.spec.ts | 4 | ✅ |
 | 22 | `/admin/settings/ai` | ai-config.spec.ts | 6 | ✅ |
 | 23 | `/settings/ai` | ai-config.spec.ts | 1 | ✅ |
-| 24 | `/admin/integrations/wewe-rss` | wewe-rss.spec.ts | 6 | ✅ |
+| 24 | `/admin/integrations/we-mp-rss` | we-mp-rss.spec.ts | 6 | ✅ |
 | 25 | `/admin/sources` | sources.spec.ts | 6 | ✅ |
 | 26 | `/admin/sync-records` | sync-records.spec.ts | 4 | ✅ |
 | 27 | 所有公开/受保护路由 | middleware.spec.ts | 14 | ✅ |
@@ -132,7 +132,7 @@ a11y 扫描发现以下需要修复的违规，已作为 attachment 附加到测
 | 11 | review.spec.ts | 8 | 复习/模式切换/展开折叠/加载 |
 | 12 | admin.spec.ts | 20 | 管理后台 6 页面/用户CRUD/备份/清洗 |
 | 13 | ai-config.spec.ts | 7 | AI 配置/提示词/mock 测试连接 |
-| 14 | wewe-rss.spec.ts | 6 | WeWe RSS 集成 |
+| 14 | we-mp-rss.spec.ts | 6 | we-mp-rss 集成 |
 | 15 | settings.spec.ts | 7 | 设置首页/账号/IMA |
 | 16 | dead-link.spec.ts | 22 | 所有路由死链检查 |
 | 17 | accessibility.spec.ts | 24 | 所有路由 WCAG 2.x a11y 扫描 + 键盘导航 + 表单 label |

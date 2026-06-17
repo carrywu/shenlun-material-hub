@@ -27,7 +27,7 @@
       "status": 200,
       "finalUrl": "http://localhost:3001/admin/sources",
       "h1": "来源管理",
-      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 来源管理 系统状态: 正常运行 当前时间: 2026/6/6 来源管理 管理内容采集来源，配置平台、信任等级与核验状态 刷新 刷新质量 同步 WeWe 新建来源 全部平台 全部类型 全部等级 全部状态 全部 名称 平台 来源 内容类型 信任等级 质量 优先级 频率 最近采集 启用 核验 条目 操作 隔壁班学习园地 http://localhost:4000/feeds/MP_WXS_3280082932.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 2026/6/4 未核验 10 茂名社科 http://localhost:4000/feeds/MP_WXS_3886164949.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 半月谈公考 http://localhost:4000/feeds/MP_WXS_3236953033.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 学习强国 http://localhost:4000/feeds/MP_WXS_3878251562.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 南方日报 http://localhost:4000/feeds/MP_WXS_2106247381.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 人民日报评论 http://localhost:4000/feeds/MP_WXS_3089222529.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 ",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 来源管理 系统状态: 正常运行 当前时间: 2026/6/6 来源管理 管理内容采集来源，配置平台、信任等级与核验状态 刷新 刷新质量 同步 WeWe 新建来源 全部平台 全部类型 全部等级 全部状态 全部 名称 平台 来源 内容类型 信任等级 质量 优先级 频率 最近采集 启用 核验 条目 操作 隔壁班学习园地 http://localhost:8001/feeds/MP_WXS_3280082932.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 2026/6/4 未核验 10 茂名社科 http://localhost:8001/feeds/MP_WXS_3886164949.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 未采集 未核验 0 半月谈公考 http://localhost:8001/feeds/MP_WXS_3236953033.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 未采集 未核验 0 学习强国 http://localhost:8001/feeds/MP_WXS_3878251562.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 未采集 未核验 0 南方日报 http://localhost:8001/feeds/MP_WXS_2106247381.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 未采集 未核验 0 人民日报评论 http://localhost:8001/feeds/MP_WXS_3089222529.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 未采集 ",
       "visibleLogin": false,
       "visibleError": false,
       "visible404": false
@@ -73,11 +73,11 @@
       "visible404": false
     },
     {
-      "route": "/admin/integrations/wewe-rss",
+      "route": "/admin/integrations/we-mp-rss",
       "status": 200,
-      "finalUrl": "http://localhost:3001/admin/integrations/wewe-rss",
+      "finalUrl": "http://localhost:3001/admin/integrations/we-mp-rss",
       "h1": "微信集成",
-      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 微信集成 系统状态: 正常运行 当前时间: 2026/6/6 WeWe RSS 集成 管理本地 WeWe RSS 服务连接，同步公众号列表 连接状态 已连接 WeWe RSS 服务可访问，已订阅 9 个公众号 测试连接 已订阅 9 个公众号 同步公众号列表 从 WeWe RSS 同步订阅的公众号到申论项目的来源列表。优先使用 API，SQLite 只读兜底。 预览同步 同步公众号列表 打开 WeWe 后台 工作原理 1. WeWe RSS 是独立的 Docker 服务，负责微信读书登录和公众号订阅 2. 申论项目通过 HTTP API 或 SQLite 只读方式获取订阅列表 3. 点击\"刷新并采集\"时，会先请求 WeWe RSS 更新 feed，再采集入库 4. 同步时发现 WeWe RSS 已删除的公众号，会提示确认后再删除 5. 手动添加的来源不会被同步删除",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 微信集成 系统状态: 正常运行 当前时间: 2026/6/6 we-mp-rss 集成 管理本地 we-mp-rss 服务连接，同步公众号列表 连接状态 已连接 we-mp-rss 服务可访问，已订阅 9 个公众号 测试连接 已订阅 9 个公众号 同步公众号列表 从 we-mp-rss 同步订阅的公众号到申论项目的来源列表。优先使用 API，SQLite 只读兜底。 预览同步 同步公众号列表 打开 WeWe 后台 工作原理 1. we-mp-rss 是独立的 Docker 服务，负责微信读书登录和公众号订阅 2. 申论项目通过 HTTP API 或 SQLite 只读方式获取订阅列表 3. 点击\"刷新并采集\"时，会先请求 we-mp-rss 更新 feed，再采集入库 4. 同步时发现 we-mp-rss 已删除的公众号，会提示确认后再删除 5. 手动添加的来源不会被同步删除",
       "visibleLogin": false,
       "visibleError": false,
       "visible404": false
@@ -117,7 +117,7 @@
       "status": 200,
       "finalUrl": "http://localhost:3001/settings",
       "h1": "个人设置",
-      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 个人设置 管理你的 AI 配置、IMA 同步目标和集成设置 账号设置 查看账号信息、修改密码。 AI 配置 配置 AI 模型、API Key 和参数。用于内容评估、素材卡生成和智能批注。 IMA 知识库 配置 IMA 知识库目标，同步已确认的素材卡到腾讯 IMA 知识库。 外部集成 WeWe RSS、外部 WeRSS 等集成配置。 当前账号 用户名：admin 角色：管理员 → 前往管理后台",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 个人设置 管理你的 AI 配置、IMA 同步目标和集成设置 账号设置 查看账号信息、修改密码。 AI 配置 配置 AI 模型、API Key 和参数。用于内容评估、素材卡生成和智能批注。 IMA 知识库 配置 IMA 知识库目标，同步已确认的素材卡到腾讯 IMA 知识库。 外部集成 we-mp-rss、外部 WeRSS 等集成配置。 当前账号 用户名：admin 角色：管理员 → 前往管理后台",
       "visibleLogin": false,
       "visibleError": false,
       "visible404": false
@@ -157,7 +157,7 @@
       "status": 200,
       "finalUrl": "http://localhost:3001/admin/sources",
       "h1": "来源管理",
-      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 来源管理 系统状态: 正常运行 当前时间: 2026/6/6 来源管理 管理内容采集来源，配置平台、信任等级与核验状态 刷新 刷新质量 同步 WeWe 新建来源 全部平台 全部类型 全部等级 全部状态 全部 名称 平台 来源 内容类型 信任等级 质量 优先级 频率 最近采集 启用 核验 条目 操作 隔壁班学习园地 http://localhost:4000/feeds/MP_WXS_3280082932.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 2026/6/4 未核验 10 茂名社科 http://localhost:4000/feeds/MP_WXS_3886164949.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 半月谈公考 http://localhost:4000/feeds/MP_WXS_3236953033.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 学习强国 http://localhost:4000/feeds/MP_WXS_3878251562.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 南方日报 http://localhost:4000/feeds/MP_WXS_2106247381.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 未核验 0 人民日报评论 http://localhost:4000/feeds/MP_WXS_3089222529.rss 微信 WeWe RSS 政策解读 未验证 - P2 - 未采集 ",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 来源管理 系统状态: 正常运行 当前时间: 2026/6/6 来源管理 管理内容采集来源，配置平台、信任等级与核验状态 刷新 刷新质量 同步 WeWe 新建来源 全部平台 全部类型 全部等级 全部状态 全部 名称 平台 来源 内容类型 信任等级 质量 优先级 频率 最近采集 启用 核验 条目 操作 隔壁班学习园地 http://localhost:8001/feeds/MP_WXS_3280082932.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 2026/6/4 未核验 10 茂名社科 http://localhost:8001/feeds/MP_WXS_3886164949.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 未采集 未核验 0 半月谈公考 http://localhost:8001/feeds/MP_WXS_3236953033.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 未采集 未核验 0 学习强国 http://localhost:8001/feeds/MP_WXS_3878251562.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 未采集 未核验 0 南方日报 http://localhost:8001/feeds/MP_WXS_2106247381.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 未采集 未核验 0 人民日报评论 http://localhost:8001/feeds/MP_WXS_3089222529.rss 微信 we-mp-rss 政策解读 未验证 - P2 - 未采集 ",
       "visibleLogin": false,
       "visibleError": false,
       "visible404": false
@@ -173,11 +173,11 @@
       "visible404": true
     },
     {
-      "route": "/integrations/wewe-rss",
+      "route": "/integrations/we-mp-rss",
       "status": 200,
-      "finalUrl": "http://localhost:3001/admin/integrations/wewe-rss",
+      "finalUrl": "http://localhost:3001/admin/integrations/we-mp-rss",
       "h1": "微信集成",
-      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 微信集成 系统状态: 正常运行 当前时间: 2026/6/6 WeWe RSS 集成 管理本地 WeWe RSS 服务连接，同步公众号列表 连接状态 已连接 WeWe RSS 服务可访问，已订阅 9 个公众号 测试连接 已订阅 9 个公众号 同步公众号列表 从 WeWe RSS 同步订阅的公众号到申论项目的来源列表。优先使用 API，SQLite 只读兜底。 预览同步 同步公众号列表 打开 WeWe 后台 工作原理 1. WeWe RSS 是独立的 Docker 服务，负责微信读书登录和公众号订阅 2. 申论项目通过 HTTP API 或 SQLite 只读方式获取订阅列表 3. 点击\"刷新并采集\"时，会先请求 WeWe RSS 更新 feed，再采集入库 4. 同步时发现 WeWe RSS 已删除的公众号，会提示确认后再删除 5. 手动添加的来源不会被同步删除",
+      "textSample": "申论素材采集台 仪表板 今日推荐 探索区 文章列表 素材卡 检索 复习 设置 管理员 管理后台 admin 退出 申论素材后台 管理控制台 系统概览 文章管理 来源管理 微信集成 同步记录 异步任务 系统日志 AI 配置 数据备份 数据清洗 用户管理 返回前台学习区 admin 在线 微信集成 系统状态: 正常运行 当前时间: 2026/6/6 we-mp-rss 集成 管理本地 we-mp-rss 服务连接，同步公众号列表 连接状态 已连接 we-mp-rss 服务可访问，已订阅 9 个公众号 测试连接 已订阅 9 个公众号 同步公众号列表 从 we-mp-rss 同步订阅的公众号到申论项目的来源列表。优先使用 API，SQLite 只读兜底。 预览同步 同步公众号列表 打开 WeWe 后台 工作原理 1. we-mp-rss 是独立的 Docker 服务，负责微信读书登录和公众号订阅 2. 申论项目通过 HTTP API 或 SQLite 只读方式获取订阅列表 3. 点击\"刷新并采集\"时，会先请求 we-mp-rss 更新 feed，再采集入库 4. 同步时发现 we-mp-rss 已删除的公众号，会提示确认后再删除 5. 手动添加的来源不会被同步删除",
       "visibleLogin": false,
       "visibleError": false,
       "visible404": false

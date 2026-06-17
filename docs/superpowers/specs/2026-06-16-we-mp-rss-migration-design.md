@@ -5,11 +5,11 @@
 
 ## Context
 
-WeWe RSS（cooderl/wewe-rss）已于 2026-05-11 归档停更。其 SQLite `articles` 表仅存储元数据，不保存文章内容。内容仅在 RSS feed 请求时按需获取，若被微信风控拦截则内容永久丢失。
+we-mp-rss（cooderl/we-mp-rss）已于 2026-05-11 归档停更。其 SQLite `articles` 表仅存储元数据，不保存文章内容。内容仅在 RSS feed 请求时按需获取，若被微信风控拦截则内容永久丢失。
 
 迁移目标：切换到 [we-mp-rss](https://github.com/rachelos/we-mp-rss)（rachelos/we-mp-rss），该项目的 `articles` 表包含 `content` 和 `content_html` 列，持久存储文章正文，并有自动补抓机制（`content_auto_check` + `fix_fail_count`）。
 
-**迁移方式**：完全替换 WeWe RSS，不保留回退能力（D1）。
+**迁移方式**：完全替换 we-mp-rss，不保留回退能力（D1）。
 
 ---
 
@@ -19,7 +19,7 @@ WeWe RSS（cooderl/wewe-rss）已于 2026-05-11 归档停更。其 SQLite `artic
 
 | # | 决策 | 内容 |
 |---|------|------|
-| D1 | 迁移方式 | 完全替换 WeWe RSS，不保留回退 |
+| D1 | 迁移方式 | 完全替换 we-mp-rss，不保留回退 |
 | D2 | 同步策略 | API-First，不再依赖 RSS feed 解析 |
 | D3 | HTML 清洗 | we-mp-rss 负责（`clean_html: True`），本项目不做完整清洗 |
 | D4 | wechatParser.ts | 移除，手动导入走 we-mp-rss API |
@@ -33,7 +33,7 @@ WeWe RSS（cooderl/wewe-rss）已于 2026-05-11 归档停更。其 SQLite `artic
 | D12 | Source.provider | 只保留 `"we-mp-rss"` 和 `null`（手动） |
 | D13 | 前端路由 | `/admin/integrations/wechat-rss`，API 路由 `/api/integrations/wechat-rss/` |
 | D14 | UserIntegration.config | 新增 accessKey/secretKey，移除旧 apiKey |
-| D15 | WEWERSS_BASE_URL | 去掉硬编码默认值，必须配置 |
+| D15 | WE_MP_RSS_BASE_URL | 去掉硬编码默认值，必须配置 |
 | D16 | SQLite fallback | 读 feeds 列表 + 文章内容 |
 | D17 | 迁移脚本 | 一个脚本，`--dry-run` / `--apply` |
 | D18 | 前端组件 | `WechatIntegrationPage.tsx`（去掉 Rss 后缀） |
@@ -149,7 +149,7 @@ Authorization: AK-SK {access_key}:{secret_key}
 
 | 旧变量 | 新变量 | 说明 |
 |--------|--------|------|
-| WEWERSS_BASE_URL | WE_MP_RSS_BASE_URL | 必须配置，无默认值，运行时校验 |
+| WE_MP_RSS_BASE_URL | WE_MP_RSS_BASE_URL | 必须配置，无默认值，运行时校验 |
 | WERSS_BASE_URL | 删除 | SaaS 已废弃 |
 | WERSS_ACCESS_KEY | WE_MP_RSS_ACCESS_KEY | |
 | WERSS_SECRET_KEY | WE_MP_RSS_SECRET_KEY | |
@@ -161,12 +161,12 @@ Authorization: AK-SK {access_key}:{secret_key}
 
 | 表 | 字段 | 旧值 | 新值 |
 |----|------|------|------|
-| Source | provider | "wewe-rss" | "we-mp-rss" |
+| Source | provider | "we-mp-rss" | "we-mp-rss" |
 | Source | provider | "werss-external" | 软删除（设 archivedAt） |
 | Source | baseUrl | `{old}:4000/feeds/{id}.rss` | `{new}:8001` |
 | ContentItem | discoveryChannel | "werss" | "wechat-api" |
 | AsyncTask | type | "WEWE_RSS_SYNC" | "WECHAT_SYNC" |
-| UserIntegration | provider | "wewe-rss" | "we-mp-rss" |
+| UserIntegration | provider | "we-mp-rss" | "we-mp-rss" |
 | UserIntegration | config | {baseUrl, dbPath, syncMode} | {baseUrl, dbPath, accessKey, secretKey, syncMode} |
 | CollectorRun | collectorType | "werss" | "wechat-api" |
 

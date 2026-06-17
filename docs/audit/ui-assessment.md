@@ -111,7 +111,7 @@
 - `/subscriptions` — 订阅管理
 - `/sync-records` — 同步记录
 - `/settings/*` — 设置（account/ai/ima/integrations）
-- `/integrations/wewe-rss` — WeWeRSS 集成
+- `/integrations/we-mp-rss` — WeWeRSS 集成
 
 **后台页面（14 个）：**
 - `/admin` — 管理后台首页（概览）
@@ -124,7 +124,7 @@
 - `/admin/backup` — 数据备份
 - `/admin/clean` — 数据清洗
 - `/admin/users` — 用户管理
-- `/admin/integrations/wewe-rss` — 微信集成
+- `/admin/integrations/we-mp-rss` — 微信集成
 - `/admin/settings/ai` — AI 配置
 - `/admin/settings/quotas` — 配额管理
 

@@ -107,5 +107,5 @@ claude mcp list
 
 - 不把生产库路径配置给只读 MCP，除非任务明确授权。
 - 不通过 MCP 打印 API Key、Cookie、Token、`.env` 内容。
-- 不把 WeWe RSS sidecar 数据库作为写入目标。
+- 不把 we-mp-rss sidecar 数据库作为写入目标。
 - MCP 发现的问题必须回写到任务 `journal.md`、`validation.md` 或 `handoff.md`。

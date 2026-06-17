@@ -5,7 +5,7 @@
 - Node.js 18+
 - pnpm 8+
 - PostgreSQL 16
-- （可选）WeWe RSS sidecar 用于微信公众号采集
+- （可选）we-mp-rss sidecar 用于微信公众号采集
 
 ## 部署步骤
 

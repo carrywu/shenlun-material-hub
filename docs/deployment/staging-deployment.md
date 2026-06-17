@@ -15,7 +15,7 @@
 | 上传目录 | ECS `./data/uploads` | Linux 机 `./data-staging/uploads` |
 | 访问 | 公网 `http://47.119.182.210`（Caddy 反代 + HTTPS） | 仅 Tailscale `http://100.117.96.1:3001`（无 Caddy） |
 | 密钥 | `.env.production`（ECS 本地） | `.env.staging`（Linux 机本地） |
-| wewe-rss | ECS 生产实例（端口 4000） | 独立实例（端口 4000，需重新扫码登录） |
+| we-mp-rss | ECS 生产实例（端口 4000） | 独立实例（端口 4000，需重新扫码登录） |
 
 **核心隔离原则**：staging 不连生产数据库、不用生产上传目录、不暴露公网、密钥独立。
 
@@ -70,12 +70,12 @@ ssh carry.117.96.1 'echo OK'
 
 如果不在意自动化，跳过这步，全程 ssh 进 Linux 机手动跑脚本即可。
 
-### 2.4 检查 4000 端口空闲（wewe-rss 用）
+### 2.4 检查 4000 端口空闲（we-mp-rss 用）
 
 ```bash
 # 在 Linux 机上
 ss -lntp | grep :4000 || echo "4000 空闲，OK"
-# 如果有占用，需先停掉占用进程，或改 docker-compose.staging.yml 的 wewe-rss 端口
+# 如果有占用，需先停掉占用进程，或改 docker-compose.staging.yml 的 we-mp-rss 端口
 ```
 
 ---
@@ -88,7 +88,7 @@ ss -lntp | grep :4000 || echo "4000 空闲，OK"
 |---|---|
 | staging 后台 | `http://100.117.96.1:3001` |
 | 健康检查 | `http://100.117.96.1:3001/api/health` |
-| wewe-rss 扫码配置 | `http://100.117.96.1:4000` |
+| we-mp-rss 扫码配置 | `http://100.117.96.1:4000` |
 
 如果访问失败，按顺序排查：
 
@@ -132,7 +132,7 @@ ssh carry.117.96.1 'sudo ufw status'
 
 Docker volumes（由 docker compose 管理）:
 - pgdata_staging                           # staging 独立 PG 数据
-- wewe_data_staging                        # staging 独立 wewe-rss 数据
+- wewe_data_staging                        # staging 独立 we-mp-rss 数据
 ```
 
 ---
@@ -161,7 +161,7 @@ nano .env.staging
 
 # 4. 一键部署
 bash scripts/deploy-staging.sh
-#    流程：build → up postgres → migrate → seed:admin → up app+wewe-rss → health check
+#    流程：build → up postgres → migrate → seed:admin → up app+we-mp-rss → health check
 
 # 5. 健康检查
 bash scripts/check-staging.sh
@@ -261,7 +261,7 @@ pnpm test:e2e
 | migrate 报 `relation already exists` | PG volume 有脏数据；`docker volume rm shenlun-staging_pgdata_staging` 后重部署 |
 | seed-admin 失败 | 宿主机 Node/pnpm 装了吗？`DATABASE_URL` 指向 `127.0.0.1:5433`？`.env.staging` 密码填了吗？ |
 | seed-role-quotas 失败 | 先 `source .env.staging` 再跑 `npx tsx src/scripts/seed-role-quotas.ts`；确保 `prisma generate` 已执行 |
-| wewe-rss 采不到文章 | Mac 浏览器开 `http://100.117.96.1:4000` 检查是否已微信扫码登录；wewe-rss 服务器 IP 可能被微信风控 |
+| we-mp-rss 采不到文章 | Mac 浏览器开 `http://100.117.96.1:4000` 检查是否已微信扫码登录；we-mp-rss 服务器 IP 可能被微信风控 |
 | 4000 端口被占 | `ss -lntp \| grep :4000` 找占用进程；停掉或改 compose 端口 |
 | ssh 免密失败 | Mac `ssh-copy-id carry.117.96.1` 跑过？`ssh -v carry.117.96.1` 看详细 |
 | compose 报 `POSTGRES_PASSWORD not set` | `.env.staging` 里 `POSTGRES_PASSWORD=__手动填写__` 没改成真值 |
@@ -275,7 +275,7 @@ pnpm test:e2e
 2. **不连生产库**：`.env.staging` 的 `DATABASE_URL` 必须指向 staging postgres 容器（`127.0.0.1:5433` 或容器内 `postgres:5432`），**绝不指 ECS 生产库**。
 3. **`.env.staging` 不进 git**：`.gitignore` 已覆盖（`.env.*` + 显式 `.env.staging`）。
 4. **密钥独立**：`AI_CONFIG_ENCRYPTION_KEY` / `JWT_SECRET` 在 Linux 机上用 `openssl rand` 现场生成，**不复用生产密钥**。
-5. **wewe-rss 独立**：staging wewe-rss 用独立 volume `wewe_data_staging`，**不从生产拷微信扫码数据**（隔离 + 防风控连锁）。
+5. **we-mp-rss 独立**：staging we-mp-rss 用独立 volume `wewe_data_staging`，**不从生产拷微信扫码数据**（隔离 + 防风控连锁）。
 6. **管理员密码**：staging 默认密码（见 `.env.staging`）只走 Tailscale，但**上线前建议改成强密码**。⚠️ 当前 staging 管理员密码与 Linux root 密码、生产管理员密码同源，存在横向爆破风险，强烈建议改成独立值。
 7. **种子账号仅限 staging**：`seed-admin` / `seed-accounts` / `seed-channels` 产生的测试数据只在 staging 库，不污染生产。
 8. **UFW**：如果 Linux 机启用了 UFW，需放行 `tailscale0` 网卡的 3001/4000；**如果没启用 UFW，不要为了 staging 强行开**。
@@ -290,5 +290,5 @@ pnpm test:e2e
 | 反向代理 | Caddy + HTTPS | 无（Tailscale 直连） | staging 无域名，Caddy 拿不到证书；Tailscale 已端到端加密 |
 | 端口 | 3000 | 3001 | 避 Playwright dev 默认端口；避生产冲突 |
 | 数据库端口暴露 | 不暴露 | 5433:5432 | 方便宿主机跑 seed/调试；不暴露公网 |
-| wewe-rss 端口 | 4000 | 4000 | 与生产一致（用户决策） |
+| we-mp-rss 端口 | 4000 | 4000 | 与生产一致（用户决策） |
 | compose project name | 默认 | `shenlun-staging` | 隔离容器/volume 命名空间 |

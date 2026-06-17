@@ -53,12 +53,12 @@
 | `src/app/api/explore/route.ts` | GET | none | none | no | P1 | 公开探索 feed；需要明确 public-data policy 和测试。 |
 | `src/app/api/export/route.ts` | GET | `requireAuth` | `ownerScopeWhere` | no | P1 | export 隔离已存在；缺少跨用户 card export 测试。 |
 | `src/app/api/health/route.ts` | GET | none | none | no | P3 | health endpoint 有意公开；外网暴露时考虑脱敏配置细节。 |
-| `src/app/api/integrations/wewe-rss/delete-missing-sources/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
-| `src/app/api/integrations/wewe-rss/preview-sync/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
-| `src/app/api/integrations/wewe-rss/refresh-source/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
-| `src/app/api/integrations/wewe-rss/status/route.ts` | GET | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
-| `src/app/api/integrations/wewe-rss/sync-sources/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
-| `src/app/api/integrations/wewe-rss/test/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
+| `src/app/api/integrations/we-mp-rss/delete-missing-sources/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
+| `src/app/api/integrations/we-mp-rss/preview-sync/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
+| `src/app/api/integrations/we-mp-rss/refresh-source/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
+| `src/app/api/integrations/we-mp-rss/status/route.ts` | GET | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
+| `src/app/api/integrations/we-mp-rss/sync-sources/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
+| `src/app/api/integrations/we-mp-rss/test/route.ts` | POST | `requireAdmin` | none | no | P2 | Admin-only，缺少 route test。 |
 | `src/app/api/material-cards/[id]/route.ts` | GET, PUT, DELETE | GET `requireAuth`; PUT/DELETE `requireAdmin` | `canAccessResource`, `canModifyResource` | no | P1 | guard 和 ownership checks 已存在；缺少 route tests。 |
 | `src/app/api/material-cards/route.ts` | GET, POST | `requireAuth` | `ownerScopeWhere`+`mergeWhere`, sets `ownerUserId` | no | P2 | `mergeWhere` 已修复 OR 组合；创建时应验证 source content ownership。 |
 | `src/app/api/proxy/image/route.ts` | GET | none | allowlist only | no | P2 | public proxy 有 domain/protocol allowlist；应添加 SSRF 回归测试。 |

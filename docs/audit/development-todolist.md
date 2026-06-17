@@ -841,13 +841,13 @@
   - middleware 和 visual-regression 不再尝试访问已删除路由。
 - 风险：skip 标注为永久（除非路由重新创建）。
 
-### E2E-005：wewe-rss.spec.ts 基础设施检查
+### E2E-005：we-mp-rss.spec.ts 基础设施检查
 
 - 状态：done
-- 目标：WeWe RSS 同步测试依赖外部服务（localhost:4000），不可用时应自动跳过而非失败。
+- 目标：we-mp-rss 同步测试依赖外部服务（localhost:8001），不可用时应自动跳过而非失败。
 - 实际修改文件：
-  - `e2e/wewe-rss.spec.ts` — 同步测试前添加 `page.request.get('http://localhost:4000')` health check，不可用时 `test.skip()`
-- 测试命令：`pnpm exec playwright test e2e/wewe-rss.spec.ts --project=admin`
+  - `e2e/we-mp-rss.spec.ts` — 同步测试前添加 `page.request.get('http://localhost:8001')` health check，不可用时 `test.skip()`
+- 测试命令：`pnpm exec playwright test e2e/we-mp-rss.spec.ts --project=admin`
 - 验收证据：
-  - WeWe RSS 服务不可用时测试自动跳过，不产生 false negative。
+  - we-mp-rss 服务不可用时测试自动跳过，不产生 false negative。
 - 风险：当服务可用时需重新验证同步功能本身。

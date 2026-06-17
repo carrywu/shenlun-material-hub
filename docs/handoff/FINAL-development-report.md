@@ -1,17 +1,17 @@
-# 最终开发报告：WeWe RSS 权限收紧 + 文章审核流 + 用户私有素材卡 + 前台重构
+# 最终开发报告：we-mp-rss 权限收紧 + 文章审核流 + 用户私有素材卡 + 前台重构
 
 > **项目**：申论素材采集台
 > **分支**：`worktree-p1-p8-review-flow`（基于 `main`）
 > **完成日期**：2026-06-12
 > **规模**：58 commits · 72 文件改动 · +3676 / -284 行 · 8 个独立 PR
-> **原始需求**：`docs/wewerss_admin_review_user_ai_material_card_requirements.md`
+> **原始需求**：`docs/we-mp-rss_admin_review_user_ai_material_card_requirements.md`
 > **实施计划**：`docs/superpowers/plans/2026-06-12-p1-*.md` ~ `p8-*.md`（8 份）
 
 ---
 
 ## 0. TL;DR
 
-按需求方确认的 25 条核心决策，把 WeWe RSS 从「面向用户」降级为「管理员后台采集工具」，建立「AI 评估 → 管理员审核 → 用户可见」两段式文章准入链路，素材卡改造为「用户私有 + 用户自付 AI 成本」，并重构前台为「今日推荐 / 探索区 / 我的文章」三段式架构 + USER/VERIFIED_USER/ADMIN 三角色分层。
+按需求方确认的 25 条核心决策，把 we-mp-rss 从「面向用户」降级为「管理员后台采集工具」，建立「AI 评估 → 管理员审核 → 用户可见」两段式文章准入链路，素材卡改造为「用户私有 + 用户自付 AI 成本」，并重构前台为「今日推荐 / 探索区 / 我的文章」三段式架构 + USER/VERIFIED_USER/ADMIN 三角色分层。
 
 **本地验收全绿**：lint 0 error · vitest 331/331 · build 成功 · e2e 本地能跑的都过。
 **staging 已部署 + e2e 184 passed / 0 真正 failed**（见第 8 节）。
@@ -22,7 +22,7 @@
 
 | PR | 内容 | 核心交付 |
 |---|---|---|
-| **P1** | WeWe RSS 权限收紧 | 5 个 settings API handler `requireVerifiedUser`→`requireAdmin`；设置页入口对非 admin 隐藏；`/settings/integrations` 加客户端 admin 守卫 |
+| **P1** | we-mp-rss 权限收紧 | 5 个 settings API handler `requireVerifiedUser`→`requireAdmin`；设置页入口对非 admin 隐藏；`/settings/integrations` 加客户端 admin 守卫 |
 | **P2** | Schema + 历史数据迁移 | ContentItem 加 6 审核字段；新建 `ArticleFavorite`、`RoleQuota` 表；`MaterialCard` partial unique index；幂等回填 SQL |
 | **P3** | 文章可见性过滤 | `contentVisibilityWhere` 对非 ADMIN 注入 `adminReviewStatus=approved`；列表加 adminReviewStatus 查询参数；详情防 ID 绕过（非 ADMIN 访问未审核→404） |
 | **P4** | assess + review + feature | assess 改管理员专用 + 写回状态；新增 `/api/admin/content-items/review`（批量 approve/reject/force-approve，下架删全部卡）；新增 feature 接口（今日推荐推送/撤下） |
@@ -83,18 +83,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS "materialcard_private_unique"
 
 ---
 
-## 4. WeWe RSS 权限边界（最终）
+## 4. we-mp-rss 权限边界（最终）
 
 | 接口/页面 | USER | VERIFIED_USER | ADMIN |
 |---|---|---|---|
-| `GET/POST/DELETE/PUT /api/settings/integrations/wewe-rss` | 403 | 403 | ✅ |
-| `POST /api/settings/integrations/wewe-rss/test` | 403 | 403 | ✅ |
+| `GET/POST/DELETE/PUT /api/settings/integrations/we-mp-rss` | 403 | 403 | ✅ |
+| `POST /api/settings/integrations/we-mp-rss/test` | 403 | 403 | ✅ |
 | `/settings` 「外部集成」入口 | 隐藏 | 隐藏 | 显示 |
 | `/settings/integrations` 直访 | 重定向 | 重定向 | 正常 |
-| `/api/integrations/wewe-rss/**`（采集接口） | 403 | 403 | ✅（本就是 requireAdmin，未动） |
-| `/admin/integrations/wewe-rss` 后台页 | 无权 | 无权 | ✅（未动） |
+| `/api/integrations/we-mp-rss/**`（采集接口） | 403 | 403 | ✅（本就是 requireAdmin，未动） |
+| `/admin/integrations/we-mp-rss` 后台页 | 无权 | 无权 | ✅（未动） |
 
-**普通用户完全碰不到 WeWe RSS**——配置、调用、入口全部隔离。
+**普通用户完全碰不到 we-mp-rss**——配置、调用、入口全部隔离。
 
 ---
 
@@ -150,7 +150,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "materialcard_private_unique"
 - `pnpm test`（vitest）：**331/331 passed**（50 文件，新增 51 个单测）
 - `pnpm build`：**成功**（含全部新路由）
 - e2e：
-  - 本地能跑的（`api-security` WeWe RSS 6 个、`role-upgrade` 匿名注册 1 个、`frontend-experience` 页面加载 4 个）→ **全过**
+  - 本地能跑的（`api-security` we-mp-rss 6 个、`role-upgrade` 匿名注册 1 个、`frontend-experience` 页面加载 4 个）→ **全过**
   - fixture/AI 依赖的（VERIFIED_USER 链路、卡包生成、审核流端到端）→ `test.skip`，staging 激活
 
 ### staging 测试（已完成 2026-06-12）
@@ -159,7 +159,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "materialcard_private_unique"
 - 分支 `worktree-p1-p8-review-flow` fast-forward 合并进 `main`，推送 origin/main（commit `342e720`）
 - 测试机 `/home/carry/shenlun-material-hub-staging` git pull 到最新
 - `docker compose -f docker-compose.staging.yml build` + `--force-recreate app`
-- 3 容器（app/postgres/wewe-rss）全部 Up + healthy
+- 3 容器（app/postgres/we-mp-rss）全部 Up + healthy
 - `curl http://100.117.96.1:3001/api/health` → `{"status":"ok"}` ✅
 
 **migration apply**：
@@ -185,10 +185,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS "materialcard_private_unique"
 - exit code 1 来自「20 did not run」的 sharded 调度，**非代码缺陷**
 
 **覆盖到的核心场景**（staging 实测通过）：
-- P1 WeWe RSS 权限收紧（api-security 6 个用例）
+- P1 we-mp-rss 权限收紧（api-security 6 个用例）
 - 探索区/今日推荐页面加载（explore-discover）
 - 数据隔离与权限（data-isolation）
-- WeWe RSS 集成页（wewe-rss）
+- we-mp-rss 集成页（we-mp-rss）
 - 登录/中间件/搜索/设置等既有功能不回归
 
 **未覆盖（待生产或造 fixture 后）**：
@@ -202,7 +202,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "materialcard_private_unique"
 2. `e2e/global-setup.ts` 硬编码 `admin123`，staging 用真实密码登录失败 → 改为读 `E2E_ADMIN_PASSWORD` env，本地默认 `admin123`（commit `342e720`，已推 main）。
 3. app 容器跑旧镜像（10 小时前 build），`prisma migrate deploy` 在旧容器里看不到 review_flow → 用 `--force-recreate app` 用新镜像重启后再 migrate，成功。
 
-**采集风控**：本轮 e2e **未触发** WeWe RSS 真实采集（wewe-rss.spec.ts 走的是集成页 UI，不触发实际公众号抓取）。生产部署后若跑真实采集 e2e，参见第 9 节风控判断方法。
+**采集风控**：本轮 e2e **未触发** we-mp-rss 真实采集（we-mp-rss.spec.ts 走的是集成页 UI，不触发实际公众号抓取）。生产部署后若跑真实采集 e2e，参见第 9 节风控判断方法。
 
 
 ---
@@ -222,7 +222,7 @@ staging 跑全量 e2e 时，**采集类用例可能因微信风控失败**——
 
 ### 命中风控时的处理
 - **不算代码缺陷**，是微信侧反爬
-- 建议人工核查 WeWe RSS 服务状态（IP 是否被封、是否需要换号/换 IP）
+- 建议人工核查 we-mp-rss 服务状态（IP 是否被封、是否需要换号/换 IP）
 - 在 staging 测试报告里单独标注「采集 e2e 因微信风控失败，命中关键词 XXX」
 
 ### 卡包生成 e2e 的 AI 依赖
@@ -277,7 +277,7 @@ staging 跑全量 e2e 时，**采集类用例可能因微信风控失败**——
 
 ```
 docs/handoff/
-├── P1-wewe-rss-permission-handoff.md
+├── P1-we-mp-rss-permission-handoff.md
 ├── P2-schema-migration-handoff.md
 ├── P3-article-visibility-handoff.md
 ├── P4-assess-review-handoff.md

@@ -44,9 +44,9 @@
   - 其他 P1-P7 的 e2e 均已写入（fixture 依赖的 skip，staging 激活）
 
 ## ⚠️ 采集相关 e2e 风控状态（需求方要求标注）
-本轮本地未触发 WeWe RSS 真实采集 e2e（`wewe-rss.spec.ts` 依赖真实 WeWe RSS 服务）。**staging 部署后跑全量 e2e 时**，如果采集用例失败：
+本轮本地未触发 we-mp-rss 真实采集 e2e（`we-mp-rss.spec.ts` 依赖真实 we-mp-rss 服务）。**staging 部署后跑全量 e2e 时**，如果采集用例失败：
 - 用 `detectWechatBlockPage()`（`src/services/collectors/wechat/weRssNormalizer.ts:53`）判断是否命中封禁关键词（环境异常/频繁访问/请先验证/完成验证后即可继续访问/当前环境异常/为你的访问安全）
-- 命中 → **非代码 bug**，是微信风控；建议人工核查 WeWe RSS 服务状态
+- 命中 → **非代码 bug**，是微信风控；建议人工核查 we-mp-rss 服务状态
 
 卡包生成 e2e（`material-card-ownership.spec.ts` 第 2 用例）会真实调用 AI 4 次。staging AI 不可达 / Key 配额耗尽 → 500，已加 `test.skip` 兜底。
 

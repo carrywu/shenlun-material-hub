@@ -28,7 +28,7 @@
 |---|---|---|
 | AI API Key/URL/Model | DB `AiConfig` 表 + 环境变量 fallback | 全局唯一 |
 | IMA 知识库 | 环境变量 | 全局唯一 |
-| WeWe RSS | 环境变量 + 参数传入 | 全局唯一 |
+| we-mp-rss | 环境变量 + 参数传入 | 全局唯一 |
 
 ### 数据归属现状
 - **所有数据无用户归属**：ContentItem、MaterialCard、AsyncTask、SyncRecord 等均无 userId 字段
@@ -41,7 +41,7 @@
 
 | 排名 | 需求 | 难度 | 原因 |
 |---|---|---|---|
-| 1 | AI/IMA/WeWe RSS 用户级配置 | XL | 需要重构三个服务层的配置读取方式，影响所有 AI 和同步功能 |
+| 1 | AI/IMA/we-mp-rss 用户级配置 | XL | 需要重构三个服务层的配置读取方式，影响所有 AI 和同步功能 |
 | 2 | 多用户数据隔离 | L | 需要改造全部 30+ API 路由的查询逻辑，添加所有权验证 |
 | 3 | 历史数据迁移 | L | 需要为现有数据添加用户归属和可见性，保证不丢失、不泄露 |
 | 4 | 后台任务用户上下文 | M | AsyncTask 无 userId，任务执行时需要传递用户配置 |
@@ -77,7 +77,7 @@
 ### 阶段 3：用户级配置与集成（2-3 周）
 - AI 配置用户化（重构 ai.ts）
 - IMA 配置用户化（重构 ima-sync.ts）
-- WeWe RSS 配置用户化
+- we-mp-rss 配置用户化
 - 用户配置页面
 
 ### 阶段 4：高级功能（1-2 周）
@@ -118,7 +118,7 @@
 |---|---|
 | `src/services/ai.ts` | AI 服务核心（需要重构为用户级配置） |
 | `src/services/ima-sync.ts` | IMA 同步（需要重构为参数化配置） |
-| `src/services/integrations/wewe-rss*.ts` | WeWe RSS（已是参数化设计） |
+| `src/services/integrations/we-mp-rss*.ts` | we-mp-rss（已是参数化设计） |
 | `src/app/api/ai-config/route.ts` | AI 配置 API |
 
 ### 任务系统

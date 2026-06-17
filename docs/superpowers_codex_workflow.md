@@ -77,7 +77,7 @@ $superpowers:planning
    - 素材卡生成
    - AI 评估
    - 管理后台
-   - 公众号/WeWe RSS
+   - 公众号/we-mp-rss
    - 采集源管理
    - RBAC/权限
    - 测试体系
@@ -249,7 +249,7 @@ $superpowers:verification-before-completion
 我要继续开发 shenlun-material-hub。请按工程化流程执行。
 
 本轮开发目标：
-【这里写你的功能，比如：优化 WeWe RSS 管理员采集流程 / 增加文章筛选 / 优化素材卡详情页 / 增加 AI 提示词配置页】
+【这里写你的功能，比如：优化 we-mp-rss 管理员采集流程 / 增加文章筛选 / 优化素材卡详情页 / 增加 AI 提示词配置页】
 
 执行规则：
 1. 先不要改代码，先输出实现方案和需求核对。
@@ -347,7 +347,7 @@ requirements-confirmation.md 必须包含：
 - 管理后台用户管理
 - 管理后台日志
 - 采集源管理
-- WeWe RSS / 公众号采集
+- we-mp-rss / 公众号采集
 - 系统配置 / AI 配置
 - 数据隔离 / RBAC
 - 测试体系

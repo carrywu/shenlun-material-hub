@@ -42,8 +42,8 @@
 - ✅ P0｜安全｜生产禁用默认管理员密码路径（`src/lib/auth.ts`）
 
 项目约束：
-- WeWe RSS 是 sidecar，不嵌入本项目。
-- 不写 WeWe RSS 数据库。
+- we-mp-rss 是 sidecar，不嵌入本项目。
+- 不写 we-mp-rss 数据库。
 - 不做微信逆向，不绕登录/验证码/风控。
 - 破坏性数据库操作必须 dry-run。
 - 保留手动来源和外部 WeRSS fallback。

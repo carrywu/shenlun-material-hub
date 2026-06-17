@@ -26,7 +26,7 @@
 |---|---|---|---|---|---|
 | P2-001 | 重建 visual regression 基线策略 | `/explore`、`/discover` 高度不一致 | `e2e/visual-regression.spec.ts`, `e2e/__screenshots__/*` | 明确 viewport/fullPage 分组，14 tests 稳定通过 | `pnpm exec playwright test e2e/visual-regression.spec.ts` |
 | P2-002 | 新用户 onboarding checklist | 配置路径不清晰 | `src/app/settings/page.tsx`, `src/components/*` | 首次进入能看到 AI、来源、采集、生成、IMA 步骤 | 手动截图 + Playwright |
-| P2-003 | 危险操作 dry-run E2E | 备份/清洗/删除未完整验证 | `e2e/admin.spec.ts`, `e2e/sources.spec.ts`, `e2e/wewe-rss.spec.ts` | 使用临时库验证取消、预览、确认链路 | `PLAYWRIGHT_BASE_URL=... pnpm exec playwright test ...` |
+| P2-003 | 危险操作 dry-run E2E | 备份/清洗/删除未完整验证 | `e2e/admin.spec.ts`, `e2e/sources.spec.ts`, `e2e/we-mp-rss.spec.ts` | 使用临时库验证取消、预览、确认链路 | `PLAYWRIGHT_BASE_URL=... pnpm exec playwright test ...` |
 | P2-004 | 扩展 console guard 全路由 | 当前仅部分 spec 覆盖 | `e2e/helpers/consoleGuard.ts`, `e2e/*.spec.ts` | 关键页面无 500/React warning | `pnpm exec playwright test` |
 
 ## 5. P3 任务

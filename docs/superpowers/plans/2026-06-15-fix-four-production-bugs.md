@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix 4 production bugs: blocked articles stuck after WeWe RSS re-collection, admin article search redirecting to public page, WeWe RSS "open backend" hardcoded to localhost:4000, and missing "封禁" status filter.
+**Goal:** Fix 4 production bugs: blocked articles stuck after we-mp-rss re-collection, admin article search redirecting to public page, we-mp-rss "open backend" hardcoded to localhost:8001, and missing "封禁" status filter.
 
 **Architecture:** Each bug is an independent fix touching different files. Bug 1 is the core change — modifying URL dedup logic in `weRssNormalizer.ts` to update blocked records instead of skipping them. Bugs 2-4 are small targeted fixes. All changes preserve existing behavior for non-blocked records and non-admin paths.
 
@@ -23,7 +23,7 @@
 - **Modify:** `src/components/articles/ArticlesPage.tsx`
   4 hardcoded `/articles` paths → `basePath`; empty search no-op; add "封禁" filter option.
 - **Modify:** `src/components/integrations/WeweRssIntegrationPage.tsx`
-  `href="http://localhost:4000"` → `href={baseUrl}`.
+  `href="http://localhost:8001"` → `href={baseUrl}`.
 - **Create:** `src/services/collectors/wechat/__tests__/weRssNormalizer.test.ts`
   Unit tests for blocked-record refresh logic.
 - **Create:** `src/components/articles/__tests__/ArticlesPage.test.tsx`
@@ -247,7 +247,7 @@ In `src/services/collectors/wechat/weRssNormalizer.ts`, replace lines 254-266 (t
     where: { originalUrl },
   });
   if (existing) {
-    // 封禁文章：WeWe RSS 可能已有正确内容，尝试更新
+    // 封禁文章：we-mp-rss 可能已有正确内容，尝试更新
     if (existing.qualityStatus === "blocked") {
       // 先清洗新内容，判断是否仍是封禁页面
       const cleaned = cleanWechatHtml(article.content ?? "");
@@ -379,7 +379,7 @@ git add src/services/collectors/wechat/weRssNormalizer.ts src/services/collector
 git commit -m "fix(crawler): update blocked articles on re-collection instead of skipping
 
 When a WeChat article was previously blocked (qualityStatus='blocked') and
-WeWe RSS now has correct content, update the existing record instead of
+we-mp-rss now has correct content, update the existing record instead of
 skipping it. Clears stale AI assessment results and resets to 'pending'
 so the article re-enters the quality pipeline."
 ```
@@ -659,7 +659,7 @@ a URL change."
 
 ---
 
-### Task 5: Fix WeWe RSS "打开后台" localhost link (Bug 3)
+### Task 5: Fix we-mp-rss "打开后台" localhost link (Bug 3)
 
 **Files:**
 - Modify: `src/components/integrations/WeweRssIntegrationPage.tsx:289`
@@ -670,7 +670,7 @@ In `src/components/integrations/WeweRssIntegrationPage.tsx`, line 289:
 
 ```tsx
 // Before:
-              <a href="http://localhost:4000" target="_blank" rel="noopener noreferrer" className="flex items-center">
+              <a href="http://localhost:8001" target="_blank" rel="noopener noreferrer" className="flex items-center">
 // After:
               <a href={baseUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
 ```
@@ -684,7 +684,7 @@ Expected: No errors
 
 ```bash
 git add src/components/integrations/WeweRssIntegrationPage.tsx
-git commit -m "fix(wewe-rss): use configured baseUrl instead of hardcoded localhost:4000"
+git commit -m "fix(we-mp-rss): use configured baseUrl instead of hardcoded localhost:8001"
 ```
 
 ---
@@ -744,7 +744,7 @@ Verify in browser:
 2. `/admin/articles` — click search with empty keyword and all-default filters → URL does not change
 3. `/admin/articles` — click a row → navigates to `/admin/articles/{id}`
 4. `/admin/articles` — quality status dropdown → shows "封禁" option
-5. `/admin/integrations/wewe-rss` — "打开后台" link → uses configured baseUrl (not localhost:4000)
+5. `/admin/integrations/we-mp-rss` — "打开后台" link → uses configured baseUrl (not localhost:8001)
 6. Source management → sync a WeChat source with blocked articles → results show "刷新封禁 N"
 
 ---

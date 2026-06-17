@@ -279,26 +279,26 @@
   - 状态：DONE — route.test.ts has 20+ test cases covering allowlist, SSRF, private IP blocking
   - 证据：代码审计
 
-## WeWe RSS
+## we-mp-rss
 
-- [x] P1｜WeWe RSS｜确认 sidecar SQLite fallback 只读约束
-  - 涉及文件：`src/services/integrations/wewe-rss-sqlite.ts`
-  - 当前问题：项目规则禁止写 WeWe RSS DB，需要用测试固定只读行为。
+- [x] P1｜we-mp-rss｜确认 sidecar SQLite fallback 只读约束
+  - 涉及文件：`src/services/integrations/we-mp-rss-sqlite.ts`
+  - 当前问题：项目规则禁止写 we-mp-rss DB，需要用测试固定只读行为。
   - 验收标准：fallback 只执行只读查询，不修改 sidecar DB。
   - 推荐测试：sqlite integration test
   - 状态：DONE
   - 证据：规划推导
 
-- [x] P2｜WeWe RSS｜删除缺失来源流程增加二次确认 E2E
+- [x] P2｜we-mp-rss｜删除缺失来源流程增加二次确认 E2E
   - 涉及文件：`src/components/integrations/WeweRssIntegrationPage.tsx`
   - 当前问题：规则要求二次确认，需要浏览器测试固定。
-  - 验收标准：未确认不能删除，确认后只删除 provider=wewe-rss 来源。
+  - 验收标准：未确认不能删除，确认后只删除 provider=we-mp-rss 来源。
   - 推荐测试：Playwright
-  - 状态：DONE — e2e/wewe-rss.spec.ts has cancel and confirm tests with page.route() mocking
+  - 状态：DONE — e2e/we-mp-rss.spec.ts has cancel and confirm tests with page.route() mocking
   - 证据：代码审计
 
-- [x] P2｜WeWe RSS｜外部 WeRSS fallback 增加配置诊断
-  - 涉及文件：`src/services/integrations/wewe-rss.ts`，`src/app/api/integrations/wewe-rss/status/route.ts`
+- [x] P2｜we-mp-rss｜外部 WeRSS fallback 增加配置诊断
+  - 涉及文件：`src/services/integrations/we-mp-rss.ts`，`src/app/api/integrations/we-mp-rss/status/route.ts`
   - 当前问题：外部 fallback 必须保留，需在状态页可诊断。
   - 验收标准：状态 API 返回 API/OPML/SQLite/fallback 可用性。
   - 推荐测试：route test
@@ -505,12 +505,12 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [x] P2｜Playwright｜覆盖 WeWe RSS 删除缺失来源确认
-  - 涉及文件：`e2e/wewe-rss.spec.ts`
+- [x] P2｜Playwright｜覆盖 we-mp-rss 删除缺失来源确认
+  - 涉及文件：`e2e/we-mp-rss.spec.ts`
   - 当前问题：已有页面加载测试，缺少删除确认流程。
   - 验收标准：取消不删除，确认后执行。
   - 推荐测试：Playwright
-  - 状态：DONE — e2e/wewe-rss.spec.ts has cancel/confirm tests with page.route() mocking
+  - 状态：DONE — e2e/we-mp-rss.spec.ts has cancel/confirm tests with page.route() mocking
   - 证据：代码审计
 
 ## 部署
@@ -541,12 +541,12 @@
   - 状态：DONE
   - 证据：规划推导
 
-- [x] P2｜Docker｜WeWe RSS sidecar 文档标明只读挂载策略
-  - 涉及文件：`infra/wechat-rss/wewe-rss/docker-compose.yml`，`infra/wechat-rss/wewe-rss/README.md`
+- [x] P2｜Docker｜we-mp-rss sidecar 文档标明只读挂载策略
+  - 涉及文件：`infra/wechat-rss/we-mp-rss/docker-compose.yml`，`infra/wechat-rss/we-mp-rss/README.md`
   - 当前问题：规则要求不写 sidecar DB，需要部署层说明。
   - 验收标准：文档说明本项目只读消费 sidecar 数据。
   - 推荐测试：配置审查
-  - 状态：DONE — infra/wechat-rss/wewe-rss/README.md lines 150-194: read-only section with Docker :ro mount example
+  - 状态：DONE — infra/wechat-rss/we-mp-rss/README.md lines 150-194: read-only section with Docker :ro mount example
   - 证据：代码审计
 
 ## 监控告警

@@ -89,8 +89,8 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 
 ### Playwright E2E 回归修复
 - **初始回归结果**：1158 passed, 163 failed, 96 skipped（5 project × 26 spec）。
-- **失败分类**：7 类（A-G），涵盖 auth 选择器过期、admin Radix Select 迁移、articles 断言变化、已删除路由引用、middleware 路由列表、wewe-rss 基础设施依赖、visual-regression 路由删除。
-- **修复后结果（admin project）**：66 passed, 15 skipped（预期跳过：explore/discover/my-articles 页面已移除 + wewe-rss 服务不可用）, 0 failed。
+- **失败分类**：7 类（A-G），涵盖 auth 选择器过期、admin Radix Select 迁移、articles 断言变化、已删除路由引用、middleware 路由列表、we-mp-rss 基础设施依赖、visual-regression 路由删除。
+- **修复后结果（admin project）**：66 passed, 15 skipped（预期跳过：explore/discover/my-articles 页面已移除 + we-mp-rss 服务不可用）, 0 failed。
 - **修复的 spec 文件**：
   - `e2e/auth.spec.ts`：登录按钮文案 `'登 录'` → `'登录管理后台'`（4 处），导航链接名称适配 Round B（首页/文章/素材卡/检索/复习/设置），添加 `exact: true` 和 banner scoping 避免首页快捷卡片误匹配，添加缺失 `page.goto()` 调用修复 serial mode 级联失败，sidebar locator 从 `'aside, nav, [data-sidebar]'` 改为 `'aside'`，logout 重定向从 `/admin/login` 改为 `/`，register 页占位符和按钮文案更新，邀请码改为可选字段。
   - `e2e/admin.spec.ts`：原生 `<select>` 断言改为 Radix Select combobox 模式（`getByRole('combobox')` + `getByRole('option')`）。
@@ -99,7 +99,7 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
   - `e2e/frontend-experience.spec.ts`：公共页面 describe 块和 `/my-articles` 测试添加 `test.skip()`。
   - `e2e/middleware.spec.ts`：公开页面 console error 检查移除 `/explore` 和 `/discover`。
   - `e2e/visual-regression.spec.ts`：截图路由数组移除 `/explore` 和 `/discover`。
-  - `e2e/wewe-rss.spec.ts`：同步测试前添加基础设施可用性检查（`http://localhost:4000` health check），不可用时自动跳过。
+  - `e2e/we-mp-rss.spec.ts`：同步测试前添加基础设施可用性检查（`http://localhost:8001` health check），不可用时自动跳过。
 
 ## 3. 进行中
 
@@ -109,7 +109,7 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 
 1. **跨浏览器全量回归**：E2E 修复已在 admin project（chromium）验证通过（66 passed, 15 skipped, 0 failed）。需在 5 个 browser project（chromium、firefox、webkit、mobile-chrome、mobile-safari）上跑全量回归确认修复无遗漏。命令：`pnpm exec playwright test`。
 2. **视觉回归快照重生成**：`e2e/visual-regression.spec.ts` 已移除已删除路由（/explore、/discover），但剩余页面的截图快照仍为旧版，需用 `--update-snapshots` 重新生成基线。命令：`pnpm exec playwright test e2e/visual-regression.spec.ts --update-snapshots --project=chromium`。
-3. **WeWe RSS 同步测试验证**：`e2e/wewe-rss.spec.ts` 已添加基础设施 health check 跳过逻辑，待 WeWe RSS 服务（localhost:4000）可用后验证同步功能。
+3. **we-mp-rss 同步测试验证**：`e2e/we-mp-rss.spec.ts` 已添加基础设施 health check 跳过逻辑，待 we-mp-rss 服务（localhost:8001）可用后验证同步功能。
 4. **Round B 视觉人工确认**：Card 圆角从 rounded-xl 改为 rounded-lg、登录表单字段移除 rounded-xl 覆盖、admin 表格操作按钮语义颜色丢失（ghost variant），需浏览器端人工确认视觉效果是否可接受。
 5. **E2E spec 进一步清理**：15 个 skipped test 中，explore/discover/my-articles 相关测试已添加 skip 标注但代码仍保留。若确认不再需要可考虑删除对应 spec 文件。
 
@@ -240,7 +240,7 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - `e2e/frontend-experience.spec.ts`（skip 已删除的公共页面和 /my-articles）
 - `e2e/middleware.spec.ts`（移除已删除路由的 console error 检查）
 - `e2e/visual-regression.spec.ts`（移除已删除路由的截图条目）
-- `e2e/wewe-rss.spec.ts`（添加基础设施 health check 跳过逻辑）
+- `e2e/we-mp-rss.spec.ts`（添加基础设施 health check 跳过逻辑）
 
 ### 前端改造第二轮（Round B）新增/修改
 
@@ -265,10 +265,10 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - `pnpm test`：通过，55 files / 386 tests。
 - `pnpm build`：通过。
 - `pnpm seed:e2e-accounts`：幂等成功，3 个非 admin 账号同步。
-- **Playwright E2E 初始回归**（2026-06-14）：1158 passed, 163 failed, 96 skipped（5 project × 26 spec）。163 个失败分为 7 类（auth/admin/articles/explore/middleware/wewe-rss/visual-regression）。
+- **Playwright E2E 初始回归**（2026-06-14）：1158 passed, 163 failed, 96 skipped（5 project × 26 spec）。163 个失败分为 7 类（auth/admin/articles/explore/middleware/we-mp-rss/visual-regression）。
 - **Playwright E2E 修复后回归**（2026-06-14，admin project）：66 passed, 15 skipped, 0 failed。
-  - 15 个 skip 均为预期：explore/discover/my-articles 页面已在 Round A 删除（`test.skip()` 标注），wewe-rss 服务不可用（health check 自动跳过）。
-  - 修复涉及 8 个 spec 文件：`auth.spec.ts`、`admin.spec.ts`、`articles.spec.ts`、`explore-discover.spec.ts`、`frontend-experience.spec.ts`、`middleware.spec.ts`、`visual-regression.spec.ts`、`wewe-rss.spec.ts`。
+  - 15 个 skip 均为预期：explore/discover/my-articles 页面已在 Round A 删除（`test.skip()` 标注），we-mp-rss 服务不可用（health check 自动跳过）。
+  - 修复涉及 8 个 spec 文件：`auth.spec.ts`、`admin.spec.ts`、`articles.spec.ts`、`explore-discover.spec.ts`、`frontend-experience.spec.ts`、`middleware.spec.ts`、`visual-regression.spec.ts`、`we-mp-rss.spec.ts`。
   - 验证命令：`pnpm exec playwright test --project=admin`。
 - **Batch 1 阶段验证**（历史）：
   - `pnpm exec playwright test e2e/admin.spec.ts -g "创建用户成功" --project=admin`：通过（20.2s）。
@@ -282,7 +282,7 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - **Round B 视觉回归未人工确认**：Card 圆角从 rounded-xl 改为 rounded-lg（影响全局所有 Card 组件），登录/注册表单字段移除 rounded-xl 覆盖，Admin 表格操作按钮语义颜色（红/绿/琥珀）在迁移到 shadcn ghost variant 后丢失。需浏览器端人工确认。
 - **FormField 缺少 htmlFor**：FormField 组件的 label 不使用 `htmlFor`/`id` 关联，可能影响无障碍审计。若后续有无障碍需求，需扩展 FormField 添加 `htmlFor` prop。
 - **全局/私有字段并存**：文章详情页同时存在全局 `read/ignored/bookmarked`（toggle 按钮用）和 per-user `userRead/userIgnored/userBookmarked`（展示徽章用），toggle 操作仍修改全局字段。待后续统一为 per-user 字段。
-- **WeWe RSS 测试依赖外部服务**：已添加 health check 跳过逻辑，但同步功能本身未被 E2E 验证（取决于 localhost:4000 可用性）。
+- **we-mp-rss 测试依赖外部服务**：已添加 health check 跳过逻辑，但同步功能本身未被 E2E 验证（取决于 localhost:8001 可用性）。
 
 ## 9. 注意事项
 

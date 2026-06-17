@@ -1,6 +1,6 @@
 # Staging 部署测试报告：P1-P8（2026-06-12）
 
-> **部署内容**：WeWe RSS 权限收紧 + 文章审核流 + 用户私有素材卡 + 前台重构 + 角色分层（P1-P8，60 commits）
+> **部署内容**：we-mp-rss 权限收紧 + 文章审核流 + 用户私有素材卡 + 前台重构 + 角色分层（P1-P8，60 commits）
 > **目标环境**：staging 测试机 `100.117.96.1:3001`（Tailscale `carry-pc`）
 > **部署日期**：2026-06-12
 > **结果**：✅ 部署成功，3 容器 healthy，e2e 184 passed / 0 真正 failed
@@ -163,10 +163,10 @@ E2E_ADMIN_PASSWORD="${STG_PWD}" pnpm test:e2e:staging
 **exit code 1 的原因**：playwright 把「20 did not run」算作整体 failed。**不是代码缺陷**，是 sharded worker 没分配到所有用例（不影响结论）。
 
 ### 覆盖到的核心场景（staging 实测通过）
-- ✅ P1 WeWe RSS 权限收紧（`api-security` 6 个用例：5 匿名→401 + 1 admin→200）
+- ✅ P1 we-mp-rss 权限收紧（`api-security` 6 个用例：5 匿名→401 + 1 admin→200）
 - ✅ 探索区/今日推荐页面加载（`explore-discover`，空状态文案「暂无已审核文章」）
 - ✅ 数据隔离与权限（`data-isolation`，admin 登录后访问各端点）
-- ✅ WeWe RSS 集成页（`wewe-rss`，状态 API + 预览同步 + 同步来源）
+- ✅ we-mp-rss 集成页（`we-mp-rss`，状态 API + 预览同步 + 同步来源）
 - ✅ 登录/中间件/搜索/设置等既有功能不回归
 
 ### 未覆盖（staging 空库导致 skip）
@@ -237,7 +237,7 @@ staging 是**空测试库**，没有任何文章数据。这影响：
   预期：approved（AI 通过的老文章）+ rejected（AI 拒绝 + filtered + blocked）+ pending_ai（未评估 candidate）三者之和 = 总数，**不应有 pending_admin**。
 - **e2e fixture 拿不到**：`E2E_APPROVED_ARTICLE_ID` 等 16 个用例 skip 的原因。
 
-要跑全量 e2e，需先造文章 fixture（用 wewe-rss 采集 + AI 评估 + 审核，或直接 psql INSERT 测试文章）。
+要跑全量 e2e，需先造文章 fixture（用 we-mp-rss 采集 + AI 评估 + 审核，或直接 psql INSERT 测试文章）。
 
 ---
 
@@ -247,12 +247,12 @@ staging 是**空测试库**，没有任何文章数据。这影响：
 NAME                     IMAGE                    STATUS                  PORTS
 shenlun-staging-app      shenlun-staging-app:latest Up healthy             0.0.0.0:3001->3000/tcp
 shenlun-staging-postgres postgres:16               Up healthy             0.0.0.0:5433->5432/tcp
-shenlun-staging-wewe     cooderl/wewe-rss-sqlite:v2.6.1  Up                0.0.0.0:4000->4000/tcp
+shenlun-staging-wewe     cooderl/we-mp-rss-sqlite:v2.6.1  Up                0.0.0.0:4000->4000/tcp
 ```
 
 - Mac Tailscale 访问：`http://100.117.96.1:3001`
 - Linux 本机：`http://127.0.0.1:3001`
-- wewe-rss：`http://100.117.96.1:4000`
+- we-mp-rss：`http://100.117.96.1:4000`
 - health：`curl http://100.117.96.1:3001/api/health` → `{"status":"ok"}`
 
 ---

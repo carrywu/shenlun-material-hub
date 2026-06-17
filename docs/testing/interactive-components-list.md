@@ -29,7 +29,7 @@
 | 16 | `/admin` | `src/app/admin/page.tsx` | AdminDashboardPage | Refresh metrics button, stat cards with links | ⚠️ partial |
 | 17 | `/admin/articles` | `src/app/admin/articles/page.tsx` | ArticlesPage (management) | Same as `/articles` + debug toggle switch, batch actions | ⚠️ partial |
 | 18 | `/admin/sources` | `src/app/admin/sources/page.tsx` | SubscriptionsPage | Search input, 5 filter selects, create source dialog, edit source, delete source (with confirm), channel manager, import dialog | ⚠️ partial |
-| 19 | `/admin/integrations/wewe-rss` | `src/app/admin/integrations/wewe-rss/page.tsx` | WeweRssIntegrationPage | Config inputs (URL, token), test connection button, preview sync button, execute sync button, delete missing sources dialog | ⚠️ partial |
+| 19 | `/admin/integrations/we-mp-rss` | `src/app/admin/integrations/we-mp-rss/page.tsx` | WeweRssIntegrationPage | Config inputs (URL, token), test connection button, preview sync button, execute sync button, delete missing sources dialog | ⚠️ partial |
 | 20 | `/admin/sync-records` | `src/app/admin/sync-records/page.tsx` | SyncRecordsPage | Filter selects, retry failed button, pagination | ❌ untested |
 | 21 | `/admin/tasks` | `src/app/admin/tasks/page.tsx` | AdminTasksPage | Search input, status filter, type filter, expandable rows, pagination | ⚠️ partial |
 | 22 | `/admin/logs` | `src/app/admin/logs/page.tsx` | AdminLogsPage | Level filter, category filter, date range, clear logs button | ❌ untested |
@@ -37,7 +37,7 @@
 | 24 | `/admin/backup` | `src/app/admin/backup/page.tsx` | AdminBackupPage | Export backup button, import backup (file upload), restore from backup | ❌ untested |
 | 25 | `/admin/clean` | `src/app/admin/clean/page.tsx` | CleanPage | Clean rules configuration, execute clean button (with confirm) | ❌ untested |
 | 26 | `/admin/users` | `src/app/admin/users/page.tsx` | UsersPage | Create user dialog, edit user, delete user (with confirm), reset password button | ⚠️ partial |
-| 27 | `/integrations/wewe-rss` | `src/app/integrations/wewe-rss/page.tsx` | WeweRssIntegrationPage (public) | Same component as admin version (read-only view for regular users) | ❌ untested |
+| 27 | `/integrations/we-mp-rss` | `src/app/integrations/we-mp-rss/page.tsx` | WeweRssIntegrationPage (public) | Same component as admin version (read-only view for regular users) | ❌ untested |
 | 28 | `/subscriptions` | `src/app/subscriptions/page.tsx` | SubscriptionsPage (public) | Same component as admin version (read-only view for regular users) | ❌ untested |
 
 ---
@@ -62,7 +62,7 @@
 | 14 | SyncToIma | `src/components/SyncToIma.tsx` | Sync to IMA button, retry sync button | `/cards/[id]` | ❌ untested |
 | 15 | SyncRecordsPage | `src/components/sync/SyncRecordsPage.tsx` | Status filter, type filter, date range filter, retry failed button, pagination | `/admin/sync-records` | ❌ untested |
 | 16 | AiConfigPage | `src/components/ai/AiConfigPage.tsx` | API provider input, API key input, model input, temperature slider, save button, test connection button, delete config button, prompt template list with add/edit/delete | `/admin/settings/ai` | ⚠️ partial |
-| 17 | WeweRssIntegrationPage | `src/components/integrations/WeweRssIntegrationPage.tsx` | Config URL/token inputs, test connection button, preview sync button, execute sync button, delete missing sources dialog (with confirm) | `/admin/integrations/wewe-rss`, `/integrations/wewe-rss` | ⚠️ partial |
+| 17 | WeweRssIntegrationPage | `src/components/integrations/WeweRssIntegrationPage.tsx` | Config URL/token inputs, test connection button, preview sync button, execute sync button, delete missing sources dialog (with confirm) | `/admin/integrations/we-mp-rss`, `/integrations/we-mp-rss` | ⚠️ partial |
 | 18 | Button | `src/components/ui/button.tsx` | Click handler, disabled state, loading state, variant styles | All pages | ✅ tested |
 | 19 | Input | `src/components/ui/input.tsx` | Text entry, focus/blur, disabled state, placeholder | Forms across all pages | ✅ tested |
 | 20 | Textarea | `src/components/ui/textarea.tsx` | Multi-line text entry, resize, disabled state | MaterialCardEditor, prompt templates | ❌ untested |
@@ -142,7 +142,7 @@
 | # | API Path | Methods | User Action | Status |
 |---|----------|---------|-------------|--------|
 | 34 | `/api/collectors/web/collect` | GET, POST | View collection status / click collect button in CollectDialog | ❌ untested |
-| 35 | `/api/collectors/wechat/sources` | GET | Fetch WeChat source list from WeWe RSS | ⚠️ partial |
+| 35 | `/api/collectors/wechat/sources` | GET | Fetch WeChat source list from we-mp-rss | ⚠️ partial |
 | 36 | `/api/collectors/wechat/articles` | GET | Fetch WeChat articles for a given source | ❌ untested |
 | 37 | `/api/collectors/wechat/import` | POST | Click import button in ArticlePreviewDialog | ❌ untested |
 | 38 | `/api/collectors/wechat/sync` | POST | Click sync button for WeChat sources | ❌ untested |
@@ -151,16 +151,16 @@
 | 41 | `/api/collectors/mediacrawler/crawl` | GET, POST | View crawl status / start a new media crawl job | ❌ untested |
 | 42 | `/api/collectors/mediacrawler/status/[runId]` | GET | Poll crawl job status | ❌ untested |
 
-### Integrations - WeWe RSS (7 routes)
+### Integrations - we-mp-rss (7 routes)
 
 | # | API Path | Methods | User Action | Status |
 |---|----------|---------|-------------|--------|
-| 43 | `/api/integrations/wewe-rss/status` | GET | WeWe RSS integration page loads, fetch connection status | ⚠️ partial |
-| 44 | `/api/integrations/wewe-rss/test` | POST | Click test connection button | ⚠️ partial |
-| 45 | `/api/integrations/wewe-rss/preview-sync` | POST | Click preview sync button to see pending changes | ❌ untested |
-| 46 | `/api/integrations/wewe-rss/sync-sources` | POST | Click execute sync button | ❌ untested |
-| 47 | `/api/integrations/wewe-rss/delete-missing-sources` | POST | Click delete missing sources (with confirm dialog) | ❌ untested |
-| 48 | `/api/integrations/wewe-rss/refresh-source` | POST | Click refresh individual source | ❌ untested |
+| 43 | `/api/integrations/we-mp-rss/status` | GET | we-mp-rss integration page loads, fetch connection status | ⚠️ partial |
+| 44 | `/api/integrations/we-mp-rss/test` | POST | Click test connection button | ⚠️ partial |
+| 45 | `/api/integrations/we-mp-rss/preview-sync` | POST | Click preview sync button to see pending changes | ❌ untested |
+| 46 | `/api/integrations/we-mp-rss/sync-sources` | POST | Click execute sync button | ❌ untested |
+| 47 | `/api/integrations/we-mp-rss/delete-missing-sources` | POST | Click delete missing sources (with confirm dialog) | ❌ untested |
+| 48 | `/api/integrations/we-mp-rss/refresh-source` | POST | Click refresh individual source | ❌ untested |
 
 ### AI Config (3 routes)
 
@@ -245,7 +245,7 @@
 2. **Medium priority** -- Partially tested flows that need completion:
    - `/articles` and `/articles/[id]` -- Complete article detail interactions (annotations, image preview)
    - `/admin/sources` -- Full CRUD cycle including channel management and import
-   - `/admin/integrations/wewe-rss` -- Complete sync preview and execution flow
+   - `/admin/integrations/we-mp-rss` -- Complete sync preview and execution flow
    - `/admin/users` -- Complete user management cycle
 
 3. **Low priority** -- Read-only pages and infrastructure:

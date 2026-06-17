@@ -157,7 +157,7 @@ User, Session, Source, CollectionChannel, ContentItem, MaterialCard, SyncRecord,
 | `/admin/backup` | admin.spec.ts | 2 |
 | `/admin/clean` | admin.spec.ts | 4 |
 | `/admin/settings/ai` | ai-config.spec.ts | 6 |
-| `/admin/integrations/wewe-rss` | wewe-rss.spec.ts | 6 |
+| `/admin/integrations/we-mp-rss` | we-mp-rss.spec.ts | 6 |
 | `/admin/sources` | sources.spec.ts | 6 |
 | `/admin/sync-records` | sync-records.spec.ts | 4 |
 | 全公开/受保护路由 | middleware.spec.ts | 14 |

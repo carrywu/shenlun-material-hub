@@ -51,7 +51,7 @@
 ```
 ┌─────────────────────────────────────────────────────┐
 │  来源发现                                             │
-│  网站爬虫 │ 微信公众号 (WeWe RSS) │ MediaCrawler      │
+│  网站爬虫 │ 微信公众号 (we-mp-rss) │ MediaCrawler      │
 │  (人民日报等)                        (小红书 / B站)    │
 └──────────────────────┬──────────────────────────────┘
                        ▼
@@ -104,20 +104,20 @@
 - `normalizeToContentItem()` — URL 去重 + 内容 hash + 质量门控（< 300 字符直接过滤）
 - `runContentFilters()` — 5 阶段过滤管线
 
-### 2. 微信公众号（WeWe RSS）
+### 2. 微信公众号（we-mp-rss）
 
 **文件**：`src/services/collectors/wechat/` + `src/services/integrations/`
 
 ```
-WeWe RSS (sidecar 服务)
+we-mp-rss (sidecar 服务)
     ↓ API 优先 / SQLite 只读 fallback
-wewe-rss.ts（编排层）
+we-mp-rss.ts（编排层）
     ↓
 weRssClient.ts → weRssNormalizer.ts → ContentItem
 ```
 
 **三种操作模式**：
-- **来源同步**（`POST /api/integrations/wewe-rss/sync-sources`）：upsert feeds 到 Source 表
+- **来源同步**（`POST /api/integrations/we-mp-rss/sync-sources`）：upsert feeds 到 Source 表
 - **文章同步**（`POST /api/collectors/wechat/sync`）：拉取最新文章
 - **手动导入**（`POST /api/collectors/wechat/import`）：mp.weixin.qq.com URL 列表
 
@@ -208,7 +208,7 @@ MaterialCard ──1:N──→ SyncRecord       [materialCardId, cascade delete
 |---|---|---|
 | **User** | `username`, `passwordHash`, `role`(ADMIN/VERIFIED_USER/USER), `status` | 支持 bcrypt + 旧版 SHA-256 |
 | **Session** | `userId`, `token`(高熵随机), `expiresAt`(24h) | DB session + 旧版 JWT 兼容 |
-| **Source** | `name`, `platform`, `provider`(wewe-rss), `sourceGrade`(A-F), 质量指标 | 含 WeWe RSS 集成字段 |
+| **Source** | `name`, `platform`, `provider`(we-mp-rss), `sourceGrade`(A-F), 质量指标 | 含 we-mp-rss 集成字段 |
 | **CollectionChannel** | `sourceId`, `listUrl`, `urlPattern`, `paginationPattern`, `maxPages` | 来源下的分栏采集配置 |
 | **ContentItem** | ~40 个字段，覆盖完整生命周期 | discovery → filtering → AI assessment → card generation |
 | **MaterialCard** | `cardType`(9 种), `markdownContent`, `userEditedContent`, `confirmed` | 需用户确认后才能同步 IMA |
@@ -238,7 +238,7 @@ MaterialCard ──1:N──→ SyncRecord       [materialCardId, cascade delete
 
 | 类型 | 说明 |
 |---|---|
-| `WEWE_RSS_SYNC` | WeWe RSS 文章同步 |
+| `WEWE_RSS_SYNC` | we-mp-rss 文章同步 |
 | `WEB_CRAWL` | 网站爬虫采集 |
 | `AI_ASSESS` | AI 相关性评估 |
 | `CARD_GENERATE` | 素材卡生成 |
@@ -286,7 +286,7 @@ MaterialCard ──1:N──→ SyncRecord       [materialCardId, cascade delete
 | `/settings/ai` | `src/app/settings/ai/page.tsx` | AI 配置 |
 | `/subscriptions` | `src/app/subscriptions/page.tsx` | 订阅管理 |
 | `/sync-records` | `src/app/sync-records/page.tsx` | 同步记录 |
-| `/integrations/wewe-rss` | `src/app/integrations/wewe-rss/page.tsx` | WeWe RSS 集成 |
+| `/integrations/we-mp-rss` | `src/app/integrations/we-mp-rss/page.tsx` | we-mp-rss 集成 |
 
 ### 管理后台页面（12 个）
 
@@ -300,7 +300,7 @@ MaterialCard ──1:N──→ SyncRecord       [materialCardId, cascade delete
 | `/admin/clean` | 数据清洗 |
 | `/admin/logs` | 系统日志 |
 | `/admin/settings/ai` | AI 配置管理 |
-| `/admin/integrations/wewe-rss` | WeWe RSS 管理 |
+| `/admin/integrations/we-mp-rss` | we-mp-rss 管理 |
 | `/admin/sync-records` | 同步记录 |
 | `/admin/tasks` | 异步任务管理 |
 | `/admin/users` | 用户管理 |
@@ -320,7 +320,7 @@ MaterialCard ──1:N──→ SyncRecord       [materialCardId, cascade delete
 | `/api/articles/*` | 1 | 文章列表 |
 | `/api/collectors/*` | 9 | 采集器（网站、微信、MediaCrawler） |
 | `/api/sources/*` | 7 | 来源管理（CRUD、验证、频道、质量） |
-| `/api/integrations/*` | 6 | 外部集成（WeWe RSS 状态/测试/同步） |
+| `/api/integrations/*` | 6 | 外部集成（we-mp-rss 状态/测试/同步） |
 | `/api/ai-config/*` | 3 | AI 配置（设置、测试、prompt 模板） |
 | `/api/annotations/*` | 1 | 批注管理 |
 | 其他 | 3 | discover / explore / review / search / export / proxy / sync 等 |
@@ -361,9 +361,9 @@ MaterialCard ──1:N──→ SyncRecord       [materialCardId, cascade delete
 | `collectors/web/*.ts` | 5 个网站采集器 |
 | `collectors/wechat/*.ts` | 微信文章解析 + WeRSS 客户端 + 规范化 |
 | `collectors/mediacrawler/*.ts` | MediaCrawler 客户端 + 小红书/B站采集 |
-| `integrations/wewe-rss.ts` | WeWe RSS 编排层（API + SQLite fallback） |
-| `integrations/wewe-rss-api.ts` | WeWe RSS HTTP API 客户端 |
-| `integrations/wewe-rss-sqlite.ts` | WeWe RSS SQLite 只读访问层 |
+| `integrations/we-mp-rss.ts` | we-mp-rss 编排层（API + SQLite fallback） |
+| `integrations/we-mp-rss-api.ts` | we-mp-rss HTTP API 客户端 |
+| `integrations/we-mp-rss-sqlite.ts` | we-mp-rss SQLite 只读访问层 |
 
 ---
 
@@ -391,7 +391,7 @@ MaterialCard ──1:N──→ SyncRecord       [materialCardId, cascade delete
 | lib 工具 | 5 | api-error, async-task, backup, display-labels, utils |
 | 服务层 | 4 | ai-annotation, ai-prompts, ai-runtime, material-card-generation |
 | 采集器 | 5 | base-collector-rss, hunan-collector, wechatParser, weRssClient, weRssNormalizer |
-| 集成 | 2 | wewe-rss, wewe-rss-sqlite |
+| 集成 | 2 | we-mp-rss, we-mp-rss-sqlite |
 | API 路由 | 10 | admin/metrics, admin/tasks, ai-config, auth/login, articles, wechat/import, wechat/sync, generate-card |
 | 组件 | 1 | CollectDialog |
 
@@ -402,7 +402,7 @@ MaterialCard ──1:N──→ SyncRecord       [materialCardId, cascade delete
 | `admin-auth.spec.ts` | 管理后台认证流程 |
 | `article-detail-content.spec.ts` | 文章详情页内容验证 |
 | `articles-filter-remove-column.spec.ts` | 文章列表筛选和列移除 |
-| `subscriptions-wewe-rss.spec.ts` | WeWe RSS 订阅管理 |
+| `subscriptions-we-mp-rss.spec.ts` | we-mp-rss 订阅管理 |
 | `ui-chinese-integrity.spec.ts` | 中文 UI 完整性检查 |
 
 ---

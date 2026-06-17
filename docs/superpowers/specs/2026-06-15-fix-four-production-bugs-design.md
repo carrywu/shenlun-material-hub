@@ -6,12 +6,12 @@
 ## Context
 
 生产环境中用户报告 4 个 bug：
-1. 来源管理同步 WeWe RSS 后，之前封禁的文章仍显示"封禁"（WeWe RSS 已有正确内容）
+1. 来源管理同步 we-mp-rss 后，之前封禁的文章仍显示"封禁"（we-mp-rss 已有正确内容）
 2. `/admin/articles` 点击搜索跳转到 `/articles`，空搜索也触发跳转
-3. WeWe RSS "打开后台"按钮跳转到 `localhost:4000` 而非配置的地址
+3. we-mp-rss "打开后台"按钮跳转到 `localhost:8001` 而非配置的地址
 4. 文章管理页缺少"封禁"状态筛选选项
 
-用户决策：同步 WeWe RSS 时自动刷新封禁文章——不需要额外按钮，点"同步 WeWe"即可。
+用户决策：同步 we-mp-rss 时自动刷新封禁文章——不需要额外按钮，点"同步 WeWe"即可。
 
 ---
 
@@ -24,7 +24,7 @@
 数据流：
 ```
 首次采集 → 微信封禁 → 入库 qualityStatus="blocked" + 封禁页面内容
-微信解封 → WeWe RSS 已有正确内容
+微信解封 → we-mp-rss 已有正确内容
 再次采集 → URL 已存在 → 跳过 → 封禁文章永远保持封禁
 ```
 
@@ -75,19 +75,19 @@
 
 ---
 
-## Bug 3：WeWe RSS "打开后台"跳转到 localhost:4000
+## Bug 3：we-mp-rss "打开后台"跳转到 localhost:8001
 
 ### 根因
 
 `WeweRssIntegrationPage.tsx:289`：
 ```tsx
-<a href="http://localhost:4000" target="_blank">打开 WeWe 后台</a>
+<a href="http://localhost:8001" target="_blank">打开 WeWe 后台</a>
 ```
 组件已有 `baseUrl` 状态变量（第 68 行），但 `<a>` 标签硬编码 localhost。
 
 ### 修复
 
-将 `href="http://localhost:4000"` 改为 `href={baseUrl}`。
+将 `href="http://localhost:8001"` 改为 `href={baseUrl}`。
 
 ---
 
@@ -124,6 +124,6 @@
 2. 浏览器：`/admin/articles` 搜索 → 留在 `/admin/articles?keyword=xxx`
 3. 浏览器：空搜索 → 不跳转
 4. 浏览器：`/admin/articles` 点击文章行 → `/admin/articles/{id}`
-5. 浏览器：WeWe RSS 集成页 → "打开后台"用配置的 baseUrl
+5. 浏览器：we-mp-rss 集成页 → "打开后台"用配置的 baseUrl
 6. 文章管理页 → 质量状态筛选有"封禁"选项
 7. 数据库 `qualityStatus="blocked"` 记录 → 同步后更新为正常内容

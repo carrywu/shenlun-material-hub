@@ -16,7 +16,7 @@ Running `prisma migrate status` showed drift: the database schema did not match 
 
 | Table | Phase | Description |
 |-------|-------|-------------|
-| `UserIntegration` | Phase 3 | User integration configs (WeWe RSS, external WeRSS, etc.) |
+| `UserIntegration` | Phase 3 | User integration configs (we-mp-rss, external WeRSS, etc.) |
 | `ImaTarget` | Phase 3 | IMA knowledge base target configs |
 | `Invitation` | Phase 4 | Invitation codes for user registration |
 | `InvitationUse` | Phase 4 | Invitation code usage records |
@@ -36,8 +36,8 @@ Running `prisma migrate status` showed drift: the database schema did not match 
 
 | Table | Description | Action |
 |-------|-------------|--------|
-| `WeweAccount` | Legacy WeWe RSS account table | Not in migration; to be dropped separately |
-| `WeweSubscription` | Legacy WeWe RSS subscription table | Not in migration; to be dropped separately |
+| `WeweAccount` | Legacy we-mp-rss account table | Not in migration; to be dropped separately |
+| `WeweSubscription` | Legacy we-mp-rss subscription table | Not in migration; to be dropped separately |
 
 These orphan tables exist in the database but are not modeled in `schema.prisma` and are not referenced by any source code. They should be dropped in a future cleanup migration after confirming no data is needed.
 

@@ -234,6 +234,6 @@ e2e/
 ├── review.spec.ts           # 复习
 ├── admin.spec.ts            # 管理后台（仪表板/任务/日志/用户/备份/清洗）
 ├── ai-config.spec.ts        # AI 配置
-├── wewe-rss.spec.ts         # WeWe RSS 集成
+├── we-mp-rss.spec.ts         # we-mp-rss 集成
 └── settings.spec.ts         # 用户设置
 ```

@@ -23,10 +23,10 @@
 | `.env.example` | 已完整阅读 | 环境变量模板 | 确认配置方式和密钥管理 | 单管理员模型：ADMIN_USERNAME/PASSWORD_HASH/JWT_SECRET |
 | `.env.test` | 已完整阅读 | 测试环境变量 | 确认测试隔离 | 仅 DATABASE_URL 覆盖 |
 | `Dockerfile` | 已完整阅读 | 容器构建 | 部署方式评估 | standalone 模式，非 root 用户运行 |
-| `docker-compose.yml` | 已完整阅读 | 容器编排 | 部署方式评估 | 单 app 服务 + 可选 wewe-rss sidecar |
+| `docker-compose.yml` | 已完整阅读 | 容器编排 | 部署方式评估 | 单 app 服务 + 可选 we-mp-rss sidecar |
 | `next.config.ts` | 已完整阅读 | Next.js 配置 | 中间件/路由评估 | standalone output，无 middleware 配置 |
 | `config/server.config.json` | 已完整阅读 | 次要服务器配置 | 评估是否有额外服务 | port 3001，未在主流程使用 |
-| `CLAUDE.md` | 已完整阅读 | 项目开发规则 | 约束条件 | WeWe RSS 边界规则、内容清洗规则 |
+| `CLAUDE.md` | 已完整阅读 | 项目开发规则 | 约束条件 | we-mp-rss 边界规则、内容清洗规则 |
 | `AGENTS.md` | 已完整阅读 | Codex 代理规则 | 约束条件 | 与 CLAUDE.md 同步 |
 | `DEPLOY.md` | 已完整阅读 | 部署文档 | 部署和认证方式 | SHA-256 密码哈希、JWT 生成方式 |
 | `prisma.config.ts` | 仅确认用途 | Prisma 配置 | 数据库连接 | 未深入阅读 |
@@ -61,7 +61,7 @@
 | `src/lib/backup.ts` | 仅确认用途 | 备份工具 | 数据安全 | 不影响评估 |
 | `src/lib/display-labels.ts` | 仅确认用途 | 显示标签 | UI | 不影响评估 |
 | `src/lib/utils.ts` | 仅确认用途 | 工具函数 | UI | 不影响评估 |
-| `src/lib/rss.ts` | 已完整阅读 | RSS 解析器 | WeWe RSS | 通用 RSS 解析，无用户上下文 |
+| `src/lib/rss.ts` | 已完整阅读 | RSS 解析器 | we-mp-rss | 通用 RSS 解析，无用户上下文 |
 | `src/lib/client-admin-task.ts` | 未阅读 | 客户端管理任务 | 管理功能 | 不影响评估 |
 
 ### 后端 - 认证 API 路由
@@ -116,12 +116,12 @@
 | `src/app/api/collectors/wechat/sources/route.ts` | 仅确认用途 | 微信来源 | 采集功能 | 未深入阅读 |
 | `src/app/api/collectors/mediacrawler/crawl/route.ts` | 仅确认用途 | MediaCrawler 采集 | 采集功能 | 未深入阅读 |
 | `src/app/api/collectors/mediacrawler/status/[runId]/route.ts` | 仅确认用途 | 采集状态 | 采集功能 | 未深入阅读 |
-| `src/app/api/integrations/wewe-rss/status/route.ts` | 已完整阅读 | WeWe RSS 健康检查 | 集成 | **无认证** |
-| `src/app/api/integrations/wewe-rss/test/route.ts` | 已完整阅读 | WeWe RSS 连接测试 | 集成 | **无认证**，可探测任意 URL |
-| `src/app/api/integrations/wewe-rss/sync-sources/route.ts` | 已完整阅读 | WeWe RSS 来源同步 | 集成 | **无认证**，可传入任意 dbPath |
-| `src/app/api/integrations/wewe-rss/preview-sync/route.ts` | 仅确认用途 | 同步预览 | 集成 | 未深入阅读 |
-| `src/app/api/integrations/wewe-rss/refresh-source/route.ts` | 仅确认用途 | 来源刷新 | 集成 | 未深入阅读 |
-| `src/app/api/integrations/wewe-rss/delete-missing-sources/route.ts` | 仅确认用途 | 删除缺失来源 | 集成 | 未深入阅读 |
+| `src/app/api/integrations/we-mp-rss/status/route.ts` | 已完整阅读 | we-mp-rss 健康检查 | 集成 | **无认证** |
+| `src/app/api/integrations/we-mp-rss/test/route.ts` | 已完整阅读 | we-mp-rss 连接测试 | 集成 | **无认证**，可探测任意 URL |
+| `src/app/api/integrations/we-mp-rss/sync-sources/route.ts` | 已完整阅读 | we-mp-rss 来源同步 | 集成 | **无认证**，可传入任意 dbPath |
+| `src/app/api/integrations/we-mp-rss/preview-sync/route.ts` | 仅确认用途 | 同步预览 | 集成 | 未深入阅读 |
+| `src/app/api/integrations/we-mp-rss/refresh-source/route.ts` | 仅确认用途 | 来源刷新 | 集成 | 未深入阅读 |
+| `src/app/api/integrations/we-mp-rss/delete-missing-sources/route.ts` | 仅确认用途 | 删除缺失来源 | 集成 | 未深入阅读 |
 | `src/app/api/search/route.ts` | 已完整阅读 | 搜索 | 搜索功能 | **无认证** |
 | `src/app/api/export/route.ts` | 已完整阅读 | 导出 | 导出功能 | **无认证** |
 | `src/app/api/review/route.ts` | 已完整阅读 | 复习 | 复习功能 | **无认证** |
@@ -139,9 +139,9 @@
 | `src/services/ai-annotation.ts` | 已完整阅读 | AI 批注服务 | AI 功能 | 依赖 ai.ts，无用户上下文 |
 | `src/services/content-filter.ts` | 已完整阅读 | 内容过滤 | 内容质量 | 5 级过滤管道，全局数据 |
 | `src/services/source-quality.ts` | 已完整阅读 | 来源质量评估 | 来源管理 | 质量评分算法，全局数据 |
-| `src/services/integrations/wewe-rss.ts` | 已完整阅读 | WeWe RSS 编排 | **核心**：WeWe RSS | baseUrl 参数传入，无用户上下文 |
-| `src/services/integrations/wewe-rss-api.ts` | 已完整阅读 | WeWe RSS API 客户端 | WeWe RSS | 纯 HTTP 客户端，baseUrl 参数化 |
-| `src/services/integrations/wewe-rss-sqlite.ts` | 已完整阅读 | WeWe RSS SQLite 回退 | WeWe RSS | 只读 SQLite，硬编码路径 |
+| `src/services/integrations/we-mp-rss.ts` | 已完整阅读 | we-mp-rss 编排 | **核心**：we-mp-rss | baseUrl 参数传入，无用户上下文 |
+| `src/services/integrations/we-mp-rss-api.ts` | 已完整阅读 | we-mp-rss API 客户端 | we-mp-rss | 纯 HTTP 客户端，baseUrl 参数化 |
+| `src/services/integrations/we-mp-rss-sqlite.ts` | 已完整阅读 | we-mp-rss SQLite 回退 | we-mp-rss | 只读 SQLite，硬编码路径 |
 | `src/services/collectors/base.ts` | 仅确认用途 | 采集器基类 | 采集功能 | 未深入阅读 |
 | `src/services/collectors/registry.ts` | 仅确认用途 | 采集器注册表 | 采集功能 | 未深入阅读 |
 | `src/services/collectors/web/*.ts` | 仅确认用途 | 各网站采集器 | 采集功能 | 5 个采集器，未深入阅读 |
@@ -161,7 +161,7 @@
 | `src/app/admin/sources/page.tsx` | 已完整阅读 | 来源管理 | 管理功能 | SubscriptionsPage |
 | `src/app/admin/tasks/page.tsx` | 已完整阅读 | 任务监控 | 管理功能 | 自动轮询 3 秒 |
 | `src/app/admin/settings/ai/page.tsx` | 已完整阅读 | AI 配置 | 配置管理 | AiConfigPage |
-| `src/app/admin/integrations/wewe-rss/page.tsx` | 仅确认用途 | WeWe RSS 集成 | 集成管理 | 未深入阅读 |
+| `src/app/admin/integrations/we-mp-rss/page.tsx` | 仅确认用途 | we-mp-rss 集成 | 集成管理 | 未深入阅读 |
 | `src/app/admin/sync-records/page.tsx` | 仅确认用途 | 同步记录 | 同步管理 | 未深入阅读 |
 | `src/app/admin/logs/page.tsx` | 仅确认用途 | 系统日志 | 日志管理 | 未深入阅读 |
 | `src/app/admin/backup/page.tsx` | 仅确认用途 | 数据备份 | 数据安全 | 未深入阅读 |
@@ -177,7 +177,7 @@
 | `src/app/review/page.tsx` | 仅确认用途 | 复习 | 复习 | 未深入阅读 |
 | `src/app/subscriptions/page.tsx` | 仅确认用途 | 订阅 | 订阅管理 | 未深入阅读 |
 | `src/app/sync-records/page.tsx` | 仅确认用途 | 同步记录 | 同步 | 未深入阅读 |
-| `src/app/integrations/wewe-rss/page.tsx` | 仅确认用途 | WeWe RSS | 集成 | 未深入阅读 |
+| `src/app/integrations/we-mp-rss/page.tsx` | 仅确认用途 | we-mp-rss | 集成 | 未深入阅读 |
 
 ### 前端 - 组件
 
@@ -197,7 +197,7 @@
 | `src/components/WechatImportDialog.tsx` | 仅确认用途 | 微信导入对话框 | 采集 | 未深入阅读 |
 | `src/components/ChannelManager.tsx` | 仅确认用途 | 栏目管理 | 来源管理 | 未深入阅读 |
 | `src/components/ArticlePreviewDialog.tsx` | 仅确认用途 | 文章预览 | 内容浏览 | 未深入阅读 |
-| `src/components/integrations/WeweRssIntegrationPage.tsx` | 仅确认用途 | WeWe RSS 集成页 | 集成 | 未深入阅读 |
+| `src/components/integrations/WeweRssIntegrationPage.tsx` | 仅确认用途 | we-mp-rss 集成页 | 集成 | 未深入阅读 |
 | `src/components/subscriptions/SubscriptionsPage.tsx` | 仅确认用途 | 订阅管理页 | 订阅 | 未深入阅读 |
 | `src/components/sync/SyncRecordsPage.tsx` | 仅确认用途 | 同步记录页 | 同步 | 未深入阅读 |
 | `src/components/filters/*.tsx` | 未阅读 | 筛选组件 | UI | 不影响评估 |
@@ -218,7 +218,7 @@
 |---|---|---|---|---|
 | `e2e/admin-auth.spec.ts` | 已完整阅读 | 管理员认证 E2E | **核心**：认证测试 | 测试登录流程、Cookie 设置 |
 | `e2e/article-detail-content.spec.ts` | 已完整阅读 | 文章内容 E2E | 内容质量 | 验证无原始 HTML 标签 |
-| `e2e/subscriptions-wewe-rss.spec.ts` | 已完整阅读 | WeWe RSS E2E | 集成测试 | 登录后测试来源和集成页 |
+| `e2e/subscriptions-we-mp-rss.spec.ts` | 已完整阅读 | we-mp-rss E2E | 集成测试 | 登录后测试来源和集成页 |
 | `e2e/articles-filter-remove-column.spec.ts` | 未阅读 | 文章筛选 E2E | UI 测试 | 不影响评估 |
 | `e2e/ui-chinese-integrity.spec.ts` | 未阅读 | 中文完整性 E2E | UI 测试 | 不影响评估 |
 | `src/lib/__tests__/*.test.ts` | 未阅读 | 单元测试 | 测试覆盖 | 不影响评估 |
@@ -264,6 +264,6 @@
 5. **单管理员模型**：认证基于环境变量的单一管理员账号
 6. **AI 配置全局唯一**：`aiConfig` 表仅有一条 name="default" 的记录
 7. **IMA 配置纯环境变量**：模块加载时读取，无法动态切换
-8. **WeWe RSS 配置由调用方传入**：baseUrl 参数化，但当前由环境变量提供
+8. **we-mp-rss 配置由调用方传入**：baseUrl 参数化，但当前由环境变量提供
 9. **任务系统无用户关联**：AsyncTask 无 userId 字段
 10. **管理后台 API 无认证**：7/8 个管理 API 端点完全公开

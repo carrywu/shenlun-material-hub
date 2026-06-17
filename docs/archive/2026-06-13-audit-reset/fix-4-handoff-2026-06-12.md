@@ -63,7 +63,7 @@ run 19（fix-4 commit 前的基线）：**18 failed, 8 flaky, 17 skipped, 15 did
 | 视觉回归 toHaveScreenshot | 8 | visual-regression（dashboard/settings/admin 等） | **未处理** → fix-5（baseline 更新） |
 | 真实失败（本次修） | 7 | article-detail:76/174、articles:103、mobile:41×2、data-isolation:119、admin clean×2 | **已 commit**，**未复跑验证** |
 | admin clean×2 | 2 | admin:374、admin:451 | clean 路由已在 `3391c60` 修（column quoting），run19 时 dev server 未拾取最新编译；本次手测 `/api/admin/clean` 返回 200 ✓。checkbox 是 base-ui `button[role=checkbox]`，preview 正常即渲染。**应已自然恢复** |
-| 已知非安全 | 1 | wewe-rss:111（同步来源） | **未处理** —— curl 直调 API 正常，e2e 点击链 30s 内无 UI 响应。非安全相关，可 skip 或单独排查 |
+| 已知非安全 | 1 | we-mp-rss:111（同步来源） | **未处理** —— curl 直调 API 正常，e2e 点击链 30s 内无 UI 响应。非安全相关，可 skip 或单独排查 |
 
 > 8 flaky（auth:36、cards:83、sources×4、ai-config:134、error-states:65）多为冷启/时序，ConsoleGuard 修复 + 服务器预热后预期自然转绿。
 
@@ -73,7 +73,7 @@ run 19（fix-4 commit 前的基线）：**18 failed, 8 flaky, 17 skipped, 15 did
 
 本次会话所有 fix-4 commit（`6f1e2ef`、`92bba3e`）**只在单点手测过**（curl、playwright 单测片段），**没跑完整 e2e 验证**。用户要求"完成 fix-4 给我生成交接文档然后暂停开发"。
 
-**恢复时第一件事**：跑一次完整 e2e，确认 fix-4 真的把 18 → 预期 ≤ 10（剩 visual 8 + wewe-rss 1 + 可能残留）。
+**恢复时第一件事**：跑一次完整 e2e，确认 fix-4 真的把 18 → 预期 ≤ 10（剩 visual 8 + we-mp-rss 1 + 可能残留）。
 
 ```bash
 cd /Users/apple/Downloads/ima-shenglun-creators/shenlun-material-hub/.claude/worktrees/p1-p8-review-flow
@@ -102,8 +102,8 @@ fix-4 + fix-5 后的最终全量复跑。
 - **P0-002**：收藏配额事务内 `pg_advisory_xact_lock(hashtext(userId))` + count + createMany。plan：`docs/superpowers/plans/2026-06-12-p0-002-favorites-toctou.md`
 - **P0-003**：AsyncTask 加 `dedupeKey` + partial unique index + `createDedupTask`。plan：`docs/superpowers/plans/2026-06-12-p0-003-task-rate-limit.md`
 
-### wewe-rss:111（非阻塞）
-非安全相关集成测试。curl `/api/wewe-rss/.../sync` 直调正常，但 e2e 点击"同步来源"按钮 30s 内无 UI 响应。可 skip 或在 fix-6 单独排查（怀疑前端未正确处理 sync 响应或 toast 未触发）。
+### we-mp-rss:111（非阻塞）
+非安全相关集成测试。curl `/api/we-mp-rss/.../sync` 直调正常，但 e2e 点击"同步来源"按钮 30s 内无 UI 响应。可 skip 或在 fix-6 单独排查（怀疑前端未正确处理 sync 响应或 toast 未触发）。
 
 ---
 

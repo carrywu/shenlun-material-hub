@@ -17,10 +17,10 @@
   - 当前代码包含 AI prompt routes 和 annotation routes。
 - `e7bf31c Record rollout notes and align legacy card migration`
   - 与 migration/rollout 文档有关；后续仍需用空库验收证明 migration chain。
-- `8185c8a Stabilize WeWe RSS content cleanup and browser QA workflow`
+- `8185c8a Stabilize we-mp-rss content cleanup and browser QA workflow`
   - 与 content cleanup 和 browser QA 有关。
-- `cf93c54 feat: WeWe RSS deep integration - SQLite fallback, preview-sync, delete confirmation`
-  - 当前代码包含 WeWe RSS integration routes 和 SQLite fallback。
+- `cf93c54 feat: we-mp-rss deep integration - SQLite fallback, preview-sync, delete confirmation`
+  - 当前代码包含 we-mp-rss integration routes 和 SQLite fallback。
 
 ## 当前 RBAC 状态
 

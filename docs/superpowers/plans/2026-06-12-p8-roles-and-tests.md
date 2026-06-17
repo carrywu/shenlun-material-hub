@@ -666,7 +666,7 @@ Expected：全绿。如果有失败，必须修复（不允许 skip 业务核心
 
 - [ ] **Step 2: 判断采集 e2e 是否风控失败**
 
-如果 `e2e/wewe-rss.spec.ts` 或任何调用真实 WeWe RSS 采集的用例失败：
+如果 `e2e/we-mp-rss.spec.ts` 或任何调用真实 we-mp-rss 采集的用例失败：
 - 检查响应是否包含 `WECHAT_BLOCK_KEYWORDS`（环境异常 / 频繁访问 / 请先验证 / 完成验证后即可继续访问 / 当前环境异常 / 为你的访问安全）
 - 用 `detectWechatBlockPage()` 逻辑判断（`src/services/collectors/wechat/weRssNormalizer.ts:53`）
 - 命中 → 不是代码 bug，记入报告
@@ -700,7 +700,7 @@ Expected：全绿。如果有失败，必须修复（不允许 skip 业务核心
 ## ⚠️ 采集 e2e 风控状态
 <根据 Step 2 实测填写：>
 - 本地：通过 / 失败（原因）
-- staging：通过 / 失败（命中封禁关键词：XXX，建议人工核查 WeWe RSS 服务状态）
+- staging：通过 / 失败（命中封禁关键词：XXX，建议人工核查 we-mp-rss 服务状态）
 
 ## 全套测试汇总（P1-P8）
 - 单测新增：约 XX 个

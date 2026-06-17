@@ -6,31 +6,31 @@
 
 ## Context
 
-WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持久存内容 + 自动补抓）。完全替换，不保留回退。38 项决策全部确认。
+we-mp-rss 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持久存内容 + 自动补抓）。完全替换，不保留回退。38 项决策全部确认。
 
 ## 实施顺序（8 Phase，每步 `pnpm build` 通过）
 
 ### Phase 1: 基础设施层
 
 **1.1 替换 Docker 配置**
-- 删除 `infra/wechat-rss/wewe-rss/` 目录（含 data/）
+- 删除 `infra/wechat-rss/we-mp-rss/` 目录（含 data/）
 - 新建 `infra/wechat-rss/we-mp-rss/docker-compose.yml`（Q1 确认的配置，含 GATHER_CONTENT=True 等环境变量）
-- 更新 `docker-compose.yml`（根）：删 wewe-rss profile，加 we-mp-rss profile
-- 更新 `docker-compose.staging.yml`：替换内联 wewe-rss 定义为 we-mp-rss
+- 更新 `docker-compose.yml`（根）：删 we-mp-rss profile，加 we-mp-rss profile
+- 更新 `docker-compose.staging.yml`：替换内联 we-mp-rss 定义为 we-mp-rss
 
 **1.2 环境变量迁移**
 - 更新 `.env.example`：删 `WERSS_*`，加 `WE_MP_RSS_BASE_URL` / `WE_MP_RSS_ACCESS_KEY` / `WE_MP_RSS_SECRET_KEY` / `WE_MP_RSS_DB_PATH`
 - 更新 `.env.staging.example`：同理
 
 **1.3 删除/更新部署脚本**
-- 删除 `scripts/deploy/sync-wewe-rss-feeds.sh`
-- 更新 `scripts/deploy-staging.sh`：wewe-rss → we-mp-rss
-- 更新 `scripts/deploy/server-pull-and-restart.sh`：wewe-rss → we-mp-rss
+- 删除 `scripts/deploy/sync-we-mp-rss-feeds.sh`
+- 更新 `scripts/deploy-staging.sh`：we-mp-rss → we-mp-rss
+- 更新 `scripts/deploy/server-pull-and-restart.sh`：we-mp-rss → we-mp-rss
 
 ### Phase 2: API 客户端层
 
 **2.1 新建 `src/services/integrations/we-mp-rss-api.ts`**
-- 替换 `wewe-rss-api.ts`
+- 替换 `we-mp-rss-api.ts`
 - 接口：`WeMpRssFeed`、`WeMpRssArticle`、`WeMpRssTaskResult`
 - 函数（全部需 AK-SK 认证）：
   - `checkHealth(baseUrl, accessKey, secretKey)` → GET `/api/mps?limit=1`
@@ -51,7 +51,7 @@ WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持
 - WE_MP_RSS_BASE_URL 未配置时抛错（D15/Q17）
 
 **2.2 新建 `src/services/integrations/we-mp-rss-sqlite.ts`**
-- 替换 `wewe-rss-sqlite.ts`
+- 替换 `we-mp-rss-sqlite.ts`
 - 默认路径：`infra/wechat-rss/we-mp-rss/data/db.db`
 - 读 feeds 表 + articles 表（含 content、content_html、has_content）（D16）
 - 只读约束保持（`readonly: true`）
@@ -59,15 +59,15 @@ WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持
 - 导出：`checkSqliteDb(path)`, `listFeedsFromSqlite(path)`, `listArticlesFromSqlite(path, mpId, {offset, limit})`
 
 **2.3 新建 `src/services/integrations/wechat-rss.ts`**
-- 替换 `wewe-rss.ts` facade
+- 替换 `we-mp-rss.ts` facade
 - 导出 `SyncMode` type（auto|api|sqlite|manual），和所有 we-mp-rss-api 导出
 - `listFeedsAuto(baseUrl, accessKey, secretKey, syncMode, dbPath)` → API 优先 → SQLite fallback → 都失败报错
 - `listArticlesAuto(baseUrl, accessKey, secretKey, syncMode, dbPath, {mpId, offset, limit})` → 同理
 
 **2.4 删除旧文件**
-- 删除 `src/services/integrations/wewe-rss-api.ts`
-- 删除 `src/services/integrations/wewe-rss-sqlite.ts`
-- 删除 `src/services/integrations/wewe-rss.ts`
+- 删除 `src/services/integrations/we-mp-rss-api.ts`
+- 删除 `src/services/integrations/we-mp-rss-sqlite.ts`
+- 删除 `src/services/integrations/we-mp-rss.ts`
 
 ### Phase 3: 内容管道重构
 
@@ -96,11 +96,11 @@ WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持
 ### Phase 4: API 路由迁移
 
 **4.1 路由目录重命名**（D13）
-- `src/app/api/integrations/wewe-rss/` → `src/app/api/integrations/wechat-rss/`
-- `src/app/api/settings/integrations/wewe-rss/` → `src/app/api/settings/integrations/wechat-rss/`
-- `src/app/admin/integrations/wewe-rss/` → `src/app/admin/integrations/wechat-rss/`
-- 新建 `src/app/integrations/wewe-rss/page.tsx` → 301 重定向（Q13）
-- 新建 `src/app/admin/integrations/wewe-rss/page.tsx` → 301 重定向（Q13）
+- `src/app/api/integrations/we-mp-rss/` → `src/app/api/integrations/wechat-rss/`
+- `src/app/api/settings/integrations/we-mp-rss/` → `src/app/api/settings/integrations/wechat-rss/`
+- `src/app/admin/integrations/we-mp-rss/` → `src/app/admin/integrations/wechat-rss/`
+- 新建 `src/app/integrations/we-mp-rss/page.tsx` → 301 重定向（Q13）
+- 新建 `src/app/admin/integrations/we-mp-rss/page.tsx` → 301 重定向（Q13）
 - 采集路由 `src/app/api/collectors/wechat/` 不改名
 
 **4.2 集成路由内部改造**
@@ -109,7 +109,7 @@ WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持
 |------|------|
 | `wechat-rss/status/route.ts` | 返回 Q12 确认的新结构（authStatus, contentHealth, akskConfigured）；删 WERSS_BASE_URL 通道；调 we-mp-rss-api |
 | `wechat-rss/test/route.ts` | 改调 we-mp-rss-api checkHealth |
-| `wechat-rss/preview-sync/route.ts` | listFeedsAuto → wechat-rss；provider "wewe-rss" → "we-mp-rss" |
+| `wechat-rss/preview-sync/route.ts` | listFeedsAuto → wechat-rss；provider "we-mp-rss" → "we-mp-rss" |
 | `wechat-rss/sync-sources/route.ts` | provider "we-mp-rss"；toDelete 排除 FEATURED_MP_ID（Q15） |
 | `wechat-rss/refresh-source/route.ts` | triggerFeedSync → we-mp-rss-api；加后端 60 秒限流（Q9） |
 | `wechat-rss/delete-missing-sources/route.ts` | provider "we-mp-rss" |
@@ -137,10 +137,10 @@ WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持
 
 **5.1 组件重命名**（D18）
 - `WeweRssIntegrationPage.tsx` → `WechatIntegrationPage.tsx`
-- API 路径 `/api/integrations/wewe-rss/` → `/api/integrations/wechat-rss/`
+- API 路径 `/api/integrations/we-mp-rss/` → `/api/integrations/wechat-rss/`
 - 配置表单：移除 AUTH_CODE，增加 Access Key / Secret Key 输入
 - 状态页：展示 authStatus（Q3）、contentHealth（Q12）
-- 文案 "WeWe RSS" → "we-mp-rss"
+- 文案 "we-mp-rss" → "we-mp-rss"
 
 **5.2 WechatImportDialog 改造**（D11/Q6）
 - 保持对话框打开，loading 轮询
@@ -148,7 +148,7 @@ WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持
 - 120 秒超时，超时后提示"请在 we-mp-rss 管理界面查看结果"
 
 **5.3 SubscriptionsPage 更新**
-- provider badge：`"wewe-rss"` → `"we-mp-rss"`；`"werss-external"` badge 删除（D12）
+- provider badge：`"we-mp-rss"` → `"we-mp-rss"`；`"werss-external"` badge 删除（D12）
 - "同步 WeWe" 按钮文案更新
 - API 路径更新
 
@@ -156,7 +156,7 @@ WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持
 - `{ name: "微信集成", href: "/admin/integrations/wechat-rss", icon: Rss }`
 
 **5.5 Settings 页面**
-- `src/app/settings/integrations/page.tsx`：WeWe RSS → we-mp-rss；增加 AK/SK 输入
+- `src/app/settings/integrations/page.tsx`：we-mp-rss → we-mp-rss；增加 AK/SK 输入
 
 **5.6 刷新按钮防抖**（Q9）
 - refresh-source 按钮点击后 disabled 30 秒
@@ -167,44 +167,44 @@ WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持
 - `npx tsx scripts/migrate-wewe-to-we-mp-rss.ts --dry-run`（默认）
 - `--apply` 执行
 - 操作：
-  1. Source.provider: `"wewe-rss"` → `"we-mp-rss"`
+  1. Source.provider: `"we-mp-rss"` → `"we-mp-rss"`
   2. Source.provider: `"werss-external"` → 软删除（设 archivedAt）（Q5）
   3. Source.baseUrl: `{old}:4000/feeds/{id}.rss` → `{new}:8001`
   4. ContentItem.discoveryChannel: `"werss"` → `"wechat-api"`
   5. AsyncTask.type: `"WEWE_RSS_SYNC"` → `"WECHAT_SYNC"`
-  6. UserIntegration.provider: `"wewe-rss"` → `"we-mp-rss"`，config 增加 accessKey/secretKey
+  6. UserIntegration.provider: `"we-mp-rss"` → `"we-mp-rss"`，config 增加 accessKey/secretKey
   7. CollectorRun.collectorType: `"werss"` → `"wechat-api"`
 - 输出：各表更新计数 + werss-external 软删除数 + blocked 文章待刷新提示
 
 **6.2 CLAUDE.md 更新**
-- WeWe RSS → we-mp-rss
+- we-mp-rss → we-mp-rss
 - 删"外部 WeRSS fallback 必须保留"
 - provider 注释更新
 
 ### Phase 7: 清理 + 新测试
 
 **7.1 删除旧文件**
-- `src/services/integrations/wewe-rss-api.ts`
-- `src/services/integrations/wewe-rss-sqlite.ts`
-- `src/services/integrations/wewe-rss.ts`
+- `src/services/integrations/we-mp-rss-api.ts`
+- `src/services/integrations/we-mp-rss-sqlite.ts`
+- `src/services/integrations/we-mp-rss.ts`
 - `src/services/collectors/wechat/weRssClient.ts`
 - `src/services/collectors/wechat/wechatParser.ts`
 - `scripts/repair-wechat-content.ts`
-- `scripts/deploy/sync-wewe-rss-feeds.sh`
-- `infra/wechat-rss/wewe-rss/` 目录
+- `scripts/deploy/sync-we-mp-rss-feeds.sh`
+- `infra/wechat-rss/we-mp-rss/` 目录
 
 **7.2 删除旧测试 + 写新测试**
 
 旧测试全部删除：
-- `src/services/integrations/__tests__/wewe-rss.test.ts`
-- `src/services/integrations/__tests__/wewe-rss-sqlite.test.ts`
+- `src/services/integrations/__tests__/we-mp-rss.test.ts`
+- `src/services/integrations/__tests__/we-mp-rss-sqlite.test.ts`
 - `src/services/collectors/wechat/__tests__/wechatParser.test.ts`
 - `src/services/collectors/wechat/__tests__/weRssNormalizer.test.ts`（保留 detectWechatBlockPage 测例）
-- `src/app/api/settings/integrations/wewe-rss/__tests__/route.test.ts`
-- `src/app/api/settings/integrations/wewe-rss/test/__tests__/route.test.ts`
+- `src/app/api/settings/integrations/we-mp-rss/__tests__/route.test.ts`
+- `src/app/api/settings/integrations/we-mp-rss/test/__tests__/route.test.ts`
 - `src/app/api/collectors/wechat/import/__tests__/route.test.ts`
-- `tests/e2e/wewe-rss.spec.ts`
-- `e2e/wewe-rss.spec.ts`
+- `tests/e2e/we-mp-rss.spec.ts`
+- `e2e/we-mp-rss.spec.ts`
 
 新测试：
 - `src/services/integrations/__tests__/we-mp-rss-api.test.ts`
@@ -221,7 +221,7 @@ WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持
 - `/subscriptions` — 订阅列表：provider badge 显示 "we-mp-rss"
 - `/sources` — 来源管理：provider 过滤
 - `/articles/[id]` — 文章详情：fullText 正常显示
-- `/admin/integrations/wewe-rss` — 301 重定向生效（Q13）
+- `/admin/integrations/we-mp-rss` — 301 重定向生效（Q13）
 
 **E2E 测例**：
 - 页面加载无 console 错误
@@ -232,7 +232,7 @@ WeWe RSS 已归档停更，SQLite 不存文章内容。迁移到 we-mp-rss（持
 - 手动导入：粘贴 URL → loading 轮询 → 成功/超时提示
 - 同步流程：触发同步 → 任务创建 → 轮询结果
 - 刷新按钮：disabled 30 秒防抖（Q9）
-- 旧路由：`/admin/integrations/wewe-rss` 301 重定向
+- 旧路由：`/admin/integrations/we-mp-rss` 301 重定向
 
 ## 验证计划
 
@@ -249,17 +249,17 @@ pnpm exec playwright test
 # /subscriptions
 # /sources
 # /articles/[id]
-# /admin/integrations/wewe-rss (验证 301 重定向)
+# /admin/integrations/we-mp-rss (验证 301 重定向)
 ```
 
 ## 关键文件清单
 
 | Phase | 操作 | 关键文件 |
 |-------|------|---------|
-| P1 | 删/新建 | `infra/wechat-rss/wewe-rss/`, `infra/wechat-rss/we-mp-rss/docker-compose.yml`, `docker-compose.yml`, `docker-compose.staging.yml`, `.env.example`, `.env.staging.example` |
-| P2 | 新建/删 | `src/services/integrations/we-mp-rss-api.ts`, `we-mp-rss-sqlite.ts`, `wechat-rss.ts`; 删 `wewe-rss-api.ts`, `wewe-rss-sqlite.ts`, `wewe-rss.ts` |
+| P1 | 删/新建 | `infra/wechat-rss/we-mp-rss/`, `infra/wechat-rss/we-mp-rss/docker-compose.yml`, `docker-compose.yml`, `docker-compose.staging.yml`, `.env.example`, `.env.staging.example` |
+| P2 | 新建/删 | `src/services/integrations/we-mp-rss-api.ts`, `we-mp-rss-sqlite.ts`, `wechat-rss.ts`; 删 `we-mp-rss-api.ts`, `we-mp-rss-sqlite.ts`, `we-mp-rss.ts` |
 | P3 | 改/删/新建 | `weRssNormalizer.ts`（改 discoveryChannel, 删 cleanWechatHtml, 加 extractPlainText）; 新建 `wechat-article-types.ts`; 删 `wechatParser.ts`, `weRssClient.ts`, `repair-wechat-content.ts` |
-| P4 | 改/移/新建 | 移 `api/integrations/wewe-rss/` → `wechat-rss/`; 改 `settings/integrations/wewe-rss/` → `wechat-rss/`; 改 `wechat/sync/` 路由; 改 `async-task.ts`, `admin/page.tsx`, `admin/tasks/page.tsx`; 新建重定向页 |
+| P4 | 改/移/新建 | 移 `api/integrations/we-mp-rss/` → `wechat-rss/`; 改 `settings/integrations/we-mp-rss/` → `wechat-rss/`; 改 `wechat/sync/` 路由; 改 `async-task.ts`, `admin/page.tsx`, `admin/tasks/page.tsx`; 新建重定向页 |
 | P5 | 改/移 | `WeweRssIntegrationPage.tsx` → `WechatIntegrationPage.tsx`; `WechatImportDialog.tsx`; `SubscriptionsPage.tsx`; `AdminShell.tsx`; `settings/integrations/page.tsx` |
 | P6 | 新建/改 | `scripts/migrate-wewe-to-we-mp-rss.ts`; 改 `CLAUDE.md` |
 | P7 | 删/新建 | 旧测试; 新测试文件 |

@@ -33,7 +33,7 @@
 | `/admin/tasks` | 5 | React key warning | P1 | 修复表格 row key |
 | `/admin/sync-records` | 4 | 可见 IMA 404 失败细节，普通用户难理解 | P1 | 结构化失败原因和修复建议 |
 | `/admin/settings/ai` | 4 | 捕获 500 资源错误 | P0 | 修复提示词/配置读取异常 |
-| `/admin/integrations/wewe-rss` | 7 | 页面可渲染，适合作为运营入口 | P2 | 危险同步动作补 dry-run E2E |
+| `/admin/integrations/we-mp-rss` | 7 | 页面可渲染，适合作为运营入口 | P2 | 危险同步动作补 dry-run E2E |
 | 移动端 | 4 | 文章表格和后台布局可读性不足 | P1 | 前台移动优先，后台至少避免遮挡 |
 
 ## 4. 用户路径评估
@@ -46,7 +46,7 @@
 
 ### 管理员路径
 - 入口：后台页面可渲染，导航清晰。
-- 关键操作：来源、任务、日志、AI、WeWe RSS、用户、备份、清洗入口齐全。
+- 关键操作：来源、任务、日志、AI、we-mp-rss、用户、备份、清洗入口齐全。
 - 卡点：E2E 认证失效；AI 设置 500；任务页 key warning；危险操作没有在临时库完整验证。
 - 建议：先恢复可回归的 admin E2E，再处理 AI/IMA/同步错误。
 
@@ -61,10 +61,10 @@
 - 后端/API：API route 数量较多，admin/user/public 边界基本存在，但 route tests 不能覆盖真实认证状态。
 - 数据库：Prisma 7 + PostgreSQL；schema 包含 User、Source、ContentItem、MaterialCard、SyncRecord、AiConfig、SystemLog、AsyncTask 等主链路模型。
 - AI：AI Key 使用加密存储，缺少密钥时会抛出中文错误；当前页面捕获到 AI 设置 500。
-- 采集：WeWe RSS sidecar 边界清楚，源码与 docker-compose 注释强调只读消费。
+- 采集：we-mp-rss sidecar 边界清楚，源码与 docker-compose 注释强调只读消费。
 - 异步任务：有 AsyncTask 与轮询工具；后台任务页存在 React key warning。
 - IMA 同步：同步记录保留失败信息，但错误暴露底层 API 路径，不利于用户修复。
-- WeWe RSS：管理入口可访问；同步/删除类动作本次未真实写入验证。
+- we-mp-rss：管理入口可访问；同步/删除类动作本次未真实写入验证。
 - 测试：Vitest 通过；Playwright 规格完整但全量门禁失败。
 
 ## 6. 安全与权限评估

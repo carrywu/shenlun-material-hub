@@ -83,7 +83,7 @@
   - 新建 `/admin/articles`，供管理员进行批量重新评估、批量删除等操作。
 - **来源管理与微信集成**：
   - 迁移 `/sources` 及其子页到 `/admin/sources`。
-  - 迁移 `/integrations/wewe-rss` 到 `/admin/integrations/wewe-rss`。
+  - 迁移 `/integrations/we-mp-rss` 到 `/admin/integrations/we-mp-rss`。
 - **配置与记录**：
   - 迁移 `/settings/ai` 到 `/admin/settings/ai`。
   - 迁移 `/sync-records` 到 `/admin/sync-records`。

@@ -124,12 +124,12 @@ Warning inventory:
   - `e2e/error-states.spec.ts:59` unused `errorOverlay`
   - `e2e/explore-discover.spec.ts:99` unused `count`
   - `e2e/review.spec.ts:212` unused `hasLoading`
-  - `e2e/wewe-rss.spec.ts:22` unused `testInfo`
+  - `e2e/we-mp-rss.spec.ts:22` unused `testInfo`
 - API/application unused imports or variables:
   - `src/app/api/auth/change-password/route.ts:2` unused `AUTH_COOKIE_NAME`
   - `src/app/api/content-items/reassess/route.ts:5` unused `enqueueAsyncTask`
   - `src/app/api/material-cards/[id]/route.ts:3` unused `forbiddenResponse`
-  - `src/app/api/settings/integrations/wewe-rss/route.ts:4` unused `checkHealth`
+  - `src/app/api/settings/integrations/we-mp-rss/route.ts:4` unused `checkHealth`
   - `src/app/layout.tsx:31` unused `isAdmin`
   - `src/app/settings/integrations/page.tsx:6` unused `XCircle`
   - `src/services/collectors/mediacrawler/bilibili.ts:104` unused `filteredCount`
@@ -143,7 +143,7 @@ Initial classification:
 - Likely cleanup-only: most E2E variables, test imports, unused icons, unused `isAdmin`, unused `forbiddenResponse`.
 - Needs logic review before deletion:
   - `enqueueAsyncTask` in reassess route may indicate reassessment work was intended to enqueue asynchronously but now runs differently or was left unfinished.
-  - `checkHealth` in WeWe RSS settings route may indicate a removed/unfinished health-check behavior.
+  - `checkHealth` in we-mp-rss settings route may indicate a removed/unfinished health-check behavior.
   - `filteredCount` in MediaCrawler collectors may indicate filter metrics are calculated but never surfaced.
   - `AUTH_COOKIE_NAME` in change-password route may indicate intended cookie/session handling was removed or incomplete.
 

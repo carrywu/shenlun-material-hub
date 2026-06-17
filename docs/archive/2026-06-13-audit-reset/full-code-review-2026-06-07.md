@@ -14,7 +14,7 @@
 | 后端框架 | Next.js App Router API Routes |
 | 数据库/ORM | PostgreSQL + Prisma 7 |
 | AI 调用 | OpenAI-compatible API（加密存储 apiKey） |
-| 采集器 | 5 个网站采集器 + WeWe RSS 公众号 + MediaCrawler（小红书/B站） |
+| 采集器 | 5 个网站采集器 + we-mp-rss 公众号 + MediaCrawler（小红书/B站） |
 | 测试 | Vitest 259 单元测试 + Playwright 20 E2E specs |
 | 权限 | Session-based RBAC（ADMIN / VERIFIED_USER / USER） |
 | 部署 | Docker + docker-compose，standalone 模式 |
@@ -218,7 +218,7 @@ pnpm build → 编译成功，53 API routes + 25 pages
 | P3-9 | `auth.ts:51` | SHA-256 比较提前返回泄露长度信息 |
 | P3-10 | `auth/change-password/route.ts:36` | 改密码后注销所有会话（含当前会话） |
 | P3-11 | `admin.spec.ts:484` | 永真断言 `expect(x===true||x===false).toBe(true)` |
-| P3-12 | `wewe-rss.spec.ts:101,128` | `expect(typeof x).toBe('boolean')` 永真 |
+| P3-12 | `we-mp-rss.spec.ts:101,128` | `expect(typeof x).toBe('boolean')` 永真 |
 | P3-13 | `middleware.spec.ts:55-87` | 受保护页面测试继承了 admin cookie |
 | P3-14 | `SyncToIma.tsx:46-49` | 仅管理员可见，VERIFIED_USER 无法使用 |
 | P3-15 | `register/page.tsx:71-109` | 使用原始 `<input>` 而非 `<Input>` 组件 |
@@ -242,7 +242,7 @@ pnpm build → 编译成功，53 API routes + 25 pages
 
 ## 九、E2E 测试可信度问题
 
-1. **永真断言**（3 处）：`admin.spec.ts:484`、`wewe-rss.spec.ts:101,128`、`ai-config.spec.ts:120`
+1. **永真断言**（3 处）：`admin.spec.ts:484`、`we-mp-rss.spec.ts:101,128`、`ai-config.spec.ts:120`
 2. **过多 `waitForTimeout`**：硬编码等待 500ms-3000ms，应改为等待 UI 状态
 3. **弱选择器**：`sources.spec.ts` 使用 `h1, h2, h3, table, .text-muted-foreground` 等宽泛选择器
 4. **middleware 测试继承 admin cookie**：测试匿名访问时应使用空 storageState
@@ -311,7 +311,7 @@ pnpm build → 编译成功，53 API routes + 25 pages
 - **ConsoleGuard 模式**优秀，E2E 测试自动捕获运行时错误
 - **RBAC 权限矩阵**完善，三层角色设计
 - **内容过滤系统**完整，有哈希去重、质量门槛、敏感词过滤
-- **WeWe RSS 集成**有 API/SQLite 双 fallback
+- **we-mp-rss 集成**有 API/SQLite 双 fallback
 - **异步任务系统**支持批量操作，有进度追踪
 - **Docker 部署**配置基本完整
 - **审计日志**覆盖关键操作

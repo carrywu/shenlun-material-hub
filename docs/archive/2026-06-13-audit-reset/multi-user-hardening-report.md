@@ -49,7 +49,7 @@
 
 | 角色 | 权限范围 | 验证方式 |
 |------|---------|---------|
-| ADMIN | 全量读写，审核流，用户管理，WeWe RSS 配置 | E2E api-security + admin-review + 单测 |
+| ADMIN | 全量读写，审核流，用户管理，we-mp-rss 配置 | E2E api-security + admin-review + 单测 |
 | VERIFIED_USER | 读审核通过公共内容，生成素材卡，收藏，管理自己的卡/同步记录 | E2E role-upgrade + 单测 requireVerifiedUser |
 | USER | 读审核通过公共内容，收藏，注册；不能生卡 | E2E role-upgrade（USER→403）+ 单测 |
 
@@ -58,7 +58,7 @@
 - A 用户的素材卡在文章详情对 B 不可见（E2E + 单测双层验证）
 - A 不能编辑/删除 B 的素材卡（单测 canModifyResource）
 - 非 ADMIN 不能导入文章（P1-002：POST content-items 返回 403）
-- 非 ADMIN 不能配置 WeWe RSS（E2E api-security：WeWe RSS 403）
+- 非 ADMIN 不能配置 we-mp-rss（E2E api-security：we-mp-rss 403）
 - Legacy null-owner 数据对非 ADMIN 隐藏（P1-001：ownedResourceWhere）
 
 ---
@@ -106,7 +106,7 @@ npx tsx src/scripts/seed-e2e-accounts.ts  # E2E 测试账号（生产可选）
 | E2E 总用例 | 184 passed / 0 failed / 16 skipped |
 | 16 skipped 原因 | 依赖 fixture 数据（E2E_APPROVED_ARTICLE_ID 等），staging 空库无数据 |
 | Health check | `/api/health` 200 OK |
-| 3 容器状态 | app + db + wewe-rss 健康运行 |
+| 3 容器状态 | app + db + we-mp-rss 健康运行 |
 | Migration | 4 个 migration 全部 applied |
 | Seed | admin 账号 + RoleQuota 已写入 |
 
