@@ -31,6 +31,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   HelpCircle,
+  Save,
 } from "lucide-react";
 
 interface StatusResult {
@@ -74,6 +75,18 @@ interface FeedItem {
   name: string;
 }
 
+interface SavedConfig {
+  configured: boolean;
+  id?: string;
+  isEnabled?: boolean;
+  baseUrl?: string;
+  accessKey?: string;
+  secretKeyConfigured?: boolean;
+  dbPath?: string;
+  syncMode?: string;
+  updatedAt?: string;
+}
+
 export default function WechatIntegrationPage() {
   const [baseUrl, setBaseUrl] = useState("");
   const [accessKey, setAccessKey] = useState("");
@@ -81,6 +94,8 @@ export default function WechatIntegrationPage() {
   const [dbPath, setDbPath] = useState("infra/wechat-rss/we-mp-rss/data/we_mp_rss.db");
   const [status, setStatus] = useState<StatusResult | null>(null);
   const [testing, setTesting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedConfig, setSavedConfig] = useState<SavedConfig | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
@@ -95,11 +110,17 @@ export default function WechatIntegrationPage() {
 
   useEffect(() => {
     async function loadStatus() {
+      let statusBaseUrl = "";
+
+      // 加载连接状态（独立 try/catch，settings 失败不影响 status）
       try {
-        const res = await fetch("/api/integrations/wechat-rss/status");
-        const data = await res.json();
-        setStatus(data);
-        if (data.baseUrl) setBaseUrl(data.baseUrl);
+        const statusRes = await fetch("/api/integrations/wechat-rss/status");
+        const statusData = await statusRes.json();
+        setStatus(statusData);
+        if (statusData.baseUrl) {
+          setBaseUrl(statusData.baseUrl);
+          statusBaseUrl = statusData.baseUrl;
+        }
       } catch {
         setStatus({
           success: false,
@@ -107,9 +128,24 @@ export default function WechatIntegrationPage() {
           reachable: false,
           message: "检查状态失败",
         });
-      } finally {
-        setLoading(false);
       }
+
+      // 加载已保存配置（独立 try/catch，失败只跳过预填）
+      try {
+        const settingsRes = await fetch("/api/settings/integrations/wechat-rss");
+        const settingsData = await settingsRes.json();
+        if (settingsData.configured) {
+          setSavedConfig(settingsData);
+          if (settingsData.accessKey) setAccessKey(settingsData.accessKey);
+          if (settingsData.dbPath) setDbPath(settingsData.dbPath);
+          // 仅在 status 未提供 baseUrl 时用 settings 的值补填
+          if (settingsData.baseUrl && !statusBaseUrl) setBaseUrl(settingsData.baseUrl);
+        }
+      } catch {
+        // 预填失败不影响页面正常使用，静默跳过
+      }
+
+      setLoading(false);
     }
     loadStatus();
   }, []);
@@ -140,6 +176,42 @@ export default function WechatIntegrationPage() {
       setStatus({ success: false, baseUrl, reachable: false, message: "测试连接失败" });
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!baseUrl.trim()) {
+      alert("请填写 we-mp-rss 服务地址");
+      return;
+    }
+    setSaving(true);
+    try {
+      const body: Record<string, string> = {
+        baseUrl: baseUrl.trim(),
+        dbPath: dbPath.trim(),
+        syncMode: "auto",
+      };
+      if (accessKey.trim()) body.accessKey = accessKey.trim();
+      if (secretKey.trim()) body.secretKey = secretKey.trim();
+
+      const res = await fetch("/api/settings/integrations/wechat-rss", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSavedConfig(data);
+        setSecretKey(""); // 安全：清空 secretKey 输入
+        alert("配置已保存");
+      } else {
+        const data = await res.json();
+        alert(`保存失败: ${data.error}`);
+      }
+    } catch {
+      alert("保存失败");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -337,9 +409,14 @@ export default function WechatIntegrationPage() {
               type="password"
             />
           </div>
-          {!status?.akskConfigured && (
+          {!status?.akskConfigured && !savedConfig?.secretKeyConfigured && (
             <p className="text-xs text-amber-600">
               ⚠ AK/SK 未配置，部分功能（如内容获取）可能受限
+            </p>
+          )}
+          {savedConfig?.secretKeyConfigured && (
+            <p className="text-xs text-green-600">
+              ✓ Secret Key 已保存（无需重复输入）
             </p>
           )}
           <div className="flex gap-2">
@@ -350,10 +427,16 @@ export default function WechatIntegrationPage() {
               className="flex-1"
             />
           </div>
-          <Button onClick={handleTest} disabled={testing}>
-            {testing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-            测试连接
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleTest} disabled={testing}>
+              {testing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              测试连接
+            </Button>
+            <Button onClick={handleSave} disabled={saving} variant="outline">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+              保存配置
+            </Button>
+          </div>
           {status?.reachable && status.feedCount !== undefined && (
             <p className="text-sm text-muted-foreground">
               已订阅 {status.feedCount} 个公众号

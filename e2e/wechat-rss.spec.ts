@@ -403,6 +403,181 @@ test.describe('微信 RSS 集成页', () => {
 
     guard.report(testInfo);
   });
+
+  // ── 10. 保存配置按钮可见且在测试连接旁边 ──
+
+  test('保存配置按钮可见且在测试连接按钮旁边', async ({ page }, testInfo) => {
+    const guard = attachConsoleGuard(page);
+
+    await page.route('**/api/integrations/wechat-rss/status', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          reachable: false,
+          authStatus: 'unknown',
+          akskConfigured: false,
+          feedCount: 0,
+          message: '未配置',
+          channels: { api: { available: false }, sqlite: { available: false } },
+        }),
+      })
+    );
+
+    // Mock settings GET (未配置状态)
+    await page.route('**/api/settings/integrations/wechat-rss', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ configured: false }),
+      })
+    );
+
+    await page.goto('/admin/integrations/wechat-rss');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+
+    const saveBtn = page.getByRole('button', { name: /保存配置/ });
+    await expect(saveBtn).toBeVisible({ timeout: 10000 });
+
+    const testBtn = page.getByRole('button', { name: /测试连接/ });
+    await expect(testBtn).toBeVisible({ timeout: 10000 });
+
+    guard.report(testInfo);
+  });
+
+  // ── 11. 保存配置成功 ──
+
+  test('保存配置：填写字段后点击保存，显示成功提示', async ({ page }, testInfo) => {
+    const guard = attachConsoleGuard(page);
+
+    await page.route('**/api/integrations/wechat-rss/status', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          reachable: false,
+          authStatus: 'unknown',
+          akskConfigured: false,
+          feedCount: 0,
+          message: '未配置',
+          channels: { api: { available: false }, sqlite: { available: false } },
+        }),
+      })
+    );
+
+    // Mock settings GET → POST
+    await page.route('**/api/settings/integrations/wechat-rss', async (route) => {
+      if (route.request().method() === 'POST') {
+        const body = route.request().postDataJSON();
+        expect(body?.baseUrl).toBeTruthy();
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            configured: true,
+            id: 'int-1',
+            isEnabled: true,
+            baseUrl: body?.baseUrl || 'http://localhost:8001',
+            accessKey: body?.accessKey || 'test-ak',
+            secretKeyConfigured: !!(body?.secretKey),
+            dbPath: body?.dbPath || '',
+            syncMode: 'auto',
+            updatedAt: new Date().toISOString(),
+          }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ configured: false }),
+      });
+    });
+
+    await page.goto('/admin/integrations/wechat-rss');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+
+    // Fill form
+    const baseUrlInput = page.getByPlaceholder(/localhost:8001/);
+    if (await baseUrlInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await baseUrlInput.fill('http://localhost:8001');
+    }
+    await page.getByPlaceholder('Access Key').fill('test-ak');
+    await page.getByPlaceholder('Secret Key').fill('test-sk');
+
+    // Click save and listen for alert
+    const saveBtn = page.getByRole('button', { name: /保存配置/ });
+    await expect(saveBtn).toBeVisible({ timeout: 5000 });
+
+    // Listen for alert dialog
+    const alertPromise = page.waitForEvent('dialog');
+    await saveBtn.click();
+    const dialog = await alertPromise;
+    expect(dialog.message()).toContain('配置已保存');
+    await dialog.accept();
+
+    guard.report(testInfo);
+  });
+
+  // ── 12. 保存配置失败 ──
+
+  test('保存配置：服务端错误时显示失败提示', async ({ page }, testInfo) => {
+    const guard = attachConsoleGuard(page);
+
+    await page.route('**/api/integrations/wechat-rss/status', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          reachable: false,
+          authStatus: 'unknown',
+          akskConfigured: false,
+          feedCount: 0,
+          message: '未配置',
+          channels: { api: { available: false }, sqlite: { available: false } },
+        }),
+      })
+    );
+
+    await page.route('**/api/settings/integrations/wechat-rss', async (route) => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: '保存配置失败' }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ configured: false }),
+      });
+    });
+
+    await page.goto('/admin/integrations/wechat-rss');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+
+    // Fill baseUrl (required for save validation)
+    const baseUrlInput = page.getByPlaceholder(/localhost:8001/);
+    if (await baseUrlInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await baseUrlInput.fill('http://localhost:8001');
+    }
+
+    const saveBtn = page.getByRole('button', { name: /保存配置/ });
+    await expect(saveBtn).toBeVisible({ timeout: 5000 });
+
+    const alertPromise = page.waitForEvent('dialog');
+    await saveBtn.click();
+    const dialog = await alertPromise;
+    expect(dialog.message()).toContain('保存失败');
+    await dialog.accept();
+
+    guard.report(testInfo);
+  });
 });
 
 // ── 9. 旧路由 301 重定向（Q13） ──
