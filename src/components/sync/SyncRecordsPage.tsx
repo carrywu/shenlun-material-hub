@@ -170,7 +170,7 @@ export default function SyncRecordsPage() {
   }, [statusFilter, roleFilter, dateFrom, dateTo]);
 
   async function handleRetry(record: SyncRecordItem) {
-    if (!record.materialCard.confirmed) return;
+    if (!record.materialCard?.confirmed) return;
     setRetryingId(record.id);
     try {
       const res = await fetch("/api/sync", {
@@ -321,19 +321,21 @@ export default function SyncRecordsPage() {
               ) : (
                 records.map((record) => {
                   const StatusIcon = STATUS_ICONS[record.status] ?? Clock;
+                  // SyncRecord.materialCardId 可空（文章同步/卡已删），materialCard 可能为 null，需防御
+                  const card = record.materialCard;
                   return (
                     <TableRow key={record.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {!record.materialCard.confirmed && (
+                          {card && !card.confirmed && (
                             <AlertTriangle className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
                           )}
-                          <span className="truncate max-w-48">{record.materialCard.title}</span>
+                          <span className="truncate max-w-48">{card?.title ?? "（素材卡已移除）"}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
-                          {CARD_TYPE_LABELS[record.materialCard.cardType] ?? record.materialCard.cardType}
+                          {card ? (CARD_TYPE_LABELS[card.cardType] ?? card.cardType) : "-"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
@@ -391,9 +393,9 @@ export default function SyncRecordsPage() {
                             variant="ghost"
                             size="sm"
                             className="h-7 px-2"
-                            disabled={retryingId === record.id || !record.materialCard.confirmed}
+                            disabled={retryingId === record.id || !record.materialCard?.confirmed}
                             onClick={() => handleRetry(record)}
-                            title={!record.materialCard.confirmed ? "素材卡未确认，无法重试" : "重试同步"}
+                            title={!record.materialCard?.confirmed ? "素材卡未确认或已移除，无法重试" : "重试同步"}
                           >
                             {retryingId === record.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
