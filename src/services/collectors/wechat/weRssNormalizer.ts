@@ -345,12 +345,82 @@ export async function normalizeWeRssArticle(
       return { created: false, filtered: false, item: updated };
     }
 
-    // 非封禁文章：保持原有跳过逻辑
+    // 内容缺失或被导航过滤器误杀的 filtered 文章：新同步可能有内容，尝试刷新
+    if (existing.qualityStatus === "filtered" &&
+        (existing.filterReason?.includes("无全文内容") || existing.filterReason?.includes("全文过短") || existing.filterReason?.includes("疑似导航页面"))) {
+      const newFullText = extractPlainText(article.content ?? article.rawHtml ?? null);
+      const newEffectiveTextLength = newFullText
+        ? newFullText.replace(/\s+/g, "").trim().length
+        : 0;
+
+      // 新内容仍然缺失/过短 → 不更新
+      if (!newFullText || newEffectiveTextLength < 300) {
+        await logger.info("采集跳过：内容缺失文章未更新", "CRAWLER", {
+          sourceId: options.sourceId,
+          title: article.title,
+          url: originalUrl,
+          existingStatus: existing.qualityStatus,
+          existingFilterReason: existing.filterReason,
+          newEffectiveTextLength,
+        });
+        return { created: false, filtered: true, filterReason: existing.filterReason, item: existing };
+      }
+
+      // 新内容正常：更新旧记录，重置状态
+      const rawHtml = article.rawHtml ?? null;
+      const contentHash = newFullText
+        ? createHash("sha256").update(newFullText).digest("hex").slice(0, 16)
+        : null;
+      const excerpt = article.summary ?? newFullText?.slice(0, 200) ?? null;
+
+      const updated = await db.contentItem.update({
+        where: { id: existing.id },
+        data: {
+          fullText: newFullText,
+          rawHtml,
+          excerpt,
+          contentHash,
+          fullTextStored: !!newFullText,
+          effectiveTextLength: newEffectiveTextLength,
+          coverUrl: article.cover ?? existing.coverUrl,
+          qualityStatus: "pending",
+          processingStatus: "fetched",
+          filterReason: null,
+          aiDecision: null,
+          aiReason: null,
+          aiAssessedAt: null,
+          aiAssessmentError: null,
+          aiScore: null,
+          aiScoreDetail: null,
+          aiScoredAt: null,
+          contentGenre: null,
+          aiCategories: null,
+          aiUsableFor: null,
+          aiSummary: null,
+          aiQuotes: null,
+          adminReviewStatus: "pending_ai",
+        },
+      });
+
+      await logger.info("采集刷新：内容缺失文章已更新", "CRAWLER", {
+        sourceId: options.sourceId,
+        title: article.title,
+        url: originalUrl,
+        previousQualityStatus: existing.qualityStatus,
+        previousFilterReason: existing.filterReason,
+        newQualityStatus: "pending",
+        newEffectiveTextLength,
+      });
+
+      return { created: false, filtered: false, item: updated };
+    }
+
+    // 其他非封禁文章：保持原有跳过逻辑
     await logger.info("采集跳过：URL 已存在", "CRAWLER", {
       sourceId: options.sourceId,
       title: article.title,
       url: originalUrl,
-      existingStatus: existing.processingStatus,
+      existingStatus: existing.qualityStatus,
     });
     return { created: false, filtered: true, filterReason: "URL 已存在（重复）", item: existing };
   }

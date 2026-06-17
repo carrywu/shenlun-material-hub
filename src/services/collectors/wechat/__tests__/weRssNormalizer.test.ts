@@ -721,4 +721,213 @@ describe("normalizeWeRssArticle — blocked record refresh", () => {
     expect(result.refreshed).toBe(1);
     expect(result.skipped).toBe(0);
   });
+
+  it("should update filtered record with 无全文内容 when new content is available", async () => {
+    const filteredRecord = {
+      id: "filtered-1",
+      title: "之前无内容的文章",
+      originalUrl: "https://mp.weixin.qq.com/s/test123",
+      qualityStatus: "filtered",
+      processingStatus: "filtered",
+      filterReason: "无全文内容（采集器未获取到正文）",
+      coverUrl: "https://example.com/old-cover.jpg",
+      aiDecision: null,
+      aiReason: null,
+      aiAssessedAt: null,
+      aiScore: null,
+      aiScoreDetail: null,
+      aiScoredAt: null,
+      aiAssessmentError: null,
+    };
+
+    mockFindUnique.mockResolvedValue(filteredRecord);
+    mockUpdate.mockResolvedValue({
+      ...filteredRecord,
+      qualityStatus: "pending",
+      processingStatus: "fetched",
+      filterReason: null,
+    });
+
+    const result = await normalizeWeRssArticle(makeArticle(), BASE_OPTIONS);
+
+    expect(result.created).toBe(false);
+    expect(result.filtered).toBe(false);
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "filtered-1" },
+        data: expect.objectContaining({
+          qualityStatus: "pending",
+          processingStatus: "fetched",
+          filterReason: null,
+          fullTextStored: true,
+        }),
+      })
+    );
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("should NOT update filtered record when new content is still too short", async () => {
+    const filteredRecord = {
+      id: "filtered-2",
+      title: "过短文章",
+      originalUrl: "https://mp.weixin.qq.com/s/short123",
+      qualityStatus: "filtered",
+      processingStatus: "filtered",
+      filterReason: "全文过短（26 字），不足 300 字",
+    };
+
+    mockFindUnique.mockResolvedValue(filteredRecord);
+
+    // Article content is still very short (< 300 chars)
+    const shortArticle = makeArticle({
+      url: "https://mp.weixin.qq.com/s/short123",
+      content: "<p>短内容</p>",
+      hasContent: 1,
+    });
+
+    const result = await normalizeWeRssArticle(shortArticle, BASE_OPTIONS);
+
+    expect(result.created).toBe(false);
+    expect(result.filtered).toBe(true);
+    expect(result.filterReason).toBe("全文过短（26 字），不足 300 字");
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("should NOT update filtered record when new content is still empty", async () => {
+    const filteredRecord = {
+      id: "filtered-3",
+      title: "无内容文章",
+      originalUrl: "https://mp.weixin.qq.com/s/empty123",
+      qualityStatus: "filtered",
+      processingStatus: "filtered",
+      filterReason: "无全文内容（采集器未获取到正文）",
+    };
+
+    mockFindUnique.mockResolvedValue(filteredRecord);
+
+    // Article still has no content
+    const emptyArticle = makeArticle({
+      url: "https://mp.weixin.qq.com/s/empty123",
+      content: null,
+      rawHtml: null,
+      hasContent: 0,
+    });
+
+    const result = await normalizeWeRssArticle(emptyArticle, BASE_OPTIONS);
+
+    expect(result.created).toBe(false);
+    expect(result.filtered).toBe(true);
+    expect(result.filterReason).toBe("无全文内容（采集器未获取到正文）");
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("should count refreshed filtered articles in normalizeWeRssArticles", async () => {
+    const filteredRecord = {
+      id: "filtered-batch",
+      title: "之前无内容",
+      originalUrl: "https://mp.weixin.qq.com/s/refresh-filtered",
+      qualityStatus: "filtered",
+      processingStatus: "filtered",
+      filterReason: "无全文内容（采集器未获取到正文）",
+    };
+
+    mockFindUnique
+      .mockResolvedValueOnce(null) // first article: new
+      .mockResolvedValueOnce(filteredRecord); // second article: filtered → refresh
+
+    mockCreate.mockResolvedValue({ id: "new-id", title: "t", originalUrl: "u" });
+    mockUpdate.mockResolvedValue({
+      ...filteredRecord,
+      qualityStatus: "pending",
+      processingStatus: "fetched",
+    });
+
+    const articles = [
+      makeArticle({ url: "https://mp.weixin.qq.com/s/refresh-new", title: "新文章" }),
+      makeArticle({ url: "https://mp.weixin.qq.com/s/refresh-filtered", title: "之前无内容" }),
+    ];
+
+    const result = await normalizeWeRssArticles(articles, BASE_OPTIONS);
+
+    expect(result.discovered).toBe(2);
+    expect(result.imported).toBe(1);
+    expect(result.refreshed).toBe(1);
+    expect(result.skipped).toBe(0);
+  });
+
+  it("should update filtered record with 疑似导航页面 when new content is sufficient", async () => {
+    const filteredRecord = {
+      id: "nav-filtered-1",
+      title: "被导航过滤器误杀的文章",
+      originalUrl: "https://mp.weixin.qq.com/s/nav123",
+      qualityStatus: "filtered",
+      processingStatus: "filtered",
+      filterReason: "疑似导航页面（81% 行为短文本，共 275 行）",
+      coverUrl: "https://example.com/old-cover.jpg",
+      aiDecision: null,
+      aiReason: null,
+      aiAssessedAt: null,
+      aiScore: null,
+      aiScoreDetail: null,
+      aiScoredAt: null,
+      aiAssessmentError: null,
+    };
+
+    mockFindUnique.mockResolvedValue(filteredRecord);
+    mockUpdate.mockResolvedValue({
+      ...filteredRecord,
+      qualityStatus: "pending",
+      processingStatus: "fetched",
+      filterReason: null,
+    });
+
+    const result = await normalizeWeRssArticle(makeArticle(), BASE_OPTIONS);
+
+    expect(result.created).toBe(false);
+    expect(result.filtered).toBe(false);
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "nav-filtered-1" },
+        data: expect.objectContaining({
+          qualityStatus: "pending",
+          processingStatus: "fetched",
+          filterReason: null,
+          fullTextStored: true,
+        }),
+      })
+    );
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("should NOT update filtered record with 疑似导航页面 when new content is still too short", async () => {
+    const filteredRecord = {
+      id: "nav-filtered-2",
+      title: "被导航过滤器误杀的短文章",
+      originalUrl: "https://mp.weixin.qq.com/s/nav-short",
+      qualityStatus: "filtered",
+      processingStatus: "filtered",
+      filterReason: "疑似导航页面（81% 行为短文本，共 275 行）",
+    };
+
+    mockFindUnique.mockResolvedValue(filteredRecord);
+
+    // Article content is still very short (< 300 chars)
+    const shortArticle = makeArticle({
+      url: "https://mp.weixin.qq.com/s/nav-short",
+      content: "<p>短内容</p>",
+      hasContent: 1,
+    });
+
+    const result = await normalizeWeRssArticle(shortArticle, BASE_OPTIONS);
+
+    expect(result.created).toBe(false);
+    expect(result.filtered).toBe(true);
+    expect(result.filterReason).toBe("疑似导航页面（81% 行为短文本，共 275 行）");
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
 });
