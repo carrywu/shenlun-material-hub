@@ -134,6 +134,10 @@ export function checkContentLengthFilter(
 export function checkNavigationContentFilter(fullText: string | null): FilterResult {
   if (!fullText) return { filtered: false };
 
+  // 有效正文字数 >= 1500 的文章不可能是导航页
+  const effectiveLength = fullText.replace(/\s+/g, "").trim().length;
+  if (effectiveLength >= 1500) return { filtered: false };
+
   const lines = fullText
     .split(/\n/)
     .map((l) => l.trim())
