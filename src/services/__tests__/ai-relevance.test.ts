@@ -83,9 +83,19 @@ describe("AI 评估服务测试 (P0-2)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    mocks.aiConfigFindFirst.mockResolvedValue(null);
+    // P0-4 后不再 env fallback，统一用 DB 全局配置喂 runtime
+    mocks.aiConfigFindFirst.mockResolvedValue({
+      id: "cfg-default",
+      encryptedKey: "sk-test-1234",
+      baseUrl: "https://api.test.com/v1",
+      model: "test-model",
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
     mocks.promptFindUnique.mockResolvedValue(null);
-    process.env.AI_API_KEY = "sk-test-1234";
+    // 重置 decrypt 的 mockImplementation（AI-019 会改成抛错，clearAllMocks 不重置实现）
+    mocks.decrypt.mockImplementation((value: string) => value);
+    process.env.AI_CONFIG_ENCRYPTION_KEY = "12345678901234567890123456789012";
+    delete process.env.AI_API_KEY;
     delete process.env.OPENAI_API_KEY;
     delete process.env.AI_BASE_URL;
     delete process.env.AI_MODEL;
