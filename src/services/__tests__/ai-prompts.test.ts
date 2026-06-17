@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   aiConfigFindFirst: vi.fn(),
   promptFindUnique: vi.fn(),
   createChatCompletion: vi.fn(),
+  decrypt: vi.fn((value: string) => value),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -35,7 +36,15 @@ async function importAi() {
 describe("AI prompt templates", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.aiConfigFindFirst.mockResolvedValue(null);
+    // P0-4 后不再 env fallback，统一喂 DB 全局配置 + 加密 key
+    mocks.aiConfigFindFirst.mockResolvedValue({
+      id: "cfg-default",
+      encryptedKey: "sk-test-1234",
+      baseUrl: "https://api.test.com/v1",
+      model: "test-model",
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+    process.env.AI_CONFIG_ENCRYPTION_KEY = "12345678901234567890123456789012";
     mocks.promptFindUnique.mockResolvedValue(null);
     mocks.createChatCompletion.mockResolvedValue({
       choices: [{

@@ -97,7 +97,9 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { processingStatus, fullText, excerpt, topicTags, regionScopes, bookmarked, read, ignored } = body;
+    // P1-3: 不再接受全局 bookmarked/read/ignored 字段（用户私有状态必须走
+    // /api/user-content-state 与 /api/favorites）。如传入则忽略并继续。
+    const { processingStatus, fullText, excerpt, topicTags, regionScopes } = body;
 
     const existing = await db.contentItem.findUnique({ where: { id } });
     if (!existing) {
@@ -122,9 +124,6 @@ export async function PUT(
         ...(excerpt !== undefined && { excerpt }),
         ...(topicTags !== undefined && { topicTags: JSON.stringify(topicTags) }),
         ...(regionScopes !== undefined && { regionScopes: JSON.stringify(regionScopes) }),
-        ...(bookmarked !== undefined && { bookmarked }),
-        ...(read !== undefined && { read }),
-        ...(ignored !== undefined && { ignored }),
       },
       include: {
         source: { select: { id: true, name: true, platform: true } },

@@ -582,17 +582,42 @@ export default function ArticleDetailPage() {
     }
   }
 
+  // P1-3: 用户私有状态走用户专属 API（/api/user-content-state 与 /api/favorites），
+  // 不再 PUT 全局 ContentItem 字段（该接口 ADMIN-only，普通用户会 403，按钮静默失效）。
   async function toggleReadingState(field: "bookmarked" | "read" | "ignored") {
     if (!article) return;
-    const newValue = !article[field];
+    const current = field === "bookmarked" ? !!article.userBookmarked
+      : field === "read" ? !!article.userRead
+      : !!article.userIgnored;
+    const newValue = !current;
     try {
-      const res = await fetch(`/api/content-items/${articleId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: newValue }),
-      });
-      if (res.ok) {
-        setArticle((prev) => prev ? { ...prev, [field]: newValue } : prev);
+      let ok = false;
+      if (field === "bookmarked") {
+        if (newValue) {
+          const res = await fetch(`/api/favorites`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contentItemIds: [articleId] }),
+          });
+          ok = res.ok;
+        } else {
+          const res = await fetch(`/api/favorites/${articleId}`, { method: "DELETE" });
+          ok = res.ok;
+        }
+      } else {
+        // read / ignored → user-content-state
+        const res = await fetch(`/api/user-content-state`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contentItemId: articleId, [field]: newValue }),
+        });
+        ok = res.ok;
+      }
+      if (ok) {
+        const key = field === "bookmarked" ? "userBookmarked"
+          : field === "read" ? "userRead"
+          : "userIgnored";
+        setArticle((prev) => prev ? { ...prev, [key]: newValue } : prev);
       }
     } catch {
       // ignore
@@ -767,14 +792,14 @@ export default function ArticleDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {/* Reading state toggles */}
+            {/* Reading state toggles — 使用用户私有状态（P1-3） */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => toggleReadingState("bookmarked")}
-              title={article.bookmarked ? "取消收藏" : "收藏"}
+              title={article.userBookmarked ? "取消收藏" : "收藏"}
             >
-              {article.bookmarked ? (
+              {article.userBookmarked ? (
                 <BookmarkCheck className="h-4 w-4 text-yellow-500" />
               ) : (
                 <Bookmark className="h-4 w-4" />
@@ -784,9 +809,9 @@ export default function ArticleDetailPage() {
               variant="ghost"
               size="sm"
               onClick={() => toggleReadingState("read")}
-              title={article.read ? "标记未读" : "标记已读"}
+              title={article.userRead ? "标记未读" : "标记已读"}
             >
-              {article.read ? (
+              {article.userRead ? (
                 <Eye className="h-4 w-4 text-green-500" />
               ) : (
                 <EyeOff className="h-4 w-4" />
