@@ -81,14 +81,21 @@ export default function ReviewPage() {
   const [cardType, setCardType] = useState("");
   const [reviewedInSession, setReviewedInSession] = useState(0);
   const [totalCards, setTotalCards] = useState(0);
+  // P1-2: 复习类型——card（素材卡）/ article（收藏文章）。USER 默认 article。
+  const [reviewType, setReviewType] = useState<"card" | "article">("card");
 
   const fetchCards = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set("mode", mode);
       params.set("limit", "10");
-      if (cardType) params.set("category", cardType);
+      // P1-2: 文章复习走 type=article 分支
+      if (reviewType === "article") {
+        params.set("type", "article");
+      } else {
+        params.set("mode", mode);
+        if (cardType) params.set("category", cardType);
+      }
 
       const res = await fetch(`/api/review?${params.toString()}`);
       const data = await res.json();
@@ -101,7 +108,7 @@ export default function ReviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [mode, cardType]);
+  }, [mode, cardType, reviewType]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -218,7 +225,35 @@ export default function ReviewPage() {
           </Card>
         </div>
 
-        {/* Controls */}
+        {/* P1-2: 复习类型 Tab（按角色：USER 仅收藏文章；VERIFIED_USER/ADMIN 两者皆有） */}
+        <div className="flex gap-2 border-b">
+          <button
+            type="button"
+            onClick={() => setReviewType("card")}
+            disabled={user?.role === "USER"}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              reviewType === "card"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            } ${user?.role === "USER" ? "cursor-not-allowed opacity-40" : ""}`}
+          >
+            素材卡复习
+          </button>
+          <button
+            type="button"
+            onClick={() => setReviewType("article")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              reviewType === "article"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            收藏文章复习
+          </button>
+        </div>
+
+        {/* Controls（仅素材卡模式） */}
+        {reviewType === "card" && (
         <div className="flex flex-wrap gap-2 items-center">
           <Select value={mode} onValueChange={(v) => { if (v) setMode(v); }}>
             <SelectTrigger className="w-36" aria-label="复习模式">
@@ -256,9 +291,41 @@ export default function ReviewPage() {
             {modeLabels[mode]}
           </Badge>
         </div>
+        )}
 
-        {/* Review cards */}
-        {loading ? (
+        {/* P1-2: 收藏文章复习列表 */}
+        {reviewType === "article" && !loading && cards.length === 0 && (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <CheckCircle2 className="h-10 w-10 mb-3 text-green-500 opacity-50" />
+              <p className="text-lg font-medium">暂无收藏文章可复习</p>
+              <p className="text-sm">去文章列表收藏几篇文章吧</p>
+              <Link href="/articles" className="mt-4">
+                <Button variant="default" size="sm">浏览文章</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+        {reviewType === "article" && !loading && cards.length > 0 && (
+          <div className="space-y-3">
+            {cards.map((art: { id: string; title?: string; excerpt?: string | null }) => (
+              <Card key={art.id}>
+                <CardContent className="pt-4 pb-4">
+                  <Link href={`/articles/${art.id}`} className="block">
+                    <p className="font-medium hover:text-primary">{art.title ?? "无标题"}</p>
+                    {art.excerpt && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{art.excerpt}</p>
+                    )}
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Review cards（仅素材卡模式） */}
+        {reviewType === "card" && (
+        loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -297,7 +364,7 @@ export default function ReviewPage() {
               />
             ))}
           </div>
-        )}
+        ))}
       </div>
     </div>
   );

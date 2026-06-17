@@ -3,15 +3,41 @@ import { db } from "@/lib/db";
 import { requireAuth, unauthorizedResponse } from "@/lib/auth";
 import { ownedResourceWhere, mergeWhere } from "@/lib/data-isolation";
 
-// GET /api/review - 获取复习用的素材卡
+// GET /api/review - 获取复习用的素材卡或收藏文章
 export async function GET(request: NextRequest) {
   const user = await requireAuth(request);
   if (!user) return unauthorizedResponse();
   try {
     const { searchParams } = new URL(request.url);
+    const type = searchParams.get("type");
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "10")));
+
+    // P1-2: 收藏文章复习——返回当前用户收藏的 approved 文章（仅自己）
+    if (type === "article") {
+      const favorites = await db.articleFavorite.findMany({
+        where: { userId: user.id },
+        include: {
+          contentItem: {
+            select: {
+              id: true, title: true, excerpt: true, fullText: true,
+              adminReviewStatus: true, visibility: true,
+              source: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: Math.min(limit * 3, 100),
+      });
+      // 仅保留 approved（下架/拒绝的收藏文章不进复习）
+      const approved = favorites
+        .filter((f) => f.contentItem?.adminReviewStatus === "approved")
+        .map((f) => f.contentItem)
+        .slice(0, limit);
+      return NextResponse.json({ data: approved, mode: "article" });
+    }
+
     const mode = searchParams.get("mode") ?? "random";
     const cardType = searchParams.get("category");
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "10")));
 
     const where: Record<string, unknown> = { archivedAt: null };
     if (cardType) where.cardType = cardType;
@@ -100,6 +126,39 @@ export async function POST(request: NextRequest) {
   if (!user) return unauthorizedResponse();
   try {
     const body = await request.json();
+    const { type } = body as { type?: "article" | "card"; cardId?: string; contentItemId?: string; mastery?: number };
+
+    // P1-2: 文章复习——记录收藏文章的复习状态到 ArticleReviewState（用户私有）
+    if (type === "article") {
+      const { contentItemId, mastery } = body as { contentItemId?: string; mastery?: number };
+      if (!contentItemId) {
+        return NextResponse.json({ error: "请提供 contentItemId" }, { status: 400 });
+      }
+      // 简单算法（16a）：复习一次 reviewCount+1，mastery 由前端传入（0-5），
+      // lastReviewedAt=now，nextReviewAt = now + (mastery+1) 天（掌握度越高间隔越长）。
+      const now = new Date();
+      const masteryClamped = Math.max(0, Math.min(5, mastery ?? 0));
+      const next = new Date(now.getTime() + (masteryClamped + 1) * 24 * 60 * 60 * 1000);
+      const state = await db.articleReviewState.upsert({
+        where: { userId_contentItemId: { userId: user.id, contentItemId } },
+        create: {
+          userId: user.id,
+          contentItemId,
+          mastery: masteryClamped,
+          reviewCount: 1,
+          lastReviewedAt: now,
+          nextReviewAt: next,
+        },
+        update: {
+          mastery: masteryClamped,
+          reviewCount: { increment: 1 },
+          lastReviewedAt: now,
+          nextReviewAt: next,
+        },
+      });
+      return NextResponse.json({ success: true, state });
+    }
+
     const { cardId } = body as { cardId: string; quality?: number };
 
     if (!cardId) {

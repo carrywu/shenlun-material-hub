@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   findUnique: vi.fn().mockResolvedValue(null),
   count: vi.fn().mockResolvedValue(0),
   update: vi.fn().mockResolvedValue({ id: "card-1", confirmed: true }),
+  articleReviewStateUpsert: vi.fn().mockResolvedValue({ id: "ars-1" }),
+  articleReviewStateFindMany: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -24,6 +26,13 @@ vi.mock("@/lib/db", () => ({
       findUnique: mocks.findUnique,
       count: mocks.count,
       update: mocks.update,
+    },
+    articleFavorite: {
+      findMany: mocks.findMany,
+    },
+    articleReviewState: {
+      upsert: mocks.articleReviewStateUpsert,
+      findMany: mocks.articleReviewStateFindMany,
     },
   },
 }));
@@ -99,5 +108,50 @@ describe("Review API — RBAC isolation", () => {
       body: JSON.stringify({ cardId: "card-1", confirmed: true }),
     }));
     expect(res.status).not.toBe(403);
+  });
+});
+
+// P1-2: 收藏文章复习闭环（USER 复习收藏文章）
+describe("Review API — P1-2 文章复习 (type=article)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("GET type=article 返回当前用户收藏的 approved 文章", async () => {
+    mocks.getUserFromRequest.mockResolvedValue(regularUser);
+    mocks.findMany.mockResolvedValueOnce([
+      { contentItemId: "art-1", contentItem: { id: "art-1", title: "文章A", adminReviewStatus: "approved" } },
+    ]);
+    const { GET } = await import("@/app/api/review/route");
+    const res = await GET(new NextRequest("http://localhost/api/review?type=article"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0].id).toBe("art-1");
+  });
+
+  it("POST type=article 记录文章复习状态（upsert ArticleReviewState）", async () => {
+    mocks.getUserFromRequest.mockResolvedValue(regularUser);
+    const { POST } = await import("@/app/api/review/route");
+    const res = await POST(new NextRequest("http://localhost/api/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "article", contentItemId: "art-1", mastery: 3 }),
+    }));
+    expect(res.status).toBe(200);
+    expect(mocks.articleReviewStateUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId_contentItemId: { userId: "user-a", contentItemId: "art-1" } },
+      }),
+    );
+  });
+
+  it("POST type=article 缺 contentItemId → 400", async () => {
+    mocks.getUserFromRequest.mockResolvedValue(regularUser);
+    const { POST } = await import("@/app/api/review/route");
+    const res = await POST(new NextRequest("http://localhost/api/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "article" }),
+    }));
+    expect(res.status).toBe(400);
   });
 });

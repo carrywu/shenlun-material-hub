@@ -25,6 +25,7 @@ model User {
   reviewedContentItems  ContentItem[]      @relation("ContentItemAdminReviewer")
   articleFavorites      ArticleFavorite[]
   contentStates         UserContentState[]
+  articleReviewStates   ArticleReviewState[]
   ownedMaterialCards    MaterialCard[]     @relation("MaterialCardOwner")
   asyncTasks            AsyncTask[]
   syncRecords           SyncRecord[]
@@ -201,10 +202,11 @@ model ContentItem {
   ownerUser     User?          @relation("ContentItemOwner", fields: [ownerUserId], references: [id])
   adminReviewer User?          @relation("ContentItemAdminReviewer", fields: [adminReviewedBy], references: [id])
   materialCards MaterialCard[]
-  favoritedBy   ArticleFavorite[]
-  userStates    UserContentState[]
-  syncRecords   SyncRecord[]
-  annotations   ArticleAnnotation[]
+  favoritedBy      ArticleFavorite[]
+  userStates       UserContentState[]
+  reviewStates     ArticleReviewState[]
+  syncRecords      SyncRecord[]
+  annotations      ArticleAnnotation[]
 
   @@index([sourceId])
   @@index([platform])
@@ -292,6 +294,27 @@ model UserContentState {
   @@unique([userId, contentItemId])
   @@index([userId])
   @@index([contentItemId])
+}
+
+// 文章复习状态（P1-2 新增，需求 7）——收藏文章的复习进度
+model ArticleReviewState {
+  id             String   @id @default(cuid())
+  userId         String
+  contentItemId  String
+  mastery        Int      @default(0)
+  reviewCount    Int      @default(0)
+  lastReviewedAt DateTime?
+  nextReviewAt   DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentItemId])
+  @@index([userId])
+  @@index([contentItemId])
+  @@index([nextReviewAt])
 }
 
 // 角色配额（P2 新增）——管理员后台配置每个角色的收藏上限
