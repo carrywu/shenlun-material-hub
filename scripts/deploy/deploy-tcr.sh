@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# deploy-tcr.sh — Build Docker image locally, push to Tencent Cloud TCR,
-#                 then trigger the ECS server to pull and restart.
+# deploy-tcr.sh — 构建镜像 → 推 TCR → 触发生产 ECS 拉镜像重启 → 健康检查。
+#
+# 构建 builder（默认 staging，Mac 本地作 fallback）：
+#   --builder staging  在 staging(100.117.96.1, x86_64 原生) 上构建。推荐：
+#                      Apple Silicon 本地跨架构构建会在 chown -R 步骤假性卡死。
+#   --builder local    在本地 Mac 构建（staging 不可达时的 fallback）。
 #
 # Run from the project root on your local Mac:
-#   bash scripts/deploy/deploy-tcr.sh
+#   bash scripts/deploy/deploy-tcr.sh                      # 默认 staging 构建
+#   bash scripts/deploy/deploy-tcr.sh --builder local      # fallback 到 Mac
 #   bash scripts/deploy/deploy-tcr.sh --dry-run
-#   bash scripts/deploy/deploy-tcr.sh --skip-build
-#   bash scripts/deploy/deploy-tcr.sh --tag custom-tag
-#   bash scripts/deploy/deploy-tcr.sh --no-confirm
+#   bash scripts/deploy/deploy-tcr.sh --skip-build         # 仅 local 生效
+#   bash scripts/deploy/deploy-tcr.sh --tag custom-tag --no-confirm
 #
-# Requires: Docker, Git, SSH access to ECS, .env.deploy.local config
+# Requires: .env.deploy.local (TCR 凭证 + 生产 SSH)、staging SSH(carry@100.117.96.1 via Tailscale)
 
 set -euo pipefail
 
@@ -21,6 +25,7 @@ ENV_FILE="${ENV_FILE:-$PROJECT_DIR/.env.deploy.local}"
 
 # ── Parse flags ────────────────────────────────────────────────────────────────
 
+BUILDER="staging"
 DRY_RUN=false
 SKIP_BUILD=false
 TAG_OVERRIDE=""
@@ -28,12 +33,17 @@ NO_CONFIRM=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    --builder)     BUILDER="$2"; shift 2 ;;
     --dry-run)     DRY_RUN=true; shift ;;
     --skip-build)  SKIP_BUILD=true; shift ;;
     --tag)         TAG_OVERRIDE="$2"; shift 2 ;;
     --no-confirm)  NO_CONFIRM=true; shift ;;
     --help|-h)
-      echo "Usage: $0 [--dry-run] [--skip-build] [--tag <tag>] [--no-confirm]"
+      cat <<EOF
+Usage: $0 [--builder staging|local] [--dry-run] [--skip-build] [--tag <tag>] [--no-confirm]
+  --builder staging  在 staging(x86 原生) 构建（默认，推荐）
+  --builder local    在本地 Mac 构建（fallback；--skip-build 仅此模式生效）
+EOF
       exit 0
       ;;
     *)
@@ -42,6 +52,11 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+case "$BUILDER" in
+  staging|local) ;;
+  *) printf 'Invalid --builder: %s (use staging|local)\n' "$BUILDER" >&2; exit 1 ;;
+esac
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -55,12 +70,12 @@ require_cmd() {
 
 # ── Pre-flight checks ─────────────────────────────────────────────────────────
 
-require_cmd docker
 require_cmd git
 require_cmd ssh
-
-# Verify Docker daemon is running
-docker info >/dev/null 2>&1 || die "Docker daemon is not running. Start Docker Desktop first."
+if [ "$BUILDER" = "local" ]; then
+  require_cmd docker
+  docker info >/dev/null 2>&1 || die "Docker daemon is not running. Start Docker Desktop first."
+fi
 
 # ── Load configuration ────────────────────────────────────────────────────────
 
@@ -87,10 +102,17 @@ SERVER_USER="${SERVER_USER:-root}"
 SERVER_PORT="${SERVER_PORT:-22}"
 SERVER_DEPLOY_DIR="${SERVER_DEPLOY_DIR:-/opt/shenlun-material-hub}"
 
+# staging 构建机（builder=staging 时用）
+STAGING_HOST="${STAGING_HOST:-100.117.96.1}"
+STAGING_USER="${STAGING_USER:-carry}"
+STAGING_DIR="${STAGING_DIR:-/home/carry/shenlun-material-hub-staging}"
+
 HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://${SERVER_HOST}/api/health}"
 
-SSH_TARGET="${SERVER_USER}@${SERVER_HOST}"
-SSH_OPTS="${SERVER_SSH_KEY_PATH:+-i $SERVER_SSH_KEY_PATH} -p $SERVER_PORT -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new"
+SERVER_SSH_TARGET="${SERVER_USER}@${SERVER_HOST}"
+SERVER_SSH_OPTS="${SERVER_SSH_KEY_PATH:+-i $SERVER_SSH_KEY_PATH} -p $SERVER_PORT -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new"
+STAGING_SSH_TARGET="${STAGING_USER}@${STAGING_HOST}"
+STAGING_SSH_OPTS="${SERVER_SSH_KEY_PATH:+-i $SERVER_SSH_KEY_PATH} -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new"
 
 # ── Compute tags ───────────────────────────────────────────────────────────────
 
@@ -102,18 +124,22 @@ DEPLOY_TAG="${TAG_OVERRIDE:-$TIMESTAMP}"
 
 # ── Display deployment plan ───────────────────────────────────────────────────
 
+BUILD_DESC="staging(${STAGING_SSH_TARGET}, x86_64 原生)"
+[ "$BUILDER" = "local" ] && BUILD_DESC="local Mac(linux/amd64 模拟构建)"
+
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║  TCR Deployment Plan                                        ║"
 echo "╠══════════════════════════════════════════════════════════════╣"
-echo "║  Image:  ${TCR_IMAGE}"
-echo "║  Tags:   ${DEPLOY_TAG}, ${GIT_SHA}, latest"
-echo "║  Server: ${SSH_TARGET}:${SERVER_DEPLOY_DIR}"
-echo "║  Health: ${HEALTHCHECK_URL}"
-if [ "$SKIP_BUILD" = true ]; then
-echo "║  Mode:   SKIP BUILD (re-tag existing image)"
+echo "║  Builder: ${BUILD_DESC}"
+echo "║  Image:   ${TCR_IMAGE}"
+echo "║  Tags:    ${DEPLOY_TAG}, ${GIT_SHA}, latest"
+echo "║  Server:  ${SERVER_SSH_TARGET}:${SERVER_DEPLOY_DIR}"
+echo "║  Health:  ${HEALTHCHECK_URL}"
+if [ "$SKIP_BUILD" = true ] && [ "$BUILDER" = "local" ]; then
+echo "║  Mode:    SKIP BUILD (re-tag existing image)"
 else
-echo "║  Mode:   BUILD + PUSH"
+echo "║  Mode:    BUILD + PUSH"
 fi
 if [ "$DRY_RUN" = true ]; then
 echo "║  *** DRY RUN — no changes will be made ***"
@@ -136,68 +162,90 @@ fi
 
 if [ "$DRY_RUN" = true ]; then
   log "DRY RUN — would execute:"
-  log "  1. docker login ${TCR_REGISTRY} -u ${TCR_USERNAME}"
-  log "  2. docker build -t ${TCR_IMAGE}:${DEPLOY_TAG} -t ${TCR_IMAGE}:${GIT_SHA} -t ${TCR_IMAGE}:latest ."
-  log "  3. docker push ${TCR_IMAGE}:${DEPLOY_TAG}"
-  log "  4. docker push ${TCR_IMAGE}:${GIT_SHA}"
-  log "  5. docker push ${TCR_IMAGE}:latest"
-  log "  6. ssh ${SSH_TARGET} 'cd ${SERVER_DEPLOY_DIR} && bash scripts/deploy/server-pull-and-restart.sh --tag ${DEPLOY_TAG}'"
-  log "  7. Health check: curl ${HEALTHCHECK_URL}"
+  if [ "$BUILDER" = "staging" ]; then
+    log "  [build] ssh ${STAGING_SSH_TARGET} 'cd ${STAGING_DIR} && git pull'"
+    log "  [build] ssh staging 'docker login ${TCR_REGISTRY} && docker build -t ${TCR_IMAGE}:${DEPLOY_TAG} ... && docker push ...'"
+  else
+    log "  [build] docker login ${TCR_REGISTRY} -u ${TCR_USERNAME}"
+    log "  [build] docker build -t ${TCR_IMAGE}:${DEPLOY_TAG} -t ${TCR_IMAGE}:${GIT_SHA} -t ${TCR_IMAGE}:latest ."
+    log "  [build] docker push ${TCR_IMAGE}:{${DEPLOY_TAG},${GIT_SHA},latest}"
+  fi
+  log "  [gate]  check-schema-sync.sh --env production"
+  log "  [gate]  ssh prod 'prisma migrate status'"
+  log "  [deploy] ssh ${SERVER_SSH_TARGET} 'server-pull-and-restart.sh --tag ${DEPLOY_TAG}'"
+  log "  [verify] curl ${HEALTHCHECK_URL}"
   exit 0
 fi
 
-# ── Docker login ──────────────────────────────────────────────────────────────
+[ -n "$TCR_PASSWORD" ] || die "TCR_PASSWORD 未设置（.env.deploy.local）"
 
-log "Logging in to TCR as ${TCR_USERNAME}"
-if [ -n "$TCR_PASSWORD" ]; then
-  # Non-interactive login
+# ── Build + Push (按 builder 分支) ─────────────────────────────────────────────
+
+if [ "$BUILDER" = "staging" ]; then
+  # ── staging 远程构建（x86 原生，不卡）──
+  log "[staging] git pull 最新代码"
+  ssh $STAGING_SSH_OPTS "$STAGING_SSH_TARGET" \
+    "cd ${STAGING_DIR} && git fetch origin && git checkout main && git pull --ff-only origin main && git rev-parse --short HEAD" \
+    || die "staging git pull 失败。staging 不可达？可用 --builder local 在 Mac 上重试。"
+
+  log "[staging] 检查磁盘（构建需 ~3G）"
+  FREE_GB="$(ssh $STAGING_SSH_OPTS "$STAGING_SSH_TARGET" 'df --output=avail -BG / | tail -1 | tr -dc "0-9"' 2>/dev/null || echo 0)"
+  if [ "${FREE_GB:-0}" -lt 5 ]; then
+    warn "staging 磁盘剩余 ${FREE_GB}G，偏低。建议先在 staging 跑 docker system prune -af"
+    printf '继续构建? [y/N] '; read -r c; case "$c" in [yY]*) ;; *) exit 0 ;; esac
+  fi
+
+  log "[staging] docker login TCR + build + push (TCR 密码 stdin 传，不落盘)"
+  # TCR 密码通过位置参数传给 staging 的 docker login（不出现在 staging 命令行历史/日志）。
+  ssh $STAGING_SSH_OPTS "$STAGING_SSH_TARGET" bash -s \
+    "$TCR_REGISTRY" "$TCR_USERNAME" "$TCR_PASSWORD" \
+    "${TCR_IMAGE}" "$DEPLOY_TAG" "$GIT_SHA" "$STAGING_DIR" <<'REMOTE' \
+    || die "staging 构建失败。可用 --builder local 在 Mac 上重试。"
+set -euo pipefail
+REG="$1"; USER="$2"; PASS="$3"; IMG="$4"; TAG="$5"; SHA="$6"; DIR="$7"
+echo "$PASS" | docker login "$REG" -u "$USER" --password-stdin
+cd "$DIR"
+docker build --platform linux/amd64 -f Dockerfile \
+  -t "$IMG:$TAG" -t "$IMG:$SHA" -t "$IMG:latest" .
+echo "--- push ---"
+docker push "$IMG:$TAG"
+docker push "$IMG:$SHA"
+docker push "$IMG:latest"
+echo "--- 验证三 tag 同 digest ---"
+docker inspect "$IMG:$TAG" --format '{{index .RepoDigests 0}}'
+REMOTE
+  log "staging 构建并推送完成"
+else
+  # ── 本地 Mac 构建（fallback）──
+  log "[local] Logging in to TCR as ${TCR_USERNAME}"
   echo "$TCR_PASSWORD" | docker login "$TCR_REGISTRY" -u "$TCR_USERNAME" --password-stdin
-else
-  # Interactive login — prompt user
-  log "TCR_PASSWORD not set in ${ENV_FILE}"
-  log "Falling back to interactive docker login"
-  docker login "$TCR_REGISTRY" -u "$TCR_USERNAME"
+
+  if [ "$SKIP_BUILD" = false ]; then
+    log "[local] Building Docker image (linux/amd64)..."
+    log "  ⚠️ Apple Silicon 上 chown -R 可能假性卡死；若久无输出，看 docker images 的 RepoDigest 确认是否已成。"
+    docker build \
+      --platform linux/amd64 \
+      -f "$PROJECT_DIR/Dockerfile" \
+      -t "${TCR_IMAGE}:${DEPLOY_TAG}" \
+      -t "${TCR_IMAGE}:${GIT_SHA}" \
+      -t "${TCR_IMAGE}:latest" \
+      "$PROJECT_DIR"
+    log "Build complete"
+  else
+    log "SKIP BUILD — re-tagging existing ${TCR_IMAGE}:latest"
+    docker tag "${TCR_IMAGE}:latest" "${TCR_IMAGE}:${DEPLOY_TAG}" 2>/dev/null || \
+      die "No existing image ${TCR_IMAGE}:latest found. Run without --skip-build first."
+    docker tag "${TCR_IMAGE}:latest" "${TCR_IMAGE}:${GIT_SHA}" 2>/dev/null || true
+  fi
+
+  log "[local] Pushing ${TCR_IMAGE}:{${DEPLOY_TAG},${GIT_SHA},latest}"
+  docker push "${TCR_IMAGE}:${DEPLOY_TAG}"
+  docker push "${TCR_IMAGE}:${GIT_SHA}"
+  docker push "${TCR_IMAGE}:latest"
+  log "All tags pushed to TCR"
 fi
 
-# ── Build ──────────────────────────────────────────────────────────────────────
-
-if [ "$SKIP_BUILD" = false ]; then
-  log "Building Docker image (linux/amd64)..."
-  log "  Tag 1: ${TCR_IMAGE}:${DEPLOY_TAG}"
-  log "  Tag 2: ${TCR_IMAGE}:${GIT_SHA}"
-  log "  Tag 3: ${TCR_IMAGE}:latest"
-
-  docker build \
-    --platform linux/amd64 \
-    -f "$PROJECT_DIR/Dockerfile" \
-    -t "${TCR_IMAGE}:${DEPLOY_TAG}" \
-    -t "${TCR_IMAGE}:${GIT_SHA}" \
-    -t "${TCR_IMAGE}:latest" \
-    "$PROJECT_DIR"
-
-  log "Build complete"
-else
-  log "SKIP BUILD — re-tagging existing ${TCR_IMAGE}:latest"
-  # Tag the existing latest image with the deploy tag and git sha
-  docker tag "${TCR_IMAGE}:latest" "${TCR_IMAGE}:${DEPLOY_TAG}" 2>/dev/null || \
-    die "No existing image ${TCR_IMAGE}:latest found. Run without --skip-build first."
-  docker tag "${TCR_IMAGE}:latest" "${TCR_IMAGE}:${GIT_SHA}" 2>/dev/null || true
-fi
-
-# ── Push ───────────────────────────────────────────────────────────────────────
-
-log "Pushing ${TCR_IMAGE}:${DEPLOY_TAG}"
-docker push "${TCR_IMAGE}:${DEPLOY_TAG}"
-
-log "Pushing ${TCR_IMAGE}:${GIT_SHA}"
-docker push "${TCR_IMAGE}:${GIT_SHA}"
-
-log "Pushing ${TCR_IMAGE}:latest"
-docker push "${TCR_IMAGE}:latest"
-
-log "All tags pushed to TCR"
-
-# ── Schema consistency check (blocking) ────────────────────────────────────────
+# ── Schema consistency check (blocking gate) ──────────────────────────────────
 
 log "Checking schema consistency between code migrations and production database"
 bash "$SCRIPT_DIR/check-schema-sync.sh" --env production \
@@ -206,16 +254,17 @@ bash "$SCRIPT_DIR/check-schema-sync.sh" --env production \
 # ── Pre-deploy migration status check ─────────────────────────────────────────
 
 log "Checking production migration status before deploying"
-ssh $SSH_OPTS "$SSH_TARGET" \
+ssh $SERVER_SSH_OPTS "$SERVER_SSH_TARGET" \
   "cd ${SERVER_DEPLOY_DIR} && set -a && source .env.production && set +a && \
    docker compose -f docker-compose.prod.yml run --rm --no-deps app npx prisma migrate status" \
   || warn "Production migration status check had warnings (proceeding with deploy)"
 
 # ── Trigger remote deploy ─────────────────────────────────────────────────────
 
-log "Triggering remote pull and restart on ${SSH_TARGET}"
-ssh $SSH_OPTS "$SSH_TARGET" \
-  "cd ${SERVER_DEPLOY_DIR} && bash scripts/deploy/server-pull-and-restart.sh --tag ${DEPLOY_TAG}"
+log "Triggering remote pull and restart on ${SERVER_SSH_TARGET}"
+ssh $SERVER_SSH_OPTS "$SERVER_SSH_TARGET" \
+  "cd ${SERVER_DEPLOY_DIR} && bash scripts/deploy/server-pull-and-restart.sh --tag ${DEPLOY_TAG}" \
+  || die "生产 restart 失败。小机器(2核1.6G)可能被压垮：分步做 —— 先 'docker compose run --rm app npx prisma migrate deploy'，再 'docker compose up -d app'。"
 
 # ── Remote health check ───────────────────────────────────────────────────────
 
@@ -236,7 +285,7 @@ echo ""
 if [ "$HEALTH_OK" = true ]; then
   echo "╔══════════════════════════════════════════════════════════════╗"
   echo "║  ✅  DEPLOYMENT SUCCESSFUL                                  ║"
-  echo "║  Tag: ${DEPLOY_TAG} (${GIT_SHA})"
+  echo "║  Builder: ${BUILDER}  Tag: ${DEPLOY_TAG} (${GIT_SHA})"
   echo "║  URL:  http://${SERVER_HOST}"
   echo "╚══════════════════════════════════════════════════════════════╝"
 else
@@ -244,8 +293,8 @@ else
   echo "║  ❌  DEPLOYMENT FAILED — health check timed out             ║"
   echo "╚══════════════════════════════════════════════════════════════╝"
   log "Check server logs:"
-  log "  ssh ${SSH_TARGET} 'cd ${SERVER_DEPLOY_DIR} && bash scripts/deploy/aliyun-logs.sh app'"
+  log "  ssh ${SERVER_SSH_TARGET} 'cd ${SERVER_DEPLOY_DIR} && bash scripts/deploy/aliyun-logs.sh app'"
   log "Roll back with:"
-  log "  ssh ${SSH_TARGET} 'cd ${SERVER_DEPLOY_DIR} && bash scripts/deploy/rollback-tcr.sh <previous-tag>'"
+  log "  ssh ${SERVER_SSH_TARGET} 'cd ${SERVER_DEPLOY_DIR} && bash scripts/deploy/rollback-tcr.sh <previous-tag>'"
   exit 1
 fi
