@@ -419,6 +419,25 @@ async function syncMaterialCard(params: {
     };
   }
 
+  // Batch A / A5: service 层独立 owner 防线（不能只靠 route 层校验，需求 6.3）。
+  // 调用方带 userId 时，卡必须属于该用户且未归档；归档卡与他人的卡一律拒绝。
+  if (userId && card.ownerUserId !== userId) {
+    return {
+      materialCardId,
+      status: "failed",
+      errorCode: "MATERIAL_CARD_FORBIDDEN",
+      errorMessage: "只能同步自己的素材卡",
+    };
+  }
+  if (card.archivedAt) {
+    return {
+      materialCardId,
+      status: "failed",
+      errorCode: "MATERIAL_CARD_ARCHIVED",
+      errorMessage: "已归档的素材卡不能同步",
+    };
+  }
+
   const { regionFolder, typeFolder } = deriveFolders(card.contentItem, card.cardType);
   let syncRecord: { id: string } | null = null;
 
@@ -676,8 +695,10 @@ async function syncArticle(params: {
   const item = await db.contentItem.findUnique({
     where: { id: articleId },
     include: {
+      // Batch A / A4: 只取当前用户自己的 confirmed 且未归档的卡（需求 2.2 / 6.3）。
+      // 不得把他人 confirmed 卡同步到调用者的 IMA；archivedAt != null 一律排除。
       materialCards: {
-        where: { confirmed: true },
+        where: { confirmed: true, ownerUserId: userId, archivedAt: null },
         orderBy: { createdAt: "desc" },
         select: { id: true },
       },

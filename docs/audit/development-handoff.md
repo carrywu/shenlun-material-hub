@@ -297,3 +297,23 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - Docker/PostgreSQL 恢复后优先运行 `prisma migrate deploy`（已应用过则跳过）+ Playwright 跨浏览器全量回归。
 - E2E spec 中已删除路由（/discover、/explore、/my-articles）的测试已添加 `test.skip()` 标注，代码保留以备参考。
 - Playwright E2E 修复已完成 admin project 验证，跨浏览器回归优先跑 `pnpm exec playwright test`。
+
+## 10. 2026-06-18 全量审查 + Batch A 残留 P0 补修
+
+> ⚠️ 本节纠正上文 §1-§9 的过期叙事。上文停留在「Batch1-5+Round A/B 全完成」，
+> 未记录分支上的全量审查与 P0/P1 修复。事实以本节 + 两份报告为准。
+
+- **全量审查**：《全量审查报告-2026-06-18.md》(Report A) 发现 5 个 P0 + 4 个 P1（静态代码审查确证）。
+- **P0/P1 修复**：《修复报告-2026-06-18.md》(Report B) 修复 P0-1/2/4/5 + P1-1/2/3，vitest 720 通过。
+- **残留 P0 补修（Batch A，本轮）**：harness-review 发现 Report B 对 P0-3 仅修了读路径，写路径未修。已补：
+  - `syncMaterialCard` service 层 owner + archived 防线（A5）。
+  - `syncArticle` 过滤他人/归档卡（A4）。
+  - 服务层 A/B owner 隔离测试（+5 用例）。
+  - 验证：vitest 75 files / 725 通过；lint 0 errors / 67 warnings；build 通过；api-security + sync-records e2e（admin）40 passed / 0 failed。
+  - 详见 `development-todolist.md` Stage 10（BA-1/BA-2/BA-3）。
+
+### 当前仍未解决（下一批）
+
+1. **P1-残留-1**：`/api/articles` GET 仍允许匿名访问（Report A P1-4，Report B 未修）。需 `requireAuth` + 401 + 测试。
+2. **P1-残留-2**：IMA 读路径 ADMIN 例外范围（`GET /api/sync?cardId` 对 ADMIN 全放行）—— 需澄清「管理操作 vs 个人操作」语义并加测试。
+3. **E2E 基础设施债（Report A P2-1）**：admin fixture token 长跑失效，全量 5-project Playwright 不可信。建议下一批独立修 global-setup token 持久化 + RBAC helper 改静态 import。

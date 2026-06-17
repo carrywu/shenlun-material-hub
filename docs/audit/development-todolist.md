@@ -851,3 +851,41 @@
 - 验收证据：
   - we-mp-rss 服务不可用时测试自动跳过，不产生 false negative。
 - 风险：当服务可用时需重新验证同步功能本身。
+
+## Stage 10：Batch A 残留 P0 补修（sync service 层 owner 隔离）
+
+> 来源：2026-06-18 harness-review 发现《修复报告-2026-06-18》(Report B) 声称 P0-3 已关闭，
+> 实际只修了读路径（getSyncHistory/canAccessSyncRecord），写路径（syncArticle/syncMaterialCard）未修。
+
+### BA-1：syncMaterialCard service 层 owner + archived 防线（需求 A5 / 6.3）
+
+- 状态：done
+- 目标：service 层独立校验 `ownerUserId === userId` 与 `archivedAt == null`，不依赖 route 层。
+- 实际修改文件：
+  - `src/services/ima-sync.ts` — `syncMaterialCard` 在 confirmed 检查后新增 owner 校验（不匹配→`MATERIAL_CARD_FORBIDDEN`）与 archived 校验（→`MATERIAL_CARD_ARCHIVED`），不写远程。
+- 测试：`pnpm test src/services/__tests__/ima-sync.test.ts`
+- 验收证据：非 owner 卡即使 confirmed 也拒绝；归档卡即使 owner 正确也拒绝；owner 正确时正常同步。
+
+### BA-2：syncArticle 过滤他人/归档卡（需求 A4 / 2.2）
+
+- 状态：done
+- 目标：`POST /api/articles/[id]/sync-to-ima` 同步时只取当前用户自己的 confirmed 且未归档的卡。
+- 实际修改文件：
+  - `src/services/ima-sync.ts` — `syncArticle` 的 `materialCards` where 由 `{ confirmed: true }` 改为 `{ confirmed: true, ownerUserId: userId, archivedAt: null }`。
+- 验收证据：VERIFIED_USER 同步公共文章时，他人 confirmed 卡与归档卡不再被同步到调用者 IMA。
+
+### BA-3：服务层 A/B owner 隔离测试
+
+- 状态：done
+- 实际修改文件：
+  - `src/services/__tests__/ima-sync.test.ts` — CARD fixture 补 `ownerUserId`/`archivedAt`；新增 5 个测试（syncMaterialCard owner 拒绝/archived 拒绝/owner 正常；syncArticle 排除他人与归档卡、正文同步路径不受影响）。
+- 测试命令：`pnpm test src/services/__tests__/ima-sync.test.ts`、`pnpm test`（全量）。
+- 验收证据：
+  - vitest 75 files / 725 tests 通过（基线 720 + 5）。
+  - lint 0 errors / 67 warnings（全 pre-existing unused-vars）。
+  - build 通过（完整路由表）。
+  - Playwright `e2e/api-security.spec.ts` + `e2e/sync-records.spec.ts`（admin project）：40 passed / 0 failed。
+- 风险：
+  - 未跑全量 5-project Playwright（受 admin fixture token 长跑失效污染，见 Report B §6 / Report A P2-1，非本批回归）。
+  - syncArticle 的 owner 过滤为硬过滤；若未来 ADMIN 需代运维同步他人卡，应另开显式 admin-only 接口（当前需求禁止）。
+- 关联提交：pending
