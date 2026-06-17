@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { ImaService, getSyncStatus, getSyncHistory } from "@/services/ima-sync";
+import { ImaService, getSyncStatus, getSyncHistory, canAccessSyncRecord } from "@/services/ima-sync";
 import { requireVerifiedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import { auditLog } from "@/lib/audit-logger";
 
@@ -25,17 +25,21 @@ export async function POST(request: NextRequest) {
     if (cardId && !cardIds) {
       const card = await db.materialCard.findUnique({
         where: { id: cardId },
-        select: { id: true, confirmed: true, ownerUserId: true },
+        select: { id: true, confirmed: true, ownerUserId: true, archivedAt: true },
       });
       if (!card) {
         return NextResponse.json({ error: "素材卡不存在" }, { status: 404 });
       }
-      // P1-13: ownership check — only owner or admin can sync
-      if (card.ownerUserId && card.ownerUserId !== user.id && user.role !== "ADMIN") {
-        return forbiddenResponse("无权同步此素材卡");
+      // P0-1: 同步只能同步自己的素材卡。ADMIN 也不例外（需求 2.3/5.2：
+      // ADMIN 只能把自己的卡同步到自己的 IMA）。同时排除 legacy null-owner 公共卡。
+      if (card.ownerUserId !== user.id) {
+        return forbiddenResponse("只能同步自己的素材卡");
       }
       if (!card.confirmed) {
         return NextResponse.json({ error: "素材卡尚未确认，请先确认后再同步" }, { status: 400 });
+      }
+      if (card.archivedAt) {
+        return NextResponse.json({ error: "已归档的素材卡不能同步" }, { status: 400 });
       }
 
       const item = await ImaService.syncMaterialCard({ materialCardId: cardId, userId: user.id });
@@ -76,7 +80,7 @@ export async function POST(request: NextRequest) {
 
       const existingCards = await db.materialCard.findMany({
         where: { id: { in: cardIds } },
-        select: { id: true, confirmed: true, ownerUserId: true },
+        select: { id: true, confirmed: true, ownerUserId: true, archivedAt: true },
       });
 
       const existingIds = new Set(existingCards.map((c) => c.id));
@@ -89,12 +93,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // P1-13: ownership check for batch
-      if (user.role !== "ADMIN") {
-        const unauthorized = existingCards.filter(c => c.ownerUserId && c.ownerUserId !== user.id);
-        if (unauthorized.length > 0) {
-          return forbiddenResponse("无权同步部分素材卡");
-        }
+      // P0-1: 批量同步也只能同步自己的卡（ADMIN 也不例外）。同时排除 null-owner 公共卡与归档卡。
+      const unauthorized = existingCards.filter(
+        (c) => c.ownerUserId !== user.id || c.archivedAt,
+      );
+      if (unauthorized.length > 0) {
+        return forbiddenResponse("只能同步自己的素材卡（已归档或他人素材卡不可同步）");
       }
 
       const unconfirmedIds = existingCards
@@ -151,9 +155,15 @@ export async function GET(request: NextRequest) {
     const syncRecordId = searchParams.get("syncRecordId");
     const cardId = searchParams.get("cardId");
 
+    const isAdmin = user.role === "ADMIN";
+
     // Query specific sync record status
     if (syncRecordId) {
       const record = await getSyncStatus(syncRecordId);
+      // P0-2: 非 owner 访问他人 SyncRecord 返回 404（隐藏存在）
+      if (!canAccessSyncRecord(record, user.id, isAdmin)) {
+        return NextResponse.json({ error: "同步记录不存在" }, { status: 404 });
+      }
       return NextResponse.json(record);
     }
 
@@ -163,7 +173,7 @@ export async function GET(request: NextRequest) {
         100,
         Math.max(1, parseInt(searchParams.get("limit") ?? "20"))
       );
-      const records = await getSyncHistory(cardId, limit);
+      const records = await getSyncHistory(cardId, limit, user.id, isAdmin);
       return NextResponse.json(records);
     }
 

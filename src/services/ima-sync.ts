@@ -846,13 +846,52 @@ export async function getSyncStatus(syncRecordId: string) {
 
 export async function getSyncHistory(
   cardId: string,
-  limit: number = 20
+  limit: number = 20,
+  userId?: string,
+  isAdmin: boolean = false,
 ) {
+  // P0-3: service 层 owner 防线。非 ADMIN 只返回自己卡的同步记录；
+  // 卡不属于该用户时返回空（隐藏存在）。
+  if (userId && !isAdmin) {
+    const card = await db.materialCard.findUnique({
+      where: { id: cardId },
+      select: { ownerUserId: true },
+    });
+    if (!card || card.ownerUserId !== userId) {
+      return [];
+    }
+  }
   return db.syncRecord.findMany({
     where: { materialCardId: cardId },
     orderBy: { syncedAt: "desc" },
     take: limit,
   });
+}
+
+/**
+ * 校验当前用户是否有权访问某条 SyncRecord（owner 或 ADMIN）。
+ * 非 owner 且非 ADMIN 返回 false。用于 route 层将非 owner 访问统一映射为 404。
+ */
+export function canAccessSyncRecord(
+  record: { userId: string | null },
+  userId: string,
+  isAdmin: boolean
+): boolean {
+  if (isAdmin) return true;
+  return record.userId === userId;
+}
+
+/**
+ * 校验当前用户是否有权访问某张素材卡的同步历史（卡 owner 或 ADMIN）。
+ */
+export function canAccessCardHistory(
+  card: { ownerUserId: string | null } | null,
+  userId: string,
+  isAdmin: boolean
+): boolean {
+  if (isAdmin) return true;
+  if (!card) return false;
+  return card.ownerUserId === userId;
 }
 
 export interface SyncRecordsQuery {
