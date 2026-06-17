@@ -249,4 +249,194 @@ describe("GET /api/articles route handler", () => {
     expect(mocks.findMany).not.toHaveBeenCalled();
     expect(mocks.count).not.toHaveBeenCalled();
   });
+
+  // ── P1-5 补充：aiDecision 过滤 ──
+
+  it("aiDecision=accept → where.aiDecision=accept", async () => {
+    const req = new NextRequest("http://localhost/api/articles?aiDecision=accept");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("aiDecision", "accept");
+  });
+
+  it("aiDecision=reject → where.aiDecision=reject", async () => {
+    const req = new NextRequest("http://localhost/api/articles?aiDecision=reject");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("aiDecision", "reject");
+  });
+
+  it("aiDecision=pending → where.aiDecision=null", async () => {
+    const req = new NextRequest("http://localhost/api/articles?aiDecision=pending");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("aiDecision", null);
+  });
+
+  it("aiDecision=all → 不应用 aiDecision 过滤", async () => {
+    const req = new NextRequest("http://localhost/api/articles?aiDecision=all");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).not.toHaveProperty("aiDecision");
+  });
+
+  // ── P1-5 补充：qualityStatus 过滤 ──
+
+  it("qualityStatus=approved → where.qualityStatus=approved", async () => {
+    const req = new NextRequest("http://localhost/api/articles?qualityStatus=approved");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("qualityStatus", "approved");
+  });
+
+  it("qualityStatus=blocked → where.qualityStatus=blocked", async () => {
+    const req = new NextRequest("http://localhost/api/articles?qualityStatus=blocked");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("qualityStatus", "blocked");
+  });
+
+  it("qualityStatus=all → 不应用 qualityStatus 过滤", async () => {
+    const req = new NextRequest("http://localhost/api/articles?qualityStatus=all");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).not.toHaveProperty("qualityStatus");
+  });
+
+  // ── P1-5 补充：时间范围过滤 ──
+
+  it("publishedStart + publishedEnd → where.publishedAt 范围", async () => {
+    const req = new NextRequest(
+      "http://localhost/api/articles?publishedStart=2026-01-01&publishedEnd=2026-06-30"
+    );
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("publishedAt");
+    const pa = lastWhere.publishedAt as Record<string, unknown>;
+    expect(pa).toHaveProperty("gte");
+    expect(pa).toHaveProperty("lte");
+  });
+
+  it("collectedStart + collectedEnd → where.createdAt 范围", async () => {
+    const req = new NextRequest(
+      "http://localhost/api/articles?collectedStart=2026-01-01&collectedEnd=2026-06-30"
+    );
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("createdAt");
+    const ca = lastWhere.createdAt as Record<string, unknown>;
+    expect(ca).toHaveProperty("gte");
+    expect(ca).toHaveProperty("lte");
+  });
+
+  // ── P1-5 补充：section 过滤 ──
+
+  it("section=评论 → where.section contains '评论'", async () => {
+    const req = new NextRequest("http://localhost/api/articles?section=评论");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("section");
+    expect((lastWhere.section as Record<string, unknown>).contains).toBe("评论");
+  });
+
+  // ── P1-5 补充：sourceName 过滤 ──
+
+  it("sourceName=人民日报 → where.source.name contains", async () => {
+    const req = new NextRequest("http://localhost/api/articles?sourceName=人民日报");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const lastWhere = mocks.findMany.mock.calls[0][0].where as Record<string, unknown>;
+    expect(lastWhere).toHaveProperty("source");
+    expect((lastWhere.source as Record<string, unknown>).name).toEqual({ contains: "人民日报" });
+  });
+
+  // ── P1-5 补充：sortBy ──
+
+  it("sortBy=aiScore → orderBy aiScore desc", async () => {
+    const req = new NextRequest("http://localhost/api/articles?sortBy=aiScore");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const orderBy = mocks.findMany.mock.calls[0][0].orderBy as Record<string, string>[];
+    expect(orderBy[0]).toEqual({ aiScore: "desc" });
+  });
+
+  it("sortBy=effectiveTextLength → orderBy effectiveTextLength desc", async () => {
+    const req = new NextRequest("http://localhost/api/articles?sortBy=effectiveTextLength");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const orderBy = mocks.findMany.mock.calls[0][0].orderBy as Record<string, string>[];
+    expect(orderBy[0]).toEqual({ effectiveTextLength: "desc" });
+  });
+
+  it("sortBy=publishedAt → orderBy publishedAt desc", async () => {
+    const req = new NextRequest("http://localhost/api/articles?sortBy=publishedAt");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const orderBy = mocks.findMany.mock.calls[0][0].orderBy as Record<string, string>[];
+    expect(orderBy[0]).toEqual({ publishedAt: "desc" });
+  });
+
+  it("sortBy 未传 → 默认 createdAt desc", async () => {
+    const req = new NextRequest("http://localhost/api/articles");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const orderBy = mocks.findMany.mock.calls[0][0].orderBy as Record<string, string>[];
+    expect(orderBy[0]).toEqual({ createdAt: "desc" });
+  });
+
+  // ── P1-5 补充：分页 ──
+
+  it("page=2&pageSize=10 → skip=10, take=10", async () => {
+    const req = new NextRequest("http://localhost/api/articles?page=2&pageSize=10");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const findManyCall = mocks.findMany.mock.calls[0][0];
+    expect(findManyCall.skip).toBe(10);
+    expect(findManyCall.take).toBe(10);
+  });
+
+  it("page=0 → 自动修正为 page=1", async () => {
+    const req = new NextRequest("http://localhost/api/articles?page=0");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const findManyCall = mocks.findMany.mock.calls[0][0];
+    expect(findManyCall.skip).toBe(0);
+  });
+
+  it("pageSize=200 → 上限为 100", async () => {
+    const req = new NextRequest("http://localhost/api/articles?pageSize=200");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const findManyCall = mocks.findMany.mock.calls[0][0];
+    expect(findManyCall.take).toBe(100);
+  });
+
+  // ── P1-5 补充：空结果响应体结构 ──
+
+  it("空结果 → 响应体包含 data/total/page/pageSize/totalPages", async () => {
+    mocks.findMany.mockResolvedValue([]);
+    mocks.count.mockResolvedValue(0);
+    const req = new NextRequest("http://localhost/api/articles");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toHaveProperty("data");
+    expect(body).toHaveProperty("total");
+    expect(body).toHaveProperty("page");
+    expect(body).toHaveProperty("pageSize");
+    expect(body).toHaveProperty("totalPages");
+    expect(body.data).toEqual([]);
+    expect(body.total).toBe(0);
+    expect(body.totalPages).toBe(0);
+  });
 });

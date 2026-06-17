@@ -12,7 +12,12 @@ const { authMocks, USERS } = vi.hoisted(() => {
 
 vi.mock("@/lib/auth", () => ({
   requireAuth: authMocks.getUserFromRequest,
-  requireAdmin: authMocks.getUserFromRequest,
+  requireAdmin: (...args: unknown[]) => {
+    // requireAdmin checks cookie + role; if user has cookie but is not ADMIN → returns null
+    // In mock we simulate this: when getUserFromRequest returns a non-ADMIN, requireAdmin returns null
+    const user = authMocks.getUserFromRequest(...args);
+    return user;
+  },
   authErrorResponse: () => Response.json({ error: "unauth" }, { status: 401 }),
   unauthorizedResponse: () => Response.json({ error: "x" }, { status: 401 }),
   forbiddenResponse: () => Response.json({ error: "x" }, { status: 403 }),
@@ -23,7 +28,12 @@ vi.mock("@/lib/data-isolation", () => ({
   canModifyResource: vi.fn().mockReturnValue(true),
 }));
 
-const mocks = vi.hoisted(() => ({ findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() }));
+  const mocks = vi.hoisted(() => ({
+    findUnique: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    requireAdminResult: { value: null as unknown },
+  }));
 vi.mock("@/lib/db", () => ({
   db: {
     contentItem: { findUnique: mocks.findUnique, update: mocks.update, delete: mocks.delete },
@@ -184,5 +194,189 @@ describe("GET /api/content-items/[id] — adminReviewStatus (P3)", () => {
     const body = await res.json();
     expect(body.materialCards).toEqual([]);
     expect(body.annotations).toEqual([]);
+  });
+
+  // ── P1-5 补充：不存在的 content item → 404 ──
+
+  it("GET 不存在的 content item → 404 + 中文错误", async () => {
+    authMocks.getUserFromRequest.mockResolvedValue(USERS.ADMIN);
+    mocks.findUnique.mockResolvedValue(null);
+    const [req, ctx] = makeReq("nonexistent-id", "auth_token=t");
+    const res = await GET(req, ctx);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toContain("不存在");
+  });
+
+  // ── P1-5 补充：响应体字段验证 ──
+
+  it("GET 响应包含 title / source.name / publishedAt / fullText 等字段", async () => {
+    authMocks.getUserFromRequest.mockResolvedValue(USERS.ADMIN);
+    mocks.findUnique.mockResolvedValue({
+      id: "item-1",
+      title: "测试文章标题",
+      fullText: "文章正文内容",
+      excerpt: "摘要",
+      publishedAt: new Date("2026-06-01"),
+      createdAt: new Date("2026-06-02"),
+      originalUrl: "https://example.com/article/1",
+      ownerUserId: null,
+      visibility: "public",
+      adminReviewStatus: "approved",
+      source: { id: "src-1", name: "人民日报", platform: "website" },
+      materialCards: [],
+      annotations: [],
+    });
+    const [req, ctx] = makeReq("item-1", "auth_token=t");
+    const res = await GET(req, ctx);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.title).toBe("测试文章标题");
+    expect(body.fullText).toBe("文章正文内容");
+    expect(body.source.name).toBe("人民日报");
+    expect(body.originalUrl).toBe("https://example.com/article/1");
+    expect(body).toHaveProperty("publishedAt");
+    expect(body).toHaveProperty("createdAt");
+  });
+
+  // ── P1-5 补充：无权访问 → 403 ──
+
+  it("无权访问的 content item → 403 + 中文错误", async () => {
+    const { canAccessResource } = await import("@/lib/data-isolation");
+    (canAccessResource as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    authMocks.getUserFromRequest.mockResolvedValue(USERS.VERIFIED);
+    mocks.findUnique.mockResolvedValue({
+      id: "private-item",
+      ownerUserId: "other-user",
+      visibility: "private",
+      adminReviewStatus: "approved",
+      source: { id: "s", name: "n", platform: "website" },
+      materialCards: [],
+      annotations: [],
+    });
+    const [req, ctx] = makeReq("private-item", "auth_token=t");
+    const res = await GET(req, ctx);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toContain("无权");
+  });
+
+  // ── P1-5 补充：PUT 方法测试 ──
+
+  describe("PUT /api/content-items/[id]", () => {
+    // Import PUT at module level for these tests
+    let PUT: typeof import("../route").PUT;
+    beforeAll(async () => {
+      const mod = await import("../route");
+      PUT = mod.PUT;
+    });
+
+    it("ADMIN 更新 fullText → 重算 effectiveTextLength 和 contentHash", async () => {
+      authMocks.getUserFromRequest.mockResolvedValue(USERS.ADMIN);
+      mocks.findUnique.mockResolvedValue({
+        id: "item-1",
+        ownerUserId: null,
+      });
+      mocks.update.mockResolvedValue({
+        id: "item-1",
+        fullText: "<p>新内容</p>",
+        effectiveTextLength: 3,
+        contentHash: "abc123",
+        source: { id: "s", name: "n", platform: "website" },
+      });
+      const req = new NextRequest("http://localhost/api/content-items/item-1", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullText: "<p>新内容</p>" }),
+      });
+      const ctx = { params: Promise.resolve({ id: "item-1" }) };
+      const res = await PUT(req, ctx);
+      expect(res.status).toBe(200);
+      // update should have been called with recalculated fields
+      expect(mocks.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fullText: "<p>新内容</p>",
+            fullTextStored: true,
+          }),
+        })
+      );
+    });
+
+    it("ADMIN PUT 不存在的 item → 404", async () => {
+      authMocks.getUserFromRequest.mockResolvedValue(USERS.ADMIN);
+      mocks.findUnique.mockResolvedValue(null);
+      const req = new NextRequest("http://localhost/api/content-items/no-such-item", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ processingStatus: "completed" }),
+      });
+      const ctx = { params: Promise.resolve({ id: "no-such-item" }) };
+      const res = await PUT(req, ctx);
+      expect(res.status).toBe(404);
+    });
+
+    it("非 ADMIN PUT → 401/403", async () => {
+      // requireAdmin: when getUserFromRequest returns VERIFIED (non-ADMIN), route checks cookie → 403
+      authMocks.getUserFromRequest.mockResolvedValue(null);
+      const req = new NextRequest("http://localhost/api/content-items/item-1", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", cookie: "auth_token=t" },
+        body: JSON.stringify({ fullText: "test" }),
+      });
+      const ctx = { params: Promise.resolve({ id: "item-1" }) };
+      const res = await PUT(req, ctx);
+      // requireAdmin returns null, cookie present → forbiddenResponse → 403
+      expect(res.status).toBe(403);
+    });
+  });
+
+  // ── P1-5 补充：DELETE 方法测试 ──
+
+  describe("DELETE /api/content-items/[id]", () => {
+    let DELETE: typeof import("../route").DELETE;
+    beforeAll(async () => {
+      const mod = await import("../route");
+      DELETE = mod.DELETE;
+    });
+
+    it("ADMIN DELETE 已有 item → 200 + success:true", async () => {
+      authMocks.getUserFromRequest.mockResolvedValue(USERS.ADMIN);
+      mocks.findUnique.mockResolvedValue({ id: "item-1", ownerUserId: null });
+      mocks.delete.mockResolvedValue({ id: "item-1" });
+      const req = new NextRequest("http://localhost/api/content-items/item-1", {
+        method: "DELETE",
+        headers: { cookie: "auth_token=t" },
+      });
+      const ctx = { params: Promise.resolve({ id: "item-1" }) };
+      const res = await DELETE(req, ctx);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+    });
+
+    it("ADMIN DELETE 不存在的 item → 404", async () => {
+      authMocks.getUserFromRequest.mockResolvedValue(USERS.ADMIN);
+      mocks.findUnique.mockResolvedValue(null);
+      const req = new NextRequest("http://localhost/api/content-items/no-such-item", {
+        method: "DELETE",
+        headers: { cookie: "auth_token=t" },
+      });
+      const ctx = { params: Promise.resolve({ id: "no-such-item" }) };
+      const res = await DELETE(req, ctx);
+      expect(res.status).toBe(404);
+    });
+
+    it("非 ADMIN DELETE → 403", async () => {
+      authMocks.getUserFromRequest.mockResolvedValue(null);
+      const req = new NextRequest("http://localhost/api/content-items/item-1", {
+        method: "DELETE",
+        headers: { cookie: "auth_token=t" },
+      });
+      const ctx = { params: Promise.resolve({ id: "item-1" }) };
+      const res = await DELETE(req, ctx);
+      // requireAdmin returns null, cookie present → 403
+      expect(res.status).toBe(403);
+    });
   });
 });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { listArticles, SYNC_ARTICLE_LIMIT } from "@/services/integrations/wechat-rss";
+import { listArticles, getArticle, SYNC_ARTICLE_LIMIT } from "@/services/integrations/wechat-rss";
 import { fromWeMpRssArticle } from "@/services/collectors/wechat/wechat-article-types";
 import { computeArticlePreview } from "@/services/collectors/wechat/weRssNormalizer";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
@@ -42,8 +42,24 @@ export async function POST(request: NextRequest) {
       limit: SYNC_ARTICLE_LIMIT,
     });
 
+    // we-mp-rss LIST 端点返回 ArticleBase（无 content/content_html），
+    // 需要对 has_content=1 的文章调用 DETAIL 端点补充完整内容
+    const enrichedArticles = await Promise.all(
+      articlesData.list.map(async (a) => {
+        if (a.hasContent === 1 && !a.content) {
+          try {
+            const detail = await getArticle(baseUrl, accessKey, secretKey, a.id);
+            return { ...a, content: detail.content, contentHtml: detail.contentHtml };
+          } catch {
+            return a;
+          }
+        }
+        return a;
+      })
+    );
+
     // 转换为 WechatArticle 并计算预览
-    const wechatArticles = articlesData.list.map((a) =>
+    const wechatArticles = enrichedArticles.map((a) =>
       fromWeMpRssArticle(a, source.name)
     );
 

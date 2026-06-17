@@ -10,6 +10,7 @@ export default defineConfig({
       ...configDefaults.exclude,
       "e2e/**",
       "tests/e2e/**",
+      "docs/archive/**",
       ".next/**",
       "playwright-report/**",
       "test-results/**",

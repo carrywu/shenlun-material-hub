@@ -75,6 +75,46 @@ export interface ContentHealth {
   ratio: number;
 }
 
+// ── API 响应 snake_case → camelCase 映射 ──────────────────────────────────
+
+/**
+ * we-mp-rss API 返回 snake_case 字段名（has_content, mp_id 等），
+ * 但 WeMpRssArticle / WeMpRssFeed 接口定义 camelCase。
+ * request<T>() 不做键名转换，需在 API 函数中显式 map。
+ */
+
+/** 将 we-mp-rss API 返回的 snake_case 文章字段映射为 WeMpRssArticle camelCase 接口 */
+function mapArticleFromApi(raw: Record<string, unknown>): WeMpRssArticle {
+  return {
+    id: raw.id as string,
+    mpId: (raw.mp_id ?? raw.mpId) as string,
+    title: raw.title as string,
+    picUrl: (raw.pic_url ?? raw.picUrl ?? undefined) as string | undefined,
+    url: raw.url as string,
+    description: (raw.description ?? undefined) as string | undefined,
+    content: (raw.content ?? undefined) as string | undefined,
+    contentHtml: (raw.content_html ?? raw.contentHtml ?? undefined) as string | undefined,
+    hasContent: (raw.has_content ?? raw.hasContent) as number,
+    fixFailCount: (raw.fix_fail_count ?? raw.fixFailCount) as number,
+    publishTime: raw.publish_time != null ? Number(raw.publish_time) : (raw.publishTime != null ? Number(raw.publishTime) : undefined),
+    createdAt: raw.created_at != null ? Math.floor(new Date(raw.created_at as string).getTime() / 1000) : (raw.create_time != null ? Number(raw.create_time) : undefined),
+  };
+}
+
+/** 将 we-mp-rss API 返回的 snake_case 公众号字段映射为 WeMpRssFeed camelCase 接口 */
+function mapFeedFromApi(raw: Record<string, unknown>): WeMpRssFeed {
+  return {
+    id: raw.id as string,
+    mpName: (raw.mp_name ?? raw.mpName) as string,
+    mpCover: (raw.mp_cover ?? raw.mpCover ?? undefined) as string | undefined,
+    mpIntro: (raw.mp_intro ?? raw.mpIntro ?? undefined) as string | undefined,
+    status: raw.status as number,
+    syncTime: raw.sync_time != null ? Number(raw.sync_time) : undefined,
+    updateTime: raw.update_time != null ? Number(raw.update_time) : undefined,
+    createdAt: raw.created_at != null ? Math.floor(new Date(raw.created_at as string).getTime() / 1000) : undefined,
+  };
+}
+
 // ── 内部工具 ─────────────────────────────────────────────────────────────
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -169,7 +209,7 @@ export class WeMpRssAuthError extends Error {
 
 // ── API 函数 ─────────────────────────────────────────────────────────────
 
-/** 健康检查：调 GET /api/mps?limit=1，同时判断 authStatus */
+/** 健康检查：调 GET /api/v1/wx/mps?limit=1，同时判断 authStatus */
 export async function checkHealth(
   baseUrl: string,
   accessKey: string,
@@ -180,7 +220,7 @@ export async function checkHealth(
       baseUrl,
       accessKey,
       secretKey,
-      "/api/mps?limit=1"
+      "/api/v1/wx/mps?limit=1"
     );
     return {
       reachable: true,
@@ -219,7 +259,10 @@ export async function listFeeds(
   if (params.status !== undefined) searchParams.set("status", String(params.status));
 
   const qs = searchParams.toString();
-  return request(baseUrl, accessKey, secretKey, `/api/mps${qs ? `?${qs}` : ""}`);
+  const data = await request<{ list: Record<string, unknown>[]; total: number; page: number }>(
+    baseUrl, accessKey, secretKey, `/api/v1/wx/mps${qs ? `?${qs}` : ""}`
+  );
+  return { list: data.list.map(mapFeedFromApi), total: data.total, page: data.page };
 }
 
 /** 获取公众号详情 */
@@ -229,7 +272,10 @@ export async function getFeedDetail(
   secretKey: string,
   mpId: string
 ): Promise<WeMpRssFeed> {
-  return request(baseUrl, accessKey, secretKey, `/api/mps/${mpId}`);
+  const data = await request<Record<string, unknown>>(
+    baseUrl, accessKey, secretKey, `/api/v1/wx/mps/${mpId}`
+  );
+  return mapFeedFromApi(data);
 }
 
 /** 触发公众号同步（注意：GET 请求，不是 POST） */
@@ -250,7 +296,7 @@ export async function triggerFeedSync(
     baseUrl,
     accessKey,
     secretKey,
-    `/api/mps/update/${mpId}${qs ? `?${qs}` : ""}`
+    `/api/v1/wx/mps/update/${mpId}${qs ? `?${qs}` : ""}`
   );
   return {
     taskId: data.task_id ?? mpId,
@@ -266,7 +312,7 @@ export async function searchFeeds(
   secretKey: string,
   kw: string
 ): Promise<{ list: WeMpRssFeed[]; total: number }> {
-  return request(baseUrl, accessKey, secretKey, `/api/mps/search/${encodeURIComponent(kw)}`);
+  return request(baseUrl, accessKey, secretKey, `/api/v1/wx/mps/search/${encodeURIComponent(kw)}`);
 }
 
 /** 添加公众号 */
@@ -280,7 +326,7 @@ export async function addFeed(
     baseUrl,
     accessKey,
     secretKey,
-    "/api/mps",
+    "/api/v1/wx/mps",
     {
       method: "POST",
       body: JSON.stringify({ url }),
@@ -300,7 +346,7 @@ export async function deleteFeed(
   secretKey: string,
   mpId: string
 ): Promise<{ message: string }> {
-  return request(baseUrl, accessKey, secretKey, `/api/mps/${mpId}`, {
+  return request(baseUrl, accessKey, secretKey, `/api/v1/wx/mps/${mpId}`, {
     method: "DELETE",
   });
 }
@@ -318,12 +364,13 @@ export async function listArticles(
   if (params.limit !== undefined) searchParams.set("limit", String(params.limit));
   if (params.hasContent !== undefined) searchParams.set("has_content", String(params.hasContent));
 
-  return request(
+  const data = await request<{ list: Record<string, unknown>[]; total: number; page: number }>(
     baseUrl,
     accessKey,
     secretKey,
-    `/api/articles?${searchParams.toString()}`
+    `/api/v1/wx/articles?${searchParams.toString()}`
   );
+  return { list: data.list.map(mapArticleFromApi), total: data.total, page: data.page };
 }
 
 /** 获取文章详情 */
@@ -333,7 +380,10 @@ export async function getArticle(
   secretKey: string,
   articleId: string
 ): Promise<WeMpRssArticle> {
-  return request(baseUrl, accessKey, secretKey, `/api/articles/${articleId}`);
+  const data = await request<Record<string, unknown>>(
+    baseUrl, accessKey, secretKey, `/api/v1/wx/articles/${articleId}`
+  );
+  return mapArticleFromApi(data);
 }
 
 /** 刷新文章内容（异步，返回 task_id） */
@@ -347,7 +397,7 @@ export async function refreshArticle(
     baseUrl,
     accessKey,
     secretKey,
-    `/api/articles/${articleId}/refresh`,
+    `/api/v1/wx/articles/${articleId}/refresh`,
     { method: "POST" }
   );
   return {
@@ -368,7 +418,7 @@ export async function getRefreshTaskStatus(
     task_id: string;
     status: string;
     message?: string;
-  }>(baseUrl, accessKey, secretKey, `/api/articles/refresh/tasks/${taskId}`);
+  }>(baseUrl, accessKey, secretKey, `/api/v1/wx/articles/refresh/tasks/${taskId}`);
   return {
     taskId: data.task_id,
     status: data.status,
@@ -387,7 +437,7 @@ export async function importArticle(
     baseUrl,
     accessKey,
     secretKey,
-    "/api/mps/featured/article",
+    "/api/v1/wx/mps/featured/article",
     {
       method: "POST",
       body: JSON.stringify({ url }),
@@ -411,7 +461,7 @@ export async function getImportTaskStatus(
     task_id: string;
     status: string;
     message?: string;
-  }>(baseUrl, accessKey, secretKey, `/api/mps/featured/article/tasks/${taskId}`);
+  }>(baseUrl, accessKey, secretKey, `/api/v1/wx/mps/featured/article/tasks/${taskId}`);
   return {
     taskId: data.task_id,
     status: data.status,

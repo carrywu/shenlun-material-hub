@@ -1,0 +1,3 @@
+description,prompt_id,title,sourceName,content,assert_decision,assert_has_sourceSnapshot,assert_has_originalFacts,assert_has_aiSummary,assert_has_highlight,assert_has_transfer,assert_aiSummary_length,assert_field_types
+金句提取-基层治理文章,card-golden-sentence,党建引领基层治理新实践,人民日报,"某市积极探索党建引领基层治理新模式，通过网格化管理、数字化平台、群众议事机制三大抓手，有效提升了基层治理效能。该市在120个社区推行'红色物业'模式，投入资金2.3亿元改造老旧小区，惠及15万群众。专家指出，治理之道重在精准，只有把党的组织优势转化为治理优势，才能破解基层难题。'民有所呼、我有所应'不是口号，而是行动指南。",,true,true,true,true,true,100,all_string
+案例提取-创新实践报道,card-case-material,数字赋能基层治理创新实践,浙江宣传,"某区以数字赋能推动基层治理现代化，创新打造'智慧社区'平台。该平台整合了政务办理、便民服务、社区管理三大功能模块，实现了'一网通办、一屏统管'。平台上线半年来，累计服务群众12万人次，办理各类事项3.5万件，群众满意度达98%。该区还建立了'数据+网格'联动机制，将1.2万个网格与大数据平台实时对接，做到了问题早发现、早处置。专家评价认为，该实践走出了一条技术赋能与制度创新并重的基层治理新路。",,true,true,true,true,true,100,all_string

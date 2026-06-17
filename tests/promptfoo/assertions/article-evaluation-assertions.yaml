@@ -1,0 +1,111 @@
+# Promptfoo assertions for article evaluation
+# Used by promptfooconfig.yaml test cases
+
+# Common JSON validity check
+- type: is-json
+
+# decision must be accept or reject
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    if (!['accept', 'reject'].includes(parsed.decision)) {
+      return { pass: false, score: 0, reason: `decision "${parsed.decision}" not in ["accept", "reject"]` };
+    }
+    return { pass: true, score: 1, reason: 'decision is valid' };
+
+# contentGenre must be one of the 7 allowed values
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    const validGenres = ['commentary', 'policy_interpretation', 'case_practice', 'ordinary_news', 'meeting_news', 'notice', 'other'];
+    if (!validGenres.includes(parsed.contentGenre)) {
+      return { pass: false, score: 0, reason: `contentGenre "${parsed.contentGenre}" not in ${JSON.stringify(validGenres)}` };
+    }
+    return { pass: true, score: 1, reason: 'contentGenre is valid' };
+
+# reason must be non-empty and <= 80 chars
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    if (!parsed.reason || parsed.reason.trim().length === 0) {
+      return { pass: false, score: 0, reason: 'reason is empty' };
+    }
+    if (parsed.reason.length > 80) {
+      return { pass: false, score: 0.5, reason: `reason is ${parsed.reason.length} chars, exceeds 80` };
+    }
+    return { pass: true, score: 1, reason: 'reason is valid' };
+
+# categories must be an array
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    if (!Array.isArray(parsed.categories)) {
+      return { pass: false, score: 0, reason: 'categories is not an array' };
+    }
+    return { pass: true, score: 1, reason: 'categories is array' };
+
+# usableFor must be an array
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    if (!Array.isArray(parsed.usableFor)) {
+      return { pass: false, score: 0, reason: 'usableFor is not an array' };
+    }
+    return { pass: true, score: 1, reason: 'usableFor is array' };
+
+# quotes must be an array
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    if (!Array.isArray(parsed.quotes)) {
+      return { pass: false, score: 0, reason: 'quotes is not an array' };
+    }
+    return { pass: true, score: 1, reason: 'quotes is array' };
+
+# When accept: categories must have at least 1 item, quotes should have at least 1
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    if (parsed.decision === 'accept') {
+      if (parsed.categories.length < 1) {
+        return { pass: false, score: 0, reason: 'accept but categories is empty' };
+      }
+      if (parsed.quotes.length < 1) {
+        return { pass: false, score: 0.5, reason: 'accept but quotes is empty (should have at least 1)' };
+      }
+      if (parsed.summary && parsed.summary.length > 150) {
+        return { pass: false, score: 0.5, reason: 'summary exceeds 150 chars' };
+      }
+    }
+    return { pass: true, score: 1, reason: 'accept constraints satisfied' };
+
+# When reject: summary should be empty or very short
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    if (parsed.decision === 'reject') {
+      if (parsed.summary && parsed.summary.length > 30) {
+        return { pass: false, score: 0.5, reason: `reject but summary is ${parsed.summary.length} chars (should be empty or very short)` };
+      }
+    }
+    return { pass: true, score: 1, reason: 'reject constraints satisfied' };
+
+# Expected decision match (uses vars from CSV)
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    const expected = vars.expectedDecision;
+    if (parsed.decision !== expected) {
+      return { pass: false, score: 0, reason: `expected decision "${expected}" but got "${parsed.decision}"` };
+    }
+    return { pass: true, score: 1, reason: `decision matches expected "${expected}"` };
+
+# Expected genre match
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    const expected = vars.expectedGenre;
+    if (parsed.contentGenre !== expected) {
+      return { pass: false, score: 0.5, reason: `expected genre "${expected}" but got "${parsed.contentGenre}"` };
+    }
+    return { pass: true, score: 1, reason: `genre matches expected "${expected}"` };

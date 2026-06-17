@@ -1,0 +1,328 @@
+description: shenlun-material-hub AI 文章评估与素材卡生成回归测试
+
+providers:
+  - id: openai:chat:deepseek-v4-flash
+    config:
+      apiBaseUrl: "{{env.PROMPTFOO_API_BASE_URL}}"
+      apiKey: "{{env.PROMPTFOO_API_KEY}}"
+      model: "deepseek-v4-flash"
+      temperature: 0.2
+      response_format:
+        type: json_object
+
+prompts:
+  - id: article-evaluation
+    label: 文章评估
+    raw: file://prompts/article-evaluation.txt
+
+  - id: card-golden-sentence
+    label: 素材卡-金句
+    raw: file://prompts/card-golden-sentence.txt
+
+  - id: card-case-material
+    label: 素材卡-案例
+    raw: file://prompts/card-case-material.txt
+
+# Promptfoo JS assertions receive (output, context, process).
+# Use context.vars to access test variables.
+# DeepSeek may prepend "Thinking: ..." before JSON — use regex to extract JSON.
+
+tests:
+  # ─── Article evaluation tests (prompts: ["article-evaluation"]) ───
+
+  - description: "文章评估-基层治理案例应接受"
+    prompts: ["文章评估"]
+    vars:
+      title: "党建引领基层治理新实践"
+      sourceName: "人民日报"
+      contentType: "article"
+      content: "某市积极探索党建引领基层治理新模式，通过网格化管理、数字化平台、群众议事机制三大抓手，有效提升了基层治理效能。该市在120个社区推行'红色物业'模式，投入资金2.3亿元改造老旧小区，惠及15万群众。建立了'民情日记'制度，累计收集群众诉求8.6万件，办结率达95%。同时，该市创新推出'社区议事厅'平台，让居民参与社区重大事项决策，实现了'小事不出楼栋、大事不出社区'的治理目标。专家指出，这一实践充分证明，只有把党的组织优势转化为治理优势，才能真正破解基层治理难题。"
+      expectedDecision: "accept"
+      expectedGenre: "case_practice"
+    assert:
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) return { pass: false, score: 0, reason: 'No JSON object found in output' };
+          try { JSON.parse(jsonMatch[0]); } catch(e) { return { pass: false, score: 0, reason: `Invalid JSON: ${e.message}` }; }
+          return { pass: true, score: 1, reason: 'Valid JSON found' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          if (!['accept','reject'].includes(p.decision)) {
+            return { pass: false, score: 0, reason: `decision "${p.decision}" invalid` };
+          }
+          return { pass: true, score: 1, reason: 'decision valid' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const genres = ['commentary','policy_interpretation','case_practice','ordinary_news','meeting_news','notice','other'];
+          if (!genres.includes(p.contentGenre)) {
+            return { pass: false, score: 0, reason: `contentGenre "${p.contentGenre}" invalid` };
+          }
+          return { pass: true, score: 1, reason: 'contentGenre valid' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          if (!p.reason || p.reason.trim().length === 0) {
+            return { pass: false, score: 0, reason: 'reason is empty' };
+          }
+          if (p.reason.length > 100) {
+            return { pass: false, score: 0.5, reason: `reason ${p.reason.length} chars > 100` };
+          }
+          return { pass: true, score: 1, reason: 'reason valid' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          if (!Array.isArray(p.categories)) return { pass: false, score: 0, reason: 'categories not array' };
+          if (!Array.isArray(p.usableFor)) return { pass: false, score: 0, reason: 'usableFor not array' };
+          if (!Array.isArray(p.quotes)) return { pass: false, score: 0, reason: 'quotes not array' };
+          return { pass: true, score: 1, reason: 'all array fields valid' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          if (p.decision === 'accept') {
+            if (p.categories.length < 1) return { pass: false, score: 0, reason: 'accept but categories empty' };
+            if (p.quotes.length < 1) return { pass: false, score: 0.5, reason: 'accept but quotes empty' };
+          }
+          return { pass: true, score: 1, reason: 'accept constraints ok' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const expected = context.vars.expectedDecision;
+          if (p.decision !== expected) {
+            return { pass: false, score: 0, reason: `expected "${expected}" got "${p.decision}"` };
+          }
+          return { pass: true, score: 1, reason: `decision matches "${expected}"` };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const expected = context.vars.expectedGenre;
+          if (p.contentGenre !== expected) {
+            return { pass: false, score: 0.5, reason: `expected genre "${expected}" got "${p.contentGenre}"` };
+          }
+          return { pass: true, score: 1, reason: `genre matches "${expected}"` };
+
+  - description: "文章评估-会议新闻应拒绝"
+    prompts: ["文章评估"]
+    vars:
+      title: "某会议在京召开"
+      sourceName: "政府网"
+      contentType: "article"
+      content: "某某领导出席会议并讲话，会议强调要深入贯彻落实党的二十大精神，扎实推进各项重点工作。与会代表纷纷表示要认真学习领会会议精神，切实把思想和行动统一到中央决策部署上来。会议还研究了其他事项。"
+      expectedDecision: "reject"
+      expectedGenre: "meeting_news"
+    assert:
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) return { pass: false, score: 0, reason: 'No JSON object found' };
+          try { JSON.parse(jsonMatch[0]); } catch(e) { return { pass: false, score: 0, reason: `Invalid JSON: ${e.message}` }; }
+          return { pass: true, score: 1, reason: 'Valid JSON found' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const expected = context.vars.expectedDecision;
+          if (p.decision !== expected) {
+            return { pass: false, score: 0, reason: `expected "${expected}" got "${p.decision}"` };
+          }
+          return { pass: true, score: 1, reason: `decision matches "${expected}"` };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const expected = context.vars.expectedGenre;
+          if (p.contentGenre !== expected) {
+            return { pass: false, score: 0.5, reason: `expected genre "${expected}" got "${p.contentGenre}"` };
+          }
+          return { pass: true, score: 1, reason: 'genre matches' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          if (p.decision === 'reject' && p.summary && p.summary.length > 30) {
+            return { pass: false, score: 0.5, reason: `reject but summary ${p.summary.length} chars` };
+          }
+          return { pass: true, score: 1, reason: 'reject summary valid' };
+
+  - description: "文章评估-纯事件报道应拒绝"
+    prompts: ["文章评估"]
+    vars:
+      title: "某地发生交通事故"
+      sourceName: "新闻网"
+      contentType: "article"
+      content: "昨日凌晨3时许，某市环城高速发生一起多车追尾事故，涉及车辆7台，造成3人轻伤。事故发生后，交警部门迅速赶到现场处置，伤者已送往附近医院治疗。目前事故原因正在调查中。"
+      expectedDecision: "reject"
+      expectedGenre: "ordinary_news"
+    assert:
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) return { pass: false, score: 0, reason: 'No JSON object found' };
+          try { JSON.parse(jsonMatch[0]); } catch(e) { return { pass: false, score: 0, reason: `Invalid JSON: ${e.message}` }; }
+          return { pass: true, score: 1, reason: 'Valid JSON found' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const expected = context.vars.expectedDecision;
+          if (p.decision !== expected) {
+            return { pass: false, score: 0, reason: `expected "${expected}" got "${p.decision}"` };
+          }
+          return { pass: true, score: 1, reason: 'decision matches' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const expected = context.vars.expectedGenre;
+          if (p.contentGenre !== expected) {
+            return { pass: false, score: 0.5, reason: `expected genre "${expected}" got "${p.contentGenre}"` };
+          }
+          return { pass: true, score: 1, reason: 'genre matches' };
+
+  - description: "文章评估-政策解读应接受"
+    prompts: ["文章评估"]
+    vars:
+      title: "新质生产力发展纲要深度解读"
+      sourceName: "新华社"
+      contentType: "article"
+      content: "国务院近日印发《关于加快发展新质生产力的若干意见》，这是我国首次从国家层面对新质生产力作出系统性部署。文件提出三个核心维度：一是以科技创新为核心驱动力，推动人工智能、量子计算、生物制造等前沿技术产业化；二是以产业升级为路径，推动传统制造业向高端化、智能化、绿色化转型；三是以体制机制改革为保障，破除制约创新的制度藩篱。文件明确，到2030年新质生产力对GDP的贡献率要达到35%。专家认为，这标志着我国经济发展模式从要素驱动向创新驱动的根本性转变。关键在于打通'基础研究—技术攻关—成果转化'的全链条，让创新成果真正走出实验室、走向生产线。"
+      expectedDecision: "accept"
+      expectedGenre: "policy_interpretation"
+    assert:
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) return { pass: false, score: 0, reason: 'No JSON object found' };
+          try { JSON.parse(jsonMatch[0]); } catch(e) { return { pass: false, score: 0, reason: `Invalid JSON: ${e.message}` }; }
+          return { pass: true, score: 1, reason: 'Valid JSON found' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const expected = context.vars.expectedDecision;
+          if (p.decision !== expected) {
+            return { pass: false, score: 0, reason: `expected "${expected}" got "${p.decision}"` };
+          }
+          return { pass: true, score: 1, reason: 'decision matches' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const expected = context.vars.expectedGenre;
+          if (p.contentGenre !== expected) {
+            return { pass: false, score: 0.5, reason: `expected genre "${expected}" got "${p.contentGenre}"` };
+          }
+          return { pass: true, score: 1, reason: 'genre matches' };
+
+  - description: "文章评估-套话评论应拒绝"
+    prompts: ["文章评估"]
+    vars:
+      title: "切实做好各项工作"
+      sourceName: "某日报"
+      contentType: "article"
+      content: "要进一步提高认识，统一思想，切实增强责任感和紧迫感。要加强领导，精心组织，确保各项工作落到实处。要强化措施，狠抓落实，推动各项任务取得实效。要严格考核，压实责任，形成工作合力。要总结经验，推广典型，不断提升工作水平。"
+      expectedDecision: "reject"
+      expectedGenre: "other"
+    assert:
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) return { pass: false, score: 0, reason: 'No JSON object found' };
+          try { JSON.parse(jsonMatch[0]); } catch(e) { return { pass: false, score: 0, reason: `Invalid JSON: ${e.message}` }; }
+          return { pass: true, score: 1, reason: 'Valid JSON found' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const expected = context.vars.expectedDecision;
+          if (p.decision !== expected) {
+            return { pass: false, score: 0, reason: `expected "${expected}" got "${p.decision}"` };
+          }
+          return { pass: true, score: 1, reason: 'decision matches' };
+
+  # ─── Material card generation tests ───
+
+  - description: "素材卡-金句提取-基层治理文章"
+    prompts: ["素材卡-金句"]
+    vars:
+      title: "党建引领基层治理新实践"
+      sourceName: "人民日报"
+      content: "某市积极探索党建引领基层治理新模式，通过网格化管理、数字化平台、群众议事机制三大抓手，有效提升了基层治理效能。该市在120个社区推行'红色物业'模式，投入资金2.3亿元改造老旧小区，惠及15万群众。专家指出，治理之道重在精准，只有把党的组织优势转化为治理优势，才能破解基层难题。'民有所呼、我有所应'不是口号，而是行动指南。"
+    assert:
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) return { pass: false, score: 0, reason: 'No JSON object found' };
+          try { JSON.parse(jsonMatch[0]); } catch(e) { return { pass: false, score: 0, reason: `Invalid JSON: ${e.message}` }; }
+          return { pass: true, score: 1, reason: 'Valid JSON found' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const required = ['sourceSnapshot', 'originalFacts', 'aiSummary', 'highlightSuggestions', 'transferSuggestions'];
+          const missing = required.filter(f => !p[f] || (typeof p[f] === 'string' && p[f].trim().length === 0));
+          if (missing.length > 0) return { pass: false, score: 0, reason: `missing: ${missing.join(',')}` };
+          return { pass: true, score: 1, reason: 'all required fields present' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          if (p.aiSummary && p.aiSummary.length > 100) {
+            return { pass: false, score: 0.5, reason: `aiSummary ${p.aiSummary.length} chars > 100` };
+          }
+          return { pass: true, score: 1, reason: 'aiSummary length ok' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const fields = ['sourceSnapshot','originalFacts','aiSummary','highlightSuggestions','transferSuggestions'];
+          const nonString = fields.filter(f => p[f] !== null && p[f] !== undefined && typeof p[f] !== 'string');
+          if (nonString.length > 0) return { pass: false, score: 0, reason: `non-string: ${nonString.join(',')}` };
+          return { pass: true, score: 1, reason: 'all fields are strings' };
+
+  - description: "素材卡-案例提取-创新实践报道"
+    prompts: ["素材卡-案例"]
+    vars:
+      title: "数字赋能基层治理创新实践"
+      sourceName: "浙江宣传"
+      content: "某区以数字赋能推动基层治理现代化，创新打造'智慧社区'平台。该平台整合了政务办理、便民服务、社区管理三大功能模块，实现了'一网通办、一屏统管'。平台上线半年来，累计服务群众12万人次，办理各类事项3.5万件，群众满意度达98%。该区还建立了'数据+网格'联动机制，将1.2万个网格与大数据平台实时对接，做到了问题早发现、早处置。专家评价认为，该实践走出了一条技术赋能与制度创新并重的基层治理新路。"
+    assert:
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) return { pass: false, score: 0, reason: 'No JSON object found' };
+          try { JSON.parse(jsonMatch[0]); } catch(e) { return { pass: false, score: 0, reason: `Invalid JSON: ${e.message}` }; }
+          return { pass: true, score: 1, reason: 'Valid JSON found' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          const required = ['sourceSnapshot', 'originalFacts', 'aiSummary', 'highlightSuggestions', 'transferSuggestions'];
+          const missing = required.filter(f => !p[f] || (typeof p[f] === 'string' && p[f].trim().length === 0));
+          if (missing.length > 0) return { pass: false, score: 0, reason: `missing: ${missing.join(',')}` };
+          return { pass: true, score: 1, reason: 'all required fields present' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          if (p.aiSummary && p.aiSummary.length > 100) {
+            return { pass: false, score: 0.5, reason: `aiSummary ${p.aiSummary.length} chars > 100` };
+          }
+          return { pass: true, score: 1, reason: 'aiSummary length ok' };
+      - type: javascript
+        value: |
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          const p = JSON.parse(jsonMatch[0]);
+          if (p.originalFacts && p.originalFacts.includes('主体') && p.originalFacts.includes('做法')) {
+            return { pass: true, score: 1, reason: 'case has four-element structure' };
+          }
+          return { pass: true, score: 0.7, reason: 'structure hint not explicit but content may still be valid' };

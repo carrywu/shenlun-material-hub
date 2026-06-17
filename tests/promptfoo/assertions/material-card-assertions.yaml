@@ -1,0 +1,65 @@
+# Promptfoo assertions for material card generation
+# Used by promptfooconfig.yaml test cases
+
+# Common JSON validity check
+- type: is-json
+
+# Required fields must exist
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    const required = ['sourceSnapshot', 'originalFacts', 'aiSummary', 'highlightSuggestions', 'transferSuggestions'];
+    const missing = required.filter(f => !parsed[f] || (typeof parsed[f] === 'string' && parsed[f].trim().length === 0));
+    if (missing.length > 0) {
+      return { pass: false, score: 0, reason: `missing required fields: ${missing.join(', ')}` };
+    }
+    return { pass: true, score: 1, reason: 'all required fields present' };
+
+# aiSummary should be <= 100 chars
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    if (parsed.aiSummary && parsed.aiSummary.length > 100) {
+      return { pass: false, score: 0.5, reason: `aiSummary is ${parsed.aiSummary.length} chars, exceeds 100` };
+    }
+    return { pass: true, score: 1, reason: 'aiSummary length valid' };
+
+# sourceSnapshot should contain title and source
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    const title = vars.title;
+    const source = vars.sourceName;
+    if (!parsed.sourceSnapshot.includes(title) && !parsed.sourceSnapshot.includes(source)) {
+      return { pass: false, score: 0.5, reason: 'sourceSnapshot missing title/source info' };
+    }
+    return { pass: true, score: 1, reason: 'sourceSnapshot contains source info' };
+
+# highlightSuggestions should not be empty
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    if (!parsed.highlightSuggestions || parsed.highlightSuggestions.trim().length < 10) {
+      return { pass: false, score: 0, reason: 'highlightSuggestions too short or empty' };
+    }
+    return { pass: true, score: 1, reason: 'highlightSuggestions has content' };
+
+# transferSuggestions should mention at least 3 topics
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    if (!parsed.transferSuggestions || parsed.transferSuggestions.trim().length < 20) {
+      return { pass: false, score: 0, reason: 'transferSuggestions too short or empty' };
+    }
+    return { pass: true, score: 1, reason: 'transferSuggestions has content' };
+
+# All field values should be strings (not objects or arrays)
+- type: javascript
+  value: |
+    const parsed = JSON.parse(output);
+    const fields = ['sourceSnapshot', 'originalFacts', 'aiSummary', 'highlightSuggestions', 'transferSuggestions'];
+    const nonString = fields.filter(f => parsed[f] !== null && parsed[f] !== undefined && typeof parsed[f] !== 'string');
+    if (nonString.length > 0) {
+      return { pass: false, score: 0, reason: `fields should be strings but got non-string: ${nonString.join(', ')}` };
+    }
+    return { pass: true, score: 1, reason: 'all fields are strings' };

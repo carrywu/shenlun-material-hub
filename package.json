@@ -17,6 +17,8 @@
     "seed:channels": "tsx src/scripts/seed-channels.ts",
     "seed:role-quotas": "tsx src/scripts/seed-role-quotas.ts",
     "seed:e2e-accounts": "tsx src/scripts/seed-e2e-accounts.ts",
+    "test:ai": "PROMPTFOO_API_BASE_URL=${AI_BASE_URL}/v1 PROMPTFOO_API_KEY=${AI_API_KEY} PROMPTFOO_MODEL=${AI_MODEL} OPENAI_API_KEY=${AI_API_KEY} promptfoo eval -c tests/promptfoo/promptfooconfig.yaml --no-cache",
+    "test:ai:verbose": "PROMPTFOO_API_BASE_URL=${AI_BASE_URL}/v1 PROMPTFOO_API_KEY=${AI_API_KEY} PROMPTFOO_MODEL=${AI_MODEL} OPENAI_API_KEY=${AI_API_KEY} promptfoo eval -c tests/promptfoo/promptfooconfig.yaml --no-cache --verbose",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:setup": "tsx scripts/setup-fresh-db.ts",
@@ -65,6 +67,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "jsdom": "^29.1.1",
+    "msw": "^2.14.6",
+    "promptfoo": "^0.121.15",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
@@ -78,6 +82,11 @@
       "unrs-resolver",
       "prisma",
       "@prisma/engines"
+    ]
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
     ]
   }
 }

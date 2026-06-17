@@ -122,13 +122,17 @@ describe("we-mp-rss-api", () => {
   // ── listFeeds ────────────────────────────────────────────────────────────
 
   describe("listFeeds", () => {
-    it("应正确请求 /api/mps 并传参", async () => {
+    it("应正确请求 /api/mps 并传参，snake_case 响应映射为 camelCase", async () => {
       mockFetch.mockResolvedValueOnce(
-        mockApiSuccess({ list: [{ id: "mp1", mpName: "测试" }], total: 1, page: 1 })
+        mockApiSuccess({
+          list: [{ id: "mp1", mp_name: "测试", mp_intro: "简介", mp_cover: "https://example.com/cover.jpg", status: 1, sync_time: 1700000000, update_time: 1700001000, created_at: "2026-06-15T10:00:00Z" }],
+          total: 1,
+          page: 1,
+        })
       );
       const result = await listFeeds(BASE, AK, SK, { limit: 10, offset: 0 });
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/mps?limit=10&offset=0",
+        "http://localhost:8001/api/v1/wx/mps?limit=10&offset=0",
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: "AK-SK test-ak:test-sk",
@@ -136,7 +140,14 @@ describe("we-mp-rss-api", () => {
         })
       );
       expect(result.total).toBe(1);
+      // snake_case → camelCase 映射验证
       expect(result.list[0].mpName).toBe("测试");
+      expect(result.list[0].mpIntro).toBe("简介");
+      expect(result.list[0].mpCover).toBe("https://example.com/cover.jpg");
+      expect(result.list[0].status).toBe(1);
+      expect(result.list[0].syncTime).toBe(1700000000);
+      expect(result.list[0].updateTime).toBe(1700001000);
+      expect(result.list[0].createdAt).toBeTypeOf("number");
     });
 
     it("应支持搜索关键词 kw", async () => {
@@ -149,21 +160,41 @@ describe("we-mp-rss-api", () => {
         expect.anything()
       );
     });
+
+    it("null snake_case 字段应映射为 undefined", async () => {
+      mockFetch.mockResolvedValueOnce(
+        mockApiSuccess({
+          list: [{ id: "mp1", mp_name: "测试", mp_intro: null, mp_cover: null, status: 1, sync_time: null, update_time: null, created_at: "2026-06-15T10:00:00Z" }],
+          total: 1,
+          page: 1,
+        })
+      );
+      const result = await listFeeds(BASE, AK, SK, {});
+      expect(result.list[0].mpIntro).toBeUndefined();
+      expect(result.list[0].mpCover).toBeUndefined();
+      expect(result.list[0].syncTime).toBeUndefined();
+      expect(result.list[0].updateTime).toBeUndefined();
+    });
   });
 
   // ── getFeedDetail ─────────────────────────────────────────────────────────
 
   describe("getFeedDetail", () => {
-    it("应请求 /api/mps/{mpId}", async () => {
+    it("应请求 /api/mps/{mpId}，snake_case 响应映射为 camelCase", async () => {
       mockFetch.mockResolvedValueOnce(
-        mockApiSuccess({ id: "mp1", mpName: "测试公众号" })
+        mockApiSuccess({ id: "mp1", mp_name: "测试公众号", mp_intro: "简介", mp_cover: null, status: 1, sync_time: 1700000000, update_time: null, created_at: "2026-06-15T10:00:00Z" })
       );
       const result = await getFeedDetail(BASE, AK, SK, "mp1");
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/mps/mp1",
+        "http://localhost:8001/api/v1/wx/mps/mp1",
         expect.anything()
       );
       expect(result.id).toBe("mp1");
+      expect(result.mpName).toBe("测试公众号");
+      expect(result.mpIntro).toBe("简介");
+      expect(result.mpCover).toBeUndefined();
+      expect(result.syncTime).toBe(1700000000);
+      expect(result.createdAt).toBeTypeOf("number");
     });
   });
 
@@ -179,7 +210,7 @@ describe("we-mp-rss-api", () => {
       // GET 请求：不传 method 或 method 不是 POST
       expect(callArgs.method === undefined || callArgs.method === "GET").toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/mps/update/mp1",
+        "http://localhost:8001/api/v1/wx/mps/update/mp1",
         expect.anything()
       );
       expect(result.taskId).toBe("task-1");
@@ -211,7 +242,7 @@ describe("we-mp-rss-api", () => {
       );
       const result = await searchFeeds(BASE, AK, SK, "人民");
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/mps/search/"),
+        expect.stringContaining("/api/v1/wx/mps/search/"),
         expect.anything()
       );
       expect(result.total).toBe(1);
@@ -227,7 +258,7 @@ describe("we-mp-rss-api", () => {
       );
       const result = await addFeed(BASE, AK, SK, "https://mp.weixin.qq.com/xxx");
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/mps",
+        "http://localhost:8001/api/v1/wx/mps",
         expect.objectContaining({ method: "POST" })
       );
       expect(result.taskId).toBe("task-add");
@@ -244,7 +275,7 @@ describe("we-mp-rss-api", () => {
       );
       const result = await deleteFeed(BASE, AK, SK, "mp1");
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/mps/mp1",
+        "http://localhost:8001/api/v1/wx/mps/mp1",
         expect.objectContaining({ method: "DELETE" })
       );
       expect(result.message).toBe("deleted");
@@ -254,21 +285,46 @@ describe("we-mp-rss-api", () => {
   // ── listArticles ─────────────────────────────────────────────────────────
 
   describe("listArticles", () => {
-    it("应请求 /api/articles 并传 mp_id", async () => {
+    it("应请求 /api/articles 并传 mp_id，snake_case 响应映射为 camelCase", async () => {
       mockFetch.mockResolvedValueOnce(
         mockApiSuccess({
-          list: [{ id: "art1", title: "文章", hasContent: 1, fixFailCount: 0 }],
+          list: [{
+            id: "art1",
+            mp_id: "mp1",
+            title: "文章",
+            url: "https://mp.weixin.qq.com/s/1",
+            has_content: 1,
+            fix_fail_count: 0,
+            pic_url: "https://example.com/pic.jpg",
+            description: null,
+            content: null,
+            content_html: null,
+            publish_time: 1700000000,
+            create_time: 1700001000,
+          }],
           total: 1,
           page: 1,
         })
       );
       const result = await listArticles(BASE, AK, SK, { mpId: "mp1" });
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/articles?mp_id=mp1"),
+        expect.stringContaining("/api/v1/wx/articles?mp_id=mp1"),
         expect.anything()
       );
       expect(result.total).toBe(1);
+      // snake_case → camelCase 映射验证
       expect(result.list[0].id).toBe("art1");
+      expect(result.list[0].mpId).toBe("mp1");
+      expect(result.list[0].title).toBe("文章");
+      expect(result.list[0].url).toBe("https://mp.weixin.qq.com/s/1");
+      expect(result.list[0].hasContent).toBe(1);
+      expect(result.list[0].fixFailCount).toBe(0);
+      expect(result.list[0].picUrl).toBe("https://example.com/pic.jpg");
+      expect(result.list[0].description).toBeUndefined();
+      expect(result.list[0].content).toBeUndefined();
+      expect(result.list[0].contentHtml).toBeUndefined();
+      expect(result.list[0].publishTime).toBe(1700000000);
+      expect(result.list[0].createdAt).toBe(1700001000);
     });
 
     it("应支持 has_content 过滤", async () => {
@@ -281,21 +337,95 @@ describe("we-mp-rss-api", () => {
         expect.anything()
       );
     });
+
+    it("null snake_case 字段应映射为 undefined", async () => {
+      mockFetch.mockResolvedValueOnce(
+        mockApiSuccess({
+          list: [{
+            id: "art1",
+            mp_id: "mp1",
+            title: "文章",
+            url: "https://mp.weixin.qq.com/s/1",
+            has_content: 1,
+            fix_fail_count: 0,
+            pic_url: null,
+            description: null,
+            content: null,
+            content_html: null,
+            publish_time: null,
+            create_time: null,
+          }],
+          total: 1,
+          page: 1,
+        })
+      );
+      const result = await listArticles(BASE, AK, SK, { mpId: "mp1" });
+      expect(result.list[0].picUrl).toBeUndefined();
+      expect(result.list[0].description).toBeUndefined();
+      expect(result.list[0].content).toBeUndefined();
+      expect(result.list[0].contentHtml).toBeUndefined();
+      expect(result.list[0].publishTime).toBeUndefined();
+      expect(result.list[0].createdAt).toBeUndefined();
+    });
+
+    it("created_at ISO string 应映射为 Unix timestamp 秒", async () => {
+      mockFetch.mockResolvedValueOnce(
+        mockApiSuccess({
+          list: [{
+            id: "art1",
+            mp_id: "mp1",
+            title: "文章",
+            url: "https://mp.weixin.qq.com/s/1",
+            has_content: 1,
+            fix_fail_count: 0,
+            publish_time: 1700000000,
+            created_at: "2026-06-15T10:00:00.000Z",
+          }],
+          total: 1,
+          page: 1,
+        })
+      );
+      const result = await listArticles(BASE, AK, SK, { mpId: "mp1" });
+      expect(result.list[0].createdAt).toBeTypeOf("number");
+      // 2026-06-15T10:00:00.000Z → ~1771214400
+      expect(result.list[0].createdAt).toBeGreaterThan(1_700_000_000);
+    });
   });
 
   // ── getArticle ───────────────────────────────────────────────────────────
 
   describe("getArticle", () => {
-    it("应请求 /api/articles/{articleId}", async () => {
+    it("应请求 /api/articles/{articleId}，snake_case 响应映射为 camelCase", async () => {
       mockFetch.mockResolvedValueOnce(
-        mockApiSuccess({ id: "art1", title: "文章" })
+        mockApiSuccess({
+          id: "art1",
+          mp_id: "mp1",
+          title: "文章详情",
+          url: "https://mp.weixin.qq.com/s/1",
+          has_content: 1,
+          fix_fail_count: 0,
+          pic_url: null,
+          description: "摘要",
+          content: "<p>正文</p>",
+          content_html: "<html>原始HTML</html>",
+          publish_time: 1700000000,
+          create_time: 1700001000,
+        })
       );
       const result = await getArticle(BASE, AK, SK, "art1");
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/articles/art1",
+        "http://localhost:8001/api/v1/wx/articles/art1",
         expect.anything()
       );
       expect(result.id).toBe("art1");
+      expect(result.mpId).toBe("mp1");
+      expect(result.title).toBe("文章详情");
+      expect(result.hasContent).toBe(1);
+      expect(result.contentHtml).toBe("<html>原始HTML</html>");
+      expect(result.content).toBe("<p>正文</p>");
+      expect(result.fixFailCount).toBe(0);
+      expect(result.publishTime).toBe(1700000000);
+      expect(result.picUrl).toBeUndefined();
     });
   });
 
@@ -308,7 +438,7 @@ describe("we-mp-rss-api", () => {
       );
       const result = await refreshArticle(BASE, AK, SK, "art1");
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/articles/art1/refresh",
+        "http://localhost:8001/api/v1/wx/articles/art1/refresh",
         expect.objectContaining({ method: "POST" })
       );
       expect(result.taskId).toBe("task-refresh");
@@ -325,7 +455,7 @@ describe("we-mp-rss-api", () => {
       );
       const result = await getRefreshTaskStatus(BASE, AK, SK, "task-1");
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/articles/refresh/tasks/task-1",
+        "http://localhost:8001/api/v1/wx/articles/refresh/tasks/task-1",
         expect.anything()
       );
       expect(result.status).toBe("SUCCESS");
@@ -341,7 +471,7 @@ describe("we-mp-rss-api", () => {
       );
       const result = await importArticle(BASE, AK, SK, "https://mp.weixin.qq.com/s/test");
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/mps/featured/article",
+        "http://localhost:8001/api/v1/wx/mps/featured/article",
         expect.objectContaining({ method: "POST" })
       );
       expect(result.taskId).toBe("task-import");
@@ -358,7 +488,7 @@ describe("we-mp-rss-api", () => {
       );
       const result = await getImportTaskStatus(BASE, AK, SK, "task-1");
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/mps/featured/article/tasks/task-1",
+        "http://localhost:8001/api/v1/wx/mps/featured/article/tasks/task-1",
         expect.anything()
       );
       expect(result.status).toBe("SUCCESS");
@@ -368,14 +498,14 @@ describe("we-mp-rss-api", () => {
   // ── getContentHealth ─────────────────────────────────────────────────────
 
   describe("getContentHealth", () => {
-    it("应统计最近文章的 hasContent 缺失比例", async () => {
+    it("应统计最近文章的 hasContent 缺失比例（snake_case API 响应已映射）", async () => {
       mockFetch.mockResolvedValueOnce(
         mockApiSuccess({
           list: [
-            { id: "a1", hasContent: 1, fixFailCount: 0 },
-            { id: "a2", hasContent: 0, fixFailCount: 0 },
-            { id: "a3", hasContent: 1, fixFailCount: 0 },
-            { id: "a4", hasContent: 0, fixFailCount: 0 },
+            { id: "a1", mp_id: "mp1", title: "t1", url: "u1", has_content: 1, fix_fail_count: 0, publish_time: 1700000000 },
+            { id: "a2", mp_id: "mp1", title: "t2", url: "u2", has_content: 0, fix_fail_count: 0, publish_time: 1700000000 },
+            { id: "a3", mp_id: "mp1", title: "t3", url: "u3", has_content: 1, fix_fail_count: 0, publish_time: 1700000000 },
+            { id: "a4", mp_id: "mp1", title: "t4", url: "u4", has_content: 0, fix_fail_count: 0, publish_time: 1700000000 },
           ],
           total: 4,
           page: 1,
@@ -464,7 +594,7 @@ describe("we-mp-rss-api", () => {
       );
       await listFeeds("http://localhost:8001/", AK, SK, {});
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8001/api/mps",
+        "http://localhost:8001/api/v1/wx/mps",
         expect.anything()
       );
     });
