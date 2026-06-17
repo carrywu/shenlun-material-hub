@@ -11,7 +11,7 @@
 
 ## Key Constraints
 
-1. WeWe RSS 是 sidecar，不嵌入本项目，不写其数据库。
+1. we-mp-rss 是 sidecar，不嵌入本项目，不写其数据库。
 2. 不做微信逆向，不绕登录/验证码/风控。
 3. 手动来源和外部 WeRSS fallback 必须保留。
 4. 文章内容清洗规则：fullText 干净、rawHtml 不当正文、summary 不来自 head/doctype。
@@ -29,7 +29,7 @@ pnpm exec playwright test
 ## Critical Pages
 
 浏览器验收覆盖：
-- `/integrations/wewe-rss`
+- `/integrations/wechat-rss`
 - `/subscriptions`
 - `/articles/[id]`
 - `/materials`

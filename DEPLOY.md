@@ -63,13 +63,13 @@ curl -b "auth_token=YOUR_TOKEN" http://localhost:3000/api/admin/backup/export -o
 docker compose exec postgres pg_dump -U shenlun shenlun_material_hub > backup.sql
 ```
 
-## WeWe RSS Sidecar
+## we-mp-rss Sidecar
 
-WeWe RSS 是可选的本地 sidecar 服务，本项目**只读消费**其数据。
+we-mp-rss 是可选的本地 sidecar 服务，本项目**只读消费**其数据。
 
 ```bash
-# 启动 WeWe RSS（可选）
-docker compose --profile wewe-rss up -d
+# 启动 we-mp-rss（可选）
+docker compose --profile we-mp-rss up -d
 ```
 
 ## 验证

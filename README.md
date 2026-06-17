@@ -54,8 +54,8 @@ AI_CONFIG_ENCRYPTION_KEY="your-32-char-encryption-key"
 # IMA_API_KEY="xxx"
 # IMA_KNOWLEDGE_BASE_ID="xxx"
 
-# WeWe RSS（可选）
-# WEWERSS_BASE_URL="http://localhost:4000"
+# we-mp-rss（可选）
+# WE_MP_RSS_BASE_URL="http://localhost:8001"
 ```
 
 ### 4. 初始化数据库
@@ -128,7 +128,7 @@ pnpm exec playwright test
 | 控制台 | `/admin` |
 | 文章管理 | `/admin/articles` |
 | 来源管理 | `/admin/sources` |
-| WeWe RSS 集成 | `/admin/integrations/wewe-rss` |
+| we-mp-rss 集成 | `/admin/integrations/wechat-rss` |
 | AI 配置 | `/admin/settings/ai` |
 | 异步任务 | `/admin/tasks` |
 | 系统日志 | `/admin/logs` |

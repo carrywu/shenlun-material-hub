@@ -8,7 +8,7 @@
 - 以真实代码、当前 Git 状态、当前任务文档为准。
 - 不默认重读全仓库；先读本文件和当前任务，再按证据扩展阅读范围。
 - 不覆盖无关的本地未提交改动。
-- 不修改 `.env`、PostgreSQL 数据库、生产配置或 WeWe RSS sidecar 状态，除非任务明确授权。
+- 不修改 `.env`、PostgreSQL 数据库、生产配置或 we-mp-rss sidecar 状态，除非任务明确授权。
 
 ## 接管后先执行
 
@@ -30,13 +30,13 @@ git log --oneline -20
 为 `carry-pc`（Tailscale `100.117.96.1`，Ubuntu 25.10 x86_64）搭建独立 staging 环境，与生产（ECS `47.119.182.210`）完全隔离。详细文档：`docs/deployment/staging-deployment.md`、`tasks/2026-06-11-staging-deployment/`。
 
 staging 当前状态：
-- 3 容器全部 healthy/running：`shenlun-staging-app`（3001）、`shenlun-staging-postgres`（5433，库 `shenlun_material_hub`）、`shenlun-staging-wewe`（4000）
+- 3 容器全部 healthy/running：`shenlun-staging-app`（3001）、`shenlun-staging-postgres`（5433，库 `shenlun_material_hub`）、`shenlun-staging-we-mp-rss`（8001）
 - 迁移 `0_init` 已应用；管理员 `admin`（ADMIN/ACTIVE）已创建
 - Mac Tailscale 访问验证通过：`http://100.117.96.1:3001/api/health` → `{"status":"ok"}`；登录 API 200 success
 - 部署目录：`/home/carry/shenlun-material-hub-staging`；ssh `carry@100.117.96.1`（公钥免密）
 
 本次新增（commit `a13c3ee` + `133ccab` + `5024ebb`）：
-1. `.env.staging.example` + `docker-compose.staging.yml`（独立 volumes `pgdata_staging` / `wewe_data_staging` / `data-staging/`）
+1. `.env.staging.example` + `docker-compose.staging.yml`（独立 volumes `pgdata_staging` / `we_mp_rss_data_staging` / `data-staging/`）
 2. `scripts/deploy-staging.sh`（LOCAL+REMOTE 双模式）+ `scripts/check-staging.sh`
 3. `playwright.config.ts` webServer 条件化 + `package.json` 加 `test:e2e:staging`
 4. `docs/deployment/staging-deployment.md`
@@ -49,7 +49,7 @@ staging 当前状态：
 - E. Docker Desktop 环境（`docker context use desktop-linux`）
 
 待人工执行 / 确认：
-- **wewe-rss 扫码配置**：Mac 浏览器开 `http://100.117.96.1:4000` 微信扫码登录，否则微信采集采不到数据（应用本身正常）。
+- **we-mp-rss 扫码配置**：Mac 浏览器开 `http://100.117.96.1:8001` 微信扫码登录，否则微信采集采不到数据（应用本身正常）。
 - **密码同源风险**：staging 管理员密码 = Linux 机密码 = 生产管理员密码同源，建议 staging 改独立值。
 - **E2E 全量未跑**：`e2e/global-setup.ts` 硬编码密码 `admin123`，staging 生产模式禁止，需改造 global-setup 读 `E2E_ADMIN_PASSWORD` 环境变量。连通性已由 curl 验证。
 
@@ -61,7 +61,7 @@ LINUX_HOST=100.117.96.1 bash scripts/deploy-staging.sh
 LINUX_HOST=100.117.96.1 bash scripts/check-staging.sh
 # Mac 浏览器访问
 open http://100.117.96.1:3001   # staging 后台
-open http://100.117.96.1:4000   # wewe-rss 配置
+open http://100.117.96.1:4000   # we-mp-rss 配置
 ```
 
 ⚠️ Docker Desktop 注意：Linux 机用的是 Docker Desktop（非 docker-ce），需手动启动 GUI，无 systemd 自启。若要开机自启/ssh 友好，建议改装 docker-ce。
@@ -93,12 +93,12 @@ open http://100.117.96.1:4000   # wewe-rss 配置
 排查"采集跳过/封禁"的标准动作：
 1. 后台 `/admin/logs`，分类选 CRAWLER，按时间倒序看"采集任务完成"汇总。
 2. 顶部"采集日志 (CRAWLER)"卡片看总数；搜索框输入来源名/标题/URL 可定位具体记录，点击 detail 列展开看完整 JSON。
-3. 含义：`采集封禁：微信验证页` → 上游 wewe-rss 被微信风控；`采集跳过：URL 已存在` → 正常去重；`采集跳过：全文过短` → 文章本身太短；`采集跳过：与已有内容重复` → contentHash 命中。
+3. 含义：`采集封禁：微信验证页` → 上游 we-mp-rss 被微信风控；`采集跳过：URL 已存在` → 正常去重；`采集跳过：全文过短` → 文章本身太短；`采集跳过：与已有内容重复` → contentHash 命中。
 
-wewe-rss 风控（非本系统 bug，根因答疑）：
+we-mp-rss 风控（非本系统 bug，根因答疑）：
 - 现象：采集弹窗显示"封禁 10"，库里 wechat 源正文是"环境异常/完成验证后即可继续访问"。
-- 确认是否风控：`curl -s 'http://<server>:4000/feeds/<feedId>.rss' | grep -c 'verify.html'`（>0 即被风控）；或从服务器直抓微信文章 `curl -s -A '<iPhone UA>' 'https://mp.weixin.qq.com/s/<id>' | grep -c 'js_content'`（0 即微信给错误页）。
-- 处置：等几小时～1 天让微信解风控，在 wewe-rss 后台对该公众号触发刷新；或给 wewe-rss 配代理。本系统无能为力。
+- 确认是否风控：`curl -s 'http://<server>:8001/feeds/<feedId>.rss' | grep -c 'verify.html'`（>0 即被风控）；或从服务器直抓微信文章 `curl -s -A '<iPhone UA>' 'https://mp.weixin.qq.com/s/<id>' | grep -c 'js_content'`（0 即微信给错误页）。
+- 处置：等几小时～1 天让微信解风控，在 we-mp-rss 后台对该公众号触发刷新；或给 we-mp-rss 配代理。本系统无能为力。
 
 **2026-06-11 本地 Docker → TCR → ECS 部署已完成**。
 
@@ -108,7 +108,7 @@ wewe-rss 风控（非本系统 bug，根因答疑）：
 - 当前提交：`0548514`
 - 线上健康检查：`http://47.119.182.210/api/health` 返回 `{"status":"ok"}`
 - 服务器 `REVISION`：`IMAGE_TAG=20260611-1921`
-- 容器状态：`app` healthy，`postgres` healthy，`caddy` running，`wewe-rss` running
+- 容器状态：`app` healthy，`postgres` healthy，`caddy` running，`we-mp-rss` running
 
 本次部署修复：
 - GitHub Actions 改为仅手动触发，避免 push 后慢 CI 与本地部署抢状态。
@@ -194,7 +194,7 @@ ssh root@47.119.182.210 'cd /opt/shenlun-material-hub && bash scripts/deploy/rol
   - 数据库：PostgreSQL 16，通过 `@prisma/adapter-pg` + `pg.Pool` 连接。
   - 备份系统：v2 Prisma 序列化格式（不再是文件复制）。
   - MCP 工具：已重写为 PostgreSQL 版本。
-  - `better-sqlite3` 保留仅供 WeWe RSS sidecar 只读访问。
+  - `better-sqlite3` 保留仅供 we-mp-rss sidecar 只读访问。
   - 迁移详情：`scripts/migrate-sqlite-to-postgres.ts`，662 行数据已验证迁移。
 
 - ✅ **已完成全量代码审查修复**（2026-06-08，分支 `fix/code-review-2026-06-07`）。

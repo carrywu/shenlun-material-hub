@@ -123,7 +123,7 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-build app
 log "Ensuring we-mp-rss sidecar is running"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-build we-mp-rss
 
-# Ensure caddy is running (it depends on app healthy + wewe-rss, but force-check)
+# Ensure caddy is running (it depends on app healthy + we-mp-rss, but force-check)
 log "Ensuring caddy is running"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-build caddy || \
   log "WARNING: caddy did not start before app health check"
