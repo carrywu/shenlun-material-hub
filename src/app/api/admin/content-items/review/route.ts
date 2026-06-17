@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
 import { auditLog } from "@/lib/audit-logger";
 
-type ReviewAction = "approve" | "reject";
+type ReviewAction = "approve" | "reject" | "downlist";
 
 interface ReviewBody {
   ids: string[];
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json({ error: "ids 不能为空" }, { status: 400 });
     }
-    if (action !== "approve" && action !== "reject") {
+    if (action !== "approve" && action !== "reject" && action !== "downlist") {
       return NextResponse.json({ error: "action 非法" }, { status: 400 });
     }
     // force-approve 必须填 note
@@ -62,22 +62,27 @@ export async function POST(request: NextRequest) {
         return { reviewed: ids.length, action, force: !!force };
       }
 
-      // reject：下架 → 删系统公共卡（ownerUserId=null），保留用户私有卡 + 清今日推荐
+      // reject：审核拒绝（文章未上线/未通过）→ 删公共卡(ownerUserId=null)，
+      // 保留用户私有卡 + 清今日推荐 + 清 publicVisibleAt（从未上线）。
+      // downlist：已上线文章被下架（需求 6 独立状态）→ 同样删公共卡 + 清今日推荐，
+      // 但保留 publicVisibleAt（记忆曾上线，便于恢复 approved 时复用）。
       await tx.materialCard.deleteMany({
         where: {
           contentItemId: { in: ids },
           ownerUserId: null,
         },
       });
+      const isDownlist = action === "downlist";
       await tx.contentItem.updateMany({
         where: { id: { in: ids } },
         data: {
-          adminReviewStatus: "rejected",
+          adminReviewStatus: isDownlist ? "downlist" : "rejected",
           adminReviewedAt: new Date(),
           adminReviewedBy: user.id,
           adminReviewNote: note ?? null,
           featuredToday: false,
-          publicVisibleAt: null,
+          // downlist 保留 publicVisibleAt；reject 清空
+          ...(isDownlist ? {} : { publicVisibleAt: null }),
         },
       });
       return { reviewed: ids.length, action, cardsDeleted: true };

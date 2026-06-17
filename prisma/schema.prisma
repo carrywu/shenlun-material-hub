@@ -187,7 +187,7 @@ model ContentItem {
   visibility          String   @default("public") // public / private
 
   // 管理员审核流（P2 新增）
-  adminReviewStatus   String   @default("pending_ai") // pending_ai / pending_admin / approved / rejected
+  adminReviewStatus   String   @default("pending_ai") // pending_ai / pending_admin / approved / rejected / downlist
   adminReviewedAt     DateTime?
   adminReviewedBy     String?
   adminReviewNote     String?
