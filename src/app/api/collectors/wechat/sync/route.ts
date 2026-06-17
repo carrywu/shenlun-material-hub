@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createAsyncTask, enqueueAsyncTask } from "@/lib/async-task";
 import { logger } from "@/lib/logger";
-import { triggerFeedSync, listArticles, SYNC_ARTICLE_LIMIT } from "@/services/integrations/wechat-rss";
+import { triggerFeedSync, listArticles, getArticle, SYNC_ARTICLE_LIMIT } from "@/services/integrations/wechat-rss";
 import { fromWeMpRssArticle } from "@/services/collectors/wechat/wechat-article-types";
 import { normalizeWeRssArticles } from "@/services/collectors/wechat/weRssNormalizer";
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
@@ -59,8 +59,25 @@ async function runWechatSyncTask(params: WechatSyncTaskParams) {
       limit: SYNC_ARTICLE_LIMIT,
     });
 
-    // 3. 转换为 WechatArticle 并入库
-    const wechatArticles = articlesData.list.map((a) =>
+    // 3. 补全文章内容：listArticles 返回 ArticleBase（无 content/content_html），
+    //    需要对 has_content=1 的文章调用 DETAIL 端点补充完整内容
+    const enrichedArticles = await Promise.all(
+      articlesData.list.map(async (a) => {
+        if (a.hasContent === 1 && !a.content) {
+          try {
+            const detail = await getArticle(baseUrl, accessKey, secretKey, a.id);
+            return { ...a, content: detail.content, contentHtml: detail.contentHtml };
+          } catch {
+            // 获取详情失败，保持原数据（后续会因无内容被标记 blocked）
+            return a;
+          }
+        }
+        return a;
+      })
+    );
+
+    // 4. 转换为 WechatArticle 并入库
+    const wechatArticles = enrichedArticles.map((a) =>
       fromWeMpRssArticle(a, source.name)
     );
     const result = await normalizeWeRssArticles(wechatArticles, {
