@@ -233,7 +233,7 @@ export default function SubscriptionsPage() {
   const [importWechatSource, setImportWechatSource] = useState<SourceItem | null>(null);
 
   // 微信 RSS 删除确认弹窗
-  const [weweDeleteDialogOpen, setWeweDeleteDialogOpen] = useState(false);
+  const [wechatDeleteDialogOpen, setWechatDeleteDialogOpen] = useState(false);
   const [pendingDeleteSources, setPendingDeleteSources] = useState<Array<{ id: string; feedId: string; name: string }>>([]);
   const [deletingSources, setDeletingSources] = useState(false);
 
@@ -600,7 +600,7 @@ export default function SubscriptionsPage() {
                   fetchSources();
                   if (data.toDelete && data.toDelete.length > 0) {
                     setPendingDeleteSources(data.toDelete);
-                    setWeweDeleteDialogOpen(true);
+                    setWechatDeleteDialogOpen(true);
                   } else {
                     alert(data.message);
                   }
@@ -1306,7 +1306,7 @@ export default function SubscriptionsPage() {
       />
 
       {/* we-mp-rss 删除确认弹窗 */}
-      <Dialog open={weweDeleteDialogOpen} onOpenChange={setWeweDeleteDialogOpen}>
+      <Dialog open={wechatDeleteDialogOpen} onOpenChange={setWechatDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>同步删除来源确认</DialogTitle>
@@ -1331,7 +1331,7 @@ export default function SubscriptionsPage() {
             <p>4. 删除后可通过重新同步恢复</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setWeweDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setWechatDeleteDialogOpen(false)}>
               取消
             </Button>
             <Button
@@ -1359,7 +1359,7 @@ export default function SubscriptionsPage() {
                   alert("删除失败");
                 } finally {
                   setDeletingSources(false);
-                  setWeweDeleteDialogOpen(false);
+                  setWechatDeleteDialogOpen(false);
                 }
               }}
               disabled={deletingSources}
