@@ -314,6 +314,7 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 
 ### 当前仍未解决（下一批）
 
-1. **P1-残留-1**：`/api/articles` GET 仍允许匿名访问（Report A P1-4，Report B 未修）。需 `requireAuth` + 401 + 测试。
-2. **P1-残留-2**：IMA 读路径 ADMIN 例外范围（`GET /api/sync?cardId` 对 ADMIN 全放行）—— 需澄清「管理操作 vs 个人操作」语义并加测试。
-3. **E2E 基础设施债（Report A P2-1）**：admin fixture token 长跑失效，全量 5-project Playwright 不可信。建议下一批独立修 global-setup token 持久化 + RBAC helper 改静态 import。
+1. **P1-残留-2**：IMA 读路径 ADMIN 例外范围（`GET /api/sync?cardId` 对 ADMIN 全放行）—— 需澄清「管理操作 vs 个人操作」语义并加测试。
+2. **E2E 基础设施债（Report A P2-1）**：admin fixture token 长跑失效，全量 5-project Playwright 不可信。建议下一批独立修 global-setup token 持久化 + RBAC helper 改静态 import。
+
+> P1-残留-1（`/api/articles` 强制登录）已于 2026-06-18 修复，见 `development-todolist.md` Stage 11（BA-4）。

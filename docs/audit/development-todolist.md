@@ -889,3 +889,30 @@
   - 未跑全量 5-project Playwright（受 admin fixture token 长跑失效污染，见 Report B §6 / Report A P2-1，非本批回归）。
   - syncArticle 的 owner 过滤为硬过滤；若未来 ADMIN 需代运维同步他人卡，应另开显式 admin-only 接口（当前需求禁止）。
 - 关联提交：pending
+
+## Stage 11：P1-残留-1 — `/api/articles` 强制登录
+
+> 来源：2026-06-18 harness-review P1-残留-1（Report A P1-4，Report B 未修）。
+
+### BA-4：`/api/articles` GET 强制登录（需求第 3 节）
+
+- 状态：done
+- 目标：核心学习接口必须登录，匿名访问返回 401。
+- 根因：middleware 已保护页面 `/articles`（匿名重定向 `/login`），但 `/api/articles` 不在 `isProtectedApi`，匿名直调穿透到 handler，handler 用 `getUserFromRequest`（软认证）且有匿名分支返回 approved+public 文章。
+- 实际修改文件：
+  - `src/app/api/articles/route.ts` — 入口加 `const user = await getUserFromRequest(request); if (!user) return unauthorizedResponse();`；删除匿名 `else` 分支（匿名不再可达）。
+  - `src/app/api/articles/__tests__/route.test.ts` — 匿名用例改写为「匿名→401 且不查 db」；`beforeEach` 默认改为登录普通用户（之前依赖匿名分支「碰巧返回 200」掩盖的用例现在显式登录）；mock 补 `unauthorizedResponse`。
+  - `e2e/api-security.spec.ts` — 新增「未认证：articles 列表返回 401」断言（真实 HTTP 层）。
+- 测试命令：
+  - `pnpm test src/app/api/articles/__tests__/route.test.ts`
+  - `pnpm test`（全量）
+  - `pnpm exec playwright test e2e/api-security.spec.ts e2e/articles.spec.ts --project=admin`
+- 验收证据：
+  - vitest 75 files / 725 通过。
+  - lint 0 errors / 67 warnings；build 通过。
+  - Playwright api-security + articles（admin）：47 passed / 2 skipped（explore/discover 已删页面）/ 0 failed。
+  - 新增 e2e「未认证 articles → 401」真实 HTTP 层通过。
+- 风险：
+  - 未跑全量 5-project Playwright（admin fixture token 长跑失效污染，非本批回归）。
+  - middleware 的 `PUBLIC_APIS`/`isProtectedApi` 列表未收紧（API 层已挡；纵深防御另行评估，不在本批）。
+- 关联提交：pending

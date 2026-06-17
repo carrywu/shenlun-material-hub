@@ -63,6 +63,12 @@ test.describe('API 安全认证', () => {
     expect(res.status()).toBe(401);
   });
 
+  // P1-残留-1：/api/articles 是核心学习接口，必须登录（需求第 3 节）。
+  test('未认证：articles 列表返回 401', async ({ request }) => {
+    const res = await request.get('/api/articles');
+    expect(res.status()).toBe(401);
+  });
+
   test('未认证：export 返回 401', async ({ request }) => {
     const res = await request.get('/api/export');
     expect(res.status()).toBe(401);
