@@ -525,7 +525,7 @@ export default function SubscriptionsPage() {
     }
   }
 
-  async function handlePreviewConfirm(selectedUrls: string[]) {
+  async function handlePreviewConfirm(selectedUrls: string[], forceReimport: boolean) {
     if (!previewSource) return;
     setPreviewOpen(false);
     setCollectingSource(previewSource.id);
@@ -537,6 +537,7 @@ export default function SubscriptionsPage() {
         body: JSON.stringify({
           sourceId: previewSource.id,
           selectedUrls,
+          forceReimport,
         }),
       });
       const data = await res.json();
