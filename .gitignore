@@ -159,9 +159,7 @@ vite.config.ts.timestamp-*
 *.sqlite
 *.sqlite3
 
-# 微信 RSS sidecar 本地数据（含密钥和数据库，绝不提交）
-infra/wechat-rss/wewe-rss/data/
-infra/wechat-rss/wewe-rss/.env
+# we-mp-rss sidecar 本地数据（含密钥和数据库，绝不提交）
 infra/wechat-rss/we-mp-rss/data/
 
 # Agent orchestrator
@@ -178,3 +176,15 @@ prisma/dev.db.pre-pg-migration
 
 # P0-004: e2e storageState 缓存（含登录 cookie，不入库）
 .auth/
+e2e/.auth_old_tests/
+
+# Promptfoo results (local AI eval, not for CI)
+results.json
+results_v2.json
+results_v3.json
+
+# MSW mock service worker (generated, not source)
+public/mockServiceWorker.js
+
+# E2E visual regression screenshots (platform-specific)
+e2e/__screenshots__/
