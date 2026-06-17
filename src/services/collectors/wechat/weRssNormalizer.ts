@@ -11,6 +11,7 @@ interface NormalizeOptions {
   sourceId: string;
   trustLevel?: string;
   contentType?: string;
+  forceReimport?: boolean;  // 强制覆盖已有记录（Branch C）
 }
 
 export interface NormalizeResult {
@@ -431,7 +432,60 @@ export async function normalizeWeRssArticle(
       return { created: false, filtered: false, item: updated };
     }
 
-    // 其他非封禁文章：保持原有跳过逻辑
+    // 其他非封禁文章：forceReimport 时就地更新，否则跳过
+    if (options.forceReimport) {
+      const fullText = extractPlainText(article.content ?? article.rawHtml ?? null);
+      const rawHtml = article.rawHtml ?? null;
+      const contentHash = fullText
+        ? createHash("sha256").update(fullText).digest("hex").slice(0, 16)
+        : null;
+      const effectiveTextLength = fullText
+        ? fullText.replace(/\s+/g, "").trim().length
+        : 0;
+      const excerpt = article.summary ?? fullText?.slice(0, 200) ?? null;
+
+      const updated = await db.contentItem.update({
+        where: { id: existing.id },
+        data: {
+          fullText,
+          rawHtml,
+          excerpt,
+          contentHash,
+          fullTextStored: !!fullText,
+          effectiveTextLength,
+          coverUrl: article.cover ?? existing.coverUrl,
+          qualityStatus: "pending",
+          processingStatus: "fetched",
+          filterReason: null,
+          aiDecision: null,
+          aiReason: null,
+          aiAssessedAt: null,
+          aiAssessmentError: null,
+          aiScore: null,
+          aiScoreDetail: null,
+          aiScoredAt: null,
+          contentGenre: null,
+          aiCategories: null,
+          aiUsableFor: null,
+          aiSummary: null,
+          aiQuotes: null,
+          adminReviewStatus: "pending_ai",
+        },
+      });
+
+      await logger.info("采集刷新：强制覆盖重复文章", "CRAWLER", {
+        sourceId: options.sourceId,
+        title: article.title,
+        url: originalUrl,
+        previousQualityStatus: existing.qualityStatus,
+        newQualityStatus: "pending",
+        effectiveTextLength,
+      });
+
+      return { created: false, filtered: false, item: updated };
+    }
+
+    // 原有跳过逻辑
     await logger.info("采集跳过：URL 已存在", "CRAWLER", {
       sourceId: options.sourceId,
       title: article.title,
