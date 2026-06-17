@@ -32,6 +32,7 @@ export interface PreviewArticle {
   filterReason?: string;
   contentPreview: string;
   isDuplicate: boolean;
+  isRefreshable: boolean;
 }
 
 // ── 常量 ────────────────────────────────────────────────────────────────
@@ -136,15 +137,24 @@ export async function computeArticlePreview(
       filterReason: "缺少 URL",
       contentPreview: "",
       isDuplicate: false,
+      isRefreshable: false,
     };
   }
 
   // URL 去重
   const existing = await db.contentItem.findUnique({
     where: { originalUrl },
-    select: { id: true },
+    select: { id: true, qualityStatus: true, filterReason: true, effectiveTextLength: true },
   });
   const isDuplicate = !!existing;
+  const isRefreshable = !!existing && (
+    existing.qualityStatus === "blocked" ||
+    (existing.qualityStatus === "filtered" && (
+      existing.filterReason?.includes("无全文内容") ||
+      existing.filterReason?.includes("全文过短") ||
+      existing.filterReason?.includes("疑似导航页面")
+    ))
+  );
 
   // 清洗正文
   const fullText = extractPlainText(article.content ?? article.rawHtml ?? null);
@@ -182,6 +192,7 @@ export async function computeArticlePreview(
       filterReason: reason,
       contentPreview,
       isDuplicate,
+      isRefreshable: isRefreshable ?? false,
     };
   }
 
@@ -199,6 +210,7 @@ export async function computeArticlePreview(
       filterReason: `内容补抓失败 ${article.fixFailCount} 次，请在 we-mp-rss 管理界面手动刷新`,
       contentPreview,
       isDuplicate,
+      isRefreshable: isRefreshable ?? false,
     };
   }
 
@@ -219,6 +231,7 @@ export async function computeArticlePreview(
       filterReason: reason,
       contentPreview,
       isDuplicate,
+      isRefreshable: isRefreshable ?? false,
     };
   }
 
@@ -245,12 +258,15 @@ export async function computeArticlePreview(
     publishTime: article.publishTime,
     cover: article.cover,
     effectiveTextLength,
-    filtered: isDuplicate || filterResult.filtered,
-    filterReason: isDuplicate
+    filtered: (isDuplicate && !isRefreshable) || filterResult.filtered,
+    filterReason: isDuplicate && !isRefreshable
       ? "URL 已存在（重复）"
-      : filterResult.reason,
+      : isRefreshable
+        ? `可刷新（${existing?.filterReason ?? "内容过期"}）`
+        : filterResult.reason,
     contentPreview,
     isDuplicate,
+    isRefreshable: isRefreshable ?? false,
   };
 }
 

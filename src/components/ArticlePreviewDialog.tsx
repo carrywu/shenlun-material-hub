@@ -26,6 +26,7 @@ export interface PreviewArticle {
   filterReason?: string;
   contentPreview: string;
   isDuplicate: boolean;
+  isRefreshable: boolean;
 }
 
 interface ArticlePreviewDialogProps {
@@ -45,11 +46,11 @@ export function ArticlePreviewDialog({
   onConfirm,
   sourceName,
 }: ArticlePreviewDialogProps) {
-  // 默认选中未过滤的文章
+  // 默认选中未过滤的文章 + 可刷新文章
   const [selected, setSelected] = useState<Set<string>>(() => {
     const s = new Set<string>();
     for (const a of articles) {
-      if (!a.filtered) s.add(a.url);
+      if (!a.filtered || a.isRefreshable) s.add(a.url);
     }
     return s;
   });
@@ -61,7 +62,7 @@ export function ArticlePreviewDialog({
     setLastLen(prevLen);
     const s = new Set<string>();
     for (const a of articles) {
-      if (!a.filtered) s.add(a.url);
+      if (!a.filtered || a.isRefreshable) s.add(a.url);
     }
     setSelected(s);
   }
@@ -157,14 +158,19 @@ export function ArticlePreviewDialog({
                     <span className="font-medium text-sm truncate">
                       {article.title}
                     </span>
-                    {article.filtered && (
-                      <Badge variant="destructive" className="text-xs shrink-0">
-                        过滤
+                    {article.isRefreshable && (
+                      <Badge variant="outline" className="text-xs shrink-0 border-green-300 text-green-700">
+                        可刷新
                       </Badge>
                     )}
-                    {article.isDuplicate && (
-                      <Badge variant="outline" className="text-xs shrink-0">
+                    {article.isDuplicate && !article.isRefreshable && (
+                      <Badge variant="destructive" className="text-xs shrink-0">
                         重复
+                      </Badge>
+                    )}
+                    {article.filtered && !article.isRefreshable && (
+                      <Badge variant="destructive" className="text-xs shrink-0">
+                        过滤
                       </Badge>
                     )}
                   </div>
