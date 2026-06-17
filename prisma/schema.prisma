@@ -340,6 +340,9 @@ model CollectorRun {
   status          String   @default("running") // running / success / partial / failed
   discoveredCount Int      @default(0)   // 发现数量
   importedCount   Int      @default(0)   // 导入数量
+  refreshedCount  Int      @default(0)   // 刷新数量
+  skippedCount    Int      @default(0)   // 跳过数量
+  blockedCount    Int      @default(0)   // 封禁数量
   errorSummary    String?                // 错误摘要
   evidencePath    String?                // 证据路径
 
