@@ -869,11 +869,10 @@ export async function getSyncHistory(
   cardId: string,
   limit: number = 20,
   userId?: string,
-  isAdmin: boolean = false,
 ) {
-  // P0-3: service 层 owner 防线。非 ADMIN 只返回自己卡的同步记录；
-  // 卡不属于该用户时返回空（隐藏存在）。
-  if (userId && !isAdmin) {
+  // P0-3 / P1-残留-2: service 层 owner 防线。个人同步语境所有用户（含 ADMIN）
+  // 只返回自己卡的同步记录；卡不属于该用户时返回空（隐藏存在）。
+  if (userId) {
     const card = await db.materialCard.findUnique({
       where: { id: cardId },
       select: { ownerUserId: true },
@@ -890,27 +889,25 @@ export async function getSyncHistory(
 }
 
 /**
- * 校验当前用户是否有权访问某条 SyncRecord（owner 或 ADMIN）。
- * 非 owner 且非 ADMIN 返回 false。用于 route 层将非 owner 访问统一映射为 404。
+ * 校验当前用户是否有权访问某条 SyncRecord（owner）。
+ * 个人同步语境 ADMIN 也按 owner 隔离（P1-残留-2）。用于 route 层将非 owner
+ * 访问统一映射为 404。后台运维查全局走 /api/sync-records，不经过这里。
  */
 export function canAccessSyncRecord(
   record: { userId: string | null },
   userId: string,
-  isAdmin: boolean
 ): boolean {
-  if (isAdmin) return true;
   return record.userId === userId;
 }
 
 /**
- * 校验当前用户是否有权访问某张素材卡的同步历史（卡 owner 或 ADMIN）。
+ * 校验当前用户是否有权访问某张素材卡的同步历史（卡 owner）。
+ * 个人同步语境 ADMIN 也按 owner 隔离（P1-残留-2）。
  */
 export function canAccessCardHistory(
   card: { ownerUserId: string | null } | null,
   userId: string,
-  isAdmin: boolean
 ): boolean {
-  if (isAdmin) return true;
   if (!card) return false;
   return card.ownerUserId === userId;
 }

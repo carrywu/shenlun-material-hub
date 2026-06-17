@@ -34,11 +34,11 @@ vi.mock("@/services/ima-sync", () => ({
   },
   getSyncStatus: mocks.getSyncStatus,
   getSyncHistory: mocks.getSyncHistory,
-  // 与 service 中真实实现保持一致的纯函数
-  canAccessSyncRecord: (record: { userId: string | null }, userId: string, isAdmin: boolean) =>
-    isAdmin || record.userId === userId,
-  canAccessCardHistory: (card: { ownerUserId: string | null } | null, userId: string, isAdmin: boolean) =>
-    isAdmin || (card !== null && card.ownerUserId === userId),
+  // 与 service 中真实实现保持一致：个人同步语境 ADMIN 也按 owner 隔离（无 isAdmin 参数）
+  canAccessSyncRecord: (record: { userId: string | null }, userId: string) =>
+    record.userId === userId,
+  canAccessCardHistory: (card: { ownerUserId: string | null } | null, userId: string) =>
+    card !== null && card.ownerUserId === userId,
 }));
 
 vi.mock("@/lib/audit-logger", () => ({
@@ -186,12 +186,26 @@ describe("GET /api/sync (P0-2: SyncRecord owner 隔离)", () => {
     expect(res.status).toBe(200);
   });
 
-  it("ADMIN 查询任意 syncRecord 正常返回", async () => {
+  it("ADMIN 查询他人 syncRecord 也返回 404（个人语境 ADMIN 按 owner 隔离，P1-残留-2）", async () => {
     mocks.requireVerifiedUser.mockResolvedValue(ADMIN);
+    // service 返回的记录属于 user-b，ADMIN 也不是其 owner
     mocks.getSyncStatus.mockResolvedValue({
       id: "rec-1",
       userId: "user-b",
       materialCardId: "card-b",
+    });
+
+    const res = await GET(get("syncRecordId=rec-1"));
+
+    expect(res.status).toBe(404);
+  });
+
+  it("ADMIN 查询自己的 syncRecord 正常返回", async () => {
+    mocks.requireVerifiedUser.mockResolvedValue(ADMIN);
+    mocks.getSyncStatus.mockResolvedValue({
+      id: "rec-1",
+      userId: "admin-1",
+      materialCardId: "card-admin",
     });
 
     const res = await GET(get("syncRecordId=rec-1"));
@@ -206,12 +220,26 @@ describe("GET /api/sync (P0-2: SyncRecord owner 隔离)", () => {
     const res = await GET(get("cardId=card-b"));
 
     expect(res.status).toBe(200);
-    // service 应被告知是 user-a 查 user-b 的卡 → 返回空
+    // service 应被告知是 user-a 查 user-b 的卡 → 返回空（无 isAdmin 参数）
     expect(mocks.getSyncHistory).toHaveBeenCalledWith(
       "card-b",
       expect.any(Number),
       "user-a",
-      false,
+    );
+  });
+
+  it("ADMIN 查询他人卡片的同步历史也返回空（个人语境 ADMIN 按 owner 隔离，P1-残留-2）", async () => {
+    mocks.requireVerifiedUser.mockResolvedValue(ADMIN);
+    mocks.getSyncHistory.mockResolvedValue([]);
+
+    const res = await GET(get("cardId=card-b"));
+
+    expect(res.status).toBe(200);
+    // ADMIN 也按 owner 隔离：service 收到 admin-1，对 card-b 非其所有 → 返回空
+    expect(mocks.getSyncHistory).toHaveBeenCalledWith(
+      "card-b",
+      expect.any(Number),
+      "admin-1",
     );
   });
 });

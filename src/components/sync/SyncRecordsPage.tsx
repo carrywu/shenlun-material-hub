@@ -173,10 +173,11 @@ export default function SyncRecordsPage() {
     if (!record.materialCard?.confirmed) return;
     setRetryingId(record.id);
     try {
-      const res = await fetch("/api/sync", {
+      // P1-残留-2: 个人同步接口已收紧（ADMIN 也不能同步他人卡），
+      // 后台运维代重同步走 admin-only 接口（以卡 owner 身份代调，记录归属原用户）。
+      const res = await fetch(`/api/admin/sync-records/${record.id}/retry`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId: record.materialCardId }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

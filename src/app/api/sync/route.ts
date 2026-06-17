@@ -155,13 +155,12 @@ export async function GET(request: NextRequest) {
     const syncRecordId = searchParams.get("syncRecordId");
     const cardId = searchParams.get("cardId");
 
-    const isAdmin = user.role === "ADMIN";
-
     // Query specific sync record status
     if (syncRecordId) {
       const record = await getSyncStatus(syncRecordId);
-      // P0-2: 非 owner 访问他人 SyncRecord 返回 404（隐藏存在）
-      if (!canAccessSyncRecord(record, user.id, isAdmin)) {
+      // P0-2 / P1-残留-2: 非 owner 访问他人 SyncRecord 返回 404（隐藏存在）。
+      // 个人同步语境 ADMIN 也按 owner 隔离；后台运维查全局走 /api/sync-records。
+      if (!canAccessSyncRecord(record, user.id)) {
         return NextResponse.json({ error: "同步记录不存在" }, { status: 404 });
       }
       return NextResponse.json(record);
@@ -173,7 +172,7 @@ export async function GET(request: NextRequest) {
         100,
         Math.max(1, parseInt(searchParams.get("limit") ?? "20"))
       );
-      const records = await getSyncHistory(cardId, limit, user.id, isAdmin);
+      const records = await getSyncHistory(cardId, limit, user.id);
       return NextResponse.json(records);
     }
 

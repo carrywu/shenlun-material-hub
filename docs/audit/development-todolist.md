@@ -916,3 +916,37 @@
   - 未跑全量 5-project Playwright（admin fixture token 长跑失效污染，非本批回归）。
   - middleware 的 `PUBLIC_APIS`/`isProtectedApi` 列表未收紧（API 层已挡；纵深防御另行评估，不在本批）。
 - 关联提交：pending
+
+## Stage 12：P1-残留-2 — 个人 IMA 同步查询 ADMIN 按 owner 隔离 + 后台运维重同步接口
+
+> 来源：2026-06-18 harness-review P1-残留-2。
+> 用户决策：个人同步语境 ADMIN 也不能读他人同步记录/历史；后台运维代重同步另开 admin-only 接口。
+
+### BA-5：收紧 `GET /api/sync` 读路径（去 ADMIN 例外）
+
+- 状态：done
+- 目标：个人同步查询接口 ADMIN 也按 owner 隔离。
+- 实际修改文件：
+  - `src/services/ima-sync.ts` — `canAccessSyncRecord`/`canAccessCardHistory`/`getSyncHistory` 删除 `isAdmin` 参数与 `if (isAdmin) return true` 放行；owner 校验对所有用户生效。
+  - `src/app/api/sync/route.ts` — 删除 `isAdmin` 计算与传参。
+  - `src/app/api/sync/__tests__/route.test.ts` — ADMIN 查他人 syncRecord→404、他人 cardId 历史→空 `[]`；mock 去 isAdmin 短路。
+- 验收证据：ADMIN 查他人记录/历史与普通用户一致（404 / 空）。
+- **不动**：`/api/sync-records` 与 `ownedResourceWhere`（后台运维全局读保留，已核验 `/sync-records` 仅重定向到后台、无前台个人页）。
+
+### BA-6：新建后台运维重同步接口
+
+- 状态：done
+- 目标：恢复后台代重同步能力（个人 `POST /api/sync` 已收紧为只能同步自己的卡，含 ADMIN）。
+- 实际修改文件：
+  - 新建 `src/app/api/admin/sync-records/[id]/retry/route.ts` — `requireAdmin`；按记录 id 取 SyncRecord，用**卡真实 owner 的 userId** 调 `syncMaterialCard`（新 SyncRecord 归属原用户）；不限状态；旧记录保留不动；文章正文记录（materialCardId 为空）→ 400；写审计（retriedByAdmin/originalOwner/outcome）。
+  - `src/components/sync/SyncRecordsPage.tsx` — `handleRetry` 改调 `/api/admin/sync-records/${record.id}/retry`。
+  - 新建 `src/app/api/admin/sync-records/[id]/retry/__tests__/route.test.ts` — 8 用例（非 ADMIN 403 / 未登录 401 / 记录不存在 404 / 文章记录 400 / 代重同步他人卡以 owner 调 service+审计 / 自己卡 / 卡不存在 404 / service 失败结构化错误）。
+- 测试命令：`pnpm test`、`pnpm exec playwright test e2e/api-security.spec.ts e2e/sync-records.spec.ts --project=admin`
+- 验收证据：
+  - vitest 76 files / 735 通过（基线 725 + 10）。
+  - lint 0 errors / 67 warnings；build 通过。
+  - Playwright api-security + sync-records（admin）：41 passed / 0 failed。
+- 风险：
+  - 未跑全量 5-project Playwright（admin fixture token 长跑失效污染，非本批回归）。
+  - 运维接口用「卡真实 owner」调 service——service 的 owner 校验对真实 owner 放行，已确认正确。
+- 关联提交：pending
