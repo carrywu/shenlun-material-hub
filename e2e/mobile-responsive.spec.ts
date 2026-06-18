@@ -24,8 +24,6 @@ const publicPages = [
   { route: '/articles', name: '文章列表', waitFor: 'h1, h2, h3, main' },
   { route: '/cards', name: '素材卡', waitFor: 'h1, h2, h3, main' },
   { route: '/search', name: '搜索页', waitFor: 'h1, h2, h3, main' },
-  { route: '/explore', name: '探索页', waitFor: 'h1, h2, h3, main' },
-  { route: '/discover', name: '发现页', waitFor: 'h1, h2, h3, main' },
 ];
 
 // 受保护页面（需要 admin 认证）

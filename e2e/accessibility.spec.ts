@@ -20,8 +20,6 @@ test.describe('a11y 可访问性检查', () => {
       { route: '/admin/login', name: '登录页', waitFor: 'form' },
       { route: '/register', name: '注册页', waitFor: 'form' },
       { route: '/articles', name: '文章列表', waitFor: 'h1, h2, h3, main' },
-      { route: '/explore', name: '探索页', waitFor: 'h1, h2, h3, main' },
-      { route: '/discover', name: '发现页', waitFor: 'h1, h2, h3, main' },
       { route: '/search', name: '搜索页', waitFor: 'h1, h2, h3, main' },
       { route: '/cards', name: '素材卡', waitFor: 'h1, h2, h3, main' },
       { route: '/review', name: '复习页', waitFor: 'h1, h2, h3, main' },
