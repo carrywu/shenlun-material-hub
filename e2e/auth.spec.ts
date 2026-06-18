@@ -15,7 +15,7 @@ test.describe('登录页（未认证）', () => {
     await page.goto('/admin');
 
     await expect(page).toHaveURL(/\/admin\/login/);
-    await expect(page.getByRole('heading', { name: '申论素材采集台' })).toBeVisible();
+    await expect(page.getByTestId('login-page-header')).toContainText('申论素材采集台');
 
     guard.report(testInfo);
   });
@@ -69,7 +69,7 @@ test.describe('登录页（未认证）', () => {
 
     // Should land on /admin (the redirect target)
     await expect(page).toHaveURL(/\/admin$/, { timeout: 15000 });
-    await expect(page.getByRole('heading', { name: '系统概览' })).toBeVisible();
+    await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
 
     // Verify auth cookie exists and is httpOnly
     const cookies = await page.context().cookies();
@@ -193,7 +193,7 @@ test.describe('导航（已认证）', () => {
 
     // Navigate to admin area
     await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: '系统概览' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
 
     // Verify key sidebar links are visible
     await expect(page.getByRole('link', { name: '文章管理' })).toBeVisible();
@@ -209,12 +209,12 @@ test.describe('导航（已认证）', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: '系统概览' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
 
     // Click 异步任务
     await page.getByRole('link', { name: '异步任务' }).click();
     await expect(page).toHaveURL(/\/admin\/tasks/, { timeout: 10000 });
-    await expect(page.getByRole('heading', { name: '异步任务' }).first()).toBeVisible();
+    await expect(page.getByTestId('admin-tasks-page-header')).toBeVisible();
 
     // Click 系统日志
     await page.getByRole('link', { name: '系统日志' }).click();
@@ -228,19 +228,16 @@ test.describe('导航（已认证）', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: '系统概览' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
 
-    // Find the sidebar (aside element) and capture its width before collapsing
-    const sidebar = page.locator('aside').first();
+    // Find the sidebar and capture its width before collapsing
+    const sidebar = page.getByTestId('admin-sidebar');
     const widthBefore = await sidebar.evaluate((el) => el.getBoundingClientRect().width);
 
     // Click collapse toggle button
     const collapseBtn = page.getByRole('button', { name: /折叠|收起|展开/i });
     if (await collapseBtn.isVisible()) {
       await collapseBtn.click();
-
-      // Wait for CSS transition (transition-all duration-200)
-      await page.waitForTimeout(300);
 
       // Sidebar should be narrower
       const widthAfter = await sidebar.evaluate((el) => el.getBoundingClientRect().width);

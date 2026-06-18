@@ -567,7 +567,7 @@ export default function SubscriptionsPage() {
       <div className="border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">来源管理</h1>
+            <h1 data-testid="sources-page-header" className="text-xl font-semibold">来源管理</h1>
             <p className="text-sm text-muted-foreground">
               管理内容采集来源，配置平台、信任等级与核验状态
             </p>

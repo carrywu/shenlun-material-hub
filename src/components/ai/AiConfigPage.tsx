@@ -202,7 +202,7 @@ export default function AiConfigPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div data-testid="ai-config-page" className="flex flex-col h-full">
       {/* Header — AdminShell already renders the document <h1> ("AI 配置"),
           so this block only provides a back-link + subtitle. */}
       <div className="border-b px-6 py-4">

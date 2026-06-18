@@ -22,10 +22,10 @@ test.describe('文章详情页', () => {
     await page.goto(`/articles/${articleId}`);
 
     // Wait for article to load
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
-    // Article title (h1) should contain text
-    const titleText = await page.locator('h1').textContent();
+    // Article title should contain text
+    const titleText = await page.getByTestId('article-detail-page-header').textContent();
     expect(titleText).toBeTruthy();
     expect(titleText!.length).toBeGreaterThan(0);
 
@@ -46,7 +46,7 @@ test.describe('文章详情页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto(`/articles/${articleId}`);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // Find the bookmark toggle button (title contains "收藏" or "取消收藏")
     const bookmarkButton = page.locator('button[title="收藏"], button[title="取消收藏"]');
@@ -59,16 +59,12 @@ test.describe('文章详情页', () => {
     // Click to toggle
     await bookmarkButton.first().click();
 
-    // Wait a moment for the state to update
-    await page.waitForTimeout(500);
-
     // Verify state changed
-    const newTitle = await bookmarkButton.first().getAttribute('title');
-    if (wasBookmarked) {
-      expect(newTitle).toBe('收藏');
-    } else {
-      expect(newTitle).toBe('取消收藏');
-    }
+    const expectedTitle = wasBookmarked ? '收藏' : '取消收藏';
+    await expect.poll(
+      async () => await bookmarkButton.first().getAttribute('title'),
+      { timeout: 5000, message: `收藏切换后按钮 title 应变为 ${expectedTitle}` }
+    ).toBe(expectedTitle);
 
     guard.report(test.info());
   });
@@ -78,7 +74,7 @@ test.describe('文章详情页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto(`/articles/${articleId}`);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // Find the read toggle button (title contains "标记已读" or "标记未读")
     const readButton = page.locator('button[title="标记已读"], button[title="标记未读"]');
@@ -108,7 +104,7 @@ test.describe('文章详情页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto(`/articles/${articleId}`);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // Find the "查看原文" link
     const originalLink = page.locator('a', { hasText: '查看原文' });
@@ -134,13 +130,10 @@ test.describe('文章详情页', () => {
     const wechatArticle = await ensureWechatArticleExists();
 
     await page.goto(`/articles/${wechatArticle.id}`);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // Wait for content to fully render
     await expect(page.getByText('正文')).toBeVisible({ timeout: 10000 });
-
-    // Wait for images to load (they may be loaded via proxy)
-    await page.waitForTimeout(2000);
 
     // Find images inside the article content area
     const articleImages = page.locator('.article-content img');
@@ -177,7 +170,7 @@ test.describe('文章详情页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto(`/articles/${articleId}`);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // Admin should see the public view notice
     await expect(page.getByText('当前页面为公开阅读视图')).toBeVisible({ timeout: 10000 });
@@ -196,7 +189,7 @@ test.describe('文章详情页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto(`/articles/${articleId}`);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // Find the back button
     const backButton = page.getByRole('button', { name: '返回列表' });
@@ -209,7 +202,7 @@ test.describe('文章详情页', () => {
     await expect(page).toHaveURL(/\/articles$/, { timeout: 10000 });
 
     // The articles list page should be loaded
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 10000 });
 
     guard.report(test.info());
   });
@@ -232,7 +225,7 @@ test.describe('文章详情页 — 认证用户视角', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto(`/articles/${articleId}`);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // Wait for sidebar to load
     await expect(page.getByText('快捷操作')).toBeVisible({ timeout: 10000 });
@@ -262,7 +255,7 @@ test.describe('文章详情页 — 普通用户视角', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto(`/articles/${articleId}`);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     await expect(page.getByText('快捷操作')).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('button', { name: 'AI 评估' })).not.toBeVisible();

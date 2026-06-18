@@ -345,7 +345,7 @@ export default function WechatIntegrationPage() {
       <div className="flex items-center gap-3 mb-6">
         <Rss className="h-6 w-6" />
         <div>
-          <h1 className="text-2xl font-bold">微信 RSS 集成</h1>
+          <h1 data-testid="wechat-rss-page-header" className="text-2xl font-bold">微信 RSS 集成</h1>
           <p className="text-sm text-muted-foreground">
             管理 we-mp-rss 服务连接，同步公众号列表与内容
           </p>

@@ -14,7 +14,7 @@ test.describe('设置首页', () => {
     await expect(page).toHaveURL(/\/settings$/);
 
     // Verify page heading
-    await expect(page.getByRole('heading', { name: '个人设置' })).toBeVisible();
+    await expect(page.getByTestId('settings-page-header')).toBeVisible();
 
     // Verify links to sub-pages are visible
     await expect(page.getByRole('link', { name: /账号设置/ })).toBeVisible();
@@ -52,7 +52,7 @@ test.describe('账号设置', () => {
     await expect(page).toHaveURL(/\/settings\/account$/);
 
     // Verify page heading
-    await expect(page.getByRole('heading', { name: '账号设置' })).toBeVisible();
+    await expect(page.getByTestId('settings-account-page-header')).toBeVisible();
 
     // Verify form fields are present
     await expect(page.locator('#currentPassword')).toBeVisible();
@@ -109,7 +109,7 @@ test.describe('IMA 设置', () => {
     await expect(page).toHaveURL(/\/settings\/ima$/);
 
     // Verify page heading
-    await expect(page.getByRole('heading', { name: 'IMA 知识库' })).toBeVisible();
+    await expect(page.getByTestId('settings-ima-page-header')).toBeVisible();
 
     // Either target list or the add button should be visible
     const addTargetButton = page.getByRole('button', { name: '添加 IMA 目标' });
@@ -125,7 +125,7 @@ test.describe('IMA 设置', () => {
 
     await page.goto('/settings/ima');
 
-    await expect(page.getByRole('heading', { name: 'IMA 知识库' })).toBeVisible();
+    await expect(page.getByTestId('settings-ima-page-header')).toBeVisible();
 
     // If targets exist and the "添加 IMA 目标" button is not visible,
     // the form may already be showing. Wait for either state.

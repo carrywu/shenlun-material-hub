@@ -201,7 +201,7 @@ export default function AdminDashboardPage() {
       {/* Title & Refresh */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-foreground tracking-tight">控制台概览</h2>
+          <h2 data-testid="admin-dashboard-page-header" className="text-lg font-bold text-foreground tracking-tight">控制台概览</h2>
           <p className="text-xs text-muted-foreground mt-1">运行状态监控与模块配置中心</p>
         </div>
         <Button

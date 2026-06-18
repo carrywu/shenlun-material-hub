@@ -92,7 +92,7 @@ export default function AccountSettingsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
+          <h1 data-testid="settings-account-page-header" className="text-2xl font-bold flex items-center gap-3">
             <User className="h-6 w-6 text-primary" />
             账号设置
           </h1>

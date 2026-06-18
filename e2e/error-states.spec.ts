@@ -42,7 +42,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/articles');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByTestId('articles-error')).toBeVisible({ timeout: 15000 });
 
     // 1. 具体中文错误文案 — ArticlesPage throws "请求失败" for !res.ok, "加载失败" for catch
     const bodyText = await page.locator('body').textContent();
@@ -69,7 +70,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     await page.route('**/api/articles**', (route) => route.abort('failed'));
 
     await page.goto('/articles');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('加载失败')).toBeVisible({ timeout: 15000 });
 
     // 1. 中文错误文案 — catch 分支显示"加载失败"
     const bodyText = await page.locator('body').textContent();
@@ -98,7 +100,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/articles');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('暂无')).toBeVisible({ timeout: 15000 });
 
     // 1. 中文空状态文案 — ArticlesPage line 909
     const bodyText = await page.locator('body').textContent();
@@ -122,7 +125,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/search?q=完全不存在的关键词');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('未找到匹配')).toBeVisible({ timeout: 15000 });
 
     // 1. 中文"未找到匹配"文案 — search/page.tsx line 307
     const bodyText = await page.locator('body').textContent();
@@ -146,7 +150,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/review');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText(/还没有|暂无/)).toBeVisible({ timeout: 15000 });
 
     // 1. 中文空状态文案 — review/page.tsx line 153
     const bodyText = await page.locator('body').textContent();
@@ -174,7 +179,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
 
     // Now navigate to admin
     await page.goto('/admin');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('无法加载')).toBeVisible({ timeout: 15000 });
 
     // 1. 错误文案 — admin/page.tsx "无法加载系统数据"
     const bodyText = await page.locator('body').textContent();
@@ -207,7 +213,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/articles/non-existent-id-12345');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('文章不存在')).toBeVisible({ timeout: 15000 });
 
     // 1. 中文"文章不存在"文案 — articles/[id]/page.tsx
     const bodyText = await page.locator('body').textContent();
@@ -235,7 +242,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/cards/non-existent-card-id-12345');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('素材卡不存在')).toBeVisible({ timeout: 15000 });
 
     // 1. 中文"素材卡不存在"文案 — cards/[id]/page.tsx
     const bodyText = await page.locator('body').textContent();
@@ -286,7 +294,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/articles/mock-article-for-429');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('测试文章')).toBeVisible({ timeout: 15000 });
 
     // Page renders without crash — the 429 error shows as toast (ArticlesPage line 513)
     const bodyText = await page.locator('body').textContent();
@@ -337,7 +346,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/articles/mock-article-for-ai500');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('测试文章')).toBeVisible({ timeout: 15000 });
 
     // Page doesn't crash — error shown as toast "素材卡生成失败" (ArticlesPage line 513)
     const bodyText = await page.locator('body').textContent();
@@ -395,7 +405,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     // Login and go to AI config page
     await loginAsAdmin(page);
     await page.goto('/admin/settings/ai');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('deepseek-v4-flash')).toBeVisible({ timeout: 15000 });
 
     // Page should render without crash
     const bodyText = await page.locator('body').textContent();
@@ -453,7 +464,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     // Login and go to AI config page
     await loginAsAdmin(page);
     await page.goto('/admin/settings/ai');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('deepseek-v4-flash')).toBeVisible({ timeout: 15000 });
 
     // Page renders without crash
     const bodyText = await page.locator('body').textContent();
@@ -504,7 +516,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     // Login and navigate to wechat RSS settings
     await loginAsAdmin(page);
     await page.goto('/admin/integrations/wechat-rss');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('wechat-rss')).toBeVisible({ timeout: 15000 });
 
     // Page should load without crash
     const bodyText = await page.locator('body').textContent();
@@ -528,7 +541,8 @@ test.describe('P1-2 错误状态处理 — 404 路由', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/this-page-does-not-exist-at-all');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('body')).toBeVisible({ timeout: 10000 });
 
     // 1. 页面不白屏
     const bodyText = await page.locator('body').textContent();
@@ -594,9 +608,6 @@ test.describe('P1-2 错误状态处理 — 登录表单', () => {
     await page.getByPlaceholder('请输入密码').fill('wrongpassword');
     await page.locator("form button[type='submit']").click();
 
-    // 等待响应
-    await page.waitForTimeout(2000);
-
     // 1. 中文错误提示
     const bodyText = await page.locator('body').textContent();
     expect(bodyText).toContain('错误');
@@ -607,7 +618,6 @@ test.describe('P1-2 错误状态处理 — 登录表单', () => {
     // 4. 重复提交拦截 — 登录失败后按钮应恢复可用
     await page.getByPlaceholder('请输入密码').fill('wrongagain');
     await page.locator("form button[type='submit']").click();
-    await page.waitForTimeout(2000);
     // 仍然停留在登录页
     await expect(page).toHaveURL(/\/admin\/login/);
 

@@ -239,7 +239,7 @@ export default function ImaSettingsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-semibold">IMA 知识库</h1>
+          <h1 data-testid="settings-ima-page-header" className="text-xl font-semibold">IMA 知识库</h1>
           <p className="text-sm text-muted-foreground mt-1">配置您的个人 IMA 知识库同步目标</p>
         </div>
       </div>

@@ -43,15 +43,12 @@ test.describe('素材卡列表 /cards', () => {
 
     // Click "已确认"
     await btnConfirmed.click();
-    await page.waitForTimeout(500);
 
     // Click "未确认"
     await btnUnconfirmed.click();
-    await page.waitForTimeout(500);
 
     // Click "全部" to restore
     await btnAll.click();
-    await page.waitForTimeout(500);
 
     guard.report(test.info());
   });
@@ -69,13 +66,10 @@ test.describe('素材卡列表 /cards', () => {
     // Fill a search term and press Enter
     await searchInput.fill('申论');
     await page.keyboard.press('Enter');
-    // Wait for the API response and re-render
-    await page.waitForTimeout(1000);
 
     // Clear search
     await searchInput.clear();
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(500);
 
     guard.report(test.info());
   });
@@ -141,8 +135,8 @@ test.describe('素材卡列表 /cards', () => {
     const nextBtn = page.getByRole('button', { name: /下一页/ });
     if (await nextBtn.isVisible().catch(() => false)) {
       await nextBtn.click();
-      await page.waitForTimeout(1000);
       // Should still be on /cards
+      await expect(page.getByTestId('cards-page-header')).toBeVisible({ timeout: 10000 });
       expect(page.url()).toContain('/cards');
     }
     // If no pagination controls, the test passes trivially (single page)
@@ -206,9 +200,9 @@ test.describe('素材卡详情 /cards/[id]', () => {
 
     // Click to toggle
     await confirmBtn.click();
-    await page.waitForTimeout(1500);
 
     // State should have changed
+    await expect(confirmBtn).toBeVisible({ timeout: 10000 });
     const newText = await confirmBtn.innerText().catch(() => '');
     // The button label should toggle between "确认" and "取消确认"
     expect(newText).not.toBe(initialText);
@@ -222,7 +216,7 @@ test.describe('素材卡详情 /cards/[id]', () => {
 
     const card = await ensureCardExists();
     await page.goto(`/cards/${card.id}`);
-    await page.waitForTimeout(1000);
+    await expect(page.getByTestId('card-detail-title')).toBeVisible({ timeout: 15000 });
     const deleteBtn = page.getByRole('button', { name: /删除|Delete/i });
     if (await deleteBtn.isVisible()) {
       await deleteBtn.click();
@@ -255,7 +249,7 @@ test.describe('素材卡详情 /cards/[id]', () => {
     await deleteBtn.click();
 
     // After dismissing, we should still be on the detail page
-    await page.waitForTimeout(500);
+    await expect(page.getByTestId('card-detail-title')).toBeVisible({ timeout: 10000 });
     expect(page.url()).toContain(`/cards/${card.id}`);
 
     guard.report(test.info());

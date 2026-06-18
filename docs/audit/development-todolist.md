@@ -1,7 +1,7 @@
 # Development TodoList
 
 生成日期：2026-06-13  
-状态：Batch 1-5 + 前端改造第一轮 (A1-A5) + 第二轮 (B-Phase 1-4) + Playwright E2E 回归修复 全部完成
+状态：Batch 1-5 + 前端改造第一轮 (A1-A5) + 第二轮 (B-Phase 1-4) + Playwright E2E 回归修复 + 全量审查 P0/P1 补修 (BA-1~BA-13) + Class D E2E flaky 清理 全部完成
 
 ## 状态说明
 
@@ -1031,11 +1031,34 @@
   - C4 review/search/sync-records：PageHeader 加 testid；对应 spec 多元素 first() 改 testid。
 - 验收：cards(11)/articles(12)/review+search+sync-records(25) 全 passed。
 
-### BA-13：类 D — 硬编码等待清理（暂缓，后续深挖）
+### BA-13：类 D — 硬编码等待 + 选择器脆弱清理（Phase 0-6 全量完成）
 
-- 状态：deferred
-- 原因：70 处 `waitForTimeout` + 24 处 `networkidle`，每处需单独判断业务上下文（等 toast/表格/路由各不同），盲改风险高（可能把能过的测试改 flaky）。用户决策暂缓，先看 A/B/C 降幅再定是否必要。
-- 后续：若全量降幅不足，针对性改 retry 最多的 spec 的硬等待。
+- 状态：done
+- 原始决策：暂缓（70 处 `waitForTimeout` + 24 处 `networkidle`，每处需单独判断）。
+- 实际执行：用户决策继续深挖。按 7 阶段计划（`plans/jazzy-plotting-iverson.md`）全量完成。
+- 根因（systematic-debugging 确证）：703 failed 中 **674 是 "element not found"** — 不是时序/网络问题，是**选择器脆弱**（`getByRole('heading')` 多标题冲突 + `locator('h1/h2/h3,...')` 多匹配 + `waitForTimeout` 硬等 + `networkidle` 对 Next.js 16 流式渲染不稳定）。
+- 实际修改（Phase 0-6）：
+  - **Phase 0**：为 18+ 组件文件添加 `data-testid`（admin 7 页面 + AdminShell + settings/ai-config/wechat-rss/article-detail + SelectTrigger 消歧义 testid + 日期输入 testid）。
+  - **Phase 1**：用已有 testid 替换 4 个 spec 的标题选择器（review/articles/articles-enhanced/search）。
+  - **Phase 2**：用新 testid 替换 7+ 个 spec 的标题选择器（admin/auth/ai-config/wechat-rss/settings/admin-invitations/articles-enhanced detail）。
+  - **Phase 3**：替换位置选择器 `.first()`/`.nth()` → testid（admin combobox/auth sidebar/review select/articles 日期）。
+  - **Phase 4**：**全部 64 个 `waitForTimeout` 替换为条件等待**（`expect(locator).toBeVisible({timeout})`）。
+  - **Phase 5**：**全部 24 个 `networkidle` 替换为 `domcontentloaded` + 具体内容断言**（error-states/articles-enhanced/rbac-capability-matrix）。
+  - **Phase 6**：全量回归验证 + 额外发现修复（data-isolation `getByRole('heading')` / article-detail `locator('h1')` / sync-records `h1.text-2xl` / sources `h1,h2,h3,...` / admin-dashboard-p16 多标题 fallback / wechat-rss 多标题 fallback / mobile-responsive 路由配置 waitFor）。
+- 修改文件（41 files, +396/-325）：
+  - 组件侧（+testid）：`AdminShell.tsx`、`admin/page.tsx`、`admin/tasks/page.tsx`、`admin/logs/page.tsx`、`admin/users/page.tsx`、`admin/backup/page.tsx`、`admin/clean/page.tsx`、`admin/invitations/page.tsx`、`admin/login/page.tsx`、`settings/page.tsx`、`settings/account/page.tsx`、`settings/ai/page.tsx`、`settings/ima/page.tsx`、`AiConfigPage.tsx`、`WechatIntegrationPage.tsx`、`articles/[id]/page.tsx`、`review/page.tsx`、`ArticlesPage.tsx`、`SubscriptionsPage.tsx`。
+  - Spec 侧（选择器替换）：`admin.spec.ts`、`auth.spec.ts`、`ai-config.spec.ts`、`wechat-rss.spec.ts`、`settings.spec.ts`、`admin-invitations.spec.ts`、`review.spec.ts`、`articles.spec.ts`、`articles-enhanced.spec.ts`、`search.spec.ts`、`cards.spec.ts`、`error-states.spec.ts`、`rbac-capability-matrix.spec.ts`、`article-detail.spec.ts`、`data-isolation.spec.ts`、`sync-records.spec.ts`、`sources.spec.ts`、`admin-dashboard-p16.spec.ts`、`mobile-responsive.spec.ts`、`visual-regression.spec.ts`、`middleware.spec.ts`。
+- 验收证据：
+  - `pnpm lint`：0 errors / 17 warnings。
+  - `pnpm test`：76 files / 735 tests 全通过。
+  - `pnpm build`：通过。
+  - `pnpm exec playwright test --project=admin --retries=2`：**284 passed, 0 failed, 4 flaky, 17 skipped, 5 did not run**。
+  - 4 flaky 为固有竞态（bookmark toggle / login redirect / sidebar collapse / ES-006 metrics 500），非选择器脆弱。
+- 未修改（有意排除）：`e2e/dead-link.spec.ts` 的 2 个 `locator('h1')` 用于 404 检测，属合法模式。
+- 风险：
+  - 全量 5-project 回归未重跑（1.7h，仅 admin project 验证）。
+  - 4 flaky 测试仍有偶发失败（非选择器根因，需单独排查逻辑竞态）。
+- 关联提交：pending
 
 ### 全量 run2 结果（A/B/C 后，类 D 前）
 

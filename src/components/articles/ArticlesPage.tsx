@@ -805,6 +805,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">文章发布时间（起）</label>
                 <div className="relative w-full h-8 group">
                   <input
+                    data-testid="published-start-date"
                     type="date"
                     value={publishedStart}
                     onChange={(e) => setPublishedStart(e.target.value)}
@@ -823,7 +824,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">文章发布时间（止）</label>
                 <div className="relative w-full h-8 group">
                   <input
-                    type="date"
+                    data-testid="published-end-date" type="date"
                     value={publishedEnd}
                     onChange={(e) => setPublishedEnd(e.target.value)}
                     onClick={(e) => { try { e.currentTarget.showPicker(); } catch {} }}

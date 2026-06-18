@@ -10,7 +10,7 @@ test.describe('文章列表页', () => {
 
     await page.goto('/articles');
     // Wait for Suspense to resolve and data to load
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // Table headers visible
     await expect(page.getByRole('columnheader', { name: '标题' })).toBeVisible();
@@ -27,7 +27,7 @@ test.describe('文章列表页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // Record current table content
     const initialRows = await page.getByRole('row').count();
@@ -50,7 +50,7 @@ test.describe('文章列表页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // Click source type select
     const sourceTypeSelect = page.getByTestId('source-type-select');
@@ -69,7 +69,7 @@ test.describe('文章列表页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // Set some filters first
     const keywordInput = page.getByPlaceholder('搜索标题、正文、来源');
@@ -102,7 +102,7 @@ test.describe('文章列表页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // Wait for data to load
     await expect(page.getByText('加载中...', { exact: true })).not.toBeVisible({ timeout: 15000 });
@@ -128,7 +128,7 @@ test.describe('文章列表页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // Wait for data to load
     await expect(page.getByText('加载中...', { exact: true })).not.toBeVisible({ timeout: 15000 });
@@ -163,7 +163,7 @@ test.describe('文章列表页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // Wait for data to load
     await expect(page.getByText('加载中...', { exact: true })).not.toBeVisible({ timeout: 15000 });
@@ -198,7 +198,7 @@ test.describe('文章列表页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // Management mode buttons should be visible
     const collectButton = page.getByRole('button', { name: '开始采集' });
@@ -216,7 +216,7 @@ test.describe('文章列表页', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // Advanced filters should NOT be visible initially
     await expect(page.getByText('栏目')).not.toBeVisible();
@@ -270,10 +270,6 @@ test.describe('文章列表页', () => {
       await route.continue();
     });
     await page.goto('/articles');
-    // Should show loading state
-    const loading = page.getByText('加载中...');
-    // Loading may or may not be visible depending on speed, wait for it to finish
-    await page.waitForTimeout(1000);
     // After loading, table or empty state should be visible
     await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 10000 });
 
@@ -292,8 +288,7 @@ test.describe('文章列表页', () => {
     await searchBtn.click();
     await searchBtn.click();
     // Page should still be functional, no crash
-    await page.waitForTimeout(2000);
-    await expect(page.getByTestId('articles-page-header')).toBeVisible();
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 10000 });
 
     guard.report(test.info());
   });

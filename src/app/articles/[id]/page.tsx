@@ -745,7 +745,7 @@ export default function ArticleDetailPage() {
               <span className="ml-1">返回列表</span>
             </Button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-semibold break-words leading-snug">{article.title}</h1>
+              <h1 data-testid="article-detail-page-header" className="text-lg font-semibold break-words leading-snug">{article.title}</h1>
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <span>{article.source?.name ?? article.platform}</span>
                 {article.publishedAt && (

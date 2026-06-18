@@ -7,7 +7,6 @@ test.describe('同步记录 /admin/sync-records', () => {
   test('同步记录：页面加载', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sync-records');
-    await page.waitForTimeout(1000);
     // Page should render — header 表示页面已加载
     await expect(page.getByTestId('sync-records-page-header')).toBeVisible({ timeout: 10000 });
     guard.report(testInfo);
@@ -16,7 +15,6 @@ test.describe('同步记录 /admin/sync-records', () => {
   test('同步记录：筛选器可见', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sync-records');
-    await page.waitForTimeout(1000);
     // Should have filter controls — select dropdowns or date inputs
     const selects = page.locator('select, [role="combobox"], button');
     await expect(selects.first()).toBeVisible({ timeout: 5000 });
@@ -26,11 +24,9 @@ test.describe('同步记录 /admin/sync-records', () => {
   test('同步记录：刷新按钮', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sync-records');
-    await page.waitForTimeout(1000);
     const refreshBtn = page.getByRole('button', { name: /刷新|Refresh/i });
     if (await refreshBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await refreshBtn.click();
-      await page.waitForTimeout(1000);
       // Page should reload without errors
       await expect(page.locator('body')).toBeVisible();
     }
@@ -40,7 +36,6 @@ test.describe('同步记录 /admin/sync-records', () => {
   test('同步记录：表格或空状态', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sync-records');
-    await page.waitForTimeout(2000);
     // Either table with rows, or empty state message
     const hasTable = await page.locator('table').isVisible().catch(() => false);
     const hasEmpty = await page.getByText(/暂无|没有|empty/i).isVisible().catch(() => false);
@@ -52,9 +47,8 @@ test.describe('同步记录 /admin/sync-records', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sync-records');
-    // 页面有 2 个 '同步记录' heading：header 顶部小 h1 + 主区大 h1。定位主标题（text-2xl）。
-    await expect(page.locator('h1.text-2xl')).toBeVisible({ timeout: 10000 });
-    await page.waitForTimeout(2000);
+    // Page header confirms page loaded
+    await expect(page.getByTestId('sync-records-page-header')).toBeVisible({ timeout: 10000 });
 
     // Try to filter for failed records
     const statusTrigger = page.locator('[aria-label="同步状态"]');
@@ -63,7 +57,6 @@ test.describe('同步记录 /admin/sync-records', () => {
       const failedOption = page.getByRole('option', { name: '失败' });
       if (await failedOption.isVisible({ timeout: 3000 }).catch(() => false)) {
         await failedOption.click();
-        await page.waitForTimeout(1500);
       }
     }
 

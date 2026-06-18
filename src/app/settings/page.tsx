@@ -32,6 +32,7 @@ export default async function SettingsPage() {
         description={isVerifiedUser
           ? "管理你的 AI 配置、IMA 同步目标和集成设置"
           : "查看账号信息和修改密码"}
+        data-testid="settings-page-header"
       />
 
       <div className="grid gap-4">

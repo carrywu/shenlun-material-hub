@@ -167,7 +167,7 @@ export default function AdminTasksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">异步任务</h2>
+          <h2 data-testid="admin-tasks-page-header" className="text-lg font-semibold text-foreground">异步任务</h2>
           <p className="text-xs text-muted-foreground mt-1">查看采集、评估和素材卡任务执行状态</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void fetchTasks()}>
@@ -183,7 +183,7 @@ export default function AdminTasksPage() {
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <Input placeholder="搜索 taskId / 参数 / 结果" value={query} onChange={(e) => setQuery(e.target.value)} />
           <Select value={status} onValueChange={(value) => setStatus(value ?? "all")}>
-            <SelectTrigger aria-label="任务状态"><SelectValue placeholder="状态" /></SelectTrigger>
+            <SelectTrigger data-testid="tasks-status-select" aria-label="任务状态"><SelectValue placeholder="状态" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部状态</SelectItem>
               <SelectItem value="PENDING">排队中</SelectItem>

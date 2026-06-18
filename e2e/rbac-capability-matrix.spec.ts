@@ -323,14 +323,16 @@ test.describe('RBAC: 页面入口可见性', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/articles');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('body')).toBeVisible();
 
     // USER 不应看到 admin 导航链接
     const adminLink = page.locator('a[href*="/admin"]').first();
     if (await adminLink.isVisible()) {
       // 如果可见，USER 点击后应被拦截
       await adminLink.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('body')).toBeVisible();
       const url = page.url();
       // 应重定向到 login 或显示 403
       expect(url).toMatch(/\/admin\/login|403|forbidden/);
@@ -352,7 +354,8 @@ test.describe('RBAC: 页面入口可见性（ADMIN）', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/articles');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('body')).toBeVisible();
 
     // ADMIN 应看到管理导航
     const bodyText = await page.locator('body').textContent();

@@ -9,7 +9,7 @@ test.describe("后台邀请码管理", () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto("/admin/invitations");
-    await expect(page.getByRole("heading", { level: 1, name: "邀请码管理" })).toBeVisible();
+    await expect(page.getByTestId('admin-invitations-page-header')).toBeVisible();
     await expect(page.getByRole("button", { name: "创建邀请码" })).toBeVisible();
 
     guard.report(testInfo);

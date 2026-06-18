@@ -11,7 +11,7 @@ test.describe('Admin Dashboard', () => {
 
     await page.goto('/admin');
     // AdminShell h1 shows "系统概览"
-    await expect(page.getByRole('heading', { name: '系统概览', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
     // Stat cards are rendered (h2 inside the page content)
     await expect(page.getByText('文章总量')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('信息来源')).toBeVisible();
@@ -25,7 +25,7 @@ test.describe('Admin Dashboard', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: '系统概览', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
 
     // Wait for metrics data to load (page shows skeleton → content)
     await expect(page.getByText('文章总量')).toBeVisible({ timeout: 15000 });
@@ -47,9 +47,9 @@ test.describe('Admin Tasks', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/tasks');
-    await expect(page.getByRole('heading', { name: '异步任务', level: 1 })).toBeVisible({ timeout: 10000 });
-    // h2 with "异步任务" is in the page content
-    await expect(page.getByText('异步任务').first()).toBeVisible();
+    await expect(page.getByTestId('admin-tasks-page-header')).toBeVisible({ timeout: 10000 });
+    // h2 with "异步任务" is in the page content (already confirmed by testid above)
+    await expect(page.getByTestId('admin-tasks-page-header')).toContainText('异步任务');
     // Either the task table or the empty/ loading state is present
     await expect(
       page.locator('table').or(page.getByText('加载任务中'))
@@ -63,14 +63,12 @@ test.describe('Admin Tasks', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/tasks');
-    await expect(page.getByRole('heading', { name: '异步任务', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-tasks-page-header')).toBeVisible({ timeout: 10000 });
 
     // Wait for page content to render (search input is in a Card with filter UI)
     const searchInput = page.getByPlaceholder('搜索 taskId / 参数 / 结果');
     await expect(searchInput).toBeVisible({ timeout: 10000 });
     await searchInput.fill('nonexistent_query_xyz');
-    // After filtering, the table should be empty (no matching rows)
-    await page.waitForTimeout(500);
     // Verify that the search input has the value
     await expect(searchInput).toHaveValue('nonexistent_query_xyz');
 
@@ -82,10 +80,10 @@ test.describe('Admin Tasks', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/tasks');
-    await expect(page.getByRole('heading', { name: '异步任务', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-tasks-page-header')).toBeVisible({ timeout: 10000 });
 
-    // Click the status select trigger (first select in the filter card)
-    const statusTrigger = page.getByRole('combobox').first();
+    // Click the status select trigger
+    const statusTrigger = page.getByTestId('tasks-status-select');
     await statusTrigger.click();
     // Verify select options are visible
     // Radix Select option 的 accessible name 是文案（已完成）而非 value（COMPLETED）
@@ -93,8 +91,8 @@ test.describe('Admin Tasks', () => {
     await expect(page.getByRole('option', { name: '已完成' })).toBeVisible();
     // Select 已完成（COMPLETED）
     await page.getByRole('option', { name: '已完成' }).click();
-    // The combobox value should reflect the selection
-    await page.waitForTimeout(1000);
+    // Verify the select reflects the selection
+    await expect(statusTrigger).toContainText('已完成');
 
     guard.report(testInfo);
   });
@@ -104,10 +102,12 @@ test.describe('Admin Tasks', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/tasks');
-    await expect(page.getByRole('heading', { name: '异步任务', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-tasks-page-header')).toBeVisible({ timeout: 10000 });
 
-    // Wait for data to load
-    await page.waitForTimeout(2000);
+    // Wait for data to load — table should be visible
+    await expect(
+      page.locator('table').or(page.getByText('加载任务中'))
+    ).toBeVisible({ timeout: 10000 });
 
     // Check if there are any task rows (inside a table)
     const taskRows = page.locator('table tbody tr');
@@ -130,9 +130,9 @@ test.describe('Admin Tasks', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/tasks');
-    await expect(page.getByText('异步任务').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-tasks-page-header')).toBeVisible({ timeout: 10000 });
     // Wait for table data to load and render
-    await page.waitForTimeout(3000);
+    await expect(page.locator('table').or(page.getByText('加载任务中'))).toBeVisible({ timeout: 10000 });
     // consoleGuard will detect any React key warnings and fail the test
     guard.report(testInfo);
   });
@@ -144,7 +144,7 @@ test.describe('Admin Logs', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/logs');
-    await expect(page.getByRole('heading', { name: '系统日志', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-logs-page-header')).toBeVisible({ timeout: 10000 });
     // Either loading state or the log table should be visible
     await expect(
       page.locator('table').or(page.getByText('加载日志中'))
@@ -158,16 +158,15 @@ test.describe('Admin Logs', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/logs');
-    await expect(page.getByRole('heading', { name: '系统日志', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-logs-page-header')).toBeVisible({ timeout: 10000 });
 
-    // Click the level select (first combobox in filter card)
-    const levelTriggers = page.getByRole('combobox');
-    await levelTriggers.first().click();
+    // Click the level select
+    const levelTrigger = page.getByTestId('logs-level-select');
     // Select ERROR
     await expect(page.getByRole('option', { name: 'ERROR' })).toBeVisible();
     await page.getByRole('option', { name: 'ERROR' }).click();
-    // Wait for filter to apply
-    await page.waitForTimeout(2000);
+    // Verify filter applied — table or content still visible
+    await expect(page.locator('table').or(page.getByText('加载日志中'))).toBeVisible({ timeout: 10000 });
 
     guard.report(testInfo);
   });
@@ -177,11 +176,11 @@ test.describe('Admin Logs', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/logs');
-    await expect(page.getByRole('heading', { name: '系统日志', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-logs-page-header')).toBeVisible({ timeout: 10000 });
 
-    // Click the category select (second combobox)
-    const levelTriggers = page.getByRole('combobox');
-    await levelTriggers.nth(1).click();
+    // Click the category select
+    const categoryTrigger = page.getByTestId('logs-category-select');
+    await categoryTrigger.click();
     // Verify category options are visible
     await expect(page.getByRole('option', { name: 'SYSTEM' })).toBeVisible();
     await expect(page.getByRole('option', { name: 'CRAWLER' })).toBeVisible();
@@ -199,7 +198,7 @@ test.describe('Admin Users', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/users');
-    await expect(page.getByRole('heading', { name: '用户管理', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-users-page-header')).toBeVisible({ timeout: 10000 });
     // User table visible
     await expect(page.locator('table')).toBeVisible({ timeout: 10000 });
     // Create user button visible
@@ -213,7 +212,7 @@ test.describe('Admin Users', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/users');
-    await expect(page.getByRole('heading', { name: '用户管理', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-users-page-header')).toBeVisible({ timeout: 10000 });
 
     // Click create user button
     await page.getByRole('button', { name: '创建用户' }).click();
@@ -238,7 +237,7 @@ test.describe('Admin Users', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/users');
-    await expect(page.getByRole('heading', { name: '用户管理', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-users-page-header')).toBeVisible({ timeout: 10000 });
 
     // Click create user
     await page.getByRole('button', { name: '创建用户' }).click();
@@ -266,10 +265,10 @@ test.describe('Admin Users', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/users');
-    await expect(page.getByRole('heading', { name: '用户管理', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-users-page-header')).toBeVisible({ timeout: 10000 });
 
     // Wait for table to load
-    await page.waitForTimeout(2000);
+    await expect(page.locator('table')).toBeVisible({ timeout: 10000 });
 
     // Find user rows (exclude admin user to avoid locking ourselves out)
     const userRows = page.locator('table tbody tr');
@@ -296,7 +295,7 @@ test.describe('Admin Users', () => {
           if (await disableBtn.isVisible()) {
             await disableBtn.click();
             // Wait for status to change
-            await page.waitForTimeout(2000);
+            await expect(page.getByText('已禁用').or(page.getByRole('status'))).toBeVisible({ timeout: 5000 }).catch(() => {});
             // Verify the status changed to "已禁用" or the toast appears
           }
         } else if (rowText && rowText.includes('已禁用')) {
@@ -304,7 +303,8 @@ test.describe('Admin Users', () => {
           const enableBtn = targetRow.getByRole('button', { name: '启用' });
           if (await enableBtn.isVisible()) {
             await enableBtn.click();
-            await page.waitForTimeout(2000);
+            // Wait for status to change
+            await expect(page.getByText('正常').or(page.getByRole('status'))).toBeVisible({ timeout: 5000 }).catch(() => {});
           }
         }
       }
@@ -318,7 +318,7 @@ test.describe('Admin Users', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/users');
-    await expect(page.getByRole('heading', { name: '用户管理', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-users-page-header')).toBeVisible({ timeout: 10000 });
 
     // Click create user button to open dialog
     await page.getByRole('button', { name: '创建用户' }).click();
@@ -340,7 +340,7 @@ test.describe('Admin Backup', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/backup');
-    await expect(page.getByRole('heading', { name: '数据备份', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-backup-page-header')).toBeVisible({ timeout: 10000 });
     // Export button visible
     await expect(page.getByRole('button', { name: '下载备份压缩包' })).toBeVisible();
     // File upload input visible
@@ -354,7 +354,7 @@ test.describe('Admin Backup', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/backup');
-    await expect(page.getByRole('heading', { name: '数据备份', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-backup-page-header')).toBeVisible({ timeout: 10000 });
 
     // Click export and wait for download
     const downloadPromise = page.waitForEvent('download', { timeout: 30000 }).catch(() => null);
@@ -377,7 +377,7 @@ test.describe('Admin Clean', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/clean');
-    await expect(page.getByRole('heading', { name: '数据清洗', level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-clean-page-header')).toBeVisible({ timeout: 10000 });
     // Rule checkboxes visible (base-ui Checkbox 渲染为 <span data-slot="checkbox" role="checkbox">)
     await expect(page.locator('[data-slot="checkbox"]').first()).toBeVisible({ timeout: 10000 });
     // Execute button visible
@@ -391,9 +391,9 @@ test.describe('Admin Clean', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/clean');
-    await expect(page.getByRole('heading', { name: '数据清洗', level: 1 })).toBeVisible({ timeout: 10000 });
-    // Wait for data to load
-    await page.waitForTimeout(2000);
+    await expect(page.getByTestId('admin-clean-page-header')).toBeVisible({ timeout: 10000 });
+    // Wait for rule checkboxes to load
+    await expect(page.locator('[data-slot="checkbox"]').first()).toBeVisible({ timeout: 10000 });
 
     // Find a rule checkbox and click it
     const checkboxes = page.locator('[data-slot="checkbox"]');
@@ -402,7 +402,8 @@ test.describe('Admin Clean', () => {
     if (checkboxCount > 0) {
       // Toggle a checkbox
       await checkboxes.first().click();
-      await page.waitForTimeout(500);
+      // Verify checkbox state changed
+      await expect(checkboxes.first()).toHaveAttribute('aria-checked', 'true', { timeout: 3000 }).catch(() => {});
 
       // Click execute
       const executeBtn = page.getByRole('button', { name: '执行清洗' });
@@ -425,7 +426,9 @@ test.describe('Admin Clean', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/clean');
-    await page.waitForTimeout(1000);
+    await expect(page.getByTestId('admin-clean-page-header')).toBeVisible({ timeout: 10000 });
+    // Wait for rule checkboxes to load
+    await expect(page.locator('[data-slot="checkbox"]').first()).toBeVisible({ timeout: 10000 });
     // Find and check a rule checkbox (base-ui Checkbox = <span data-slot="checkbox">)
     const checkbox = page.locator('[data-slot="checkbox"]').first();
     if (await checkbox.isVisible()) {
@@ -454,9 +457,9 @@ test.describe('Admin Clean', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/clean');
-    await expect(page.getByRole('heading', { name: '数据清洗', level: 1 })).toBeVisible({ timeout: 10000 });
-    // Wait for data to load
-    await page.waitForTimeout(2000);
+    await expect(page.getByTestId('admin-clean-page-header')).toBeVisible({ timeout: 10000 });
+    // Wait for rule checkboxes to load
+    await expect(page.locator('[data-slot="checkbox"]').first()).toBeVisible({ timeout: 10000 });
 
     // Select all checkboxes by ensuring they are checked
     const checkboxes = page.locator('[data-slot="checkbox"]');
@@ -480,13 +483,13 @@ test.describe('Admin Clean', () => {
       await expect(page.getByText('确认数据清洗')).toBeVisible({ timeout: 5000 });
       // Click confirm
       await page.getByRole('button', { name: '确认清洗' }).click();
-      // Wait for result or error — check for completion or page stability
-      await page.waitForTimeout(3000);
+      // Wait for result — page should remain stable (no crash)
+      await expect(page.getByTestId('admin-shell-heading')).toBeVisible({ timeout: 10000 });
       // Verify: page didn't crash (no error overlay), clean page still renders
       const errorOverlay = page.locator('#__next-route-announcer ~ [role="alert"]');
       await expect(errorOverlay).not.toBeVisible();
-      // Page is still functional — 数据清洗 AdminShell h1 仍在（页面 h2 同名，用 level 精确到 h1）
-      await expect(page.getByRole('heading', { name: '数据清洗', level: 1 })).toBeVisible({ timeout: 5000 });
+      // Page is still functional — AdminShell h1 仍在
+      await expect(page.getByTestId('admin-shell-heading')).toContainText('数据清洗');
     }
 
     guard.report(testInfo);

@@ -160,7 +160,7 @@ test.describe("Middleware redirect", () => {
     // Visit all public pages (Round B: /explore and /discover removed)
     for (const url of ["/articles"]) {
       await page.goto(url);
-      await page.waitForTimeout(1000);
+      await expect(page.locator('body')).toBeVisible({ timeout: 10000 });
     }
 
     // Filter out known acceptable errors
