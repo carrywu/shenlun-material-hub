@@ -275,7 +275,7 @@ test.describe('文章列表页', () => {
     // Loading may or may not be visible depending on speed, wait for it to finish
     await page.waitForTimeout(1000);
     // After loading, table or empty state should be visible
-    await expect(page.locator('table, [data-testid="empty-state"], .text-muted-foreground').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 10000 });
 
     guard.report(test.info());
   });
@@ -293,7 +293,7 @@ test.describe('文章列表页', () => {
     await searchBtn.click();
     // Page should still be functional, no crash
     await page.waitForTimeout(2000);
-    await expect(page.locator('h1, table, .text-muted-foreground').first()).toBeVisible();
+    await expect(page.getByTestId('articles-page-header')).toBeVisible();
 
     guard.report(test.info());
   });
