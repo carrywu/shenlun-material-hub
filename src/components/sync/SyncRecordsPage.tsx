@@ -198,6 +198,7 @@ export default function SyncRecordsPage() {
         <PageHeader
           title="同步记录"
           description="查看素材卡同步到 IMA 知识库的历史记录"
+          data-testid="sync-records-page-header"
           actions={
             <Button variant="outline" size="sm" onClick={fetchRecords} disabled={loading}>
               <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? "animate-spin" : ""}`} />

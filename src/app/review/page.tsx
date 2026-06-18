@@ -171,6 +171,7 @@ export default function ReviewPage() {
         <PageHeader
           title="复习模式"
           description="逐步揭示素材卡内容，检验记忆效果"
+          data-testid="review-page-header"
           actions={
             <Button
               variant="outline"

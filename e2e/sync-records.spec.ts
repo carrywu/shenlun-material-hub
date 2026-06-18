@@ -8,8 +8,8 @@ test.describe('同步记录 /admin/sync-records', () => {
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sync-records');
     await page.waitForTimeout(1000);
-    // Page should render — table or empty state
-    await expect(page.locator('table, .text-muted-foreground, h1, h2, h3').first()).toBeVisible({ timeout: 10000 });
+    // Page should render — header 表示页面已加载
+    await expect(page.getByTestId('sync-records-page-header')).toBeVisible({ timeout: 10000 });
     guard.report(testInfo);
   });
 

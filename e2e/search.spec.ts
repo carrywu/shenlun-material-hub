@@ -174,7 +174,7 @@ test.describe('搜索页', () => {
     await page.goto('/search');
     await page.waitForTimeout(2000);
     // Should have loaded content or empty state
-    await expect(page.locator('h1, h2, input, [role="combobox"]').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('search-page-header')).toBeVisible({ timeout: 5000 });
     guard.report(testInfo);
   });
 });
