@@ -164,7 +164,7 @@ export default function CardDetailPage() {
   if (error || !card) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p className="text-destructive">{error ?? "素材卡不存在"}</p>
+        <p className="text-destructive" data-testid="card-error-message">{error ?? "素材卡不存在"}</p>
         <Button variant="outline" onClick={() => router.push("/cards")}>
           返回列表
         </Button>

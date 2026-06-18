@@ -714,7 +714,7 @@ export default function ArticleDetailPage() {
   if (error || !article) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p className="text-destructive">{error ?? "文章不存在"}</p>
+        <p className="text-destructive" data-testid="article-error-message">{error ?? "文章不存在"}</p>
         <Button variant="outline" onClick={() => router.push("/articles")}>
           返回列表
         </Button>

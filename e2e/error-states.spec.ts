@@ -48,8 +48,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     const bodyText = await page.locator('body').textContent();
     expect(bodyText).toMatch(/请求失败|加载失败/);
 
-    // 2. 错误文案以 text-destructive 样式呈现
-    const errorEl = page.locator('.text-destructive');
+    // 2. 错误文案以错误状态元素呈现
+    const errorEl = page.getByTestId('articles-error');
     expect(await errorEl.count()).toBeGreaterThan(0);
 
     // 3. 导航保留 — 侧栏/顶栏仍然可见
