@@ -124,6 +124,31 @@ test.describe("Middleware redirect", () => {
     });
   });
 
+  // ── Role-guarded settings pages: 非 VERIFIED_USER 重定向到 /settings（类 A）──
+  // settings/ai 与 settings/ima 的页面内 role guard 在渲染体调 router.push，
+  // SSR 抛 location is not defined（dev server 崩）。改由 middleware 拦截。
+  test.describe("role-guarded 设置页重定向", () => {
+    test.use({ storageState: ".auth/usera-storage.json" });
+
+    test("USER 访问 /settings/ai → 重定向到 /settings（不 500）", async ({ page }, testInfo) => {
+      const guard = attachConsoleGuard(page);
+
+      await page.goto("/settings/ai");
+      await expect(page).toHaveURL(/\/settings$/, { timeout: 15000 });
+
+      guard.report(testInfo);
+    });
+
+    test("USER 访问 /settings/ima → 重定向到 /settings（不 500）", async ({ page }, testInfo) => {
+      const guard = attachConsoleGuard(page);
+
+      await page.goto("/settings/ima");
+      await expect(page).toHaveURL(/\/settings$/, { timeout: 15000 });
+
+      guard.report(testInfo);
+    });
+  });
+
   // ── Console error check for public pages ──────────────────────────────────────
 
   test("公开页面无 console error", async ({ page }) => {

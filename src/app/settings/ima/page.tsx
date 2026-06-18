@@ -127,9 +127,16 @@ export default function ImaSettingsPage() {
     }
   };
 
-  // Role guard — redirect non-verified users
+  // Role guard — redirect non-verified users。
+  // 必须在 useEffect 内调 router.push（渲染体调会在 SSR 抛 location is not defined）。
+  // middleware(proxy.ts) 已在请求层兜底拦截，这里作页面级第二防线。
+  useEffect(() => {
+    if (user && !isVerified) {
+      router.push("/settings");
+    }
+  }, [user, isVerified, router]);
+
   if (user && !isVerified) {
-    router.push("/settings");
     return null;
   }
 
