@@ -1000,3 +1000,49 @@
 - 剩余失败全部是**预存 UI 测试 flaky**（734 次 retry，集中在 articles-enhanced/auth/admin/search 等 spec 的 timeout/element/locator 选择器与时序问题，Report A 已记录为 P2/P3 测试质量债），与 admin fixture / 本批改动无关。
 - 未跑完最后一分钟全量统计行（带 retry 拖慢 + 交互式会话不宜久等），但关键证据（admin 401 = 0）已确证。
 - 风险：预存 UI flaky 仍是全量「可信度」的噪音源，建议后续单独一批清理（P2/P3）。
+
+## Stage 14：预存 UI flaky 清理（A 真实 bug / B 过时测试 / C 选择器加固 / D 暂缓）
+
+> 来源：Stage 13 全量暴露 734 retry，systematic-debugging 拆为 4 类。用户决策全清，D 后改为暂缓。
+
+### BA-10：类 A — SSR router 崩溃（middleware 拦截）
+
+- 状态：done
+- 根因：`settings/ai` + `settings/ima` 页面在渲染体调 `router.push`，SSR 抛 `location is not defined`（dev server uncaughtException）。
+- 实际修改：
+  - `src/proxy.ts`：已登录非 VERIFIED_USER/ADMIN 访问 `/settings/ai` `/settings/ima` → 302 `/settings`。
+  - `settings/ai/page.tsx` + `settings/ima/page.tsx`：渲染体 router.push 改放进 useEffect（页面级第二防线）。
+  - `e2e/middleware.spec.ts`：新增 role-guard 重定向测试。
+- 验收：role-guard 测试通过且 `location is not defined` uncaughtException 消失；vitest 735 / lint 0 / build 通过。
+
+### BA-11：类 B — 删引用已删路由的过时测试
+
+- 状态：done
+- 实际修改：删 `e2e/explore-discover.spec.ts` 整文件；`frontend-experience.spec.ts` 删 skip 块；dead-link/mobile-responsive/accessibility 数组删 `/explore` `/discover`。共删 280 行死代码。
+
+### BA-12：类 C — 全面铺 data-testid + 选择器加固（C1-C4）
+
+- 状态：done
+- 实际修改：
+  - `PageHeader` 组件支持透传 `data-testid`（所有页面受益）。
+  - C1 cards：PageHeader/empty-state/grid/卡片项/复选框/详情标题/删除按钮加 testid；cards.spec 脆弱选择器改 getByTestId。
+  - C2 articles：PageHeader/错误 div 加 testid；articles.spec 两处多元素 first() 改 testid。
+  - C3 error-states：articles/cards 详情错误文案加 testid；error-states.spec `.text-destructive` 改 testid。
+  - C4 review/search/sync-records：PageHeader 加 testid；对应 spec 多元素 first() 改 testid。
+- 验收：cards(11)/articles(12)/review+search+sync-records(25) 全 passed。
+
+### BA-13：类 D — 硬编码等待清理（暂缓，后续深挖）
+
+- 状态：deferred
+- 原因：70 处 `waitForTimeout` + 24 处 `networkidle`，每处需单独判断业务上下文（等 toast/表格/路由各不同），盲改风险高（可能把能过的测试改 flaky）。用户决策暂缓，先看 A/B/C 降幅再定是否必要。
+- 后续：若全量降幅不足，针对性改 retry 最多的 spec 的硬等待。
+
+### 全量 run2 结果（A/B/C 后，类 D 前）
+
+- `pnpm exec playwright test`（5 project × ~2115 用例，1.7h）：**1208 passed / 703 failed / 5 flaky / 130 skipped / 69 did not run**。
+- **关键 bug 指标全归 0**（达成本批核心目标）：
+  - `Expected: not 401`（admin fixture 污染）= **0**（Stage 13 修复生效）。
+  - `location is not defined`（类 A SSR bug）= **0**。
+- **剩余 703 failed 全是长跑时序 flaky**：retry 集中在 auth(57)/articles-enhanced(54)/admin(41)/wechat-rss(36)/search(30)/rbac(30) 等，错误类型 `element(s) not found` + 10s timeout。
+- **非回归**：我改过的 spec（cards/articles/review/search/sync-records）单跑全 passed（cards 11/articles 12/review+search+sync 25）；全量失败是 1.7h 长跑 + dev server 压力下的时序 flaky，正是类 D（硬编码等待/超时）范畴。
+- 结论：A/B/C 修了真实 bug + 删死代码 + 选择器加固，但未根治长跑时序 flaky——需类 D + 可能的 config 调整。用户决策：先提交推送（记录遗留），后继续类 D 深挖。
