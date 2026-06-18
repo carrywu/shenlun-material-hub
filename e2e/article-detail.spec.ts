@@ -48,23 +48,25 @@ test.describe('文章详情页', () => {
     await page.goto(`/articles/${articleId}`);
     await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
-    // Find the bookmark toggle button (title contains "收藏" or "取消收藏")
-    const bookmarkButton = page.locator('button[title="收藏"], button[title="取消收藏"]');
-    await expect(bookmarkButton.first()).toBeVisible({ timeout: 5000 });
+    const button = page.getByTestId('article-bookmark-button');
+    await expect(button).toBeVisible({ timeout: 5000 });
 
-    // Get initial state
-    const initialTitle = await bookmarkButton.first().getAttribute('title');
-    const wasBookmarked = initialTitle === '取消收藏';
+    const wasBookmarked = await button.getAttribute('aria-pressed') === 'true';
 
-    // Click to toggle
-    await bookmarkButton.first().click();
+    // Wait for the API response to complete before asserting state
+    const responsePromise = page.waitForResponse((res) =>
+      res.url().includes('/api/favorites') &&
+      ['POST', 'DELETE'].includes(res.request().method()) &&
+      res.status() >= 200 &&
+      res.status() < 300
+    );
 
-    // Verify state changed
-    const expectedTitle = wasBookmarked ? '收藏' : '取消收藏';
-    await expect.poll(
-      async () => await bookmarkButton.first().getAttribute('title'),
-      { timeout: 5000, message: `收藏切换后按钮 title 应变为 ${expectedTitle}` }
-    ).toBe(expectedTitle);
+    await button.click();
+    await responsePromise;
+
+    await expect(button).toHaveAttribute('data-pending', 'false');
+    await expect(button).toHaveAttribute('aria-pressed', wasBookmarked ? 'false' : 'true');
+    await expect(button).toHaveAttribute('data-state', wasBookmarked ? 'inactive' : 'active');
 
     guard.report(test.info());
   });
@@ -76,25 +78,25 @@ test.describe('文章详情页', () => {
     await page.goto(`/articles/${articleId}`);
     await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
-    // Find the read toggle button (title contains "标记已读" or "标记未读")
-    const readButton = page.locator('button[title="标记已读"], button[title="标记未读"]');
-    await expect(readButton.first()).toBeVisible({ timeout: 5000 });
+    const button = page.getByTestId('article-read-button');
+    await expect(button).toBeVisible({ timeout: 5000 });
 
-    // Get initial state
-    const initialTitle = await readButton.first().getAttribute('title');
-    const wasRead = initialTitle === '标记未读';
+    const wasRead = await button.getAttribute('aria-pressed') === 'true';
 
-    // Click to toggle
-    await readButton.first().click();
+    // Wait for the API response to complete before asserting state
+    const responsePromise = page.waitForResponse((res) =>
+      res.url().includes('/api/user-content-state') &&
+      res.request().method() === 'POST' &&
+      res.status() >= 200 &&
+      res.status() < 300
+    );
 
-    // 状态更新依赖 PUT /api/content-items/[id] 返回后 setArticle，是异步的。
-    // 固定 500ms 会和 API 响应赛跑（重试时甚至看到两次方向相反的失败）。
-    // 改成轮询 title 翻转，给 5s 余量。
-    const expectedTitle = wasRead ? '标记已读' : '标记未读';
-    await expect.poll(
-      async () => await readButton.first().getAttribute('title'),
-      { timeout: 5000, message: `已读切换后按钮 title 应变为 ${expectedTitle}` }
-    ).toBe(expectedTitle);
+    await button.click();
+    await responsePromise;
+
+    await expect(button).toHaveAttribute('data-pending', 'false');
+    await expect(button).toHaveAttribute('aria-pressed', wasRead ? 'false' : 'true');
+    await expect(button).toHaveAttribute('data-state', wasRead ? 'inactive' : 'active');
 
     guard.report(test.info());
   });

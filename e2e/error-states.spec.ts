@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
-import { loginAsAdmin } from './helpers/auth';
+import { mockApiError } from './helpers/mockApi';
 
 /**
  * §P1-2 错误状态测试升级
@@ -26,6 +26,7 @@ import { loginAsAdmin } from './helpers/auth';
  */
 
 test.describe('P1-2 错误状态处理 — 升级断言', () => {
+  test.use({ storageState: '.auth/admin-storage.json' });
 
   // ── ES-001: 文章列表 500 错误 ──
 
@@ -166,34 +167,31 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     test.setTimeout(90000);
     const guard = attachConsoleGuard(page);
 
-    await page.route('**/api/admin/metrics**', (route) =>
-      route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: '服务器内部错误' }),
-      })
-    );
+    // 使用 mockApiError helper — 带命中计数，确保 mock 在路由之前注册
+    const metricsMock = await mockApiError(page, '**/api/admin/metrics**', {
+      status: 500,
+      body: { error: '服务器内部错误' },
+    });
 
-    // Login first
-    await loginAsAdmin(page);
-
-    // Now navigate to admin
+    // storageState 已注入 admin 认证，无需 UI 登录
     await page.goto('/admin');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText('无法加载')).toBeVisible({ timeout: 15000 });
+
+    // 用 data-testid 定位错误容器
+    await expect(page.getByTestId('admin-metrics-error')).toBeVisible({ timeout: 15000 });
 
     // 1. 错误文案 — admin/page.tsx "无法加载系统数据"
-    const bodyText = await page.locator('body').textContent();
-    expect(bodyText).toContain('无法加载');
+    await expect(page.getByText('无法加载系统数据')).toBeVisible();
 
-    // 2. 重试按钮 — admin/page.tsx "重新尝试"
-    const retryBtn = page.locator('button').filter({ hasText: /重新尝试/ });
-    expect(await retryBtn.count()).toBeGreaterThan(0);
+    // 2. 重试按钮 — 带 Loader2 spinner + "重新尝试" 文案
+    await expect(page.getByRole('button', { name: /重新尝试/ })).toBeVisible();
 
-    // 3. 导航保留 — 侧栏仍然可点击
-    const sidebar = page.locator('nav, aside, [role="navigation"]');
-    const sidebarCount = await sidebar.count();
-    expect(sidebarCount).toBeGreaterThan(0);
+    // 3. mock 被命中 — 确认请求确实走了 mock route
+    metricsMock.expectHit();
+
+    // 4. 导航保留 — 侧栏仍然可点击
+    const sidebar = page.getByTestId('admin-sidebar');
+    await expect(sidebar).toBeVisible();
 
     guard.report(testInfo);
   });
@@ -402,8 +400,7 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
       })
     );
 
-    // Login and go to AI config page
-    await loginAsAdmin(page);
+    // Login and go to AI config page (storageState provides auth)
     await page.goto('/admin/settings/ai');
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByText('deepseek-v4-flash')).toBeVisible({ timeout: 15000 });
@@ -461,8 +458,7 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
       })
     );
 
-    // Login and go to AI config page
-    await loginAsAdmin(page);
+    // Login and go to AI config page (storageState provides auth)
     await page.goto('/admin/settings/ai');
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByText('deepseek-v4-flash')).toBeVisible({ timeout: 15000 });
@@ -513,8 +509,7 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
       })
     );
 
-    // Login and navigate to wechat RSS settings
-    await loginAsAdmin(page);
+    // Login and navigate to wechat RSS settings (storageState provides auth)
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByText('wechat-rss')).toBeVisible({ timeout: 15000 });

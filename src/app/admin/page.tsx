@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -12,7 +12,8 @@ import {
   Cpu,
   Layers,
   ChevronRight,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -67,53 +68,53 @@ export default function AdminDashboardPage() {
   const [data, setData] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     setRefreshing(true);
+    setError(null);
     try {
       const res = await fetch("/api/admin/metrics");
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
+      if (!res.ok) {
+        throw new Error("Failed to fetch admin metrics");
       }
+      const json = await res.json();
+      setData(json);
     } catch (e) {
       console.error("Failed to load dashboard metrics", e);
+      setData(null);
+      setError("无法加载系统数据");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
+  // Initial load — inline fetch avoids synchronous setState in effect body
+  // (React 19 lint: no setRefreshing/setError before first await)
   useEffect(() => {
     let cancelled = false;
-
-    fetch("/api/admin/metrics")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch admin metrics");
-        }
-        return res.json();
-      })
-      .then((json: MetricsData) => {
+    async function initialLoad() {
+      try {
+        const res = await fetch("/api/admin/metrics");
+        if (!res.ok) throw new Error("Failed to fetch admin metrics");
+        const json = await res.json();
         if (!cancelled) {
           setData(json);
         }
-      })
-      .catch((e) => {
+      } catch (e) {
+        console.error("Failed to load dashboard metrics", e);
         if (!cancelled) {
-          console.error("Failed to load dashboard metrics", e);
+          setError("无法加载系统数据");
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) {
           setLoading(false);
-          setRefreshing(false);
         }
-      });
-
-    return () => {
-      cancelled = true;
-    };
+      }
+    }
+    initialLoad();
+    return () => { cancelled = true; };
   }, []);
 
   if (loading) {
@@ -133,23 +134,25 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (!data) {
+  if (!loading && !data) {
     return (
-      <div className="text-center py-12 border border-border rounded-xl bg-card">
+      <div data-testid="admin-metrics-error" className="text-center py-12 border border-border rounded-xl bg-card">
         <AlertOctagon className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <h3 className="text-base font-semibold text-foreground">无法加载系统数据</h3>
         <p className="text-xs text-muted-foreground mt-1">请检查后台服务或刷新重试</p>
         <Button
           size="sm"
           onClick={fetchMetrics}
+          disabled={refreshing}
         >
+          {refreshing && <Loader2 className="h-4 w-4 animate-spin" />}
           重新尝试
         </Button>
       </div>
     );
   }
 
-  const { dbStats, systemStats, recentErrors = [], recentTasks = [] } = data;
+  const { dbStats, systemStats, recentErrors = [], recentTasks = [] } = data!;
 
   const cardStats = [
     {

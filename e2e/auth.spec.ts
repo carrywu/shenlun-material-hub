@@ -125,14 +125,12 @@ test.describe('导航（已认证）', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    // Already authenticated via global storageState
-    // Now try to visit login page
+    // Already authenticated via storageState — server component redirects immediately
     await page.goto('/admin/login');
 
-    // Should be redirected away from login (to home or dashboard).
-    // 注意：toHaveURL(regex) 匹配完整 URL 字符串（含 http://host），所以不能用 ^\/ 锚定 pathname。
-    // 冷启时登录页首次编译 + /api/auth/check fetch 较慢，给 30s。
-    await expect(page).not.toHaveURL(/\/admin\/login/, { timeout: 30000 });
+    // 服务端 redirect — 不再需要 30s 等客户端 /api/auth/check fetch
+    await expect(page).toHaveURL(/\/admin$/, { timeout: 15000 });
+    await expect(page.getByTestId('admin-shell-heading')).toBeVisible({ timeout: 15000 });
 
     guard.report(testInfo);
   });
@@ -230,19 +228,31 @@ test.describe('导航（已认证）', () => {
     await page.goto('/admin');
     await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
 
-    // Find the sidebar and capture its width before collapsing
     const sidebar = page.getByTestId('admin-sidebar');
+    const toggle = page.getByTestId('admin-sidebar-toggle');
+
+    // 验证初始状态为展开
+    await expect(sidebar).toHaveAttribute('data-state', 'expanded');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
     const widthBefore = await sidebar.evaluate((el) => el.getBoundingClientRect().width);
 
-    // Click collapse toggle button
-    const collapseBtn = page.getByRole('button', { name: /折叠|收起|展开/i });
-    if (await collapseBtn.isVisible()) {
-      await collapseBtn.click();
+    // 点击折叠
+    await toggle.click();
 
-      // Sidebar should be narrower
-      const widthAfter = await sidebar.evaluate((el) => el.getBoundingClientRect().width);
-      expect(widthAfter).toBeLessThan(widthBefore);
-    }
+    // 状态立即切换（不受 CSS 动画时序影响）
+    await expect(sidebar).toHaveAttribute('data-state', 'collapsed');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    // 宽度最终变窄（poll 等待 CSS transition 完成）
+    await expect.poll(
+      async () => await sidebar.evaluate((el) => el.getBoundingClientRect().width)
+    ).toBeLessThan(widthBefore);
+
+    // 再次点击展开
+    await toggle.click();
+    await expect(sidebar).toHaveAttribute('data-state', 'expanded');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     guard.report(testInfo);
   });

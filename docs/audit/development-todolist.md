@@ -1069,3 +1069,31 @@
 - **剩余 703 failed 全是长跑时序 flaky**：retry 集中在 auth(57)/articles-enhanced(54)/admin(41)/wechat-rss(36)/search(30)/rbac(30) 等，错误类型 `element(s) not found` + 10s timeout。
 - **非回归**：我改过的 spec（cards/articles/review/search/sync-records）单跑全 passed（cards 11/articles 12/review+search+sync 25）；全量失败是 1.7h 长跑 + dev server 压力下的时序 flaky，正是类 D（硬编码等待/超时）范畴。
 - 结论：A/B/C 修了真实 bug + 删死代码 + 选择器加固，但未根治长跑时序 flaky——需类 D + 可能的 config 调整。用户决策：先提交推送（记录遗留），后继续类 D 深挖。
+
+---
+
+## 交互状态契约（Class E）— 4 个残留 flaky 根因修复（2026-06-18）
+
+### 背景
+admin project `--retries=2` 全量仍报 4 flaky（bookmark toggle / login redirect / sidebar collapse / ES-006 metrics 500）。这 4 个根因**非选择器脆弱**（Class D 已修完），而是**逻辑竞态**：点击后未等真实状态、客户端跳转时序、CSS 动画时序、mock route 注册竞态。本轮建立「交互状态契约」补齐工程规范。
+
+### 改动（11 files, +253/-364）
+- **Task 1 — 收藏/已读/已忽略按钮**（`src/app/articles/[id]/page.tsx`）：拆出 `toggleBookmark`/`toggleRead` 函数 + `bookmarking`/`togglingRead` state + `data-pending`/`disabled`/`aria-pressed`/`data-state` + Loader2 spinner + toast。测试（`e2e/article-detail.spec.ts`）改用 `getByTestId` + `waitForResponse` + aria 断言。
+- **Task 2 — 登录页服务端前置跳转**（`src/app/admin/login/page.tsx` + `src/app/login/page.tsx`）：改服务端组件 `cookies()` + `validateSession()` + `redirect()`，表单逻辑拆入 `LoginClient.tsx`，删除客户端 `useEffect` + `/api/auth/check` 跳转。测试用 storageState + 15s 服务端断言。
+- **Task 3 — 侧边栏折叠**（`src/components/admin/AdminShell.tsx`）：aside 加 `data-state`，toggle 加 `data-testid`/`aria-expanded`/`aria-label`。测试用 `data-state`/`aria-expanded` 断言 + `expect.poll` 等动画。
+- **Task 4 — ES-006 metrics 500**（`src/app/admin/page.tsx`）：统一 `fetchMetrics` + `error` state + `data-testid="admin-metrics-error"` + 重试按钮 `disabled={refreshing}` + Loader2。新建 `e2e/helpers/mockApi.ts`（带命中计数）。整个 P1-2 describe 用 admin storageState，ES-006 改 `mockApiError` + `expectHit`。
+
+### 验收证据
+- `pnpm lint`：**0 errors** / 68 warnings（pre-existing no-unused-vars）。
+- `pnpm test`：**76 files / 735 passed**。
+- `pnpm build`：通过。
+- 稳定性验证（隔离单 spec，低并发）：
+  - 收藏/已读切换 ×15 → **30 passed, 0 flaky**。
+  - 服务端跳转 + 侧边栏折叠 ×15 → **30 passed, 0 flaky**。
+  - ES-006 metrics 500 ×20 → **20 passed, 0 flaky**。
+- 隔离运行全部 0 flaky，**4 个原 flaky 根因已修复**。
+- 高并发同跑（3 spec × 20 + ×20 error-states）会偶发 load-induced timeout（DB validateSession / dev server 压力），属环境资源争用，非逻辑 flaky——Playwright `--retries=1` 可吸收。
+
+### 风险
+- 5-project 全量长跑未重跑（耗时长），仅隔离验证 4 个目标测试 + admin project admin spec。
+- 高并发下仍有偶发 timeout（环境性），非本轮状态契约逻辑问题。

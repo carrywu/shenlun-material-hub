@@ -344,3 +344,14 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - **未验证风险**：
   - 全量 5-project 回归未重跑（1.7h，仅 admin project 验证）。
   - 4 flaky 测试仍有偶发失败（非选择器根因，需单独排查逻辑竞态）。
+
+---
+
+## 2026-06-18 补充：交互状态契约（Class E）— 4 flaky 根因修复
+
+详见 `docs/handoff/e2e-flaky-state-contract-handoff.md`。
+
+- **范围**：通过 `data-state`/`data-pending`/`aria-*`/`disabled` 属性建立交互状态契约，4 个原 flaky 测试（bookmark toggle / login redirect / sidebar collapse / ES-006 metrics 500）改等待真实状态变化。
+- **关键改动**：登录页改服务端组件 `redirect()`；收藏/已读按钮加 pending guard；侧边栏加 `data-state`/`aria-expanded`；ES-006 用 `mockApiError` helper + storageState。
+- **验收**：lint 0 errors / test 735 passed / build 通过；4 目标测试隔离运行 ×15-20 全 0 flaky。
+- **遗留**：高并发同跑仍有环境性 timeout（非逻辑 flaky，`--retries=1` 可吸收）；5-project 全量长跑未重跑。

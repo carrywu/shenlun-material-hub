@@ -141,7 +141,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <Menu />
       </Button>
 
-      <aside data-testid="admin-sidebar" className={`flex h-full flex-shrink-0 flex-col border-r border-border bg-card transition-all duration-200
+      <aside data-testid="admin-sidebar" data-state={collapsed ? "collapsed" : "expanded"} className={`flex h-full flex-shrink-0 flex-col border-r border-border bg-card transition-all duration-200
         ${collapsed ? "w-16" : "w-64"}
         ${mobileOpen ? "fixed inset-y-0 left-0 z-50 w-64" : "hidden lg:flex"}
       `}>
@@ -161,6 +161,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           )}
           <div className="ml-auto flex items-center gap-1">
             <Button
+              data-testid="admin-sidebar-toggle"
+              aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"}
+              aria-expanded={!collapsed}
               variant="ghost"
               size="icon-sm"
               className="hidden lg:block"
