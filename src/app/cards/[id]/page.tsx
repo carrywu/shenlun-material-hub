@@ -186,7 +186,7 @@ export default function CardDetailPage() {
             </Button>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-semibold">素材卡详情</h1>
+                <h1 className="text-lg font-semibold" data-testid="card-detail-title">素材卡详情</h1>
                 <Badge variant="secondary" className="text-xs gap-1">
                   <TypeIcon className="h-3 w-3" />
                   {config.label}
@@ -257,6 +257,7 @@ export default function CardDetailPage() {
                   variant="ghost"
                   size="sm"
                   className="text-destructive"
+                  data-testid="card-delete-button"
                   onClick={handleDelete}
                 >
                   <Trash2 className="h-4 w-4" />

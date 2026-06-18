@@ -206,6 +206,7 @@ export default function CardsPage() {
         <PageHeader
           title="素材卡管理"
           description="查看和管理 AI 生成的申论素材卡"
+          data-testid="cards-page-header"
           actions={
             <div className="flex items-center gap-2">
               <BatchSyncToIma
@@ -337,7 +338,7 @@ export default function CardsPage() {
             加载中...
           </div>
         ) : cards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
+          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2" data-testid="cards-empty-state">
             {showArchived ? (
               <p>暂无已归档卡片</p>
             ) : (
@@ -354,12 +355,13 @@ export default function CardsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" data-testid="material-card-grid">
             {cards.map((card) => (
               <div key={card.id} className="relative">
                 <div
                   className="absolute top-3 left-3 z-10"
                   onClick={(e) => e.stopPropagation()}
+                  data-testid={`card-select-${card.id}`}
                 >
                   <Checkbox
                     checked={selectedIds.has(card.id)}
@@ -369,6 +371,7 @@ export default function CardsPage() {
                 </div>
                 <div
                   className="cursor-pointer"
+                  data-testid={`material-card-${card.id}`}
                   onClick={() => router.push(`/cards/${card.id}`)}
                 >
                   <MaterialCardView
