@@ -338,14 +338,18 @@ test.describe('RBAC: 页面入口可见性', () => {
 
     guard.report(testInfo);
   });
+});
+
+// RBAC-PAGE-002 用 admin 登录态（与 RBAC-ADMIN 系列同范式）。
+// 原实现把它塞在 USER describe 里 + 用 loginAsAdmin 中途切换身份，
+// 但普通用户访问 /admin 会被踢回首页 /（非 /admin/login），loginAsAdmin 等不到登录页 → 超时。
+// 直接以 admin 身份运行即可，无需中途登录。
+test.describe('RBAC: 页面入口可见性（ADMIN）', () => {
+  test.use({ storageState: '.auth/admin-storage.json' });
 
   test('RBAC-PAGE-002: ADMIN 看到管理入口链接', async ({ page }, testInfo) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
-
-    // Login as admin
-    const { loginAsAdmin } = await import('./helpers/auth');
-    await loginAsAdmin(page);
 
     await page.goto('/articles');
     await page.waitForLoadState('networkidle');

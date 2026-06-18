@@ -950,3 +950,53 @@
   - 未跑全量 5-project Playwright（admin fixture token 长跑失效污染，非本批回归）。
   - 运维接口用「卡真实 owner」调 service——service 的 owner 校验对真实 owner 放行，已确认正确。
 - 关联提交：pending
+
+## Stage 13：E2E 基础设施债 — admin fixture token 持久化（P2-1）+ RBAC/helper 静态 import
+
+> 来源：Report A P2-1 / Report B §6（全量 Playwright 不可信）。
+
+### BA-7：global-setup cookie 持久化（P2-1）
+
+- 状态：done
+- 目标：admin-gated spec 长跑后不再集体 401。
+- 根因（systematic-debugging 确证）：
+  - DB session 存 PostgreSQL（24h），dev server hot-reload 不影响 token。
+  - 生产 login API 的 Set-Cookie 带 `Max-Age=86400`（持久）。
+  - **但** `e2e/global-setup.ts` 的 `context.addCookies` 没设 `expires` → Playwright 默认 session cookie（`expires:-1`），长跑复用不稳定。
+  - 数据流源头坏值在 global-setup（解析 Set-Cookie 时丢了 Max-Age）。
+- 实际修改文件：
+  - `e2e/global-setup.ts` — `apiLoginAndSave` 解析 Set-Cookie 的 `Max-Age`（无则默认 86400），`addCookies` 设 `expires: now+maxAge`（未来时间戳）；`secure` 按 baseURL 协议动态设（https→true）。
+- 验收证据：跑 global-setup 后 `.auth/admin-storage.json` 的 cookie `expires` 从 `-1` 变为未来时间戳（约 24h 后），`secure` 本地 localhost 为 false。
+
+### BA-8：helper 动态 import 改静态 + RBAC-PAGE-002 修正
+
+- 状态：done
+- 目标：消除 Playwright loader 对 `.ts` 动态 import 的偶发 SyntaxError；修复被 flaky 掩盖的 RBAC-PAGE-002 真实缺陷。
+- 根因（systematic-debugging 确证）：
+  - `rbac-capability-matrix.spec.ts:347` 动态 import 已静态 import 的模块；`cards.spec.ts:223` 动态 import 顶部**已静态 import** 的 `ensureCardExists`（纯冗余遮蔽）。Playwright loader 对 `.ts` 动态 import 偶发 `SyntaxError`。
+  - 改静态 import 后，RBAC-PAGE-002 从 flaky 变**确定性失败**：该用例塞在 USER storageState describe 里却用 `loginAsAdmin` 中途切换身份；USER 访问 `/admin` 被踢回首页 `/`（非 `/admin/login`），`loginAsAdmin` 的 `waitForURL(/\/admin\/login/)` 超时。
+- 实际修改文件：
+  - `e2e/rbac-capability-matrix.spec.ts` — RBAC-PAGE-002 移出 USER describe，单独开 admin storageState describe（与 RBAC-ADMIN 系列同范式），删 `loginAsAdmin` 调用与 unused import。
+  - `e2e/cards.spec.ts` — 删 `:223` 动态 import，直接用顶部已静态 import 的 `ensureCardExists`。
+- 验收证据：
+  - RBAC-PAGE-002 单测稳定通过（1 passed）。
+  - 整个 rbac-capability-matrix spec：45 passed / 0 failed。
+  - lint 0 errors / 67 warnings。
+
+### BA-9：middleware.spec 过时断言修正（P1-残留-1 / Round A 连带遗漏）
+
+- 状态：done
+- 目标：全量 E2E 跑通，移除因认证策略变更而过时的断言。
+- 根因：全量回归暴露 middleware.spec 有 3 条过时「公开页面/API 返回 200」断言——`/articles`（P1-残留-1 改需登录后仍断言匿名 200）、`/explore`+`/discover`（Round A 删路由后仍断言公开可访问）、`/api/articles`+`/api/search`（受保护 API 仍断言匿名 200）。
+- 实际修改文件：
+  - `e2e/middleware.spec.ts` — 删 `/explore`、`/discover`「公开页面」用例（路由已删）；`/articles` 移到「受保护页面重定向」段（断言匿名→`/login`）；`/api/articles`、`/api/search` 从「公开 API」改为「受保护 API 未认证返回 401」。
+- 验收证据：middleware.spec（anonymous project）12 passed / 0 failed。
+
+### 全量 5-project Playwright 结果（本批验证目标）
+
+- 跑全量 2215 用例（5 project × 各 spec），跑至 ~98% 后中断（带 retry 耗时长）。
+- **关键结论：Report A 的「admin-gated spec 集体 401」污染已消除**——全量日志中 `Expected: not 401`（admin 身份失效类失败）出现 **0 次**；401 计数全部来自**预期断言**（api-security「未认证→401」用例，正确通过）。
+- 单独复现 RBAC-ADMIN-009（anonymous project，admin storageState 覆盖）→ 通过，证实 cookie 持久化生效。
+- 剩余失败全部是**预存 UI 测试 flaky**（734 次 retry，集中在 articles-enhanced/auth/admin/search 等 spec 的 timeout/element/locator 选择器与时序问题，Report A 已记录为 P2/P3 测试质量债），与 admin fixture / 本批改动无关。
+- 未跑完最后一分钟全量统计行（带 retry 拖慢 + 交互式会话不宜久等），但关键证据（admin 401 = 0）已确证。
+- 风险：预存 UI flaky 仍是全量「可信度」的噪音源，建议后续单独一批清理（P2/P3）。

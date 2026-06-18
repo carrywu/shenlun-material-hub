@@ -314,7 +314,8 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 
 ### 当前仍未解决（下一批）
 
-1. **E2E 基础设施债（Report A P2-1）**：admin fixture token 长跑失效，全量 5-project Playwright 不可信。建议下一批独立修 global-setup token 持久化 + RBAC helper 改静态 import。
+（harness-review 列出的 P0/P1 残留 + E2E 基础设施债均已关闭。无阻塞性遗留。）
 
 > P1-残留-1（`/api/articles` 强制登录）已于 2026-06-18 修复，见 Stage 11（BA-4）。
-> P1-残留-2（个人 IMA 同步查询 ADMIN 按 owner 隔离 + 后台运维重同步接口）已于 2026-06-18 修复，见 Stage 12（BA-5/BA-6）。至此 harness-review 列出的 P0/P1 残留全部关闭。
+> P1-残留-2（个人 IMA 同步查询 ADMIN 按 owner 隔离 + 后台运维重同步接口）已于 2026-06-18 修复，见 Stage 12（BA-5/BA-6）。
+> E2E 基础设施债（admin fixture token 持久化 P2-1 + RBAC/helper 静态 import + RBAC-PAGE-002 修正）已于 2026-06-18 修复，见 Stage 13（BA-7/BA-8）。

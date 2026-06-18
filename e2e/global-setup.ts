@@ -58,6 +58,12 @@ async function apiLoginAndSave(
   }
   const token = tokenMatch[1];
 
+  // 解析 Max-Age（与生产 cookie 时长一致，默认 24h）。
+  // P2-1: 若不设 expires，Playwright 默认 session cookie（expires:-1），
+  // storageState 复用时长跑不稳定，导致 admin-gated spec 集体 401。
+  const maxAgeMatch = setCookieHeader.match(/Max-Age=(\d+)/i);
+  const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) : 86400;
+
   // 2. 启动浏览器，注入 cookie，导航并存 storageState
   const url = new URL(baseURL);
   const browser = await chromium.launch();
@@ -69,7 +75,10 @@ async function apiLoginAndSave(
       domain: url.hostname,
       path: '/',
       httpOnly: true,
+      secure: url.protocol === 'https:',
       sameSite: 'Strict',
+      // 显式持久化（未来时间戳，秒），不再依赖 session cookie 语义。
+      expires: Math.floor(Date.now() / 1000) + maxAge,
     }]);
 
     const page = await context.newPage();

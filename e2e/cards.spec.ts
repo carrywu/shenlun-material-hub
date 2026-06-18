@@ -220,7 +220,6 @@ test.describe('素材卡详情 /cards/[id]', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    const { ensureCardExists } = await import('./helpers/seed');
     const card = await ensureCardExists();
     await page.goto(`/cards/${card.id}`);
     await page.waitForTimeout(1000);

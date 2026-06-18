@@ -2,37 +2,8 @@ import { expect, test } from "@playwright/test";
 import { attachConsoleGuard } from "./helpers/consoleGuard";
 test.describe("Middleware redirect", () => {
   // ── Public pages (no login required) ─────────────────────────────────────────
-
-  test("公开页面：/articles 无需登录可访问", async ({ page }, testInfo) => {
-    const guard = attachConsoleGuard(page);
-
-    await page.goto("/articles");
-    await expect(page).toHaveURL(/\/articles/);
-    await expect(page.getByRole("heading", { name: /文章/ })).toBeVisible();
-
-    guard.report(testInfo);
-  });
-
-  test("公开页面：/explore 无需登录可访问", async ({ page }, testInfo) => {
-    const guard = attachConsoleGuard(page);
-
-    await page.goto("/explore");
-    await expect(page).toHaveURL(/\/explore/);
-    // Page should render explore content (heading or main region visible)
-    await expect(page.locator("main").first()).toBeVisible();
-
-    guard.report(testInfo);
-  });
-
-  test("公开页面：/discover 无需登录可访问", async ({ page }, testInfo) => {
-    const guard = attachConsoleGuard(page);
-
-    await page.goto("/discover");
-    await expect(page).toHaveURL(/\/discover/);
-    await expect(page.locator("main").first()).toBeVisible();
-
-    guard.report(testInfo);
-  });
+  // 注：/articles 已改为需登录（需求第 3 节，P1-残留-1），见下方「受保护页面」段。
+  // /explore、/discover 路由已在 Round A 删除，对应「公开页面」断言已移除。
 
   // ── Protected pages (redirect to login) ──────────────────────────────────────
   // These tests must NOT inherit admin auth cookies from config storageState
@@ -66,6 +37,15 @@ test.describe("Middleware redirect", () => {
       guard.report(testInfo);
     });
 
+    test("受保护页面：/articles 重定向到前台登录页（需登录，P1-残留-1）", async ({ page }, testInfo) => {
+      const guard = attachConsoleGuard(page);
+
+      await page.goto("/articles");
+      await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
+
+      guard.report(testInfo);
+    });
+
     test("受保护页面：/cards 重定向到前台登录页（需登录）", async ({ page }, testInfo) => {
       const guard = attachConsoleGuard(page);
 
@@ -89,27 +69,23 @@ test.describe("Middleware redirect", () => {
 
   // ── Public APIs (no auth required) ───────────────────────────────────────────
 
-  test("公开 API：/api/articles 返回 200 和公开数据", async ({ request }) => {
-    const res = await request.get("/api/articles");
-    expect(res.status()).toBe(200);
-
-    const body = await res.json();
-    expect(Array.isArray(body.data)).toBe(true);
-
-    // All returned items must be public
-    for (const item of body.data) {
-      expect(item.visibility).toBe("public");
-    }
-  });
-
-  test("公开 API：/api/search 返回 200", async ({ request }) => {
-    const res = await request.get("/api/search?q=test");
-    expect(res.status()).toBe(200);
-  });
-
   test("公开 API：/api/health 返回 200", async ({ request }) => {
     const res = await request.get("/api/health");
     expect(res.status()).toBe(200);
+  });
+
+  // ── Protected APIs (auth required) ──────────────────────────────────────────
+  // /api/articles 与 /api/search 是核心学习接口，必须登录（需求第 3 节）。
+  // P1-残留-1 后匿名应返回 401（原「公开 API 返回 200」断言已过时）。
+
+  test("受保护 API：/api/articles 未认证返回 401", async ({ request }) => {
+    const res = await request.get("/api/articles");
+    expect(res.status()).toBe(401);
+  });
+
+  test("受保护 API：/api/search 未认证返回 401", async ({ request }) => {
+    const res = await request.get("/api/search?q=test");
+    expect(res.status()).toBe(401);
   });
 
   // ── Protected APIs (require auth) ────────────────────────────────────────────
