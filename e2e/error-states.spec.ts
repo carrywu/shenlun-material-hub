@@ -68,15 +68,18 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    await page.route('**/api/articles**', (route) => route.abort('failed'));
+    await page.route('**/api/articles**', (route) =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: '服务器错误' }) })
+    );
 
     await page.goto('/articles');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText('加载失败')).toBeVisible({ timeout: 15000 });
+    // ArticlesPage fetch 在 !res.ok 时 throw "请求失败"，catch setError 显示该文案
+    await expect(page.getByText('请求失败')).toBeVisible({ timeout: 15000 });
 
-    // 1. 中文错误文案 — catch 分支显示"加载失败"
+    // 1. 中文错误文案 — catch 分支显示"请求失败"
     const bodyText = await page.locator('body').textContent();
-    expect(bodyText).toContain('加载失败');
+    expect(bodyText).toContain('请求失败');
 
     // 3. 导航保留 — 可点击离开
     const links = page.locator('a[href]');
@@ -212,11 +215,13 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
 
     await page.goto('/articles/non-existent-id-12345');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText('文章不存在')).toBeVisible({ timeout: 15000 });
+    // articles/[id]/page.tsx fetchArticle 在 !res.ok 时 throw "请求失败"，
+    // error 分支渲染 {error ?? "文章不存在"}，故 404 时显示 "请求失败"
+    await expect(page.getByText('请求失败')).toBeVisible({ timeout: 15000 });
 
-    // 1. 中文"文章不存在"文案 — articles/[id]/page.tsx
+    // 1. 错误文案 — articles/[id]/page.tsx error 分支
     const bodyText = await page.locator('body').textContent();
-    expect(bodyText).toContain('文章不存在');
+    expect(bodyText).toContain('请求失败');
 
     // 3. 导航保留 — "返回列表"按钮
     const backLink = page.locator('a, button').filter({ hasText: /返回列表/ });

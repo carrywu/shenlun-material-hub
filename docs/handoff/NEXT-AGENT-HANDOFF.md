@@ -196,3 +196,32 @@ pnpm seed:e2e-accounts        # 幂等创建 e2e 测试账号
 - **lint `no-synchronous-setState-in-effect`**：参考 `admin/page.tsx` 的 `initialLoad()` 模式，不要把含同步 setState 的函数直接放进 useEffect。
 - **`searchParams`/`cookies()` 报错**：Next.js 16 它们是 Promise，必须 `await`。
 - **想确认某个改动是否安全**：`git log --oneline` 看提交链，`git show <hash>` 看具体改了什么。所有改动都在 `fix/full-audit-p0-p1`，`git revert` 可回滚，无 DB schema 变更。
+
+---
+
+## 9. 2026-06-19 全量回归暴露测试稳定性回归 + 主因已修
+
+> 接手时**必读本节**。上一版 handoff（§0-§8）认为 flaky 已收尾，但 2026-06-18 实跑全量 5-project（`--retries=1`，2.5h）暴露 **785 failed（682 确定性）**。本节记录诊断 + 已修内容 + 剩余债。详细开发文件：`docs/superpowers/specs/2026-06-18-e2e-stability-fix.md`。
+
+### 关键结论
+- ✅ **本分支无业务 bug**：P0 指标全 0（`Expected: not 401`、`location is not defined`、`uncaughtException`）。P0/P1 安全修复确认有效。
+- ❌ Class D（`5a72156`）的测试改写 + 历史遗留，导致 admin isolated 单 worker 下 **127 个确定性失败**。handoff 之前「retry 能吸收」的判断**失真**（Class D 验收只跑 admin project + retries=2 + 5 did-not-run 掩盖了）。
+
+### 已修（admin isolated 127 → ~35，纯测试改动，无业务代码变更）
+1. **★ 主因：token 污染（消 77 个）** — `auth.spec.ts` 登出测试用共享 `.auth/admin-storage.json`（token T1）→ 点退出 → `/api/auth/logout` `revokeSession(T1)` 删 DB → 后续所有 admin-gated spec 拿失效 token 401。**修**：登出测试改匿名 context + UI 真登录拿 fresh session，不碰共享 T1。
+2. **mock 数据类型（消 7 个）** — `articles-enhanced` MOCK_DETAIL 的 aiCategories 等给 array，页面 `parseStringList` 期望 JSON string → `value.split is not a function` 崩 ErrorBoundary。**修**：三字段改 `JSON.stringify([...])`。
+3. **ai-config testid 加错文件 + 文案脱节（消 6 个）** — Admin 测试访问 `/admin/settings/ai`（→AiConfigPage）却断言 `settings-ai-page-header`（在 `/settings/ai` 前台页）；「提示词配置」实际是「AI 默认提示词模板」。**修**：Admin 区域用 `ai-config-page`+正确文案，User 区域保留 settings-ai-page-header。
+4. **error-states 文案（消 2 个）** — ES-002 mock 改 500 + 断言「请求失败」；ES-007 404 断言「请求失败」（页面 fetch throw「请求失败」）。
+
+### 剩余 ~35（测试维护债，无业务 bug，待后续清理）
+- **articles-enhanced 10**：spec 内部串扰（DETAIL-002 单跑过、整 spec 跪），疑似 `articles-enhanced.spec.ts:708/847` 手动 `newContext()` 泄漏，未定位。
+- **visual-regression 5**：Round B 改 Card 圆角后截图基线过期，**修法是 `pnpm exec playwright test e2e/visual-regression.spec.ts --update-snapshots`**（非改测试，需人工确认新截图）。
+- **其余 ~20**：admin Tasks/Logs 筛选 / Clean 取消、error-states toast 断言、bugfix-regression 表单字段、settings/sync-records/admin-dashboard 各 1-2 个断言脱节。
+- 详见 `docs/superpowers/specs/2026-06-18-e2e-stability-fix.md`（已确证事实 F1-F11、根因、诊断实验、分情况修复策略、验证矩阵）。
+
+### 接手下一步（若继续清剩余 35）
+1. 先单独跑各 spec 确认现状：`CI=1 pnpm exec playwright test e2e/<spec>.spec.ts --project=admin --workers=1 --retries=0`
+2. articles-enhanced 串扰：二分 line 708/847 newContext 前后，确认泄漏点。
+3. visual-regression：跑 `--update-snapshots`，人工核对新截图。
+4. 目标：admin isolated 0 failed → 4 project isolated → 5-project 全量 → 合并。
+- **诊断纪律**（handoff §4.1 仍适用）：隔离 `--workers=1` 复现区分「真 flaky」vs「环境性」；本批剩余全是单跑也跪的真测试 bug。

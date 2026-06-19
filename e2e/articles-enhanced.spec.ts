@@ -503,9 +503,12 @@ test.describe('P1-5 文章详情增强', () => {
     aiDecision: 'accept',
     aiScore: 8.5,
     aiReason: '文章主题与申论密切相关，论述系统全面',
-    aiCategories: ['经济发展', '新发展格局'],
-    aiScenarios: ['综合分析', '对策建议'],
-    aiGoldenSentences: ['新发展格局是高质量发展的战略支撑'],
+    // AI 列表字段在 API/schema 里是 JSON string（String?），不是 array。
+    // mock 必须用 JSON.stringify，否则页面 parseStringList 走 catch 对 array
+    // 调 .split 会崩（value.split is not a function），触发 ErrorBoundary。
+    aiCategories: JSON.stringify(['经济发展', '新发展格局']),
+    aiScenarios: JSON.stringify(['综合分析', '对策建议']),
+    aiGoldenSentences: JSON.stringify(['新发展格局是高质量发展的战略支撑']),
     aiSummary: '本文围绕新发展格局，阐述高质量发展的内涵和路径',
     publishedAt: '2026-06-10T08:00:00Z',
     createdAt: '2026-06-11T03:00:00Z',

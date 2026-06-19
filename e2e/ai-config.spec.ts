@@ -12,9 +12,9 @@ test.describe('Admin AI Config', () => {
 
     await page.goto('/admin/settings/ai');
     // AdminShell h1 shows "AI 配置"
-    await expect(page.getByTestId('settings-ai-page-header')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('ai-config-page')).toBeVisible({ timeout: 10000 });
     // Prompt templates section visible
-    await expect(page.getByText('提示词配置')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('AI 默认提示词模板')).toBeVisible({ timeout: 10000 });
     // API config form visible — check for "服务配置" card title
     await expect(page.getByText('服务配置')).toBeVisible();
 
@@ -26,10 +26,10 @@ test.describe('Admin AI Config', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/settings/ai');
-    await expect(page.getByTestId('settings-ai-page-header')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('ai-config-page')).toBeVisible({ timeout: 10000 });
 
     // Wait for prompt templates section to load (API call)
-    await expect(page.getByText('提示词配置')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('AI 默认提示词模板')).toBeVisible({ timeout: 15000 });
 
     // Check for expected prompt template names (these come from /api/ai-config/prompts)
     const assessPrompt = page.getByText('文章评估提示词');
@@ -50,10 +50,10 @@ test.describe('Admin AI Config', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/settings/ai');
-    await expect(page.getByTestId('settings-ai-page-header')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('ai-config-page')).toBeVisible({ timeout: 10000 });
 
     // Wait for prompt templates to load
-    await expect(page.getByText('提示词配置')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('AI 默认提示词模板')).toBeVisible({ timeout: 15000 });
 
     // Verify deprecated types are NOT present
     await expect(page.locator('body')).not.toContainText('数据事实提示词');
@@ -71,11 +71,12 @@ test.describe('Admin AI Config', () => {
       route.fulfill({ status: 500, body: JSON.stringify({ error: '连接失败：超时' }) })
     );
     await page.goto('/admin/settings/ai');
-    await expect(page.getByTestId('settings-ai-page-header')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('ai-config-page')).toBeVisible({ timeout: 10000 });
     const testButton = page.getByRole('button', { name: /测试|Test/i });
     if (await testButton.isVisible()) {
       await testButton.click();
-      await expect(page.getByText(/失败|错误|超时/)).toBeVisible({ timeout: 5000 });
+      // 精确匹配测试结果 Badge（避免误匹配 DB 解密失败提示等其他含「失败」的元素）
+      await expect(page.getByText('失败: 连接失败：超时')).toBeVisible({ timeout: 5000 });
     }
 
     guard.report(testInfo);
@@ -86,7 +87,7 @@ test.describe('Admin AI Config', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/settings/ai');
-    await expect(page.getByTestId('settings-ai-page-header')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('ai-config-page')).toBeVisible({ timeout: 10000 });
 
     // Save button visible
     const saveBtn = page.getByRole('button', { name: '保存配置' }).or(page.getByRole('button', { name: '保存中...' }));
@@ -95,7 +96,7 @@ test.describe('Admin AI Config', () => {
     // Click save (may succeed or fail depending on config state)
     await page.getByRole('button', { name: '保存配置' }).click().catch(() => {});
     // Wait for response — either toast appears or page stays stable
-    await expect(page.getByTestId('settings-ai-page-header')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('ai-config-page')).toBeVisible({ timeout: 10000 });
 
     guard.report(testInfo);
   });
@@ -105,7 +106,7 @@ test.describe('Admin AI Config', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin/settings/ai');
-    await expect(page.getByTestId('settings-ai-page-header')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('ai-config-page')).toBeVisible({ timeout: 10000 });
 
     // Test button visible in the status card
     const testBtn = page.getByRole('button', { name: /测试连接|测试中/ });

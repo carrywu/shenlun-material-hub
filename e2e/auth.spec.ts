@@ -258,18 +258,31 @@ test.describe('导航（已认证）', () => {
   });
 });
 
-// ─── 登出 (authenticated via global storageState) ──────────────────
+// ─── 登出 (用临时登录，不污染共享 storageState) ───────────────────
+//
+// ★ 关键：登出测试**不能**复用 `.auth/admin-storage.json`（globalSetup 写入的共享
+// admin token T1）。logout API 会 revokeSession(T1) 从 DB 删除该 token，导致全量
+// 序列里后续所有用 admin-storage.json 的 spec 拿失效 token → 401 → 集体失败
+// （诊断见 docs/superpowers/specs/2026-06-18-e2e-stability-fix.md §3）。
+// 改为匿名 context 起，自己通过 UI 登录拿一个 fresh session，登出只 revoke 这个
+// fresh token，T1 不受影响。
 
 test.describe('登出（已认证）', () => {
-  // P0-004 (B3): 顶层 storageState 已移除，显式声明 admin storageState
-  test.use({ storageState: '.auth/admin-storage.json' });
+  // 匿名 context 起，避免复用共享 storageState 的 token
+  test.use({ storageState: { cookies: [], origins: [] } });
   test('登出：点击登出后清除 cookie 跳转登录页', async ({ page }, testInfo) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    await page.goto('/');
-    // Already authenticated via global storageState
-    // Verify we are logged in
+    // 通过 UI 真登录，拿一个本测试专属的 fresh session（不复用共享 token）
+    await page.goto('/admin/login');
+    await expect(page.getByPlaceholder('请输入账号')).toBeVisible({ timeout: 10000 });
+    await page.getByPlaceholder('请输入账号').fill('admin');
+    await page.getByPlaceholder('请输入密码').fill('admin123');
+    await page.getByRole('button', { name: '登录管理后台' }).click();
+    await expect(page).toHaveURL(/\/admin$/, { timeout: 15000 });
+
+    // Verify we are logged in (fresh session cookie)
     const cookiesBefore = await page.context().cookies();
     expect(cookiesBefore.some((c) => c.name === 'auth_token')).toBe(true);
 
