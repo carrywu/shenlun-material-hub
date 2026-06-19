@@ -5,11 +5,12 @@ interface PageHeaderProps {
   description?: string
   actions?: React.ReactNode
   className?: string
+  "data-testid"?: string
 }
 
-function PageHeader({ title, description, actions, className }: PageHeaderProps) {
+function PageHeader({ title, description, actions, className, ...rest }: PageHeaderProps) {
   return (
-    <div data-slot="page-header" className={cn("flex items-start justify-between gap-4", className)}>
+    <div data-slot="page-header" className={cn("flex items-start justify-between gap-4", className)} {...rest}>
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         {description && (

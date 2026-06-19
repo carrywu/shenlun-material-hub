@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getUserFromRequest } from "@/lib/auth";
+import { getUserFromRequest, unauthorizedResponse } from "@/lib/auth";
 import { contentVisibilityWhere, mergeWhere } from "@/lib/data-isolation";
 
 export async function GET(request: NextRequest) {
   try {
+    // 需求第 3 节：核心学习页需登录。/api/articles 必须登录（P1-残留-1）。
+    // middleware 已保护页面 /articles，但 API 直调会穿透——此处 API 层再挡一次。
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return unauthorizedResponse();
+    }
+
     const { searchParams } = new URL(request.url);
     // P2-13: safe parseInt with NaN guard
     const safeParseInt = (val: string | null, fallback: number): number => {
@@ -117,37 +124,23 @@ export async function GET(request: NextRequest) {
       where.adminReviewStatus = "approved";
     }
 
-    // Visibility: authenticated users see public+own+legacy; anonymous see public+legacy(null) only
-    const user = await getUserFromRequest(request);
-    if (user) {
-      where = mergeWhere(where, contentVisibilityWhere(user));
-      // P3: ADMIN 可按审核状态筛选；非 ADMIN 由 contentVisibilityWhere 强制 approved
-      if (user.role === "ADMIN" && adminReviewStatus && adminReviewStatus !== "all") {
-        where.adminReviewStatus = adminReviewStatus;
+    // Visibility: 用户已登录（入口已拒匿名），按角色套可见性过滤。
+    where = mergeWhere(where, contentVisibilityWhere(user));
+    // P3: ADMIN 可按审核状态筛选；非 ADMIN 由 contentVisibilityWhere 强制 approved
+    if (user.role === "ADMIN" && adminReviewStatus && adminReviewStatus !== "all") {
+      where.adminReviewStatus = adminReviewStatus;
+    }
+    // 收藏筛选：仅返回当前用户已收藏的文章
+    if (filter === "favorites") {
+      const favs = await db.articleFavorite.findMany({
+        where: { userId: user.id },
+        select: { contentItemId: true },
+      });
+      const favIds = favs.map(f => f.contentItemId);
+      if (favIds.length === 0) {
+        return NextResponse.json({ data: [], total: 0, page, pageSize, totalPages: 0 });
       }
-      // 收藏筛选：仅返回当前用户已收藏的文章
-      if (filter === "favorites") {
-        const favs = await db.articleFavorite.findMany({
-          where: { userId: user.id },
-          select: { contentItemId: true },
-        });
-        const favIds = favs.map(f => f.contentItemId);
-        if (favIds.length === 0) {
-          return NextResponse.json({ data: [], total: 0, page, pageSize, totalPages: 0 });
-        }
-        where.id = { in: favIds };
-      }
-    } else {
-      // P3-final: 匿名用户只看 adminReviewStatus=approved 且 visibility=public
-      // 注意：原 P2-14 想包含 legacy visibility:null 行，但 schema 里 visibility 是
-      // 非空字段（String @default("public")），Prisma 拒绝 visibility:null 条件
-      // （PrismaClientValidationError → 500）。DB 实测 0 行 visibility IS NULL，
-      // 该条件零命中且致 500，删除。
-      const visibilityFilter = {
-        adminReviewStatus: "approved",
-        visibility: "public",
-      };
-      where = mergeWhere(where, visibilityFilter);
+      where.id = { in: favIds };
     }
 
     const [data, total] = await Promise.all([

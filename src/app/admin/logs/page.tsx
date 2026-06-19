@@ -93,7 +93,7 @@ export default function AdminLogsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">系统日志</h2>
+          <h2 data-testid="admin-logs-page-header" className="text-lg font-semibold text-foreground">系统日志</h2>
           <p className="text-xs text-muted-foreground mt-1">查看认证、AI、采集与备份相关日志</p>
         </div>
         <div className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export default function AdminLogsPage() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           <Select value={level} onValueChange={(value) => setLevel(value ?? "all")}>
-            <SelectTrigger aria-label="日志级别"><SelectValue placeholder="级别" /></SelectTrigger>
+            <SelectTrigger data-testid="logs-level-select" aria-label="日志级别"><SelectValue placeholder="级别" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部级别</SelectItem>
               <SelectItem value="INFO">INFO</SelectItem>
@@ -163,7 +163,7 @@ export default function AdminLogsPage() {
             </SelectContent>
           </Select>
           <Select value={category} onValueChange={(value) => setCategory(value ?? "all")}>
-            <SelectTrigger aria-label="日志分类"><SelectValue placeholder="分类" /></SelectTrigger>
+            <SelectTrigger data-testid="logs-category-select" aria-label="日志分类"><SelectValue placeholder="分类" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部分类</SelectItem>
               <SelectItem value="SYSTEM">SYSTEM</SelectItem>

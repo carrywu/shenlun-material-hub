@@ -14,7 +14,7 @@ test.describe('搜索页', () => {
     await expect(page.getByPlaceholder('输入关键词搜索素材卡...')).toBeVisible();
     await expect(page.getByRole('button', { name: '搜索' })).toBeVisible();
     // Page title
-    await expect(page.getByRole('heading', { name: '素材卡检索' })).toBeVisible();
+    await expect(page.getByTestId('search-page-header')).toBeVisible();
 
     guard.report(testInfo);
   });
@@ -172,9 +172,8 @@ test.describe('搜索页', () => {
       await route.continue();
     });
     await page.goto('/search');
-    await page.waitForTimeout(2000);
     // Should have loaded content or empty state
-    await expect(page.locator('h1, h2, input, [role="combobox"]').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('search-page-header')).toBeVisible({ timeout: 10000 });
     guard.report(testInfo);
   });
 });

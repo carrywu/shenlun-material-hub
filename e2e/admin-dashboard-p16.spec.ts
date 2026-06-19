@@ -20,12 +20,12 @@ test.describe('Admin Dashboard — P1-6 补充', () => {
     await page.goto('/admin');
     // 非管理员应被中间件重定向到 / 或显示 403
     // 验证不会停留在 /admin 页面看到管理内容
-    await page.waitForTimeout(2000);
+    await expect(page).toHaveURL(/./, { timeout: 10000 });
     const currentUrl = page.url();
     const isAdminPage = currentUrl.includes('/admin');
     // 如果仍在 /admin，页面不应显示管理内容（应显示无权限提示或重定向）
     if (isAdminPage) {
-      const adminContent = page.getByRole('heading', { name: '系统概览' });
+      const adminContent = page.getByTestId('admin-shell-heading');
       const isVisible = await adminContent.isVisible({ timeout: 3000 }).catch(() => false);
       expect(isVisible).toBe(false);
     } else {
@@ -53,7 +53,7 @@ test.describe('Admin Dashboard — P1-6 补充', () => {
 
     await page.goto('/admin');
     // AdminShell 应正常渲染（侧边栏在）
-    await page.waitForTimeout(3000);
+    await expect(page.locator('body')).toBeVisible({ timeout: 10000 });
 
     // 页面不应白屏或崩溃
     const bodyVisible = await page.locator('body').isVisible();
@@ -78,7 +78,7 @@ test.describe('Admin Sidebar — P1-6', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin');
-    await page.waitForTimeout(2000);
+    await expect(page.getByTestId('admin-shell-heading').or(page.locator('main, [data-slot="sidebar"]')).first()).toBeVisible({ timeout: 10000 });
 
     // AdminShell 侧边栏导航应包含中文菜单项
     const sidebar = page.locator('nav, aside, [data-slot="sidebar"]').first();
@@ -108,7 +108,7 @@ test.describe('Admin Sidebar — P1-6', () => {
 
     await page.goto('/admin');
     // 等待 metrics 加载
-    await page.waitForTimeout(3000);
+    await expect(page.getByTestId('admin-shell-heading').or(page.locator('main, table')).first()).toBeVisible({ timeout: 10000 });
 
     // 查找带链接的快速入口（Card 内的 a 标签或按钮）
     const quickLinks = page.locator('a[href*="/admin/"], a[href*="/sources"], a[href*="/tasks"], a[href*="/articles"]');
@@ -118,8 +118,8 @@ test.describe('Admin Sidebar — P1-6', () => {
       // 点击第一个快速入口
       const firstHref = await quickLinks.first().getAttribute('href');
       await quickLinks.first().click();
-      await page.waitForTimeout(2000);
       // 应跳转到对应页面
+      await expect(page).toHaveURL(/./, { timeout: 10000 });
       const currentUrl = page.url();
       expect(currentUrl).not.toBe('/admin');
       if (firstHref) {

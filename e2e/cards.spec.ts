@@ -12,13 +12,13 @@ test.describe('素材卡列表 /cards', () => {
 
     await page.goto('/cards');
     // Wait for page to finish loading
-    await expect(page.locator('text=素材卡管理')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('cards-page-header')).toBeVisible({ timeout: 15000 });
 
     // Either cards are rendered, or the empty state is visible
     // heading 出现时卡片可能还在异步加载，轮询等数据落定
     await expect(async () => {
-      const hasCards = await page.locator('.grid .cursor-pointer').first().isVisible().catch(() => false);
-      const hasEmpty = await page.locator('text=暂无素材卡').isVisible().catch(() => false);
+      const hasCards = await page.locator('[data-testid^="material-card-"]').first().isVisible().catch(() => false);
+      const hasEmpty = await page.getByTestId('cards-empty-state').isVisible().catch(() => false);
       expect(hasCards || hasEmpty).toBe(true);
     }).toPass({ timeout: 15000, intervals: [1000, 2000, 5000] });
 
@@ -30,7 +30,7 @@ test.describe('素材卡列表 /cards', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/cards');
-    await expect(page.locator('text=素材卡管理')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('cards-page-header')).toBeVisible({ timeout: 15000 });
 
     // The three confirmed filter buttons: 全部 / 已确认 / 未确认
     const btnAll = page.getByRole('button', { name: '全部' });
@@ -43,15 +43,12 @@ test.describe('素材卡列表 /cards', () => {
 
     // Click "已确认"
     await btnConfirmed.click();
-    await page.waitForTimeout(500);
 
     // Click "未确认"
     await btnUnconfirmed.click();
-    await page.waitForTimeout(500);
 
     // Click "全部" to restore
     await btnAll.click();
-    await page.waitForTimeout(500);
 
     guard.report(test.info());
   });
@@ -61,7 +58,7 @@ test.describe('素材卡列表 /cards', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/cards');
-    await expect(page.locator('text=素材卡管理')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('cards-page-header')).toBeVisible({ timeout: 15000 });
 
     const searchInput = page.getByPlaceholder('搜索素材卡...');
     await expect(searchInput).toBeVisible();
@@ -69,13 +66,10 @@ test.describe('素材卡列表 /cards', () => {
     // Fill a search term and press Enter
     await searchInput.fill('申论');
     await page.keyboard.press('Enter');
-    // Wait for the API response and re-render
-    await page.waitForTimeout(1000);
 
     // Clear search
     await searchInput.clear();
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(500);
 
     guard.report(test.info());
   });
@@ -85,10 +79,10 @@ test.describe('素材卡列表 /cards', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/cards');
-    await expect(page.locator('text=素材卡管理')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('cards-page-header')).toBeVisible({ timeout: 15000 });
 
     // Find the first clickable card container（轮询等异步加载，避免 heading 一出现就扑空）
-    const firstCard = page.locator('.grid .cursor-pointer').first();
+    const firstCard = page.locator('[data-testid^="material-card-"]').first();
     try {
       await expect(firstCard).toBeVisible({ timeout: 15000 });
     } catch {
@@ -100,7 +94,7 @@ test.describe('素材卡列表 /cards', () => {
     expect(page.url()).toMatch(/\/cards\/[^/]+/);
 
     // Detail page should load
-    await expect(page.locator('text=素材卡详情')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('card-detail-title')).toBeVisible({ timeout: 10000 });
 
     guard.report(test.info());
   });
@@ -110,10 +104,10 @@ test.describe('素材卡列表 /cards', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/cards');
-    await expect(page.locator('text=素材卡管理')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('cards-page-header')).toBeVisible({ timeout: 15000 });
 
     // Check if there are cards to select（轮询等异步加载）
-    const cardCheckboxes = page.locator('.grid .absolute.top-3.left-3 button, .grid .absolute.top-3.left-3 [role="checkbox"]');
+    const cardCheckboxes = page.locator('[data-testid^="card-select-"] [role="checkbox"], [data-testid^="card-select-"] button');
     try {
       await expect(cardCheckboxes.first()).toBeVisible({ timeout: 15000 });
     } catch {
@@ -124,8 +118,8 @@ test.describe('素材卡列表 /cards', () => {
     await cardCheckboxes.first().click();
 
     // Batch action bar should appear showing selected count
-    await expect(page.locator('text=已选')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('text=批量同步')).toBeVisible();
+    await expect(page.getByText(/已选/)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: /批量同步/ })).toBeVisible();
 
     guard.report(test.info());
   });
@@ -135,14 +129,14 @@ test.describe('素材卡列表 /cards', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/cards');
-    await expect(page.locator('text=素材卡管理')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('cards-page-header')).toBeVisible({ timeout: 15000 });
 
     // Pagination controls only appear when totalPages > 1
     const nextBtn = page.getByRole('button', { name: /下一页/ });
     if (await nextBtn.isVisible().catch(() => false)) {
       await nextBtn.click();
-      await page.waitForTimeout(1000);
       // Should still be on /cards
+      await expect(page.getByTestId('cards-page-header')).toBeVisible({ timeout: 10000 });
       expect(page.url()).toContain('/cards');
     }
     // If no pagination controls, the test passes trivially (single page)
@@ -159,7 +153,7 @@ test.describe('素材卡详情 /cards/[id]', () => {
     const card = await ensureCardExists();
 
     await page.goto(`/cards/${card.id}`);
-    await expect(page.locator('text=素材卡详情')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('card-detail-title')).toBeVisible({ timeout: 15000 });
 
     // Card content should be visible — no raw JSON keys exposed
     const visibleText = await page.innerText('body');
@@ -176,7 +170,7 @@ test.describe('素材卡详情 /cards/[id]', () => {
 
     const card = await ensureCardExists();
     await page.goto(`/cards/${card.id}`);
-    await expect(page.locator('text=素材卡详情')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('card-detail-title')).toBeVisible({ timeout: 15000 });
 
     // Click the edit button
     const editBtn = page.getByRole('button', { name: /编辑/ });
@@ -195,7 +189,7 @@ test.describe('素材卡详情 /cards/[id]', () => {
 
     const card = await ensureCardExists();
     await page.goto(`/cards/${card.id}`);
-    await expect(page.locator('text=素材卡详情')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('card-detail-title')).toBeVisible({ timeout: 15000 });
 
     // Find confirm/unconfirm toggle button
     const confirmBtn = page.getByRole('button', { name: /确认|取消确认/ });
@@ -206,9 +200,9 @@ test.describe('素材卡详情 /cards/[id]', () => {
 
     // Click to toggle
     await confirmBtn.click();
-    await page.waitForTimeout(1500);
 
     // State should have changed
+    await expect(confirmBtn).toBeVisible({ timeout: 10000 });
     const newText = await confirmBtn.innerText().catch(() => '');
     // The button label should toggle between "确认" and "取消确认"
     expect(newText).not.toBe(initialText);
@@ -220,10 +214,9 @@ test.describe('素材卡详情 /cards/[id]', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    const { ensureCardExists } = await import('./helpers/seed');
     const card = await ensureCardExists();
     await page.goto(`/cards/${card.id}`);
-    await page.waitForTimeout(1000);
+    await expect(page.getByTestId('card-detail-title')).toBeVisible({ timeout: 15000 });
     const deleteBtn = page.getByRole('button', { name: /删除|Delete/i });
     if (await deleteBtn.isVisible()) {
       await deleteBtn.click();
@@ -240,11 +233,11 @@ test.describe('素材卡详情 /cards/[id]', () => {
 
     const card = await ensureCardExists();
     await page.goto(`/cards/${card.id}`);
-    await expect(page.locator('text=素材卡详情')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('card-detail-title')).toBeVisible({ timeout: 15000 });
 
     // The delete button is a ghost button with a trash icon, no visible text label
     // It is inside the header actions area
-    const deleteBtn = page.locator('button.text-destructive').first();
+    const deleteBtn = page.getByTestId('card-delete-button');
     await expect(deleteBtn).toBeVisible({ timeout: 10000 });
 
     // Click delete — should trigger a confirm dialog
@@ -256,7 +249,7 @@ test.describe('素材卡详情 /cards/[id]', () => {
     await deleteBtn.click();
 
     // After dismissing, we should still be on the detail page
-    await page.waitForTimeout(500);
+    await expect(page.getByTestId('card-detail-title')).toBeVisible({ timeout: 10000 });
     expect(page.url()).toContain(`/cards/${card.id}`);
 
     guard.report(test.info());

@@ -323,14 +323,16 @@ test.describe('RBAC: 页面入口可见性', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/articles');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('body')).toBeVisible();
 
     // USER 不应看到 admin 导航链接
     const adminLink = page.locator('a[href*="/admin"]').first();
     if (await adminLink.isVisible()) {
       // 如果可见，USER 点击后应被拦截
       await adminLink.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('body')).toBeVisible();
       const url = page.url();
       // 应重定向到 login 或显示 403
       expect(url).toMatch(/\/admin\/login|403|forbidden/);
@@ -338,17 +340,22 @@ test.describe('RBAC: 页面入口可见性', () => {
 
     guard.report(testInfo);
   });
+});
+
+// RBAC-PAGE-002 用 admin 登录态（与 RBAC-ADMIN 系列同范式）。
+// 原实现把它塞在 USER describe 里 + 用 loginAsAdmin 中途切换身份，
+// 但普通用户访问 /admin 会被踢回首页 /（非 /admin/login），loginAsAdmin 等不到登录页 → 超时。
+// 直接以 admin 身份运行即可，无需中途登录。
+test.describe('RBAC: 页面入口可见性（ADMIN）', () => {
+  test.use({ storageState: '.auth/admin-storage.json' });
 
   test('RBAC-PAGE-002: ADMIN 看到管理入口链接', async ({ page }, testInfo) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    // Login as admin
-    const { loginAsAdmin } = await import('./helpers/auth');
-    await loginAsAdmin(page);
-
     await page.goto('/articles');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('body')).toBeVisible();
 
     // ADMIN 应看到管理导航
     const bodyText = await page.locator('body').textContent();

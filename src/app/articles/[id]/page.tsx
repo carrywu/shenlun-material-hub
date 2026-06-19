@@ -582,17 +582,77 @@ export default function ArticleDetailPage() {
     }
   }
 
-  async function toggleReadingState(field: "bookmarked" | "read" | "ignored") {
-    if (!article) return;
-    const newValue = !article[field];
+  const [bookmarking, setBookmarking] = useState(false);
+  const [togglingRead, setTogglingRead] = useState(false);
+
+  // P1-3: 用户私有状态走用户专属 API（/api/user-content-state 与 /api/favorites），
+  // 不再 PUT 全局 ContentItem 字段（该接口 ADMIN-only，普通用户会 403，按钮静默失效）。
+  // 各 toggle 独立 pending guard + toast 反馈 + 防重复点击。
+  async function toggleBookmark() {
+    if (!article || bookmarking) return;
+    const current = !!article.userBookmarked;
+    const newValue = !current;
+    setBookmarking(true);
     try {
-      const res = await fetch(`/api/content-items/${articleId}`, {
-        method: "PUT",
+      let res: Response;
+      if (newValue) {
+        res = await fetch("/api/favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contentItemIds: [articleId] }),
+        });
+      } else {
+        res = await fetch(`/api/favorites/${articleId}`, { method: "DELETE" });
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || (newValue ? "收藏失败" : "取消收藏失败"));
+      }
+      setArticle((prev) => prev ? { ...prev, userBookmarked: newValue } : prev);
+      toast.success(newValue ? "已收藏" : "已取消收藏");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "操作失败，请稍后重试");
+    } finally {
+      setBookmarking(false);
+    }
+  }
+
+  async function toggleRead() {
+    if (!article || togglingRead) return;
+    const current = !!article.userRead;
+    const newValue = !current;
+    setTogglingRead(true);
+    try {
+      const res = await fetch("/api/user-content-state", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: newValue }),
+        body: JSON.stringify({ contentItemId: articleId, read: newValue }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || (newValue ? "标记已读失败" : "标记未读失败"));
+      }
+      setArticle((prev) => prev ? { ...prev, userRead: newValue } : prev);
+      toast.success(newValue ? "已标记已读" : "已标记未读");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "操作失败，请稍后重试");
+    } finally {
+      setTogglingRead(false);
+    }
+  }
+
+  async function toggleIgnored() {
+    if (!article) return;
+    const current = !!article.userIgnored;
+    const newValue = !current;
+    try {
+      const res = await fetch("/api/user-content-state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentItemId: articleId, ignored: newValue }),
       });
       if (res.ok) {
-        setArticle((prev) => prev ? { ...prev, [field]: newValue } : prev);
+        setArticle((prev) => prev ? { ...prev, userIgnored: newValue } : prev);
       }
     } catch {
       // ignore
@@ -689,7 +749,7 @@ export default function ArticleDetailPage() {
   if (error || !article) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p className="text-destructive">{error ?? "文章不存在"}</p>
+        <p className="text-destructive" data-testid="article-error-message">{error ?? "文章不存在"}</p>
         <Button variant="outline" onClick={() => router.push("/articles")}>
           返回列表
         </Button>
@@ -720,7 +780,7 @@ export default function ArticleDetailPage() {
               <span className="ml-1">返回列表</span>
             </Button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-semibold break-words leading-snug">{article.title}</h1>
+              <h1 data-testid="article-detail-page-header" className="text-lg font-semibold break-words leading-snug">{article.title}</h1>
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <span>{article.source?.name ?? article.platform}</span>
                 {article.publishedAt && (
@@ -767,26 +827,42 @@ export default function ArticleDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {/* Reading state toggles */}
+            {/* Reading state toggles — 使用用户私有状态（P1-3） */}
             <Button
+              data-testid="article-bookmark-button"
+              aria-label={article.userBookmarked ? "取消收藏" : "收藏"}
+              aria-pressed={!!article.userBookmarked}
+              data-state={article.userBookmarked ? "active" : "inactive"}
+              data-pending={bookmarking ? "true" : "false"}
+              disabled={bookmarking}
               variant="ghost"
               size="sm"
-              onClick={() => toggleReadingState("bookmarked")}
-              title={article.bookmarked ? "取消收藏" : "收藏"}
+              onClick={toggleBookmark}
+              title={article.userBookmarked ? "取消收藏" : "收藏"}
             >
-              {article.bookmarked ? (
+              {bookmarking ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : article.userBookmarked ? (
                 <BookmarkCheck className="h-4 w-4 text-yellow-500" />
               ) : (
                 <Bookmark className="h-4 w-4" />
               )}
             </Button>
             <Button
+              data-testid="article-read-button"
+              aria-label={article.userRead ? "标记未读" : "标记已读"}
+              aria-pressed={!!article.userRead}
+              data-state={article.userRead ? "active" : "inactive"}
+              data-pending={togglingRead ? "true" : "false"}
+              disabled={togglingRead}
               variant="ghost"
               size="sm"
-              onClick={() => toggleReadingState("read")}
-              title={article.read ? "标记未读" : "标记已读"}
+              onClick={toggleRead}
+              title={article.userRead ? "标记未读" : "标记已读"}
             >
-              {article.read ? (
+              {togglingRead ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : article.userRead ? (
                 <Eye className="h-4 w-4 text-green-500" />
               ) : (
                 <EyeOff className="h-4 w-4" />

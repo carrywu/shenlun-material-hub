@@ -18,7 +18,6 @@ test.describe('Visual Regression 视觉回归', () => {
       await page.goto('/admin/login');
       await page.waitForLoadState('domcontentloaded');
       await expect(page.locator('form').first()).toBeVisible({ timeout: 10000 });
-      await page.waitForTimeout(500);
 
       await expect(page).toHaveScreenshot('login-page.png', {
         fullPage: true,
@@ -57,8 +56,6 @@ test.describe('Visual Regression 视觉回归', () => {
         await page.goto(route);
         await page.waitForLoadState('domcontentloaded');
         await expect(page.locator(waitSelector).first()).toBeVisible({ timeout: 10000 });
-        // 额外等待动画和异步渲染稳定
-        await page.waitForTimeout(500);
 
         // 遮罩动态元素：header 中的用户名/角色信息
         const mask: Locator[] = [];

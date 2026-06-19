@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const dbMocks = vi.hoisted(() => ({
   imaFindFirst: vi.fn(),
   cardFindUnique: vi.fn(),
+  contentFindUnique: vi.fn(),
   syncFindFirst: vi.fn(),
   syncCreate: vi.fn(),
   syncUpdate: vi.fn(),
@@ -12,6 +13,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     imaTarget: { findFirst: dbMocks.imaFindFirst },
     materialCard: { findUnique: dbMocks.cardFindUnique },
+    contentItem: { findUnique: dbMocks.contentFindUnique },
     syncRecord: {
       findFirst: dbMocks.syncFindFirst,
       create: dbMocks.syncCreate,
@@ -31,6 +33,8 @@ const CARD = {
   title: "测试素材卡",
   cardType: "case_material",
   contentItemId: "article-1",
+  ownerUserId: "user-1",
+  archivedAt: null,
   confirmed: true,
   userEditedContent: null,
   markdownContent: "素材卡正文",
@@ -174,5 +178,116 @@ describe("ImaService", () => {
     expect(result.failed).toBe(1);
     expect(result.skipped).toBe(1);
     expect(result.items.map((item) => item.status)).toEqual(["success", "failed", "skipped"]);
+  });
+
+  // Batch A / A5: service 层独立 owner 防线 —— 不能只靠 route 层。
+  it("syncMaterialCard 拒绝非 owner 的卡（即使 confirmed），返回 FORBIDDEN 且不写远程", async () => {
+    dbMocks.cardFindUnique.mockResolvedValue({ ...CARD, ownerUserId: "user-other" });
+
+    const result = await ImaService.syncMaterialCard({ materialCardId: "card-1", userId: "user-1" });
+
+    expect(result.status).toBe("failed");
+    expect(result.errorCode).toBe("MATERIAL_CARD_FORBIDDEN");
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(dbMocks.syncCreate).not.toHaveBeenCalled();
+  });
+
+  it("syncMaterialCard 拒绝已归档的卡（即使 owner 正确）", async () => {
+    dbMocks.cardFindUnique.mockResolvedValue({ ...CARD, archivedAt: new Date("2026-06-01") });
+
+    const result = await ImaService.syncMaterialCard({ materialCardId: "card-1", userId: "user-1" });
+
+    expect(result.status).toBe("failed");
+    expect(result.errorCode).toBe("MATERIAL_CARD_ARCHIVED");
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(dbMocks.syncCreate).not.toHaveBeenCalled();
+  });
+
+  it("syncMaterialCard owner 正确、confirmed、未归档时正常同步", async () => {
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ code: 0, msg: "success", data: { note_id: "note-1" } }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ code: 0, msg: "success", data: {} }),
+      } as Response);
+
+    const result = await ImaService.syncMaterialCard({ materialCardId: "card-1", userId: "user-1" });
+
+    expect(result.status).toBe("success");
+    expect(result.imaDocumentId).toBe("note-1");
+  });
+});
+
+// Batch A / A4: syncArticle 不得把他人 confirmed 卡同步到调用者 IMA。
+describe("ImaService.syncArticle — owner 隔离", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.fetch = vi.fn();
+    dbMocks.imaFindFirst.mockResolvedValue({
+      id: "target-1",
+      baseUrl: "https://ima.test",
+      clientId: "client-1",
+      encryptedApiKey: "token-1",
+      knowledgeBaseId: "kb-1",
+    });
+    dbMocks.syncFindFirst.mockResolvedValue(null);
+    dbMocks.syncCreate.mockResolvedValue({ id: "sync-art-1" });
+    dbMocks.syncUpdate.mockResolvedValue({ id: "sync-art-1" });
+    // syncArticle 无 confirmed 卡时走正文同步路径，需 config 可用 + fetch 成功。
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ code: 0, msg: "success", data: { note_id: "note-art" } }),
+    } as Response);
+  });
+
+  it("文章关联卡只同步当前用户自己的 confirmed 卡，他人卡与归档卡被排除", async () => {
+    dbMocks.contentFindUnique.mockResolvedValue({
+      id: "article-1",
+      adminReviewStatus: "approved",
+      fullText: "正文",
+      materialCards: [
+        { id: "own-card", ownerUserId: "user-1", archivedAt: null, confirmed: true },
+        { id: "other-card", ownerUserId: "user-2", archivedAt: null, confirmed: true },
+        { id: "own-archived", ownerUserId: "user-1", archivedAt: new Date("2026-06-01"), confirmed: true },
+        { id: "own-unconfirmed", ownerUserId: "user-1", archivedAt: null, confirmed: false },
+      ],
+    });
+    // syncMaterialCard 路径会再次 findUnique 每张卡。为让测试真正验证 syncArticle 的过滤
+    // （而非依赖 mock 返回 null 把卡判为不存在），这里对所有卡都返回可同步对象。
+    // 如果 syncArticle 没有按 owner/archived 过滤，other-card / own-archived 也会发起 import_doc。
+    dbMocks.cardFindUnique.mockImplementation((args: { where: { id: string } }) => {
+      const map: Record<string, object> = {
+        "own-card": { ...CARD, id: "own-card", ownerUserId: "user-1", archivedAt: null },
+        "other-card": { ...CARD, id: "other-card", ownerUserId: "user-2", archivedAt: null },
+        "own-archived": { ...CARD, id: "own-archived", ownerUserId: "user-1", archivedAt: new Date("2026-06-01") },
+      };
+      return Promise.resolve(map[args.where.id] ?? null);
+    });
+
+    const result = await ImaService.syncArticle({ articleId: "article-1", userId: "user-1" });
+
+    expect(result.sourceType).toBe("material-card");
+    // 只对 own-card 发起远程写入（import_doc）。
+    const importCalls = vi.mocked(global.fetch).mock.calls.filter(
+      ([url]) => typeof url === "string" && url.includes("import_doc"),
+    );
+    expect(importCalls).toHaveLength(1);
+  });
+
+  it("文章正文同步（无卡）路径不受影响", async () => {
+    dbMocks.contentFindUnique.mockResolvedValue({
+      id: "article-1",
+      adminReviewStatus: "approved",
+      fullText: "正文",
+      materialCards: [],
+    });
+
+    const result = await ImaService.syncArticle({ articleId: "article-1", userId: "user-1" });
+
+    expect(result.sourceType).toBe("article");
+    expect(result.success).toBe(true);
   });
 });

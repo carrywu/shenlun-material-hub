@@ -88,3 +88,82 @@ playwright-report/
 - 修爬虫 bug 时不顺手重写无关 UI
 - 不在无 dry-run 的情况下执行破坏性数据库脚本
 - WE_MP_RSS_BASE_URL 必须配置，运行时校验，不硬编码 localhost
+
+---
+
+## Required Reading（Agent 工作流约束）
+
+> 以下为 harness 工作流规则，与上文 we-mp-rss 边界规则互补。详细契约见 `docs/harness/contract.md`。
+
+编辑代码前，按顺序阅读：
+
+1. `docs/audit/requirements-confirmation.md`
+2. `docs/audit/project-assessment.md`
+3. `docs/audit/development-plan.md`
+4. `docs/audit/development-todolist.md`
+5. `docs/audit/development-handoff.md`
+6. `docs/testing.md`
+
+不要跳过这些文件。如果某文件缺失，停止并报告，不要猜测。
+
+如果代码或旧文档与 `docs/audit/requirements-confirmation.md` 冲突，**以 requirements-confirmation.md 为准**。
+
+## Work Style
+
+- 编辑前先理解仓库结构。
+- 中大型改动前必须输出 TodoList（Problem Summary / Current Behavior / Expected Behavior / Files To Inspect / Planned Changes / Tests To Add / Validation Commands / Risks / Rollback Plan）。
+- 只在当前 batch 范围内工作（见 `tasks/harness/`）。
+- 优先小而可验证的改动。
+- 修根因，不修症状。
+- 除非任务明确要求，保留现有行为。
+- 除非明确指示，不删除现有功能。
+- 不做大范围重构 / 顺手改无关 UI / 顺手改无关 API。
+- 不允许把失败测试 skip 掉。
+- 不允许用 mock 掩盖真实权限问题。
+- 声称验证通过前必须实际运行命令。
+
+## Security and Data Isolation
+
+改动 API / service / Prisma / 同步逻辑时必须核对：
+
+- USER / VERIFIED_USER / ADMIN 权限（见 `docs/harness/contract.md` §2）。
+- `ownerUserId` 隔离：MaterialCard / ArticleFavorite / UserContentState / SyncRecord 必须按用户隔离，非 owner 访问返回 404。
+- 用户私有状态（阅读 / 收藏 / 忽略 / 复习）不得写到全局 `ContentItem.read / bookmarked / ignored`。
+- IMA 同步范围 = 当前用户自己可见的文章 + 自己的素材卡；排除 `archivedAt != null`。
+- 个人 AI / IMA 禁止 fallback 到 env 配置；缺配置时禁止操作并提示去配置。
+- service 层必须复核 owner，不要只靠 route 层。
+- secret（密码 / API key / IMA key / cookie / Authorization）在日志与审计数据中必须脱敏。
+- 破坏性操作必须有 dry-run / 预览 / 二次确认。
+
+## Validation
+
+标准验证（harness 封装，见 `docs/harness/validation-matrix.md`）：
+
+```bash
+pnpm harness:preflight      # 只读预检
+pnpm harness:validate       # standard: lint + test + build
+pnpm harness:validate:e2e   # e2e: standard + playwright 全量
+pnpm harness:validate:db    # db: db:generate + db:setup:dry + standard
+```
+
+底层命令：
+
+```bash
+pnpm lint
+pnpm test
+pnpm build
+pnpm exec playwright test
+```
+
+UI / auth / RBAC / owner 隔离改动必须按影响范围运行相关 Playwright spec（spec 映射见 `docs/harness/validation-matrix.md` §3.2）。AI prompt 行为：`pnpm test:ai`。
+
+## Completion Definition
+
+任务完成当且仅当：
+
+- 验收标准已逐项检查。
+- 测试已运行或显式写明 Not-tested 原因。
+- 失败测试含文件 / spec 名与下一步动作。
+- 已检查 `git status --short` 与 `git diff --stat`。
+- `docs/audit/development-todolist.md` 已更新。
+- `docs/audit/development-handoff.md` 已更新。

@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   materialFindMany: vi.fn(),
   syncMaterialCard: vi.fn(),
   batchSyncMaterialCards: vi.fn(),
+  getSyncStatus: vi.fn(),
+  getSyncHistory: vi.fn(),
   auditLog: vi.fn(),
 }));
 
@@ -30,23 +32,37 @@ vi.mock("@/services/ima-sync", () => ({
     syncMaterialCard: mocks.syncMaterialCard,
     batchSyncMaterialCards: mocks.batchSyncMaterialCards,
   },
-  getSyncStatus: vi.fn(),
-  getSyncHistory: vi.fn(),
+  getSyncStatus: mocks.getSyncStatus,
+  getSyncHistory: mocks.getSyncHistory,
+  // 与 service 中真实实现保持一致：个人同步语境 ADMIN 也按 owner 隔离（无 isAdmin 参数）
+  canAccessSyncRecord: (record: { userId: string | null }, userId: string) =>
+    record.userId === userId,
+  canAccessCardHistory: (card: { ownerUserId: string | null } | null, userId: string) =>
+    card !== null && card.ownerUserId === userId,
 }));
 
 vi.mock("@/lib/audit-logger", () => ({
   auditLog: mocks.auditLog,
 }));
 
-import { POST } from "../route";
+import { POST, GET } from "../route";
 
 const ADMIN = { id: "admin-1", username: "admin", role: "ADMIN" as const, status: "ACTIVE" as const };
+const VERIFIED_A = { id: "user-a", username: "a", role: "VERIFIED_USER" as const, status: "ACTIVE" as const };
+const VERIFIED_B = { id: "user-b", username: "b", role: "VERIFIED_USER" as const, status: "ACTIVE" as const };
 
 function post(body: unknown) {
   return new NextRequest("http://localhost/api/sync", {
     method: "POST",
     headers: { "Content-Type": "application/json", cookie: "auth_token=t" },
     body: JSON.stringify(body),
+  });
+}
+
+function get(query: string) {
+  return new NextRequest(`http://localhost/api/sync?${query}`, {
+    method: "GET",
+    headers: { cookie: "auth_token=t" },
   });
 }
 
@@ -95,5 +111,135 @@ describe("POST /api/sync", () => {
       status: "failed",
       errorMessage: "IMA 鉴权失败",
     });
+  });
+
+  // P0-1: ADMIN 不得把他人素材卡同步到自己的 IMA（需求 2.3/5.2）
+  it("ADMIN 同步他人卡片时拒绝（单卡）", async () => {
+    mocks.materialFindUnique.mockResolvedValue({
+      id: "card-other",
+      confirmed: true,
+      ownerUserId: "user-a", // 别人的卡
+    });
+
+    const res = await POST(post({ cardId: "card-other" }));
+
+    expect(res.status).toBe(403);
+    expect(mocks.syncMaterialCard).not.toHaveBeenCalled();
+  });
+
+  it("ADMIN 批量同步含他人卡片时拒绝", async () => {
+    mocks.materialFindMany.mockResolvedValue([
+      { id: "card-mine", confirmed: true, ownerUserId: "admin-1" },
+      { id: "card-other", confirmed: true, ownerUserId: "user-a" },
+    ]);
+
+    const res = await POST(post({ cardIds: ["card-mine", "card-other"] }));
+
+    expect(res.status).toBe(403);
+    expect(mocks.batchSyncMaterialCards).not.toHaveBeenCalled();
+  });
+
+  it("VERIFIED_USER 只能同步自己的卡（单卡，他人卡拒绝）", async () => {
+    mocks.requireVerifiedUser.mockResolvedValue(VERIFIED_A);
+    mocks.materialFindUnique.mockResolvedValue({
+      id: "card-b",
+      confirmed: true,
+      ownerUserId: "user-b",
+    });
+
+    const res = await POST(post({ cardId: "card-b" }));
+
+    expect(res.status).toBe(403);
+    expect(mocks.syncMaterialCard).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/sync (P0-2: SyncRecord owner 隔离)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("非 owner 查询他人 syncRecord 返回 404（隐藏存在）", async () => {
+    mocks.requireVerifiedUser.mockResolvedValue(VERIFIED_A);
+    // service 返回的记录属于 user-b
+    mocks.getSyncStatus.mockResolvedValue({
+      id: "rec-1",
+      userId: "user-b",
+      materialCardId: "card-b",
+    });
+
+    const res = await GET(get("syncRecordId=rec-1"));
+
+    expect(res.status).toBe(404);
+  });
+
+  it("owner 查询自己的 syncRecord 正常返回", async () => {
+    mocks.requireVerifiedUser.mockResolvedValue(VERIFIED_A);
+    mocks.getSyncStatus.mockResolvedValue({
+      id: "rec-1",
+      userId: "user-a",
+      materialCardId: "card-a",
+    });
+
+    const res = await GET(get("syncRecordId=rec-1"));
+
+    expect(res.status).toBe(200);
+  });
+
+  it("ADMIN 查询他人 syncRecord 也返回 404（个人语境 ADMIN 按 owner 隔离，P1-残留-2）", async () => {
+    mocks.requireVerifiedUser.mockResolvedValue(ADMIN);
+    // service 返回的记录属于 user-b，ADMIN 也不是其 owner
+    mocks.getSyncStatus.mockResolvedValue({
+      id: "rec-1",
+      userId: "user-b",
+      materialCardId: "card-b",
+    });
+
+    const res = await GET(get("syncRecordId=rec-1"));
+
+    expect(res.status).toBe(404);
+  });
+
+  it("ADMIN 查询自己的 syncRecord 正常返回", async () => {
+    mocks.requireVerifiedUser.mockResolvedValue(ADMIN);
+    mocks.getSyncStatus.mockResolvedValue({
+      id: "rec-1",
+      userId: "admin-1",
+      materialCardId: "card-admin",
+    });
+
+    const res = await GET(get("syncRecordId=rec-1"));
+
+    expect(res.status).toBe(200);
+  });
+
+  it("非 owner 查询他人卡片的同步历史返回空（隐藏存在）", async () => {
+    mocks.requireVerifiedUser.mockResolvedValue(VERIFIED_A);
+    mocks.getSyncHistory.mockResolvedValue([]);
+
+    const res = await GET(get("cardId=card-b"));
+
+    expect(res.status).toBe(200);
+    // service 应被告知是 user-a 查 user-b 的卡 → 返回空（无 isAdmin 参数）
+    expect(mocks.getSyncHistory).toHaveBeenCalledWith(
+      "card-b",
+      expect.any(Number),
+      "user-a",
+    );
+  });
+
+  it("ADMIN 查询他人卡片的同步历史也返回空（个人语境 ADMIN 按 owner 隔离，P1-残留-2）", async () => {
+    mocks.requireVerifiedUser.mockResolvedValue(ADMIN);
+    mocks.getSyncHistory.mockResolvedValue([]);
+
+    const res = await GET(get("cardId=card-b"));
+
+    expect(res.status).toBe(200);
+    // ADMIN 也按 owner 隔离：service 收到 admin-1，对 card-b 非其所有 → 返回空
+    expect(mocks.getSyncHistory).toHaveBeenCalledWith(
+      "card-b",
+      expect.any(Number),
+      "admin-1",
+    );
   });
 });

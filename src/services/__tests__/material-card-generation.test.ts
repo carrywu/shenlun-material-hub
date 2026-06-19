@@ -32,8 +32,17 @@ async function importAi() {
 describe("material card generation normalization", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.findFirst.mockResolvedValue(null);
-    process.env.AI_API_KEY = "sk-test-1234";
+    // P0-4 后不再 env fallback，统一喂 DB 全局配置 + 加密 key + 重置 decrypt 实现
+    mocks.findFirst.mockResolvedValue({
+      id: "cfg-default",
+      encryptedKey: "sk-test-1234",
+      baseUrl: "https://api.test.com/v1",
+      model: "test-model",
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+    mocks.decrypt.mockImplementation((value: string) => value);
+    process.env.AI_CONFIG_ENCRYPTION_KEY = "12345678901234567890123456789012";
+    delete process.env.AI_API_KEY;
     delete process.env.OPENAI_API_KEY;
     delete process.env.AI_BASE_URL;
     delete process.env.AI_MODEL;
@@ -98,7 +107,8 @@ describe("material card generation normalization", () => {
     await expect(generateCardForContentItem("标题", "来源", "正文", "golden_sentence")).rejects.toMatchObject({
       code: "AI_API_CALL_FAILED",
       status: 401,
-      diagnostics: expect.objectContaining({ source: "env", keySuffix: "****1234", status: 401 }),
+      // P0-4 后 runtime 来自 DB 全局配置（source: "db"），不再 env fallback
+      diagnostics: expect.objectContaining({ source: "db", keySuffix: "****1234", status: 401 }),
     });
 
     try {

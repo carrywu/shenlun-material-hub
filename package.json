@@ -22,7 +22,11 @@
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:setup": "tsx scripts/setup-fresh-db.ts",
-    "db:setup:dry": "tsx scripts/setup-fresh-db.ts --dry-run"
+    "db:setup:dry": "tsx scripts/setup-fresh-db.ts --dry-run",
+    "harness:preflight": "node scripts/harness/preflight.mjs",
+    "harness:validate": "node scripts/harness/validate.mjs standard",
+    "harness:validate:e2e": "node scripts/harness/validate.mjs e2e",
+    "harness:validate:db": "node scripts/harness/validate.mjs db"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

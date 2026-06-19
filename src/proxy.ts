@@ -110,6 +110,19 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // ── Role-guarded settings pages（类 A）：仅 VERIFIED_USER/ADMIN 可访问 ──────
+  // settings/ai 与 settings/ima 的页面内 role guard 在渲染体调 router.push，
+  // SSR 抛 `location is not defined`（dev server uncaughtException）。改由 middleware
+  // 在请求层拦截：已登录但非 verified 用户 → 302 到 /settings，页面不渲染。
+  const VERIFIED_ONLY_SETTINGS = ["/settings/ai", "/settings/ima"];
+  if (
+    VERIFIED_ONLY_SETTINGS.some((p) => pathname === p) &&
+    authenticatedUser.role !== "ADMIN" &&
+    authenticatedUser.role !== "VERIFIED_USER"
+  ) {
+    return NextResponse.redirect(new URL("/settings", req.url));
+  }
+
   return NextResponse.next();
 }
 

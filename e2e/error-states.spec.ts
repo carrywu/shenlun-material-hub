@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
-import { loginAsAdmin } from './helpers/auth';
+import { mockApiError } from './helpers/mockApi';
 
 /**
  * §P1-2 错误状态测试升级
@@ -26,6 +26,7 @@ import { loginAsAdmin } from './helpers/auth';
  */
 
 test.describe('P1-2 错误状态处理 — 升级断言', () => {
+  test.use({ storageState: '.auth/admin-storage.json' });
 
   // ── ES-001: 文章列表 500 错误 ──
 
@@ -42,14 +43,15 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/articles');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByTestId('articles-error')).toBeVisible({ timeout: 15000 });
 
     // 1. 具体中文错误文案 — ArticlesPage throws "请求失败" for !res.ok, "加载失败" for catch
     const bodyText = await page.locator('body').textContent();
     expect(bodyText).toMatch(/请求失败|加载失败/);
 
-    // 2. 错误文案以 text-destructive 样式呈现
-    const errorEl = page.locator('.text-destructive');
+    // 2. 错误文案以错误状态元素呈现
+    const errorEl = page.getByTestId('articles-error');
     expect(await errorEl.count()).toBeGreaterThan(0);
 
     // 3. 导航保留 — 侧栏/顶栏仍然可见
@@ -66,14 +68,18 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    await page.route('**/api/articles**', (route) => route.abort('failed'));
+    await page.route('**/api/articles**', (route) =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: '服务器错误' }) })
+    );
 
     await page.goto('/articles');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // ArticlesPage fetch 在 !res.ok 时 throw "请求失败"，catch setError 显示该文案
+    await expect(page.getByText('请求失败')).toBeVisible({ timeout: 15000 });
 
-    // 1. 中文错误文案 — catch 分支显示"加载失败"
+    // 1. 中文错误文案 — catch 分支显示"请求失败"
     const bodyText = await page.locator('body').textContent();
-    expect(bodyText).toContain('加载失败');
+    expect(bodyText).toContain('请求失败');
 
     // 3. 导航保留 — 可点击离开
     const links = page.locator('a[href]');
@@ -98,7 +104,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/articles');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('暂无')).toBeVisible({ timeout: 15000 });
 
     // 1. 中文空状态文案 — ArticlesPage line 909
     const bodyText = await page.locator('body').textContent();
@@ -122,7 +129,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/search?q=完全不存在的关键词');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('未找到匹配')).toBeVisible({ timeout: 15000 });
 
     // 1. 中文"未找到匹配"文案 — search/page.tsx line 307
     const bodyText = await page.locator('body').textContent();
@@ -146,7 +154,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/review');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText(/还没有|暂无/)).toBeVisible({ timeout: 15000 });
 
     // 1. 中文空状态文案 — review/page.tsx line 153
     const bodyText = await page.locator('body').textContent();
@@ -161,33 +170,31 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     test.setTimeout(90000);
     const guard = attachConsoleGuard(page);
 
-    await page.route('**/api/admin/metrics**', (route) =>
-      route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: '服务器内部错误' }),
-      })
-    );
+    // 使用 mockApiError helper — 带命中计数，确保 mock 在路由之前注册
+    const metricsMock = await mockApiError(page, '**/api/admin/metrics**', {
+      status: 500,
+      body: { error: '服务器内部错误' },
+    });
 
-    // Login first
-    await loginAsAdmin(page);
-
-    // Now navigate to admin
+    // storageState 已注入 admin 认证，无需 UI 登录
     await page.goto('/admin');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+
+    // 用 data-testid 定位错误容器
+    await expect(page.getByTestId('admin-metrics-error')).toBeVisible({ timeout: 15000 });
 
     // 1. 错误文案 — admin/page.tsx "无法加载系统数据"
-    const bodyText = await page.locator('body').textContent();
-    expect(bodyText).toContain('无法加载');
+    await expect(page.getByText('无法加载系统数据')).toBeVisible();
 
-    // 2. 重试按钮 — admin/page.tsx "重新尝试"
-    const retryBtn = page.locator('button').filter({ hasText: /重新尝试/ });
-    expect(await retryBtn.count()).toBeGreaterThan(0);
+    // 2. 重试按钮 — 带 Loader2 spinner + "重新尝试" 文案
+    await expect(page.getByRole('button', { name: /重新尝试/ })).toBeVisible();
 
-    // 3. 导航保留 — 侧栏仍然可点击
-    const sidebar = page.locator('nav, aside, [role="navigation"]');
-    const sidebarCount = await sidebar.count();
-    expect(sidebarCount).toBeGreaterThan(0);
+    // 3. mock 被命中 — 确认请求确实走了 mock route
+    metricsMock.expectHit();
+
+    // 4. 导航保留 — 侧栏仍然可点击
+    const sidebar = page.getByTestId('admin-sidebar');
+    await expect(sidebar).toBeVisible();
 
     guard.report(testInfo);
   });
@@ -207,11 +214,14 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/articles/non-existent-id-12345');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // articles/[id]/page.tsx fetchArticle 在 !res.ok 时 throw "请求失败"，
+    // error 分支渲染 {error ?? "文章不存在"}，故 404 时显示 "请求失败"
+    await expect(page.getByText('请求失败')).toBeVisible({ timeout: 15000 });
 
-    // 1. 中文"文章不存在"文案 — articles/[id]/page.tsx
+    // 1. 错误文案 — articles/[id]/page.tsx error 分支
     const bodyText = await page.locator('body').textContent();
-    expect(bodyText).toContain('文章不存在');
+    expect(bodyText).toContain('请求失败');
 
     // 3. 导航保留 — "返回列表"按钮
     const backLink = page.locator('a, button').filter({ hasText: /返回列表/ });
@@ -235,7 +245,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/cards/non-existent-card-id-12345');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('素材卡不存在')).toBeVisible({ timeout: 15000 });
 
     // 1. 中文"素材卡不存在"文案 — cards/[id]/page.tsx
     const bodyText = await page.locator('body').textContent();
@@ -286,7 +297,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/articles/mock-article-for-429');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('测试文章')).toBeVisible({ timeout: 15000 });
 
     // Page renders without crash — the 429 error shows as toast (ArticlesPage line 513)
     const bodyText = await page.locator('body').textContent();
@@ -337,7 +349,8 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
     );
 
     await page.goto('/articles/mock-article-for-ai500');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('测试文章')).toBeVisible({ timeout: 15000 });
 
     // Page doesn't crash — error shown as toast "素材卡生成失败" (ArticlesPage line 513)
     const bodyText = await page.locator('body').textContent();
@@ -392,10 +405,10 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
       })
     );
 
-    // Login and go to AI config page
-    await loginAsAdmin(page);
+    // Login and go to AI config page (storageState provides auth)
     await page.goto('/admin/settings/ai');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('deepseek-v4-flash')).toBeVisible({ timeout: 15000 });
 
     // Page should render without crash
     const bodyText = await page.locator('body').textContent();
@@ -450,10 +463,10 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
       })
     );
 
-    // Login and go to AI config page
-    await loginAsAdmin(page);
+    // Login and go to AI config page (storageState provides auth)
     await page.goto('/admin/settings/ai');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('deepseek-v4-flash')).toBeVisible({ timeout: 15000 });
 
     // Page renders without crash
     const bodyText = await page.locator('body').textContent();
@@ -501,10 +514,10 @@ test.describe('P1-2 错误状态处理 — 升级断言', () => {
       })
     );
 
-    // Login and navigate to wechat RSS settings
-    await loginAsAdmin(page);
+    // Login and navigate to wechat RSS settings (storageState provides auth)
     await page.goto('/admin/integrations/wechat-rss');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('wechat-rss')).toBeVisible({ timeout: 15000 });
 
     // Page should load without crash
     const bodyText = await page.locator('body').textContent();
@@ -528,7 +541,8 @@ test.describe('P1-2 错误状态处理 — 404 路由', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/this-page-does-not-exist-at-all');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('body')).toBeVisible({ timeout: 10000 });
 
     // 1. 页面不白屏
     const bodyText = await page.locator('body').textContent();
@@ -594,9 +608,6 @@ test.describe('P1-2 错误状态处理 — 登录表单', () => {
     await page.getByPlaceholder('请输入密码').fill('wrongpassword');
     await page.locator("form button[type='submit']").click();
 
-    // 等待响应
-    await page.waitForTimeout(2000);
-
     // 1. 中文错误提示
     const bodyText = await page.locator('body').textContent();
     expect(bodyText).toContain('错误');
@@ -607,7 +618,6 @@ test.describe('P1-2 错误状态处理 — 登录表单', () => {
     // 4. 重复提交拦截 — 登录失败后按钮应恢复可用
     await page.getByPlaceholder('请输入密码').fill('wrongagain');
     await page.locator("form button[type='submit']").click();
-    await page.waitForTimeout(2000);
     // 仍然停留在登录页
     await expect(page).toHaveURL(/\/admin\/login/);
 

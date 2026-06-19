@@ -419,6 +419,25 @@ async function syncMaterialCard(params: {
     };
   }
 
+  // Batch A / A5: service 层独立 owner 防线（不能只靠 route 层校验，需求 6.3）。
+  // 调用方带 userId 时，卡必须属于该用户且未归档；归档卡与他人的卡一律拒绝。
+  if (userId && card.ownerUserId !== userId) {
+    return {
+      materialCardId,
+      status: "failed",
+      errorCode: "MATERIAL_CARD_FORBIDDEN",
+      errorMessage: "只能同步自己的素材卡",
+    };
+  }
+  if (card.archivedAt) {
+    return {
+      materialCardId,
+      status: "failed",
+      errorCode: "MATERIAL_CARD_ARCHIVED",
+      errorMessage: "已归档的素材卡不能同步",
+    };
+  }
+
   const { regionFolder, typeFolder } = deriveFolders(card.contentItem, card.cardType);
   let syncRecord: { id: string } | null = null;
 
@@ -676,8 +695,10 @@ async function syncArticle(params: {
   const item = await db.contentItem.findUnique({
     where: { id: articleId },
     include: {
+      // Batch A / A4: 只取当前用户自己的 confirmed 且未归档的卡（需求 2.2 / 6.3）。
+      // 不得把他人 confirmed 卡同步到调用者的 IMA；archivedAt != null 一律排除。
       materialCards: {
-        where: { confirmed: true },
+        where: { confirmed: true, ownerUserId: userId, archivedAt: null },
         orderBy: { createdAt: "desc" },
         select: { id: true },
       },
@@ -846,13 +867,49 @@ export async function getSyncStatus(syncRecordId: string) {
 
 export async function getSyncHistory(
   cardId: string,
-  limit: number = 20
+  limit: number = 20,
+  userId?: string,
 ) {
+  // P0-3 / P1-残留-2: service 层 owner 防线。个人同步语境所有用户（含 ADMIN）
+  // 只返回自己卡的同步记录；卡不属于该用户时返回空（隐藏存在）。
+  if (userId) {
+    const card = await db.materialCard.findUnique({
+      where: { id: cardId },
+      select: { ownerUserId: true },
+    });
+    if (!card || card.ownerUserId !== userId) {
+      return [];
+    }
+  }
   return db.syncRecord.findMany({
     where: { materialCardId: cardId },
     orderBy: { syncedAt: "desc" },
     take: limit,
   });
+}
+
+/**
+ * 校验当前用户是否有权访问某条 SyncRecord（owner）。
+ * 个人同步语境 ADMIN 也按 owner 隔离（P1-残留-2）。用于 route 层将非 owner
+ * 访问统一映射为 404。后台运维查全局走 /api/sync-records，不经过这里。
+ */
+export function canAccessSyncRecord(
+  record: { userId: string | null },
+  userId: string,
+): boolean {
+  return record.userId === userId;
+}
+
+/**
+ * 校验当前用户是否有权访问某张素材卡的同步历史（卡 owner）。
+ * 个人同步语境 ADMIN 也按 owner 隔离（P1-残留-2）。
+ */
+export function canAccessCardHistory(
+  card: { ownerUserId: string | null } | null,
+  userId: string,
+): boolean {
+  if (!card) return false;
+  return card.ownerUserId === userId;
 }
 
 export interface SyncRecordsQuery {

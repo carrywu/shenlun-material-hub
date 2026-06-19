@@ -6,7 +6,7 @@ test.describe('公开页面 Dead Link 检查', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   const publicRoutes = [
-    '/articles', '/explore', '/discover', '/search', '/cards',
+    '/articles', '/search', '/cards',
     '/review', '/register', '/admin/login',
   ];
 

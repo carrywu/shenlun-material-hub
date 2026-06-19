@@ -71,9 +71,18 @@ function mockCreateError(status: number, message: string) {
 describe("素材卡生成服务测试 (P0-3)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.aiConfigFindFirst.mockResolvedValue(null);
+    // P0-4 后不再 env fallback，统一喂 DB 全局配置 + 加密 key + 重置 decrypt 实现
+    mocks.aiConfigFindFirst.mockResolvedValue({
+      id: "cfg-default",
+      encryptedKey: "sk-test-1234",
+      baseUrl: "https://api.test.com/v1",
+      model: "test-model",
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+    mocks.decrypt.mockImplementation((value: string) => value);
     mocks.promptFindUnique.mockResolvedValue(null);
-    process.env.AI_API_KEY = "sk-test-1234";
+    process.env.AI_CONFIG_ENCRYPTION_KEY = "12345678901234567890123456789012";
+    delete process.env.AI_API_KEY;
     delete process.env.OPENAI_API_KEY;
     delete process.env.AI_BASE_URL;
     delete process.env.AI_MODEL;

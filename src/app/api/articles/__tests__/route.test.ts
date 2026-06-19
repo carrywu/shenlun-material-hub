@@ -14,6 +14,7 @@ const { authMocks, USERS } = vi.hoisted(() => {
 
 vi.mock("@/lib/auth", () => ({
   getUserFromRequest: authMocks.getUserFromRequest,
+  unauthorizedResponse: () => Response.json({ error: "未登录或会话已过期" }, { status: 401 }),
 }));
 
 const mocks = vi.hoisted(() => ({
@@ -57,38 +58,21 @@ import { GET } from "../route";
 describe("GET /api/articles route handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: anonymous user
-    authMocks.getUserFromRequest.mockResolvedValue(null);
+    // Default: 已登录普通用户（接口现在强制登录，匿名由专门用例覆盖）
+    authMocks.getUserFromRequest.mockResolvedValue(USERS.USER_A);
     mocks.findMany.mockResolvedValue([]);
     mocks.count.mockResolvedValue(0);
     mocks.articleFavoriteFindMany.mockResolvedValue([]);
   });
 
-  it("should add visibility filter for anonymous users (approved + public)", async () => {
+  it("匿名用户访问 → 401，不查询数据库（需求第 3 节：核心学习页需登录）", async () => {
     authMocks.getUserFromRequest.mockResolvedValue(null);
     const req = new NextRequest("http://localhost/api/articles");
     const res = await GET(req);
-    expect(res.status).toBe(200);
-    // P3-final: 匿名用户只看 adminReviewStatus=approved 且 visibility=public。
-    // 注意：原 P2-14 想包含 legacy visibility:null 行，但 schema 里 visibility 是
-    // 非空字段（String @default("public")），Prisma 拒绝 visibility:null 条件
-    // （→ PrismaClientValidationError → 500）。DB 实测 0 行 visibility IS NULL，
-    // 该 OR 条件零命中且致 500，已移除（commit e01a0af）。
-    const { mergeWhere } = await import("@/lib/data-isolation");
-    expect(mergeWhere).toHaveBeenCalled();
-    // 匿名 filter 必须是 approved + public（不再是 OR legacy-null）
-    const visibilityCall = (mergeWhere as ReturnType<typeof vi.fn>).mock.calls.find(
-      (call: unknown[]) => {
-        const filter = call[1] as Record<string, unknown> | undefined;
-        return (
-          filter &&
-          typeof filter === "object" &&
-          filter.adminReviewStatus === "approved" &&
-          filter.visibility === "public"
-        );
-      }
-    );
-    expect(visibilityCall).toBeDefined();
+    expect(res.status).toBe(401);
+    // 匿名被拒后不应触达 DB 查询
+    expect(mocks.findMany).not.toHaveBeenCalled();
+    expect(mocks.count).not.toHaveBeenCalled();
   });
 
   it("should apply visibility filter for authenticated regular user", async () => {

@@ -115,4 +115,22 @@ describe("POST /api/admin/content-items/review (P4)", () => {
       })
     );
   });
+
+  // P1-1: reject 与 downlist 是两个独立状态（需求 6）
+  it("downlist（下架已上线文章）→ 设 downlist，删公共卡，保留 publicVisibleAt（记忆曾上线）", async () => {
+    tx.findMany.mockResolvedValue([{ id: "x", aiDecision: "accept", adminReviewStatus: "approved" }]);
+    tx.updateMany.mockResolvedValue({ count: 1 });
+    tx.deleteMany.mockResolvedValue({ count: 3 });
+    const res = await POST(
+      makeReq(USERS.ADMIN, { ids: ["x"], action: "downlist", note: "政策变化下架" })
+    );
+    expect(res.status).toBe(200);
+    expect(tx.deleteMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { contentItemId: { in: ["x"] }, ownerUserId: null } })
+    );
+    const updateCall = tx.updateMany.mock.calls[0][0];
+    expect(updateCall.data).toMatchObject({ adminReviewStatus: "downlist", featuredToday: false });
+    // downlist 保留 publicVisibleAt（曾上线），不像 reject 那样清空
+    expect(updateCall.data).not.toHaveProperty("publicVisibleAt");
+  });
 });

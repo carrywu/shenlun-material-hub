@@ -131,9 +131,16 @@ export default function UserAiSettingsPage() {
     }
   };
 
-  // Role guard — redirect non-verified users
+  // Role guard — redirect non-verified users。
+  // 必须在 useEffect 内调 router.push（渲染体调会在 SSR 抛 location is not defined）。
+  // middleware(proxy.ts) 已在请求层兜底拦截，这里作页面级第二防线。
+  useEffect(() => {
+    if (user && !isVerified) {
+      router.push("/settings");
+    }
+  }, [user, isVerified, router]);
+
   if (user && !isVerified) {
-    router.push("/settings");
     return null;
   }
 
@@ -154,7 +161,7 @@ export default function UserAiSettingsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-semibold">AI 配置</h1>
+          <h1 data-testid="settings-ai-page-header" className="text-xl font-semibold">AI 配置</h1>
           <p className="text-sm text-muted-foreground mt-1">配置您的个人 AI 模型参数，优先级高于系统默认配置</p>
         </div>
       </div>

@@ -124,8 +124,8 @@ test.describe("API 数据隔离与权限 — 管理员", () => {
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/admin/);
     await expect(
-      page.getByRole("heading", { name: "系统概览" })
-    ).toBeVisible();
+      page.getByTestId("admin-shell-heading")
+    ).toContainText("系统概览");
 
     // Admin users page should load
     await page.goto("/admin/users");

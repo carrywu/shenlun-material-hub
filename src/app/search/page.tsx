@@ -173,6 +173,7 @@ export default function SearchPage() {
         <PageHeader
           title="素材卡检索"
           description="全文搜索素材卡内容，支持按类型和标签筛选"
+          data-testid="search-page-header"
           actions={
             <Button
               variant="outline"

@@ -170,13 +170,14 @@ export default function SyncRecordsPage() {
   }, [statusFilter, roleFilter, dateFrom, dateTo]);
 
   async function handleRetry(record: SyncRecordItem) {
-    if (!record.materialCard.confirmed) return;
+    if (!record.materialCard?.confirmed) return;
     setRetryingId(record.id);
     try {
-      const res = await fetch("/api/sync", {
+      // P1-残留-2: 个人同步接口已收紧（ADMIN 也不能同步他人卡），
+      // 后台运维代重同步走 admin-only 接口（以卡 owner 身份代调，记录归属原用户）。
+      const res = await fetch(`/api/admin/sync-records/${record.id}/retry`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId: record.materialCardId }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -197,6 +198,7 @@ export default function SyncRecordsPage() {
         <PageHeader
           title="同步记录"
           description="查看素材卡同步到 IMA 知识库的历史记录"
+          data-testid="sync-records-page-header"
           actions={
             <Button variant="outline" size="sm" onClick={fetchRecords} disabled={loading}>
               <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -321,19 +323,21 @@ export default function SyncRecordsPage() {
               ) : (
                 records.map((record) => {
                   const StatusIcon = STATUS_ICONS[record.status] ?? Clock;
+                  // SyncRecord.materialCardId 可空（文章同步/卡已删），materialCard 可能为 null，需防御
+                  const card = record.materialCard;
                   return (
                     <TableRow key={record.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {!record.materialCard.confirmed && (
+                          {card && !card.confirmed && (
                             <AlertTriangle className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
                           )}
-                          <span className="truncate max-w-48">{record.materialCard.title}</span>
+                          <span className="truncate max-w-48">{card?.title ?? "（素材卡已移除）"}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
-                          {CARD_TYPE_LABELS[record.materialCard.cardType] ?? record.materialCard.cardType}
+                          {card ? (CARD_TYPE_LABELS[card.cardType] ?? card.cardType) : "-"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
@@ -391,9 +395,9 @@ export default function SyncRecordsPage() {
                             variant="ghost"
                             size="sm"
                             className="h-7 px-2"
-                            disabled={retryingId === record.id || !record.materialCard.confirmed}
+                            disabled={retryingId === record.id || !record.materialCard?.confirmed}
                             onClick={() => handleRetry(record)}
-                            title={!record.materialCard.confirmed ? "素材卡未确认，无法重试" : "重试同步"}
+                            title={!record.materialCard?.confirmed ? "素材卡未确认或已移除，无法重试" : "重试同步"}
                           >
                             {retryingId === record.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />

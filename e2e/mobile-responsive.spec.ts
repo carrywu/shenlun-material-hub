@@ -21,18 +21,16 @@ const MOBILE_VIEWPORTS = [
 // 公开页面（无需认证）
 const publicPages = [
   { route: '/admin/login', name: '登录页', waitFor: 'form' },
-  { route: '/articles', name: '文章列表', waitFor: 'h1, h2, h3, main' },
-  { route: '/cards', name: '素材卡', waitFor: 'h1, h2, h3, main' },
-  { route: '/search', name: '搜索页', waitFor: 'h1, h2, h3, main' },
-  { route: '/explore', name: '探索页', waitFor: 'h1, h2, h3, main' },
-  { route: '/discover', name: '发现页', waitFor: 'h1, h2, h3, main' },
+  { route: '/articles', name: '文章列表', waitFor: 'main, [data-testid="articles-page-header"]' },
+  { route: '/cards', name: '素材卡', waitFor: 'main, [data-testid="cards-page-header"]' },
+  { route: '/search', name: '搜索页', waitFor: 'main, [data-testid="search-page-header"]' },
 ];
 
 // 受保护页面（需要 admin 认证）
 const protectedPages = [
-  { route: '/admin', name: '管理后台首页', waitFor: 'h1, h2, h3, main, table' },
-  { route: '/admin/sources', name: '来源管理', waitFor: 'h1, h2, h3, main' },
-  { route: '/settings', name: '设置首页', waitFor: 'h1, h2, h3, main' },
+  { route: '/admin', name: '管理后台首页', waitFor: '[data-testid="admin-shell-heading"], main, table' },
+  { route: '/admin/sources', name: '来源管理', waitFor: '[data-testid="sources-page-header"], main' },
+  { route: '/settings', name: '设置首页', waitFor: '[data-testid="settings-page-header"], main' },
 ];
 
 for (const viewport of MOBILE_VIEWPORTS) {
@@ -43,8 +41,7 @@ for (const viewport of MOBILE_VIEWPORTS) {
       const guard = attachConsoleGuard(page);
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.goto('/articles');
-      await expect(page.locator('h1, h2, h3, main').first()).toBeVisible({ timeout: 10000 });
-      await page.waitForTimeout(2000);
+      await expect(page.locator('main, [data-testid="articles-page-header"]').first()).toBeVisible({ timeout: 10000 });
 
       // body scrollWidth 不应超出 viewport 宽度的 120%
       const overflow = await page.evaluate((vw: number) => {

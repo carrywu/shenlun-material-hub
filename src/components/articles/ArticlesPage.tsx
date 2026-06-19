@@ -588,6 +588,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
         <PageHeader
           title="文章列表"
           description={managementMode ? "管理采集的内容条目，AI 评估后生成素材卡" : "浏览已采集的内容条目，按来源、主题和时间筛选阅读"}
+          data-testid="articles-page-header"
           actions={
             <div className="flex items-center gap-2">
               {managementMode && (
@@ -804,6 +805,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">文章发布时间（起）</label>
                 <div className="relative w-full h-8 group">
                   <input
+                    data-testid="published-start-date"
                     type="date"
                     value={publishedStart}
                     onChange={(e) => setPublishedStart(e.target.value)}
@@ -822,7 +824,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">文章发布时间（止）</label>
                 <div className="relative w-full h-8 group">
                   <input
-                    type="date"
+                    data-testid="published-end-date" type="date"
                     value={publishedEnd}
                     onChange={(e) => setPublishedEnd(e.target.value)}
                     onClick={(e) => { try { e.currentTarget.showPicker(); } catch {} }}
@@ -904,7 +906,7 @@ function ArticlesPageInner({ managementMode }: { managementMode: boolean }) {
           {/* Table */}
           <div className="flex-1 overflow-auto px-6">
             {error ? (
-              <div className="flex items-center justify-center h-48 text-destructive">{error}</div>
+              <div className="flex items-center justify-center h-48 text-destructive" data-testid="articles-error">{error}</div>
             ) : loading ? (
               <div className="flex items-center justify-center h-48 text-muted-foreground">加载中...</div>
             ) : items.length === 0 ? (

@@ -124,7 +124,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     });
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
     await expect(page.getByText('加载中...', { exact: true })).not.toBeVisible({ timeout: 10000 });
 
     // 选择来源名称
@@ -162,7 +162,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     });
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
     await expect(page.getByText('加载中...', { exact: true })).not.toBeVisible({ timeout: 10000 });
 
     // AI decision select
@@ -196,7 +196,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     });
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
     await expect(page.getByText('加载中...', { exact: true })).not.toBeVisible({ timeout: 10000 });
 
     const aiSelect = page.getByTestId('ai-decision-select');
@@ -232,7 +232,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     });
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // 展开高级筛选
     const advancedToggle = page.getByRole('button', { name: '高级筛选' });
@@ -274,7 +274,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     });
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // 展开高级筛选
     const advancedToggle = page.getByRole('button', { name: '高级筛选' });
@@ -282,8 +282,8 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     await expect(page.getByText('发布时间')).toBeVisible({ timeout: 5000 });
 
     // 输入日期范围
-    const startInput = page.getByPlaceholder('年/月/日').first();
-    const endInput = page.getByPlaceholder('年/月/日').nth(1);
+    const startInput = page.getByTestId('published-start-date');
+    const endInput = page.getByTestId('published-end-date');
     if (await startInput.isVisible()) {
       await startInput.fill('2026/06/08');
       await endInput.fill('2026/06/11');
@@ -318,7 +318,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     });
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
 
     // 选择 sourceType = 网站
     const sourceTypeSelect = page.getByTestId('source-type-select');
@@ -375,7 +375,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
 
     // 1. 带筛选条件进入列表页
     await page.goto('/articles?keyword=发展&sourceType=website');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
     await expect(page.getByText('加载中...', { exact: true })).not.toBeVisible({ timeout: 10000 });
 
     // 验证筛选条件已应用
@@ -387,13 +387,14 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     const rowCount = await page.getByRole('row').count();
     if (rowCount >= 2) {
       await firstDataRow.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
       // 3. 点击"返回列表"
       const backButton = page.getByRole('button', { name: '返回列表' });
       if (await backButton.isVisible()) {
         await backButton.click();
-        await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 10000 });
+        await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 10000 });
 
         // 4. 验证筛选条件保留（URL params + UI 状态）
         const url = page.url();
@@ -416,7 +417,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     await page.route('**/api/articles**', (route) => mockArticlesApi(route));
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
     await expect(page.getByText('加载中...', { exact: true })).not.toBeVisible({ timeout: 10000 });
 
     // 验证"采集时间"列标题存在
@@ -438,7 +439,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     await page.route('**/api/articles**', (route) => mockArticlesApi(route));
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
     await expect(page.getByText('加载中...', { exact: true })).not.toBeVisible({ timeout: 10000 });
 
     // 验证"文章发布时间"列标题存在
@@ -467,7 +468,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     );
 
     await page.goto('/articles');
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 20000 });
     await expect(page.getByText('加载中...', { exact: true })).not.toBeVisible({ timeout: 10000 });
 
     // 验证：页面不弹 alert、不执行脚本
@@ -479,7 +480,7 @@ test.describe('P1-5 文章列表增强 — 筛选', () => {
     expect(bodyHtml).not.toContain('alert("XSS")');
 
     // 页面不崩溃
-    const heading = page.getByRole('heading', { name: '文章列表', exact: false });
+    const heading = page.getByTestId('articles-page-header');
     await expect(heading).toBeVisible();
 
     guard.report(testInfo);
@@ -502,9 +503,12 @@ test.describe('P1-5 文章详情增强', () => {
     aiDecision: 'accept',
     aiScore: 8.5,
     aiReason: '文章主题与申论密切相关，论述系统全面',
-    aiCategories: ['经济发展', '新发展格局'],
-    aiScenarios: ['综合分析', '对策建议'],
-    aiGoldenSentences: ['新发展格局是高质量发展的战略支撑'],
+    // AI 列表字段在 API/schema 里是 JSON string（String?），不是 array。
+    // mock 必须用 JSON.stringify，否则页面 parseStringList 走 catch 对 array
+    // 调 .split 会崩（value.split is not a function），触发 ErrorBoundary。
+    aiCategories: JSON.stringify(['经济发展', '新发展格局']),
+    aiScenarios: JSON.stringify(['综合分析', '对策建议']),
+    aiGoldenSentences: JSON.stringify(['新发展格局是高质量发展的战略支撑']),
     aiSummary: '本文围绕新发展格局，阐述高质量发展的内涵和路径',
     publishedAt: '2026-06-10T08:00:00Z',
     createdAt: '2026-06-11T03:00:00Z',
@@ -539,7 +543,7 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/art-detail-001');
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // 验证来源显示
     await expect(page.getByText('人民日报')).toBeVisible({ timeout: 5000 });
@@ -560,7 +564,7 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/art-detail-001');
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // 验证元数据区域显示发布时间 — "发布时间" 或日期文本
     const bodyText = await page.locator('body').textContent();
@@ -584,7 +588,7 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/art-detail-001');
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // 验证元数据区域 — "采集"或日期格式
     const bodyText = await page.locator('body').textContent();
@@ -611,7 +615,7 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/art-detail-001');
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // 正文区域可见
     await expect(page.getByText('正文')).toBeVisible({ timeout: 5000 });
@@ -644,7 +648,7 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/art-detail-001');
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // AI 评估结果区域
     await expect(page.getByText('AI 评估结果')).toBeVisible({ timeout: 10000 });
@@ -681,7 +685,7 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/art-detail-001');
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // Admin 可看到管理入口 — "当前页面为公开阅读视图"
     await expect(page.getByText('当前页面为公开阅读视图')).toBeVisible({ timeout: 10000 });
@@ -715,7 +719,8 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await userPage.goto('/articles/art-pending');
-    await userPage.waitForLoadState('networkidle');
+    await userPage.waitForLoadState('domcontentloaded');
+    await expect(userPage.getByText('文章不存在')).toBeVisible({ timeout: 15000 });
 
     // 应显示"文章不存在"中文文案
     const bodyText = await userPage.locator('body').textContent();
@@ -751,7 +756,7 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/art-detail-001');
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // "查看原文"链接存在
     const originalLink = page.locator('a', { hasText: '查看原文' });
@@ -784,7 +789,8 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/nonexistent-id');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText('文章不存在')).toBeVisible({ timeout: 15000 });
 
     // 中文"文章不存在"文案 — articles/[id]/page.tsx fallback
     const bodyText = await page.locator('body').textContent();
@@ -815,7 +821,8 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/art-forbidden');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('body')).toContainText(/文章不存在|无权访问/, { timeout: 15000 });
 
     // 中文错误文案
     const bodyText = await page.locator('body').textContent();
@@ -860,7 +867,8 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await userPage.goto('/articles/art-detail-001');
-    await userPage.waitForLoadState('networkidle');
+    await userPage.waitForLoadState('domcontentloaded');
+    await expect(userPage.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // 页面正常加载
     const bodyText = await userPage.locator('body').textContent();
@@ -891,7 +899,7 @@ test.describe('P1-5 文章详情增强', () => {
     await page.route('**/api/articles**', (route) => mockArticlesApi(route));
 
     await page.goto('/articles/art-detail-001');
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // 点击"返回列表"
     const backButton = page.getByRole('button', { name: '返回列表' });
@@ -899,7 +907,7 @@ test.describe('P1-5 文章详情增强', () => {
     await backButton.click();
 
     // 列表页正常加载
-    await expect(page.getByRole('heading', { name: '文章列表', exact: false })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('articles-page-header')).toBeVisible({ timeout: 10000 });
 
     guard.report(testInfo);
   });
@@ -939,7 +947,8 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/art-wechat-img');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // 页面正常加载
     const bodyText = await page.locator('body').textContent();
@@ -986,7 +995,8 @@ test.describe('P1-5 文章详情增强', () => {
     );
 
     await page.goto('/articles/art-wechat-imgfail');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // 页面不崩溃
     const bodyText = await page.locator('body').textContent();
@@ -998,8 +1008,7 @@ test.describe('P1-5 文章详情增强', () => {
     const emojiPlaceholder = page.getByText('🖼️ 图片加载失败');
 
     // 至少页面没有白屏/崩溃
-    const heading = page.locator('h1');
-    await expect(heading).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 10000 });
 
     guard.report(testInfo);
   });

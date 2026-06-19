@@ -141,7 +141,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <Menu />
       </Button>
 
-      <aside className={`flex h-full flex-shrink-0 flex-col border-r border-border bg-card transition-all duration-200
+      <aside data-testid="admin-sidebar" data-state={collapsed ? "collapsed" : "expanded"} className={`flex h-full flex-shrink-0 flex-col border-r border-border bg-card transition-all duration-200
         ${collapsed ? "w-16" : "w-64"}
         ${mobileOpen ? "fixed inset-y-0 left-0 z-50 w-64" : "hidden lg:flex"}
       `}>
@@ -161,6 +161,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           )}
           <div className="ml-auto flex items-center gap-1">
             <Button
+              data-testid="admin-sidebar-toggle"
+              aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"}
+              aria-expanded={!collapsed}
               variant="ghost"
               size="icon-sm"
               className="hidden lg:block"
@@ -247,7 +250,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
       <main className="flex h-full flex-1 flex-col overflow-hidden bg-background">
         <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-card px-8">
-          <h1 className="text-sm font-semibold tracking-wide text-foreground">
+          <h1 data-testid="admin-shell-heading" className="text-sm font-semibold tracking-wide text-foreground">
             {visibleNavItems.find((item) => item.href === pathname || (item.href !== "/admin" && pathname.startsWith(item.href)))?.name || "控制台"}
           </h1>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">

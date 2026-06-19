@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
 import { logger } from "@/lib/logger";
@@ -83,13 +82,6 @@ function keySuffix(apiKey: string): string {
   return `****${suffix}`;
 }
 
-function envHash(apiKey: string, baseURL: string | undefined, model: string): string {
-  return createHash("sha256")
-    .update([apiKey, baseURL ?? "", model].join("\0"))
-    .digest("hex")
-    .slice(0, 16);
-}
-
 async function resolveAiRuntimeConfig(userId?: string): Promise<{
   apiKey: string;
   model: string;
@@ -160,7 +152,8 @@ async function resolveAiRuntimeConfig(userId?: string): Promise<{
       };
     }
 
-    // System-level (no userId): use global config → env fallback
+    // System-level (no userId): use global DB config only. P0-4: 不再 fallback 到 env
+    // （env 变量仅用于测试，不得作为生产全局兜底，违反需求 5.1）。缺配置直接抛错。
     const config = await db.aiConfig.findFirst({
       where: { name: "default", isEnabled: true, userId: null },
       select: {
@@ -172,71 +165,63 @@ async function resolveAiRuntimeConfig(userId?: string): Promise<{
       },
     });
 
-    if (config) {
-      if (!process.env.AI_CONFIG_ENCRYPTION_KEY) {
-        throw new AiServiceError(
-          "AI_ENCRYPTION_KEY_MISSING",
-          "AI_CONFIG_ENCRYPTION_KEY 环境变量未设置，无法解密数据库中的 API Key",
-          500,
-          { source: "db" }
-        );
-      }
-
-      let apiKey: string;
-      try {
-        apiKey = decrypt(config.encryptedKey);
-      } catch {
-        throw new AiServiceError(
-          "AI_CONFIG_DECRYPT_FAILED",
-          "数据库中的 AI 配置解密失败，可能是密钥不匹配。请删除旧配置后重新保存",
-          500,
-          { source: "db", baseURL: config.baseUrl, model: config.model }
-        );
-      }
-
-      const trimmedApiKey = trimConfigValue(apiKey);
-      if (!trimmedApiKey) {
-        throw new AiServiceError(
-          "AI_CONFIG_MISSING",
-          "数据库 AI 配置中的 API Key 为空，请重新保存配置",
-          500,
-          { source: "db", baseURL: config.baseUrl, model: config.model }
-        );
-      }
-
-      return {
-        apiKey: trimmedApiKey,
-        model: trimConfigValue(config.model) ?? "deepseek-v4-flash",
-        source: "db",
-        baseURL: trimConfigValue(config.baseUrl),
-        cacheKey: `db:${config.id}:${config.updatedAt.toISOString()}`,
-      };
+    if (!config) {
+      throw new AiServiceError(
+        "AI_CONFIG_MISSING",
+        "未配置全局 AI 服务。请在后台配置一个启用的全局 AI 配置（DB AiConfig），系统不再使用环境变量兜底",
+        500,
+        { source: "db" }
+      );
     }
+
+    if (!process.env.AI_CONFIG_ENCRYPTION_KEY) {
+      throw new AiServiceError(
+        "AI_ENCRYPTION_KEY_MISSING",
+        "AI_CONFIG_ENCRYPTION_KEY 环境变量未设置，无法解密数据库中的 API Key",
+        500,
+        { source: "db" }
+      );
+    }
+
+    let apiKey: string;
+    try {
+      apiKey = decrypt(config.encryptedKey);
+    } catch {
+      throw new AiServiceError(
+        "AI_CONFIG_DECRYPT_FAILED",
+        "数据库中的 AI 配置解密失败，可能是密钥不匹配。请删除旧配置后重新保存",
+        500,
+        { source: "db", baseURL: config.baseUrl, model: config.model }
+      );
+    }
+
+    const trimmedApiKey = trimConfigValue(apiKey);
+    if (!trimmedApiKey) {
+      throw new AiServiceError(
+        "AI_CONFIG_MISSING",
+        "数据库 AI 配置中的 API Key 为空，请重新保存配置",
+        500,
+        { source: "db", baseURL: config.baseUrl, model: config.model }
+      );
+    }
+
+    return {
+      apiKey: trimmedApiKey,
+      model: trimConfigValue(config.model) ?? "deepseek-v4-flash",
+      source: "db",
+      baseURL: trimConfigValue(config.baseUrl),
+      cacheKey: `db:${config.id}:${config.updatedAt.toISOString()}`,
+    };
   } catch (error) {
     if (error instanceof AiServiceError) throw error;
-    // 数据库读取失败时按既有行为降级到环境变量，避免 DB 暂时不可用导致所有 AI 功能不可用。
-  }
-
-  const envApiKey = trimConfigValue(process.env.AI_API_KEY) ?? trimConfigValue(process.env.OPENAI_API_KEY);
-  const envBaseURL = trimConfigValue(process.env.AI_BASE_URL);
-  const envModel = trimConfigValue(process.env.AI_MODEL) ?? trimConfigValue(process.env.OPENAI_MODEL) ?? "deepseek-v4-flash";
-
-  if (!envApiKey) {
+    // DB 读取异常：不再降级到 env，直接抛错（P0-4）。
     throw new AiServiceError(
       "AI_CONFIG_MISSING",
-      "未找到 AI 配置：数据库无启用配置且环境变量 AI_API_KEY / OPENAI_API_KEY 未设置",
+      "读取 AI 配置失败，请检查数据库连接与全局 AI 配置",
       500,
-      { source: "env", baseURL: envBaseURL, model: envModel }
+      { source: "db" }
     );
   }
-
-  return {
-    apiKey: envApiKey,
-    model: envModel,
-    source: "env",
-    baseURL: envBaseURL,
-    cacheKey: `env:${envHash(envApiKey, envBaseURL, envModel)}`,
-  };
 }
 
 export async function getAiRuntime(userId?: string): Promise<AiRuntime> {

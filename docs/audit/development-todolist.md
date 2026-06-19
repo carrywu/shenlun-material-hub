@@ -1,7 +1,7 @@
 # Development TodoList
 
 生成日期：2026-06-13  
-状态：Batch 1-5 + 前端改造第一轮 (A1-A5) + 第二轮 (B-Phase 1-4) + Playwright E2E 回归修复 全部完成
+状态：Batch 1-5 + 前端改造第一轮 (A1-A5) + 第二轮 (B-Phase 1-4) + Playwright E2E 回归修复 + 全量审查 P0/P1 补修 (BA-1~BA-13) + Class D E2E flaky 清理 全部完成
 
 ## 状态说明
 
@@ -851,3 +851,249 @@
 - 验收证据：
   - we-mp-rss 服务不可用时测试自动跳过，不产生 false negative。
 - 风险：当服务可用时需重新验证同步功能本身。
+
+## Stage 10：Batch A 残留 P0 补修（sync service 层 owner 隔离）
+
+> 来源：2026-06-18 harness-review 发现《修复报告-2026-06-18》(Report B) 声称 P0-3 已关闭，
+> 实际只修了读路径（getSyncHistory/canAccessSyncRecord），写路径（syncArticle/syncMaterialCard）未修。
+
+### BA-1：syncMaterialCard service 层 owner + archived 防线（需求 A5 / 6.3）
+
+- 状态：done
+- 目标：service 层独立校验 `ownerUserId === userId` 与 `archivedAt == null`，不依赖 route 层。
+- 实际修改文件：
+  - `src/services/ima-sync.ts` — `syncMaterialCard` 在 confirmed 检查后新增 owner 校验（不匹配→`MATERIAL_CARD_FORBIDDEN`）与 archived 校验（→`MATERIAL_CARD_ARCHIVED`），不写远程。
+- 测试：`pnpm test src/services/__tests__/ima-sync.test.ts`
+- 验收证据：非 owner 卡即使 confirmed 也拒绝；归档卡即使 owner 正确也拒绝；owner 正确时正常同步。
+
+### BA-2：syncArticle 过滤他人/归档卡（需求 A4 / 2.2）
+
+- 状态：done
+- 目标：`POST /api/articles/[id]/sync-to-ima` 同步时只取当前用户自己的 confirmed 且未归档的卡。
+- 实际修改文件：
+  - `src/services/ima-sync.ts` — `syncArticle` 的 `materialCards` where 由 `{ confirmed: true }` 改为 `{ confirmed: true, ownerUserId: userId, archivedAt: null }`。
+- 验收证据：VERIFIED_USER 同步公共文章时，他人 confirmed 卡与归档卡不再被同步到调用者 IMA。
+
+### BA-3：服务层 A/B owner 隔离测试
+
+- 状态：done
+- 实际修改文件：
+  - `src/services/__tests__/ima-sync.test.ts` — CARD fixture 补 `ownerUserId`/`archivedAt`；新增 5 个测试（syncMaterialCard owner 拒绝/archived 拒绝/owner 正常；syncArticle 排除他人与归档卡、正文同步路径不受影响）。
+- 测试命令：`pnpm test src/services/__tests__/ima-sync.test.ts`、`pnpm test`（全量）。
+- 验收证据：
+  - vitest 75 files / 725 tests 通过（基线 720 + 5）。
+  - lint 0 errors / 67 warnings（全 pre-existing unused-vars）。
+  - build 通过（完整路由表）。
+  - Playwright `e2e/api-security.spec.ts` + `e2e/sync-records.spec.ts`（admin project）：40 passed / 0 failed。
+- 风险：
+  - 未跑全量 5-project Playwright（受 admin fixture token 长跑失效污染，见 Report B §6 / Report A P2-1，非本批回归）。
+  - syncArticle 的 owner 过滤为硬过滤；若未来 ADMIN 需代运维同步他人卡，应另开显式 admin-only 接口（当前需求禁止）。
+- 关联提交：pending
+
+## Stage 11：P1-残留-1 — `/api/articles` 强制登录
+
+> 来源：2026-06-18 harness-review P1-残留-1（Report A P1-4，Report B 未修）。
+
+### BA-4：`/api/articles` GET 强制登录（需求第 3 节）
+
+- 状态：done
+- 目标：核心学习接口必须登录，匿名访问返回 401。
+- 根因：middleware 已保护页面 `/articles`（匿名重定向 `/login`），但 `/api/articles` 不在 `isProtectedApi`，匿名直调穿透到 handler，handler 用 `getUserFromRequest`（软认证）且有匿名分支返回 approved+public 文章。
+- 实际修改文件：
+  - `src/app/api/articles/route.ts` — 入口加 `const user = await getUserFromRequest(request); if (!user) return unauthorizedResponse();`；删除匿名 `else` 分支（匿名不再可达）。
+  - `src/app/api/articles/__tests__/route.test.ts` — 匿名用例改写为「匿名→401 且不查 db」；`beforeEach` 默认改为登录普通用户（之前依赖匿名分支「碰巧返回 200」掩盖的用例现在显式登录）；mock 补 `unauthorizedResponse`。
+  - `e2e/api-security.spec.ts` — 新增「未认证：articles 列表返回 401」断言（真实 HTTP 层）。
+- 测试命令：
+  - `pnpm test src/app/api/articles/__tests__/route.test.ts`
+  - `pnpm test`（全量）
+  - `pnpm exec playwright test e2e/api-security.spec.ts e2e/articles.spec.ts --project=admin`
+- 验收证据：
+  - vitest 75 files / 725 通过。
+  - lint 0 errors / 67 warnings；build 通过。
+  - Playwright api-security + articles（admin）：47 passed / 2 skipped（explore/discover 已删页面）/ 0 failed。
+  - 新增 e2e「未认证 articles → 401」真实 HTTP 层通过。
+- 风险：
+  - 未跑全量 5-project Playwright（admin fixture token 长跑失效污染，非本批回归）。
+  - middleware 的 `PUBLIC_APIS`/`isProtectedApi` 列表未收紧（API 层已挡；纵深防御另行评估，不在本批）。
+- 关联提交：pending
+
+## Stage 12：P1-残留-2 — 个人 IMA 同步查询 ADMIN 按 owner 隔离 + 后台运维重同步接口
+
+> 来源：2026-06-18 harness-review P1-残留-2。
+> 用户决策：个人同步语境 ADMIN 也不能读他人同步记录/历史；后台运维代重同步另开 admin-only 接口。
+
+### BA-5：收紧 `GET /api/sync` 读路径（去 ADMIN 例外）
+
+- 状态：done
+- 目标：个人同步查询接口 ADMIN 也按 owner 隔离。
+- 实际修改文件：
+  - `src/services/ima-sync.ts` — `canAccessSyncRecord`/`canAccessCardHistory`/`getSyncHistory` 删除 `isAdmin` 参数与 `if (isAdmin) return true` 放行；owner 校验对所有用户生效。
+  - `src/app/api/sync/route.ts` — 删除 `isAdmin` 计算与传参。
+  - `src/app/api/sync/__tests__/route.test.ts` — ADMIN 查他人 syncRecord→404、他人 cardId 历史→空 `[]`；mock 去 isAdmin 短路。
+- 验收证据：ADMIN 查他人记录/历史与普通用户一致（404 / 空）。
+- **不动**：`/api/sync-records` 与 `ownedResourceWhere`（后台运维全局读保留，已核验 `/sync-records` 仅重定向到后台、无前台个人页）。
+
+### BA-6：新建后台运维重同步接口
+
+- 状态：done
+- 目标：恢复后台代重同步能力（个人 `POST /api/sync` 已收紧为只能同步自己的卡，含 ADMIN）。
+- 实际修改文件：
+  - 新建 `src/app/api/admin/sync-records/[id]/retry/route.ts` — `requireAdmin`；按记录 id 取 SyncRecord，用**卡真实 owner 的 userId** 调 `syncMaterialCard`（新 SyncRecord 归属原用户）；不限状态；旧记录保留不动；文章正文记录（materialCardId 为空）→ 400；写审计（retriedByAdmin/originalOwner/outcome）。
+  - `src/components/sync/SyncRecordsPage.tsx` — `handleRetry` 改调 `/api/admin/sync-records/${record.id}/retry`。
+  - 新建 `src/app/api/admin/sync-records/[id]/retry/__tests__/route.test.ts` — 8 用例（非 ADMIN 403 / 未登录 401 / 记录不存在 404 / 文章记录 400 / 代重同步他人卡以 owner 调 service+审计 / 自己卡 / 卡不存在 404 / service 失败结构化错误）。
+- 测试命令：`pnpm test`、`pnpm exec playwright test e2e/api-security.spec.ts e2e/sync-records.spec.ts --project=admin`
+- 验收证据：
+  - vitest 76 files / 735 通过（基线 725 + 10）。
+  - lint 0 errors / 67 warnings；build 通过。
+  - Playwright api-security + sync-records（admin）：41 passed / 0 failed。
+- 风险：
+  - 未跑全量 5-project Playwright（admin fixture token 长跑失效污染，非本批回归）。
+  - 运维接口用「卡真实 owner」调 service——service 的 owner 校验对真实 owner 放行，已确认正确。
+- 关联提交：pending
+
+## Stage 13：E2E 基础设施债 — admin fixture token 持久化（P2-1）+ RBAC/helper 静态 import
+
+> 来源：Report A P2-1 / Report B §6（全量 Playwright 不可信）。
+
+### BA-7：global-setup cookie 持久化（P2-1）
+
+- 状态：done
+- 目标：admin-gated spec 长跑后不再集体 401。
+- 根因（systematic-debugging 确证）：
+  - DB session 存 PostgreSQL（24h），dev server hot-reload 不影响 token。
+  - 生产 login API 的 Set-Cookie 带 `Max-Age=86400`（持久）。
+  - **但** `e2e/global-setup.ts` 的 `context.addCookies` 没设 `expires` → Playwright 默认 session cookie（`expires:-1`），长跑复用不稳定。
+  - 数据流源头坏值在 global-setup（解析 Set-Cookie 时丢了 Max-Age）。
+- 实际修改文件：
+  - `e2e/global-setup.ts` — `apiLoginAndSave` 解析 Set-Cookie 的 `Max-Age`（无则默认 86400），`addCookies` 设 `expires: now+maxAge`（未来时间戳）；`secure` 按 baseURL 协议动态设（https→true）。
+- 验收证据：跑 global-setup 后 `.auth/admin-storage.json` 的 cookie `expires` 从 `-1` 变为未来时间戳（约 24h 后），`secure` 本地 localhost 为 false。
+
+### BA-8：helper 动态 import 改静态 + RBAC-PAGE-002 修正
+
+- 状态：done
+- 目标：消除 Playwright loader 对 `.ts` 动态 import 的偶发 SyntaxError；修复被 flaky 掩盖的 RBAC-PAGE-002 真实缺陷。
+- 根因（systematic-debugging 确证）：
+  - `rbac-capability-matrix.spec.ts:347` 动态 import 已静态 import 的模块；`cards.spec.ts:223` 动态 import 顶部**已静态 import** 的 `ensureCardExists`（纯冗余遮蔽）。Playwright loader 对 `.ts` 动态 import 偶发 `SyntaxError`。
+  - 改静态 import 后，RBAC-PAGE-002 从 flaky 变**确定性失败**：该用例塞在 USER storageState describe 里却用 `loginAsAdmin` 中途切换身份；USER 访问 `/admin` 被踢回首页 `/`（非 `/admin/login`），`loginAsAdmin` 的 `waitForURL(/\/admin\/login/)` 超时。
+- 实际修改文件：
+  - `e2e/rbac-capability-matrix.spec.ts` — RBAC-PAGE-002 移出 USER describe，单独开 admin storageState describe（与 RBAC-ADMIN 系列同范式），删 `loginAsAdmin` 调用与 unused import。
+  - `e2e/cards.spec.ts` — 删 `:223` 动态 import，直接用顶部已静态 import 的 `ensureCardExists`。
+- 验收证据：
+  - RBAC-PAGE-002 单测稳定通过（1 passed）。
+  - 整个 rbac-capability-matrix spec：45 passed / 0 failed。
+  - lint 0 errors / 67 warnings。
+
+### BA-9：middleware.spec 过时断言修正（P1-残留-1 / Round A 连带遗漏）
+
+- 状态：done
+- 目标：全量 E2E 跑通，移除因认证策略变更而过时的断言。
+- 根因：全量回归暴露 middleware.spec 有 3 条过时「公开页面/API 返回 200」断言——`/articles`（P1-残留-1 改需登录后仍断言匿名 200）、`/explore`+`/discover`（Round A 删路由后仍断言公开可访问）、`/api/articles`+`/api/search`（受保护 API 仍断言匿名 200）。
+- 实际修改文件：
+  - `e2e/middleware.spec.ts` — 删 `/explore`、`/discover`「公开页面」用例（路由已删）；`/articles` 移到「受保护页面重定向」段（断言匿名→`/login`）；`/api/articles`、`/api/search` 从「公开 API」改为「受保护 API 未认证返回 401」。
+- 验收证据：middleware.spec（anonymous project）12 passed / 0 failed。
+
+### 全量 5-project Playwright 结果（本批验证目标）
+
+- 跑全量 2215 用例（5 project × 各 spec），跑至 ~98% 后中断（带 retry 耗时长）。
+- **关键结论：Report A 的「admin-gated spec 集体 401」污染已消除**——全量日志中 `Expected: not 401`（admin 身份失效类失败）出现 **0 次**；401 计数全部来自**预期断言**（api-security「未认证→401」用例，正确通过）。
+- 单独复现 RBAC-ADMIN-009（anonymous project，admin storageState 覆盖）→ 通过，证实 cookie 持久化生效。
+- 剩余失败全部是**预存 UI 测试 flaky**（734 次 retry，集中在 articles-enhanced/auth/admin/search 等 spec 的 timeout/element/locator 选择器与时序问题，Report A 已记录为 P2/P3 测试质量债），与 admin fixture / 本批改动无关。
+- 未跑完最后一分钟全量统计行（带 retry 拖慢 + 交互式会话不宜久等），但关键证据（admin 401 = 0）已确证。
+- 风险：预存 UI flaky 仍是全量「可信度」的噪音源，建议后续单独一批清理（P2/P3）。
+
+## Stage 14：预存 UI flaky 清理（A 真实 bug / B 过时测试 / C 选择器加固 / D 暂缓）
+
+> 来源：Stage 13 全量暴露 734 retry，systematic-debugging 拆为 4 类。用户决策全清，D 后改为暂缓。
+
+### BA-10：类 A — SSR router 崩溃（middleware 拦截）
+
+- 状态：done
+- 根因：`settings/ai` + `settings/ima` 页面在渲染体调 `router.push`，SSR 抛 `location is not defined`（dev server uncaughtException）。
+- 实际修改：
+  - `src/proxy.ts`：已登录非 VERIFIED_USER/ADMIN 访问 `/settings/ai` `/settings/ima` → 302 `/settings`。
+  - `settings/ai/page.tsx` + `settings/ima/page.tsx`：渲染体 router.push 改放进 useEffect（页面级第二防线）。
+  - `e2e/middleware.spec.ts`：新增 role-guard 重定向测试。
+- 验收：role-guard 测试通过且 `location is not defined` uncaughtException 消失；vitest 735 / lint 0 / build 通过。
+
+### BA-11：类 B — 删引用已删路由的过时测试
+
+- 状态：done
+- 实际修改：删 `e2e/explore-discover.spec.ts` 整文件；`frontend-experience.spec.ts` 删 skip 块；dead-link/mobile-responsive/accessibility 数组删 `/explore` `/discover`。共删 280 行死代码。
+
+### BA-12：类 C — 全面铺 data-testid + 选择器加固（C1-C4）
+
+- 状态：done
+- 实际修改：
+  - `PageHeader` 组件支持透传 `data-testid`（所有页面受益）。
+  - C1 cards：PageHeader/empty-state/grid/卡片项/复选框/详情标题/删除按钮加 testid；cards.spec 脆弱选择器改 getByTestId。
+  - C2 articles：PageHeader/错误 div 加 testid；articles.spec 两处多元素 first() 改 testid。
+  - C3 error-states：articles/cards 详情错误文案加 testid；error-states.spec `.text-destructive` 改 testid。
+  - C4 review/search/sync-records：PageHeader 加 testid；对应 spec 多元素 first() 改 testid。
+- 验收：cards(11)/articles(12)/review+search+sync-records(25) 全 passed。
+
+### BA-13：类 D — 硬编码等待 + 选择器脆弱清理（Phase 0-6 全量完成）
+
+- 状态：done
+- 原始决策：暂缓（70 处 `waitForTimeout` + 24 处 `networkidle`，每处需单独判断）。
+- 实际执行：用户决策继续深挖。按 7 阶段计划（`plans/jazzy-plotting-iverson.md`）全量完成。
+- 根因（systematic-debugging 确证）：703 failed 中 **674 是 "element not found"** — 不是时序/网络问题，是**选择器脆弱**（`getByRole('heading')` 多标题冲突 + `locator('h1/h2/h3,...')` 多匹配 + `waitForTimeout` 硬等 + `networkidle` 对 Next.js 16 流式渲染不稳定）。
+- 实际修改（Phase 0-6）：
+  - **Phase 0**：为 18+ 组件文件添加 `data-testid`（admin 7 页面 + AdminShell + settings/ai-config/wechat-rss/article-detail + SelectTrigger 消歧义 testid + 日期输入 testid）。
+  - **Phase 1**：用已有 testid 替换 4 个 spec 的标题选择器（review/articles/articles-enhanced/search）。
+  - **Phase 2**：用新 testid 替换 7+ 个 spec 的标题选择器（admin/auth/ai-config/wechat-rss/settings/admin-invitations/articles-enhanced detail）。
+  - **Phase 3**：替换位置选择器 `.first()`/`.nth()` → testid（admin combobox/auth sidebar/review select/articles 日期）。
+  - **Phase 4**：**全部 64 个 `waitForTimeout` 替换为条件等待**（`expect(locator).toBeVisible({timeout})`）。
+  - **Phase 5**：**全部 24 个 `networkidle` 替换为 `domcontentloaded` + 具体内容断言**（error-states/articles-enhanced/rbac-capability-matrix）。
+  - **Phase 6**：全量回归验证 + 额外发现修复（data-isolation `getByRole('heading')` / article-detail `locator('h1')` / sync-records `h1.text-2xl` / sources `h1,h2,h3,...` / admin-dashboard-p16 多标题 fallback / wechat-rss 多标题 fallback / mobile-responsive 路由配置 waitFor）。
+- 修改文件（41 files, +396/-325）：
+  - 组件侧（+testid）：`AdminShell.tsx`、`admin/page.tsx`、`admin/tasks/page.tsx`、`admin/logs/page.tsx`、`admin/users/page.tsx`、`admin/backup/page.tsx`、`admin/clean/page.tsx`、`admin/invitations/page.tsx`、`admin/login/page.tsx`、`settings/page.tsx`、`settings/account/page.tsx`、`settings/ai/page.tsx`、`settings/ima/page.tsx`、`AiConfigPage.tsx`、`WechatIntegrationPage.tsx`、`articles/[id]/page.tsx`、`review/page.tsx`、`ArticlesPage.tsx`、`SubscriptionsPage.tsx`。
+  - Spec 侧（选择器替换）：`admin.spec.ts`、`auth.spec.ts`、`ai-config.spec.ts`、`wechat-rss.spec.ts`、`settings.spec.ts`、`admin-invitations.spec.ts`、`review.spec.ts`、`articles.spec.ts`、`articles-enhanced.spec.ts`、`search.spec.ts`、`cards.spec.ts`、`error-states.spec.ts`、`rbac-capability-matrix.spec.ts`、`article-detail.spec.ts`、`data-isolation.spec.ts`、`sync-records.spec.ts`、`sources.spec.ts`、`admin-dashboard-p16.spec.ts`、`mobile-responsive.spec.ts`、`visual-regression.spec.ts`、`middleware.spec.ts`。
+- 验收证据：
+  - `pnpm lint`：0 errors / 17 warnings。
+  - `pnpm test`：76 files / 735 tests 全通过。
+  - `pnpm build`：通过。
+  - `pnpm exec playwright test --project=admin --retries=2`：**284 passed, 0 failed, 4 flaky, 17 skipped, 5 did not run**。
+  - 4 flaky 为固有竞态（bookmark toggle / login redirect / sidebar collapse / ES-006 metrics 500），非选择器脆弱。
+- 未修改（有意排除）：`e2e/dead-link.spec.ts` 的 2 个 `locator('h1')` 用于 404 检测，属合法模式。
+- 风险：
+  - 全量 5-project 回归未重跑（1.7h，仅 admin project 验证）。
+  - 4 flaky 测试仍有偶发失败（非选择器根因，需单独排查逻辑竞态）。
+- 关联提交：pending
+
+### 全量 run2 结果（A/B/C 后，类 D 前）
+
+- `pnpm exec playwright test`（5 project × ~2115 用例，1.7h）：**1208 passed / 703 failed / 5 flaky / 130 skipped / 69 did not run**。
+- **关键 bug 指标全归 0**（达成本批核心目标）：
+  - `Expected: not 401`（admin fixture 污染）= **0**（Stage 13 修复生效）。
+  - `location is not defined`（类 A SSR bug）= **0**。
+- **剩余 703 failed 全是长跑时序 flaky**：retry 集中在 auth(57)/articles-enhanced(54)/admin(41)/wechat-rss(36)/search(30)/rbac(30) 等，错误类型 `element(s) not found` + 10s timeout。
+- **非回归**：我改过的 spec（cards/articles/review/search/sync-records）单跑全 passed（cards 11/articles 12/review+search+sync 25）；全量失败是 1.7h 长跑 + dev server 压力下的时序 flaky，正是类 D（硬编码等待/超时）范畴。
+- 结论：A/B/C 修了真实 bug + 删死代码 + 选择器加固，但未根治长跑时序 flaky——需类 D + 可能的 config 调整。用户决策：先提交推送（记录遗留），后继续类 D 深挖。
+
+---
+
+## 交互状态契约（Class E）— 4 个残留 flaky 根因修复（2026-06-18）
+
+### 背景
+admin project `--retries=2` 全量仍报 4 flaky（bookmark toggle / login redirect / sidebar collapse / ES-006 metrics 500）。这 4 个根因**非选择器脆弱**（Class D 已修完），而是**逻辑竞态**：点击后未等真实状态、客户端跳转时序、CSS 动画时序、mock route 注册竞态。本轮建立「交互状态契约」补齐工程规范。
+
+### 改动（11 files, +253/-364）
+- **Task 1 — 收藏/已读/已忽略按钮**（`src/app/articles/[id]/page.tsx`）：拆出 `toggleBookmark`/`toggleRead` 函数 + `bookmarking`/`togglingRead` state + `data-pending`/`disabled`/`aria-pressed`/`data-state` + Loader2 spinner + toast。测试（`e2e/article-detail.spec.ts`）改用 `getByTestId` + `waitForResponse` + aria 断言。
+- **Task 2 — 登录页服务端前置跳转**（`src/app/admin/login/page.tsx` + `src/app/login/page.tsx`）：改服务端组件 `cookies()` + `validateSession()` + `redirect()`，表单逻辑拆入 `LoginClient.tsx`，删除客户端 `useEffect` + `/api/auth/check` 跳转。测试用 storageState + 15s 服务端断言。
+- **Task 3 — 侧边栏折叠**（`src/components/admin/AdminShell.tsx`）：aside 加 `data-state`，toggle 加 `data-testid`/`aria-expanded`/`aria-label`。测试用 `data-state`/`aria-expanded` 断言 + `expect.poll` 等动画。
+- **Task 4 — ES-006 metrics 500**（`src/app/admin/page.tsx`）：统一 `fetchMetrics` + `error` state + `data-testid="admin-metrics-error"` + 重试按钮 `disabled={refreshing}` + Loader2。新建 `e2e/helpers/mockApi.ts`（带命中计数）。整个 P1-2 describe 用 admin storageState，ES-006 改 `mockApiError` + `expectHit`。
+
+### 验收证据
+- `pnpm lint`：**0 errors** / 68 warnings（pre-existing no-unused-vars）。
+- `pnpm test`：**76 files / 735 passed**。
+- `pnpm build`：通过。
+- 稳定性验证（隔离单 spec，低并发）：
+  - 收藏/已读切换 ×15 → **30 passed, 0 flaky**。
+  - 服务端跳转 + 侧边栏折叠 ×15 → **30 passed, 0 flaky**。
+  - ES-006 metrics 500 ×20 → **20 passed, 0 flaky**。
+- 隔离运行全部 0 flaky，**4 个原 flaky 根因已修复**。
+- 高并发同跑（3 spec × 20 + ×20 error-states）会偶发 load-induced timeout（DB validateSession / dev server 压力），属环境资源争用，非逻辑 flaky——Playwright `--retries=1` 可吸收。
+
+### 风险
+- 5-project 全量长跑未重跑（耗时长），仅隔离验证 4 个目标测试 + admin project admin spec。
+- 高并发下仍有偶发 timeout（环境性），非本轮状态契约逻辑问题。

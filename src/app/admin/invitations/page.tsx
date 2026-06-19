@@ -151,7 +151,7 @@ export default function AdminInvitationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">邀请码管理</h2>
+          <h2 data-testid="admin-invitations-page-header" className="text-lg font-semibold text-foreground">邀请码管理</h2>
           <p className="text-sm text-muted-foreground">创建、查看和作废注册邀请码</p>
         </div>
         <div className="flex gap-2">

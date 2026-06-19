@@ -1,7 +1,7 @@
 # Development Handoff
 
-生成日期：2026-06-13  
-状态：Batch 1-5 + 前端改造第一轮 (A1-A5) + 第二轮 (B-Phase 1-4) + Playwright E2E 回归修复 全部完成  
+生成日期：2026-06-18
+状态：Batch 1-5 + 前端改造第一轮 (A1-A5) + 第二轮 (B-Phase 1-4) + Playwright E2E 回归修复 + 全量审查 P0/P1 补修 (BA-1~BA-13) + Class D E2E flaky 清理 全部完成
 适用：后续 agent 接手前恢复现场
 
 ## 1. 当前目标
@@ -107,11 +107,11 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 
 ## 4. 下一步
 
-1. **跨浏览器全量回归**：E2E 修复已在 admin project（chromium）验证通过（66 passed, 15 skipped, 0 failed）。需在 5 个 browser project（chromium、firefox、webkit、mobile-chrome、mobile-safari）上跑全量回归确认修复无遗漏。命令：`pnpm exec playwright test`。
+1. **跨浏览器全量回归**：E2E 修复已在 admin project（chromium）验证通过（284 passed, 0 failed, 4 flaky, 17 skipped）。需在 5 个 browser project（chromium、firefox、webkit、mobile-chrome、mobile-safari）上跑全量回归确认修复无遗漏。命令：`pnpm exec playwright test`。
 2. **视觉回归快照重生成**：`e2e/visual-regression.spec.ts` 已移除已删除路由（/explore、/discover），但剩余页面的截图快照仍为旧版，需用 `--update-snapshots` 重新生成基线。命令：`pnpm exec playwright test e2e/visual-regression.spec.ts --update-snapshots --project=chromium`。
 3. **we-mp-rss 同步测试验证**：`e2e/we-mp-rss.spec.ts` 已添加基础设施 health check 跳过逻辑，待 we-mp-rss 服务（localhost:8001）可用后验证同步功能。
 4. **Round B 视觉人工确认**：Card 圆角从 rounded-xl 改为 rounded-lg、登录表单字段移除 rounded-xl 覆盖、admin 表格操作按钮语义颜色丢失（ghost variant），需浏览器端人工确认视觉效果是否可接受。
-5. **E2E spec 进一步清理**：15 个 skipped test 中，explore/discover/my-articles 相关测试已添加 skip 标注但代码仍保留。若确认不再需要可考虑删除对应 spec 文件。
+5. **4 flaky 测试竞态修复**：bookmark toggle、auth login redirect、sidebar collapse、ES-006 metrics 500 偶发 flaky，属逻辑竞态非选择器脆弱，需单独排查。
 
 ## 5. 关键决策
 
@@ -297,3 +297,61 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - Docker/PostgreSQL 恢复后优先运行 `prisma migrate deploy`（已应用过则跳过）+ Playwright 跨浏览器全量回归。
 - E2E spec 中已删除路由（/discover、/explore、/my-articles）的测试已添加 `test.skip()` 标注，代码保留以备参考。
 - Playwright E2E 修复已完成 admin project 验证，跨浏览器回归优先跑 `pnpm exec playwright test`。
+
+## 10. 2026-06-18 全量审查 + Batch A 残留 P0 补修
+
+> ⚠️ 本节纠正上文 §1-§9 的过期叙事。上文停留在「Batch1-5+Round A/B 全完成」，
+> 未记录分支上的全量审查与 P0/P1 修复。事实以本节 + 两份报告为准。
+
+- **全量审查**：《全量审查报告-2026-06-18.md》(Report A) 发现 5 个 P0 + 4 个 P1（静态代码审查确证）。
+- **P0/P1 修复**：《修复报告-2026-06-18.md》(Report B) 修复 P0-1/2/4/5 + P1-1/2/3，vitest 720 通过。
+- **残留 P0 补修（Batch A，本轮）**：harness-review 发现 Report B 对 P0-3 仅修了读路径，写路径未修。已补：
+  - `syncMaterialCard` service 层 owner + archived 防线（A5）。
+  - `syncArticle` 过滤他人/归档卡（A4）。
+  - 服务层 A/B owner 隔离测试（+5 用例）。
+  - 验证：vitest 75 files / 725 通过；lint 0 errors / 67 warnings；build 通过；api-security + sync-records e2e（admin）40 passed / 0 failed。
+  - 详见 `development-todolist.md` Stage 10（BA-1/BA-2/BA-3）。
+
+### 当前仍未解决（下一批）
+
+（harness-review 列出的 P0/P1 残留 + E2E 基础设施债均已关闭。无阻塞性遗留。）
+
+> P1-残留-1（`/api/articles` 强制登录）已于 2026-06-18 修复，见 Stage 11（BA-4）。
+> P1-残留-2（个人 IMA 同步查询 ADMIN 按 owner 隔离 + 后台运维重同步接口）已于 2026-06-18 修复，见 Stage 12（BA-5/BA-6）。
+> E2E 基础设施债（admin fixture token 持久化 P2-1 + RBAC/helper 静态 import + RBAC-PAGE-002 修正）已于 2026-06-18 修复，见 Stage 13（BA-7/BA-8）。
+> 类 D（硬编码等待 + 选择器脆弱）已于 2026-06-18 全量完成，见 Stage 14（BA-13）。
+
+## 11. Class D E2E Flaky 清理（2026-06-18）
+
+> ⚠️ Stage 14 BA-13 从 deferred 改为 done。全量 7 阶段执行完毕。
+
+- **根因**：703 failed 中 674 是 "element not found" — 选择器脆弱，非时序/网络问题。
+- **Phase 0**：18+ 组件文件添加 `data-testid`（admin 7 页面 + AdminShell + settings/ai-config/wechat-rss/article-detail + SelectTrigger/日期输入消歧义）。
+- **Phase 1**：4 spec 用已有 testid 替换标题选择器（review/articles/articles-enhanced/search）。
+- **Phase 2**：7+ spec 用新 testid 替换标题选择器（admin/auth/ai-config/wechat-rss/settings/admin-invitations/articles-enhanced detail）。
+- **Phase 3**：位置选择器 `.first()`/`.nth()` → testid（admin combobox/auth sidebar/review select/articles 日期）。
+- **Phase 4**：**全部 64 个 `waitForTimeout` → 条件等待**（`expect(locator).toBeVisible({timeout})`）。
+- **Phase 5**：**全部 24 个 `networkidle` → `domcontentloaded` + 内容断言**（error-states/articles-enhanced/rbac-capability-matrix）。
+- **Phase 6**：全量回归 + 额外修复（data-isolation/article-detail/sync-records/sources/admin-dashboard-p16/wechat-rss/mobile-responsive 的残余脆弱选择器）。
+- **修改文件**：41 files, +396/-325（19 组件 + 22 spec）。
+- **验收**：
+  - `pnpm lint`：0 errors / 17 warnings。
+  - `pnpm test`：76 files / 735 tests 全通过。
+  - `pnpm build`：通过。
+  - `pnpm exec playwright test --project=admin --retries=2`：**284 passed, 0 failed, 4 flaky, 17 skipped, 5 did not run**。
+  - 4 flaky 为固有竞态（bookmark toggle / login redirect / sidebar collapse / ES-006 metrics 500），非选择器根因。
+- **有意排除**：`dead-link.spec.ts` 的 `locator('h1')` 用于 404 检测，属合法模式。
+- **未验证风险**：
+  - 全量 5-project 回归未重跑（1.7h，仅 admin project 验证）。
+  - 4 flaky 测试仍有偶发失败（非选择器根因，需单独排查逻辑竞态）。
+
+---
+
+## 2026-06-18 补充：交互状态契约（Class E）— 4 flaky 根因修复
+
+详见 `docs/handoff/e2e-flaky-state-contract-handoff.md`。
+
+- **范围**：通过 `data-state`/`data-pending`/`aria-*`/`disabled` 属性建立交互状态契约，4 个原 flaky 测试（bookmark toggle / login redirect / sidebar collapse / ES-006 metrics 500）改等待真实状态变化。
+- **关键改动**：登录页改服务端组件 `redirect()`；收藏/已读按钮加 pending guard；侧边栏加 `data-state`/`aria-expanded`；ES-006 用 `mockApiError` helper + storageState。
+- **验收**：lint 0 errors / test 735 passed / build 通过；4 目标测试隔离运行 ×15-20 全 0 flaky。
+- **遗留**：高并发同跑仍有环境性 timeout（非逻辑 flaky，`--retries=1` 可吸收）；5-project 全量长跑未重跑。

@@ -41,7 +41,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+    await expect(page.getByTestId('wechat-rss-page-header')).toContainText('微信 RSS', { timeout: 10000 });
 
     guard.report(testInfo);
   });
@@ -115,7 +115,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+    await expect(page.getByTestId('wechat-rss-page-header')).toContainText('微信 RSS', { timeout: 10000 });
 
     // Fill in baseUrl and click test
     const baseUrlInput = page.getByPlaceholder(/localhost:8001/);
@@ -128,7 +128,6 @@ test.describe('微信 RSS 集成页', () => {
     const testBtn = page.getByRole('button', { name: /测试连接/ });
     await expect(testBtn).toBeVisible({ timeout: 5000 });
     await testBtn.click();
-    await page.waitForTimeout(1000);
 
     // Should show friendly unreachable indicator (badge "未连接" or error text)
     const unreachableIndicator = page.locator('text=未连接').or(page.locator('text=无法连接')).or(page.locator('text=ECONNREFUSED'));
@@ -160,7 +159,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+    await expect(page.getByTestId('wechat-rss-page-header')).toContainText('微信 RSS', { timeout: 10000 });
 
     // Should show "授权有效" badge
     const validBadge = page.locator('text=授权有效');
@@ -189,7 +188,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+    await expect(page.getByTestId('wechat-rss-page-header')).toContainText('微信 RSS', { timeout: 10000 });
 
     // Should show "授权可能过期" badge
     const expiredBadge = page.locator('text=授权可能过期');
@@ -225,7 +224,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/subscriptions');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(1000);
+    await expect(page.getByTestId('sources-page-header').or(page.locator('main')).first()).toBeVisible({ timeout: 10000 });
 
     // Should show "we-mp-rss" badge somewhere on the page
     const badge = page.locator('text=we-mp-rss');
@@ -233,7 +232,7 @@ test.describe('微信 RSS 集成页', () => {
       await expect(badge.first()).toBeVisible();
     }
     // If no data, just verify the page loaded
-    await expect(page.locator('h1, h2, h3, main').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('sources-page-header').or(page.locator('main')).first()).toBeVisible({ timeout: 10000 });
 
     guard.report(testInfo);
   });
@@ -260,7 +259,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+    await expect(page.getByTestId('wechat-rss-page-header')).toContainText('微信 RSS', { timeout: 10000 });
 
     // The WechatImportDialog is opened from individual source cards
     // Not directly on this integration page, so we verify the dialog component
@@ -304,7 +303,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+    await expect(page.getByTestId('wechat-rss-page-header')).toContainText('微信 RSS', { timeout: 10000 });
 
     // Fill connection fields
     const baseUrlInput = page.getByPlaceholder(/localhost:8001/);
@@ -318,14 +317,12 @@ test.describe('微信 RSS 集成页', () => {
     const testBtn = page.getByRole('button', { name: /测试连接/ });
     if (await testBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await testBtn.click();
-      await page.waitForTimeout(1000);
     }
 
     // Click preview sync
     const previewBtn = page.getByRole('button', { name: /预览同步/ });
     if (await previewBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await previewBtn.click();
-      await page.waitForTimeout(2000);
 
       // Should show preview result (toCreate items)
       const newFeed = page.locator('text=新公众号');
@@ -373,7 +370,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+    await expect(page.getByTestId('wechat-rss-page-header')).toContainText('微信 RSS', { timeout: 10000 });
 
     // Fill connection fields and test
     const baseUrlInput = page.getByPlaceholder(/localhost:8001/);
@@ -386,14 +383,12 @@ test.describe('微信 RSS 集成页', () => {
     const testBtn = page.getByRole('button', { name: /测试连接/ });
     if (await testBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await testBtn.click();
-      await page.waitForTimeout(1000);
     }
 
     // Click sync
     const syncBtn = page.getByRole('button', { name: /同步公众号列表/ });
     if (await syncBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await syncBtn.click();
-      await page.waitForTimeout(1000);
 
       // After sync, the button should be disabled for 30s debounce
       // We don't wait 30s in E2E; just verify the button exists and is either
@@ -435,7 +430,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+    await expect(page.getByTestId('wechat-rss-page-header')).toContainText('微信 RSS', { timeout: 10000 });
 
     const saveBtn = page.getByRole('button', { name: /保存配置/ });
     await expect(saveBtn).toBeVisible({ timeout: 10000 });
@@ -497,7 +492,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+    await expect(page.getByTestId('wechat-rss-page-header')).toContainText('微信 RSS', { timeout: 10000 });
 
     // Fill form
     const baseUrlInput = page.getByPlaceholder(/localhost:8001/);
@@ -559,7 +554,7 @@ test.describe('微信 RSS 集成页', () => {
 
     await page.goto('/admin/integrations/wechat-rss');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1')).toContainText('微信 RSS', { timeout: 10000 });
+    await expect(page.getByTestId('wechat-rss-page-header')).toContainText('微信 RSS', { timeout: 10000 });
 
     // Fill baseUrl (required for save validation)
     const baseUrlInput = page.getByPlaceholder(/localhost:8001/);

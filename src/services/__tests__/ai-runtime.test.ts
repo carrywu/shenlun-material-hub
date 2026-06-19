@@ -71,21 +71,20 @@ describe("AI runtime", () => {
     });
   });
 
-  it("falls back to env when no enabled database AiConfig exists", async () => {
+  it("P0-4: 无数据库 AiConfig 时不再 fallback 到 env，而是抛 AI_CONFIG_MISSING", async () => {
     mocks.findFirst.mockResolvedValue(null);
     process.env.AI_API_KEY = "  sk-env-secret-9999  ";
     process.env.AI_BASE_URL = " https://api.openai.com/v1 ";
     process.env.AI_MODEL = " gpt-4o-mini ";
 
-    const { getAiRuntime } = await importAi();
-    const runtime = await getAiRuntime();
-
-    expect(runtime.source).toBe("env");
-    expect(runtime.model).toBe("gpt-4o-mini");
-    expect(runtime.baseURL).toBe("https://api.openai.com/v1");
-    expect(runtime.keySuffix).toBe("****9999");
-    expect(runtime.cacheKey).toMatch(/^env:[a-f0-9]{16}$/);
-    expect(JSON.stringify(runtime)).not.toContain("sk-env-secret");
+    const { getAiRuntime, AiServiceError } = await importAi();
+    await expect(getAiRuntime()).rejects.toMatchObject({
+      code: "AI_CONFIG_MISSING",
+    });
+    // 确保 env key 没有被使用（不应构造 OpenAI client）
+    expect(mocks.openAiConstructor).not.toHaveBeenCalled();
+    // 引用 AiServiceError 避免 unused
+    expect(AiServiceError).toBeDefined();
   });
 
   it("reuses the client for the same cacheKey and recreates it when updatedAt changes", async () => {

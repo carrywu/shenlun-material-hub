@@ -15,7 +15,7 @@ test.describe('登录页（未认证）', () => {
     await page.goto('/admin');
 
     await expect(page).toHaveURL(/\/admin\/login/);
-    await expect(page.getByRole('heading', { name: '申论素材采集台' })).toBeVisible();
+    await expect(page.getByTestId('login-page-header')).toContainText('申论素材采集台');
 
     guard.report(testInfo);
   });
@@ -69,7 +69,7 @@ test.describe('登录页（未认证）', () => {
 
     // Should land on /admin (the redirect target)
     await expect(page).toHaveURL(/\/admin$/, { timeout: 15000 });
-    await expect(page.getByRole('heading', { name: '系统概览' })).toBeVisible();
+    await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
 
     // Verify auth cookie exists and is httpOnly
     const cookies = await page.context().cookies();
@@ -125,14 +125,12 @@ test.describe('导航（已认证）', () => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    // Already authenticated via global storageState
-    // Now try to visit login page
+    // Already authenticated via storageState — server component redirects immediately
     await page.goto('/admin/login');
 
-    // Should be redirected away from login (to home or dashboard).
-    // 注意：toHaveURL(regex) 匹配完整 URL 字符串（含 http://host），所以不能用 ^\/ 锚定 pathname。
-    // 冷启时登录页首次编译 + /api/auth/check fetch 较慢，给 30s。
-    await expect(page).not.toHaveURL(/\/admin\/login/, { timeout: 30000 });
+    // 服务端 redirect — 不再需要 30s 等客户端 /api/auth/check fetch
+    await expect(page).toHaveURL(/\/admin$/, { timeout: 15000 });
+    await expect(page.getByTestId('admin-shell-heading')).toBeVisible({ timeout: 15000 });
 
     guard.report(testInfo);
   });
@@ -193,7 +191,7 @@ test.describe('导航（已认证）', () => {
 
     // Navigate to admin area
     await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: '系统概览' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
 
     // Verify key sidebar links are visible
     await expect(page.getByRole('link', { name: '文章管理' })).toBeVisible();
@@ -209,12 +207,12 @@ test.describe('导航（已认证）', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: '系统概览' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
 
     // Click 异步任务
     await page.getByRole('link', { name: '异步任务' }).click();
     await expect(page).toHaveURL(/\/admin\/tasks/, { timeout: 10000 });
-    await expect(page.getByRole('heading', { name: '异步任务' }).first()).toBeVisible();
+    await expect(page.getByTestId('admin-tasks-page-header')).toBeVisible();
 
     // Click 系统日志
     await page.getByRole('link', { name: '系统日志' }).click();
@@ -228,41 +226,63 @@ test.describe('导航（已认证）', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: '系统概览' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('admin-shell-heading')).toContainText('系统概览');
 
-    // Find the sidebar (aside element) and capture its width before collapsing
-    const sidebar = page.locator('aside').first();
+    const sidebar = page.getByTestId('admin-sidebar');
+    const toggle = page.getByTestId('admin-sidebar-toggle');
+
+    // 验证初始状态为展开
+    await expect(sidebar).toHaveAttribute('data-state', 'expanded');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
     const widthBefore = await sidebar.evaluate((el) => el.getBoundingClientRect().width);
 
-    // Click collapse toggle button
-    const collapseBtn = page.getByRole('button', { name: /折叠|收起|展开/i });
-    if (await collapseBtn.isVisible()) {
-      await collapseBtn.click();
+    // 点击折叠
+    await toggle.click();
 
-      // Wait for CSS transition (transition-all duration-200)
-      await page.waitForTimeout(300);
+    // 状态立即切换（不受 CSS 动画时序影响）
+    await expect(sidebar).toHaveAttribute('data-state', 'collapsed');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
-      // Sidebar should be narrower
-      const widthAfter = await sidebar.evaluate((el) => el.getBoundingClientRect().width);
-      expect(widthAfter).toBeLessThan(widthBefore);
-    }
+    // 宽度最终变窄（poll 等待 CSS transition 完成）
+    await expect.poll(
+      async () => await sidebar.evaluate((el) => el.getBoundingClientRect().width)
+    ).toBeLessThan(widthBefore);
+
+    // 再次点击展开
+    await toggle.click();
+    await expect(sidebar).toHaveAttribute('data-state', 'expanded');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     guard.report(testInfo);
   });
 });
 
-// ─── 登出 (authenticated via global storageState) ──────────────────
+// ─── 登出 (用临时登录，不污染共享 storageState) ───────────────────
+//
+// ★ 关键：登出测试**不能**复用 `.auth/admin-storage.json`（globalSetup 写入的共享
+// admin token T1）。logout API 会 revokeSession(T1) 从 DB 删除该 token，导致全量
+// 序列里后续所有用 admin-storage.json 的 spec 拿失效 token → 401 → 集体失败
+// （诊断见 docs/superpowers/specs/2026-06-18-e2e-stability-fix.md §3）。
+// 改为匿名 context 起，自己通过 UI 登录拿一个 fresh session，登出只 revoke 这个
+// fresh token，T1 不受影响。
 
 test.describe('登出（已认证）', () => {
-  // P0-004 (B3): 顶层 storageState 已移除，显式声明 admin storageState
-  test.use({ storageState: '.auth/admin-storage.json' });
+  // 匿名 context 起，避免复用共享 storageState 的 token
+  test.use({ storageState: { cookies: [], origins: [] } });
   test('登出：点击登出后清除 cookie 跳转登录页', async ({ page }, testInfo) => {
     test.setTimeout(60000);
     const guard = attachConsoleGuard(page);
 
-    await page.goto('/');
-    // Already authenticated via global storageState
-    // Verify we are logged in
+    // 通过 UI 真登录，拿一个本测试专属的 fresh session（不复用共享 token）
+    await page.goto('/admin/login');
+    await expect(page.getByPlaceholder('请输入账号')).toBeVisible({ timeout: 10000 });
+    await page.getByPlaceholder('请输入账号').fill('admin');
+    await page.getByPlaceholder('请输入密码').fill('admin123');
+    await page.getByRole('button', { name: '登录管理后台' }).click();
+    await expect(page).toHaveURL(/\/admin$/, { timeout: 15000 });
+
+    // Verify we are logged in (fresh session cookie)
     const cookiesBefore = await page.context().cookies();
     expect(cookiesBefore.some((c) => c.name === 'auth_token')).toBe(true);
 
