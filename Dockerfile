@@ -12,9 +12,11 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Prisma client is pre-generated locally (src/generated/prisma) to avoid segfault
-# under QEMU/Rosetta amd64 emulation on Apple Silicon.
-# If you need to regenerate, run `npx prisma generate` locally before building.
+# Prisma client 在构建时生成（output: src/generated/prisma，被 .gitignore 忽略，
+# git pull 不会带它）。staging 是 x86_64 原生，generate 安全。
+# 注意：--builder local（Apple Silicon QEMU 跨架构）下 prisma generate 可能 segfault，
+# 该 fallback 场景请先在 Mac 本地 `pnpm db:generate` 预生成 src/generated/prisma 再构建。
+RUN pnpm db:generate
 RUN pnpm build
 
 FROM node:20-bookworm-slim AS runner
