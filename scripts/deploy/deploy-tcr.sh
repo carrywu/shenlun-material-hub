@@ -262,6 +262,18 @@ ssh $SERVER_SSH_OPTS "$SERVER_SSH_TARGET" \
 # ── Trigger remote deploy ─────────────────────────────────────────────────────
 
 log "Triggering remote pull and restart on ${SERVER_SSH_TARGET}"
+log "Uploading latest server restart script"
+ssh $SERVER_SSH_OPTS "$SERVER_SSH_TARGET" \
+  "mkdir -p ${SERVER_DEPLOY_DIR}/scripts/deploy"
+if [ -n "${SERVER_SSH_KEY_PATH:-}" ]; then
+  scp -P "$SERVER_PORT" -i "$SERVER_SSH_KEY_PATH" \
+    "$SCRIPT_DIR/server-pull-and-restart.sh" \
+    "${SERVER_SSH_TARGET}:${SERVER_DEPLOY_DIR}/scripts/deploy/server-pull-and-restart.sh"
+else
+  scp -P "$SERVER_PORT" \
+    "$SCRIPT_DIR/server-pull-and-restart.sh" \
+    "${SERVER_SSH_TARGET}:${SERVER_DEPLOY_DIR}/scripts/deploy/server-pull-and-restart.sh"
+fi
 ssh $SERVER_SSH_OPTS "$SERVER_SSH_TARGET" \
   "cd ${SERVER_DEPLOY_DIR} && bash scripts/deploy/server-pull-and-restart.sh --tag ${DEPLOY_TAG}" \
   || die "生产 restart 失败。小机器(2核1.6G)可能被压垮：分步做 —— 先 'docker compose run --rm app npx prisma migrate deploy'，再 'docker compose up -d app'。"
