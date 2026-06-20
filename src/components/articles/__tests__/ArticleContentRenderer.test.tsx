@@ -92,6 +92,67 @@ describe("ArticleContentRenderer", () => {
     expect(matches.length).toBe(2);
   });
 
+  it("同一原始文本节点内的多条批注都能渲染高亮", () => {
+    const html = "<p>然而，“秃头树”竟迎来新一轮围观。这里藏着流量时代的傲慢。</p>";
+    const out = insertAnnotationsIntoHtml(html, [
+      {
+        id: "ann-a",
+        selectedText: "“秃头树”竟迎来新一轮围观",
+        comment: "现象",
+        color: "#facc15",
+        startOffset: null,
+      },
+      {
+        id: "ann-b",
+        selectedText: "流量时代的傲慢",
+        comment: "观点",
+        color: "#facc15",
+        startOffset: null,
+      },
+    ]);
+
+    expect(out).toContain('data-annotation-id="ann-a"');
+    expect(out).toContain('data-annotation-id="ann-b"');
+  });
+
+  it("中文引号样式不同的 AI 批注仍能定位到正文", () => {
+    const html = "<p>当地管理处试行“限时拍摄”，受到大家支持。</p>";
+    const out = insertAnnotationsIntoHtml(html, [
+      {
+        id: "ann-quote",
+        selectedText: "当地管理处试行‘限时拍摄’，受到大家支持。",
+        comment: "治理案例",
+        color: "#facc15",
+        startOffset: null,
+      },
+    ]);
+
+    expect(out).toContain('data-annotation-id="ann-quote"');
+  });
+
+  it("包含式重叠批注不会让较短批注丢失", () => {
+    const html = "<p>有些风景，适合抵达；有些风景，适合远望。对我们来说，游玩有分寸。</p>";
+    const out = insertAnnotationsIntoHtml(html, [
+      {
+        id: "ann-long",
+        selectedText: "有些风景，适合抵达；有些风景，适合远望。对我们来说，游玩有分寸。",
+        comment: "完整金句",
+        color: "#facc15",
+        startOffset: null,
+      },
+      {
+        id: "ann-short",
+        selectedText: "有些风景，适合抵达；有些风景，适合远望。",
+        comment: "短金句",
+        color: "#facc15",
+        startOffset: null,
+      },
+    ]);
+
+    expect(out).toContain("ann-long");
+    expect(out).toContain("ann-short");
+  });
+
   it("渲染 HTML 正文时，鼠标进入 mark 触发 onAnnotationHover（携带完整批注）", () => {
     const onHover = vi.fn();
     render(

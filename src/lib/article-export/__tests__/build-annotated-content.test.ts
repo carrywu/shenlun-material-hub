@@ -70,6 +70,40 @@ describe("buildAnnotatedContent", () => {
     expect(multi!.annotationNumbers).toEqual([1, 2]);
   });
 
+  it("locates AI excerpts when Chinese quote styles differ from the body", () => {
+    const body = [paragraph("当地管理处试行“限时拍摄”，受到大家支持。")];
+    const result = buildAnnotatedContent(body, [
+      { id: "quote", selectedText: "当地管理处试行‘限时拍摄’，受到大家支持。", comment: "治理案例" },
+    ]);
+
+    expect(result.annotations[0].unlocated).toBe(false);
+    expect(result.body[0].runs!.some((r) => r.highlighted)).toBe(true);
+  });
+
+  it("keeps a contained shorter annotation in the body instead of marking it unlocated", () => {
+    const body = [paragraph("有些风景，适合抵达；有些风景，适合远望。对我们来说，游玩有分寸。")];
+    const result = buildAnnotatedContent(body, [
+      {
+        id: "long",
+        selectedText: "有些风景，适合抵达；有些风景，适合远望。对我们来说，游玩有分寸。",
+        comment: "完整金句",
+      },
+      {
+        id: "short",
+        selectedText: "有些风景，适合抵达；有些风景，适合远望。",
+        comment: "短金句",
+      },
+    ]);
+
+    expect(result.annotations).toHaveLength(2);
+    expect(result.annotations.every((a) => !a.unlocated)).toBe(true);
+    const highlightedText = result.body[0].runs!
+      .filter((r) => r.highlighted)
+      .map((r) => `${r.text}:${r.annotationNumbers?.join(",")}`)
+      .join("|");
+    expect(highlightedText).toContain("1,2");
+  });
+
   it("still matches when excerpt and body differ only in whitespace", () => {
     const body = [paragraph("坚持 和 发展 新时代 枫桥 经验")];
     const result = buildAnnotatedContent(body, [

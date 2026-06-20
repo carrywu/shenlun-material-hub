@@ -1,6 +1,26 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ArticleExportMenu } from "@/components/articles/ArticleExportMenu";
+
+const printState = vi.hoisted(() => ({
+  titles: [] as string[],
+}));
+
+vi.mock("react-to-print", () => ({
+  useReactToPrint: vi.fn((options: {
+    documentTitle?: string | (() => string);
+    onAfterPrint?: () => void;
+  }) => {
+    return vi.fn(() => {
+      const title =
+        typeof options.documentTitle === "function"
+          ? options.documentTitle()
+          : options.documentTitle;
+      if (title) printState.titles.push(title);
+      options.onAfterPrint?.();
+    });
+  }),
+}));
 
 // Minimal article shape the menu needs to build export content.
 const article = {
@@ -55,5 +75,31 @@ describe("ArticleExportMenu", () => {
     render(<ArticleExportMenu article={empty as never} />);
     const trigger = screen.getByTestId("article-export-menu") as HTMLButtonElement;
     expect(trigger.disabled).toBe(true);
+  });
+
+  it("uses PDF document titles that distinguish clean and annotated versions", async () => {
+    printState.titles = [];
+    const annotatedArticle = {
+      ...article,
+      annotations: [
+        { id: "ann-1", selectedText: "基层治理", comment: "批注" },
+      ],
+    };
+    render(<ArticleExportMenu article={annotatedArticle as never} />);
+
+    fireEvent.click(screen.getByTestId("article-export-menu"));
+    fireEvent.click(screen.getByTestId("article-export-pdf-clean"));
+
+    await waitFor(() => {
+      expect(printState.titles.at(-1)).toContain("_无批注");
+    });
+
+    fireEvent.click(screen.getByTestId("article-export-menu"));
+    await screen.findByTestId("article-export-pdf-annotated");
+    fireEvent.click(screen.getByTestId("article-export-pdf-annotated"));
+
+    await waitFor(() => {
+      expect(printState.titles.at(-1)).toContain("_带批注");
+    });
   });
 });

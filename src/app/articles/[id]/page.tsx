@@ -577,7 +577,9 @@ export default function ArticleDetailPage() {
   }
 
   function scrollToAnnotation(annotationId: string) {
-    const el = document.querySelector(`[data-annotation-id="${annotationId}"]`);
+    const el = document.querySelector(
+      `[data-annotation-id="${annotationId}"], [data-annotation-ids~="${annotationId}"]`
+    );
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }

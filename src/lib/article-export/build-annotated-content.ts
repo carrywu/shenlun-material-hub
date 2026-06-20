@@ -11,8 +11,11 @@ import type {
   ExportBlock,
   ExportTextRun,
 } from "./types";
-
-const normalize = (s: string): string => s.replace(/\s+/g, "");
+import {
+  buildNormalizedStream,
+  locateAnnotationRanges,
+  normalizeAnnotationText,
+} from "./annotation-match";
 
 interface CharCell {
   blockIndex: number;
@@ -28,51 +31,18 @@ function buildNormalizedIndex(body: ExportBlock[]): {
   stream: string;
   cells: CharCell[];
 } {
-  let stream = "";
-  const cells: CharCell[] = [];
+  const parts: Array<{ text: string; owner: CharCell }> = [];
   body.forEach((block, blockIndex) => {
     const runs = block.runs ?? [];
     runs.forEach((run, runIndex) => {
-      const norm = normalize(run.text);
-      for (const _ch of norm) {
-        cells.push({ blockIndex, runIndex });
-        stream += _ch;
-      }
+      parts.push({ text: run.text, owner: { blockIndex, runIndex } });
     });
   });
-  return { stream, cells };
-}
-
-/**
- * Find the first unoccupied normalized occurrence of `needle` in `stream`.
- * Returns the [start, end) normalized index range, or null if not found.
- */
-function findFirstFreeOccurrence(
-  stream: string,
-  needle: string,
-  used: Array<{ start: number; end: number }>
-): { start: number; end: number } | null {
-  if (!needle) return null;
-  // Two annotations may legitimately target the exact same text and both
-  // appear as [1][2] (development-prompt.md §3.5). So a candidate is blocked
-  // only by a PARTIAL overlap with an already-used range; an exact-equal range
-  // is allowed (the new annotation stacks onto the same cells).
-  const blockedByPartial = (s: number, e: number) =>
-    used.some((r) => {
-      const equal = s === r.start && e === r.end;
-      if (equal) return false; // exact same text: allowed to stack
-      return s < r.end && e > r.start; // partial overlap: blocked
-    });
-  let from = 0;
-  while (from <= stream.length - needle.length) {
-    const found = stream.indexOf(needle, from);
-    if (found === -1) break;
-    if (!blockedByPartial(found, found + needle.length)) {
-      return { start: found, end: found + needle.length };
-    }
-    from = found + 1;
-  }
-  return null;
+  const normalized = buildNormalizedStream(parts);
+  return {
+    stream: normalized.stream,
+    cells: normalized.cells.map((cell) => cell.owner),
+  };
 }
 
 /**
@@ -96,26 +66,14 @@ export function buildAnnotatedContent(
 
   const { stream, cells } = buildNormalizedIndex(body);
 
-  // For each input annotation, find its first free occurrence.
-  const used: Array<{ start: number; end: number }> = [];
   interface Hit {
     inputIndex: number;
     input: ExportAnnotationInput;
     range: { start: number; end: number };
   }
-  const hits: Hit[] = [];
-  const misses: Array<{ inputIndex: number; input: ExportAnnotationInput }> = [];
-
-  annotations.forEach((input, inputIndex) => {
-    const needle = normalize(input.selectedText);
-    const range = findFirstFreeOccurrence(stream, needle, used);
-    if (range) {
-      used.push(range);
-      hits.push({ inputIndex, input, range });
-    } else {
-      misses.push({ inputIndex, input });
-    }
-  });
+  const located = locateAnnotationRanges(stream, annotations);
+  const hits: Hit[] = located.hits;
+  const misses = located.misses;
 
   // Sort located hits by body appearance (start), tiebreak by input order.
   hits.sort((a, b) => a.range.start - b.range.start || a.inputIndex - b.inputIndex);
@@ -149,7 +107,7 @@ export function buildAnnotatedContent(
       if (!block.runs) return;
       const newRuns: ExportTextRun[] = [];
       block.runs.forEach((run) => {
-        const norm = normalize(run.text);
+        const norm = normalizeAnnotationText(run.text);
         if (norm.length === 0) {
           // keep zero-width text runs as-is (rare)
           newRuns.push({ ...run });
@@ -160,7 +118,7 @@ export function buildAnnotatedContent(
         const normToRaw: number[] = []; // normIndex -> raw index after char
         let ni = 0;
         for (let ri = 0; ri < raw.length; ri++) {
-          if (!/\s/.test(raw[ri])) {
+          if (normalizeAnnotationText(raw[ri])) {
             ni++;
             normToRaw[ni - 1] = ri + 1; // raw end-exclusive offset
           }

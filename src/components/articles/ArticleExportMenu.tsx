@@ -57,6 +57,7 @@ export function ArticleExportMenu({ article }: { article: ArticleExportArticle }
   // Which kind is currently exporting (for button labels).
   const [pendingLabel, setPendingLabel] = useState<string | null>(null);
   const printRootRef = useRef<HTMLDivElement>(null);
+  const pdfDocumentTitleRef = useRef(article.title || "申论文章");
   // The content currently staged for printing (set right before triggering print).
   const [printContent, setPrintContent] = useState<ExportContent | null>(null);
 
@@ -119,7 +120,7 @@ export function ArticleExportMenu({ article }: { article: ArticleExportArticle }
 
   const handlePrint = useReactToPrint({
     contentRef: printRootRef,
-    documentTitle: article.title || "申论文章",
+    documentTitle: () => pdfDocumentTitleRef.current,
     pageStyle: `
       @page { size: A4; margin: 18mm 16mm; }
       body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif; }
@@ -163,6 +164,11 @@ export function ArticleExportMenu({ article }: { article: ArticleExportArticle }
       try {
         if (format === "pdf") {
           // Stage content then trigger print on next tick (ref must be attached).
+          pdfDocumentTitleRef.current = buildExportFilename(
+            article.title,
+            "pdf",
+            effectiveAnnotations ? "annotated" : "clean"
+          );
           setPrintContent(content);
           // Wait for state to render into the printable root, then print.
           setTimeout(() => {
