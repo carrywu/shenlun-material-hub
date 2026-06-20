@@ -191,3 +191,6 @@ public/mockServiceWorker.js
 
 # E2E visual regression screenshots (platform-specific)
 e2e/__screenshots__/
+
+# superpowers skill scratch (local progress ledger)
+.superpowers/
