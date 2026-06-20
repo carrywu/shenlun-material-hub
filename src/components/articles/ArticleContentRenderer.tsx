@@ -2,6 +2,10 @@
 
 import { MouseEvent as ReactMouseEvent, ReactNode, useMemo } from "react";
 import DOMPurify from "dompurify";
+import {
+  buildNormalizedStream,
+  locateAnnotationRanges,
+} from "@/lib/article-export/annotation-match";
 
 type ArticleAnnotationData = {
   id: string;
@@ -145,32 +149,25 @@ export function insertAnnotationsIntoHtml(
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
-  const normalize = (s: string) => s.replace(/\s+/g, "");
-
   // 记录每个原始文本节点，及其文本在「归一化全文」中的 [normStart, normEnd) 区间。
   interface TextSegment {
     node: Text;
     rawText: string;
     normText: string;
-    normStart: number;
-    normEnd: number;
   }
   const segments: TextSegment[] = [];
-  let normOffset = 0;
 
   function walk(node: Node) {
     if (node.nodeType === Node.TEXT_NODE) {
       const raw = node.textContent ?? "";
-      const norm = normalize(raw);
+      const normalized = buildNormalizedStream([{ text: raw, owner: null }]);
+      const norm = normalized.stream;
       if (norm.length > 0) {
         segments.push({
           node: node as Text,
           rawText: raw,
           normText: norm,
-          normStart: normOffset,
-          normEnd: normOffset + norm.length,
         });
-        normOffset += norm.length;
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       // 不进入已有 mark 节点（防止重复处理）
@@ -181,90 +178,83 @@ export function insertAnnotationsIntoHtml(
 
   doc.body.childNodes.forEach(walk);
 
-  // 记录已被覆盖的归一化区间，避免后一条批注重复覆盖同一段文本。
-  const usedRanges: Array<{ start: number; end: number }> = [];
-  const overlapsUsed = (start: number, end: number) =>
-    usedRanges.some((r) => start < r.end && end > r.start);
+  const normalized = buildNormalizedStream(
+    segments.map((segment) => ({ text: segment.rawText, owner: segment }))
+  );
+  const located = locateAnnotationRanges(normalized.stream, annotations);
+  const segmentCells = new Map<TextSegment, Array<{ global: number; rawStart: number; rawEnd: number }>>();
+  const globalToLocal: number[] = [];
+  normalized.cells.forEach((cell, global) => {
+    const entries = segmentCells.get(cell.owner) ?? [];
+    globalToLocal[global] = entries.length;
+    entries.push({ global, rawStart: cell.rawStart, rawEnd: cell.rawEnd });
+    segmentCells.set(cell.owner, entries);
+  });
 
-  for (const annotation of annotations) {
-    const needle = normalize(annotation.selectedText);
-    if (!needle) continue;
+  const segmentAnnotationIds = new Map<TextSegment, string[][]>();
+  segments.forEach((segment) => {
+    const cells = segmentCells.get(segment) ?? [];
+    segmentAnnotationIds.set(segment, cells.map(() => []));
+  });
 
-    // 在归一化全文里定位（取第一个未被使用的命中）
-    const segmentsJoined = segments.map((s) => s.normText).join("");
-    let normHitStart = -1;
-    let from = 0;
-    while (from <= segmentsJoined.length - needle.length) {
-      const found = segmentsJoined.indexOf(needle, from);
-      if (found === -1) break;
-      if (!overlapsUsed(found, found + needle.length)) {
-        normHitStart = found;
-        break;
-      }
-      from = found + 1;
+  located.hits.forEach((hit) => {
+    for (let global = hit.range.start; global < hit.range.end; global++) {
+      const cell = normalized.cells[global];
+      const local = globalToLocal[global];
+      segmentAnnotationIds.get(cell.owner)?.[local]?.push(hit.input.id);
     }
-    if (normHitStart === -1) continue;
+  });
 
-    const normHitEnd = normHitStart + needle.length;
-    usedRanges.push({ start: normHitStart, end: normHitEnd });
+  const annotationById = new Map(annotations.map((annotation) => [annotation.id, annotation]));
 
-    // 把归一化命中区间 [normHitStart, normHitEnd) 映射回一个或多个原始文本节点，
-    // 逐节点拆分并在「该节点内被命中的部分」包裹 <mark>（跨节点时多个 mark 共享同一 id）。
-    for (const seg of segments) {
-      if (seg.normEnd <= normHitStart || seg.normStart >= normHitEnd) continue;
+  segments.forEach((segment) => {
+    const parent = segment.node.parentNode;
+    const cells = segmentCells.get(segment) ?? [];
+    const idsByCell = segmentAnnotationIds.get(segment) ?? [];
+    if (!parent || cells.length === 0) return;
 
-      const overlapNormStart = Math.max(normHitStart, seg.normStart);
-      const overlapNormEnd = Math.min(normHitEnd, seg.normEnd);
-      const localStart = overlapNormStart - seg.normStart; // 命中在该节点归一化文本内的起止
-      const localEnd = overlapNormEnd - seg.normStart;
+    let rawCursor = 0;
+    let local = 0;
+    while (local < cells.length) {
+      const ids = idsByCell[local];
+      const key = ids.join(" ");
+      let endLocal = local + 1;
+      while (endLocal < cells.length && idsByCell[endLocal].join(" ") === key) {
+        endLocal++;
+      }
 
-      // 把归一化文本里的 [localStart, localEnd) 映射回原始文本（含空白）的字符区间。
-      let rawStartChar = 0;
-      let rawEndChar = 0;
-      let ni = 0; // 在 normText 里的游标
-      for (let ri = 0; ri <= seg.rawText.length; ri++) {
-        if (ni === localStart) rawStartChar = ri;
-        if (ni === localEnd) {
-          rawEndChar = ri;
-          break;
-        }
-        if (ri < seg.rawText.length) {
-          const ch = seg.rawText[ri];
-          if (/\s/.test(ch)) {
-            // 空白字符不推进归一化游标
-          } else {
-            ni++;
-          }
+      const rawStart = cells[local].rawStart;
+      const rawEnd = cells[endLocal - 1].rawEnd;
+      const before = segment.rawText.slice(rawCursor, rawStart);
+      if (before) parent.insertBefore(doc.createTextNode(before), segment.node);
+
+      const text = segment.rawText.slice(rawStart, rawEnd);
+      if (text) {
+        if (ids.length > 0) {
+          const first = annotationById.get(ids[0]);
+          const color = first?.color ?? "#facc15";
+          const mark = doc.createElement("mark");
+          mark.setAttribute("data-annotation-id", ids[0]);
+          mark.setAttribute("data-annotation-ids", ids.join(" "));
+          mark.setAttribute("class", "inline-highlight");
+          mark.style.backgroundColor = color + "40";
+          mark.style.borderBottom = `2px solid ${color}`;
+          mark.style.padding = "1px 0";
+          mark.textContent = text;
+          parent.insertBefore(mark, segment.node);
+        } else {
+          parent.insertBefore(doc.createTextNode(text), segment.node);
         }
       }
-      // 兜底：若因结尾空白未触发 ni===localEnd
-      if (rawEndChar === 0 && localEnd === seg.normText.length) rawEndChar = seg.rawText.length;
 
-      const parent = seg.node.parentNode;
-      if (!parent) continue;
-
-      const before = seg.rawText.slice(0, rawStartChar);
-      // 高亮文本用「归一化后的命中片段」（无空白），避免把原文中夹在中间的换行/空格
-      // 当作高亮内容显示出来（否则会出现「痕迹 ，」「安稳 。」这类多余空格）。
-      const matchPart = seg.normText.slice(localStart, localEnd);
-      const after = seg.rawText.slice(rawEndChar);
-      if (!matchPart) continue;
-
-      const mark = doc.createElement("mark");
-      mark.setAttribute("data-annotation-id", annotation.id);
-      mark.setAttribute("class", "inline-highlight");
-      mark.style.backgroundColor = annotation.color + "40";
-      mark.style.borderBottom = `2px solid ${annotation.color}`;
-      mark.style.padding = "1px 0";
-      mark.textContent = matchPart;
-
-      if (before) parent.insertBefore(doc.createTextNode(before), seg.node);
-      parent.insertBefore(mark, seg.node);
-      if (after) parent.insertBefore(doc.createTextNode(after), seg.node);
-      parent.removeChild(seg.node);
-      // 该节点已替换；继续处理可能命中的下一个节点（跨节点高亮）。
+      rawCursor = rawEnd;
+      local = endLocal;
     }
-  }
+
+    const rest = segment.rawText.slice(rawCursor);
+    if (rest) parent.insertBefore(doc.createTextNode(rest), segment.node);
+    parent.removeChild(segment.node);
+  });
 
   return doc.body.innerHTML;
 }

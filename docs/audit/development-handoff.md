@@ -443,3 +443,51 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - 现有 `e2e/article-detail.spec.ts` 的 `getByText('正文')` 因 hash 标签（评估正文 hash/当前正文 hash）
   触发 strict-mode 是**既有问题**（page.tsx 未改动），与本任务无关。
 - 表格 `caption`/`colgroup`、gov 图片防盗链是 DOMPurify/已有局限，本轮未处理。
+
+---
+
+## 文章导出 PDF / Word（2026-06-20，Issue #7）
+
+### 背景
+新增文章导出功能：详情页"导出"下拉菜单支持 PDF（无批注/带批注）+ Word `.docx`（无批注/带批注）共 4 种。
+开发指令书：`docs/agent/article-export-development-prompt.md`。
+
+### 关键实现
+- **PDF**：`react-to-print` v3（`useReactToPrint` hook）→ 浏览器原生打印窗口 → 用户选"另存为 PDF"。A4 打印样式在 `ArticlePrintableContent.tsx` 内联。**不引入服务端 Chromium**（文档硬约束）。
+- **Word**：`docx` v9（Document/Paragraph/TextRun/ImageRun/Packer.toBlob）生成**真实 .docx**，非 HTML 伪装。单图失败/不支持格式（webp）降级为 `[图片加载失败]` 占位。
+- **批注**：核心难点 `build-annotated-content.ts`。复用 `ArticleContentRenderer` 的归一化匹配思路，但作用于 ExportBlock 结构。编号**按正文首次出现位置排序**（不按 createdAt），同文本多批注 `[1][2]`，未命中归入文末并标"未定位到正文位置"。PDF 与 Word 共用同一套算法（不两套）。
+- **正文转换**：`build-export-content.ts` 复用现有 `sanitizeArticleHtml`（含微信图片代理替换），**不复制漂移清洗逻辑**。fullText 无 HTML 时走双换行分段降级。
+- **权限**：零改动。导出只消费详情接口已返回的批注（`route.ts:28-62` 非 ADMIN 已过滤他人批注 + 防御性二次过滤），不扩大数据访问范围。
+- **交互**：`ArticleExportMenu` 共享 pending 状态防重复点击，trigger `data-pending` + disabled；无批注文章选带批注版 toast 降级提示后仍导出；空正文禁用导出。
+
+### 修改文件
+- 新增 `src/lib/article-export/{types,filename,build-export-content,build-annotated-content,download-file,image-loader,build-docx}.ts` + 6 个 `__tests__`
+- 新增 `src/components/articles/{ArticlePrintableContent,ArticleExportMenu}.tsx` + 2 个 `__tests__`
+- 新增 `e2e/article-export.spec.ts`（8 条，含项目首个 `expect(download)` 下载断言）
+- 修改 `src/app/articles/[id]/page.tsx`（工具栏接入 + import）
+- 修改 `package.json`/`pnpm-lock.yaml`（react-to-print / docx / file-saver / @types/file-saver）
+
+### 验收证据
+- `pnpm lint`：**0 errors**（70 pre-existing warnings）
+- `pnpm test`：**85 files / 816 passed**（基线 77/761，新增 8 文件 55 测试，无回归）
+- `pnpm build`：**Compiled successfully, 91/91 pages**
+- `pnpm exec playwright test e2e/article-export.spec.ts --project=admin --workers=1`：**8 passed / 0 flaky**
+
+### 图片限制阈值（写明，见 development-prompt §七）
+- 单图上限 `MAX_SINGLE_IMAGE_BYTES = 3 MB`
+- 累计上限 `MAX_TOTAL_IMAGE_BYTES = 15 MB`
+- 单图超时 `IMAGE_FETCH_TIMEOUT_MS = 8000ms`
+（针对 2 核共享生产主机保守取值；超出降级为文字占位，不中断整篇）
+
+### 手工验证步骤
+1. 登录 → 进任一文章详情页 → 顶部应见"导出"按钮。
+2. 点"导出" → 下拉含 PDF/Word × 无批注/带批注 4 项。
+3. Word 无批注/带批注 → 触发 `.docx` 下载，文件名 `{标题}_{无批注|带批注}.docx`，Word/WPS 能打开。
+4. PDF 无批注 → 弹浏览器打印窗口 → 选"另存为 PDF" → 确认 A4、中文字体正常、无批注痕迹。
+5. PDF 带批注（对有批注的文章）→ 打印窗口预览正文有 `[n]` 编号 + 文末"文章批注"章节。
+6. 无批注文章选带批注版 → 应见 toast"该文章暂无批注，将按不带批注版导出"且仍导出。
+
+### 风险/遗留
+- PDF 最终文件排版/中文字体依赖浏览器打印引擎，未自动化（组件单测 + E2E 验证打印 DOM；最终 PDF 手工）。
+- Word 真实微信图片经代理嵌入由单测 1×1 PNG 验证，真实图需手工抽查。
+- 全量 5-project E2E 未重跑，仅导出专项 + standard 全量。
