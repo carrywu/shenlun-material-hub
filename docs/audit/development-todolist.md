@@ -1097,3 +1097,55 @@ admin project `--retries=2` 全量仍报 4 flaky（bookmark toggle / login redir
 ### 风险
 - 5-project 全量长跑未重跑（耗时长），仅隔离验证 4 个目标测试 + admin project admin spec。
 - 高并发下仍有偶发 timeout（环境性），非本轮状态契约逻辑问题。
+
+---
+
+## Stage 15：文章导出 PDF / Word（带批注版与无批注版）— Issue #7（2026-06-20）
+
+### 目标
+文章详情页新增"导出"下拉菜单，支持 PDF（无批注/带批注）+ Word `.docx`（无批注/带批注）。
+第一版只支持单篇导出。详见 `docs/agent/article-export-development-prompt.md`。
+
+### 任务（全部 done）
+- [x] 新增依赖 `react-to-print` / `docx` / `file-saver` + `@types/file-saver`
+- [x] 统一中间结构 `src/lib/article-export/types.ts`（ExportContent / ExportBlock / ExportAnnotation）
+- [x] `filename.ts` 文件名纯函数（非法字符/截断/兜底/扩展名）
+- [x] `build-export-content.ts` 正文转换（复用 `sanitizeArticleHtml`，不复制漂移清洗逻辑）
+- [x] `build-annotated-content.ts` 批注组装（编号按正文位置排序、`[1][2]`、空白归一化、跨节点、未定位归文末、稳定）
+- [x] `download-file.ts`（file-saver）+ `image-loader.ts`（超时/单图失败降级/累计预算）
+- [x] `build-docx.ts` Word 生成（docx Document/Paragraph/TextRun/ImageRun，单图失败占位）
+- [x] `ArticlePrintableContent.tsx` A4 打印组件（clean 无 mark / annotated 含编号+文末批注）
+- [x] `ArticleExportMenu.tsx` 导出菜单（4 选项 + 稳定 testid + aria + 键盘 + 共享 pending）
+- [x] 详情页 `page.tsx` 工具栏接入
+- [x] Vitest 单元测试（filename / build-export-content / build-annotated-content / download-file / image-loader / build-docx / ArticlePrintableContent / ArticleExportMenu）
+- [x] Playwright E2E `e2e/article-export.spec.ts`（8 条，含项目首个 `expect(download)` 断言）
+
+### 实际修改文件
+- 新增 `src/lib/article-export/{types,filename,build-export-content,build-annotated-content,download-file,image-loader,build-docx}.ts`
+- 新增 `src/lib/article-export/__tests__/{filename,build-export-content,build-annotated-content,download-file,image-loader,build-docx}.test.ts`
+- 新增 `src/components/articles/ArticlePrintableContent.tsx`
+- 新增 `src/components/articles/ArticleExportMenu.tsx`
+- 新增 `src/components/articles/__tests__/{ArticlePrintableContent,ArticleExportMenu}.test.tsx`
+- 新增 `e2e/article-export.spec.ts`
+- 修改 `src/app/articles/[id]/page.tsx`（接入导出菜单 + import）
+- 修改 `package.json` / `pnpm-lock.yaml`（3 + 1 依赖）
+
+### 测试命令
+- `pnpm lint` → 0 errors（70 pre-existing warnings）
+- `pnpm test` → 85 files / 816 passed
+- `pnpm build` → Compiled successfully, 91/91 pages
+- `pnpm exec playwright test e2e/article-export.spec.ts --project=admin --workers=1` → 8 passed / 0 flaky
+
+### 验收证据
+- 批注算法 11 条单测覆盖文档 §6 全部 8 项硬要求（编号按位置/创建时间不影响/`[1][2]`/空白匹配/跨节点/未定位不丢/重叠不破坏 DOM/稳定）。
+- Word 下载 E2E 真实验证：`.docx` 文件名区分 `_无批注` / `_带批注`，文件 >2KB。
+- PDF 验证打印根 DOM 正确渲染（clean 无 `文章批注` 章节）；最终"另存为 PDF"列入手工验证。
+
+### 未验证风险 / 手工验证
+- **PDF 最终文件**：浏览器原生打印弹窗无法自动化，最终 PDF 排版/中文字体需手工在打印窗口选"另存为 PDF"验证（见 handoff §手工验证步骤）。
+- **PDF 带批注打印区**在真实打印窗口中编号/批注章节的最终呈现需手工确认（组件单测已验证 DOM 含 mark/编号/章节）。
+- **Word 真实图片嵌入**：E2E seed 文章可能无图片，ImageRun 嵌入由单测用 1×1 PNG 验证；真实微信图片经代理嵌入需手工抽查。
+- 全量 E2E（5 project）未重跑，仅跑导出专项 + standard 全量（lint/test/build）。
+
+### 关联 commit
+- pending（见下方提交拆分）
