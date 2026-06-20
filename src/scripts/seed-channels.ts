@@ -41,25 +41,33 @@ const CHANNEL_SEEDS: ChannelSeed[] = [
     maxPages: 3,
   },
 
-  // ─── 广东省政府网（用户指定 3 个栏目）───
-  {
-    sourceName: "广东省政府网",
-    name: "部门动态",
-    listUrl: "https://www.gd.gov.cn/gdywdt/bmdt/index.html",
-    urlPattern: "content/post_\\d+\\.html",
-    maxPages: 3,
-  },
+  // ─── 广东省政府网（2026-06-20 优化：停用低质动态栏目，新增政策类高质栏目）───
+  // 部门动态已停用（拒率 61%），不在 seed；地市动态降为 1 页
   {
     sourceName: "广东省政府网",
     name: "地市动态",
     listUrl: "https://www.gd.gov.cn/gdywdt/dsdt/index.html",
     urlPattern: "content/post_\\d+\\.html",
-    maxPages: 3,
+    maxPages: 1,
   },
   {
     sourceName: "广东省政府网",
     name: "执法监管",
     listUrl: "https://www.gd.gov.cn/gdywdt/zfjg/index.html",
+    urlPattern: "content/post_\\d+\\.html",
+    maxPages: 3,
+  },
+  {
+    sourceName: "广东省政府网",
+    name: "政府文件库",
+    listUrl: "https://www.gd.gov.cn/zwgk/wjk/qbwj/index.html",
+    urlPattern: "content/post_\\d+\\.html",
+    maxPages: 3,
+  },
+  {
+    sourceName: "广东省政府网",
+    name: "政策解读（部门）",
+    listUrl: "https://www.gd.gov.cn/zwgk/zcjd/bmjd/index.html",
     urlPattern: "content/post_\\d+\\.html",
     maxPages: 3,
   },
@@ -90,7 +98,7 @@ const CHANNEL_SEEDS: ChannelSeed[] = [
 ];
 
 // 旧栏目清理：将不再使用的广东栏目设为停用
-const DEPRECATED_GUANGDONG_CHANNELS = ["政策解读", "政务专题"];
+const DEPRECATED_GUANGDONG_CHANNELS = ["政策解读", "政务专题", "部门动态"];
 
 async function main() {
   console.log(`开始导入 ${CHANNEL_SEEDS.length} 条栏目配置...`);
