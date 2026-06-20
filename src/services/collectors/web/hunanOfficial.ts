@@ -1,4 +1,5 @@
 import { BaseCollector, type RawArticle } from "../base";
+import { extractArticleContent } from "../content-extractor";
 
 // 湖南省政府网采集器
 // P0-3: 使用栏目配置（CollectionChannel）进行采集
@@ -47,34 +48,20 @@ export class HunanOfficialCollector extends BaseCollector {
    */
   protected override async extractArticleDetail(
     url: string
-  ): Promise<{ fullText: string; publishedAt?: Date; author?: string } | null> {
+  ): Promise<{ fullText: string; rawHtml?: string; publishedAt?: Date; author?: string } | null> {
     try {
       const html = await this.fetchWithRetry(url);
       const $ = this.parseHtml(html);
 
       // ── 正文提取 ──
-      // 优先使用 .article-content 或 #zoom，排除页头页尾
-      const contentEl =
-        $(".article-content").length > 0
-          ? $(".article-content")
-          : $("#zoom").length > 0
-            ? $("#zoom")
-            : $(".TRS_Editor").length > 0
-              ? $(".TRS_Editor")
-              : null;
-
-      if (!contentEl) return null;
-
-      // 移除非正文元素
-      contentEl
-        .find(".footer, .nav-path, .m-head, .m-menu, script, style, .search")
-        .remove();
-
-      const fullText = contentEl.text().trim();
-
-      if (!fullText || fullText.length < 300) {
-        return null;
-      }
+      // 用统一提取器：保留 rawHtml（还原段落/图片）+ 结构化 fullText，移除页头页尾/噪声
+      const extracted = extractArticleContent(
+        $,
+        [".article-content", "#zoom", ".TRS_Editor"],
+        url
+      );
+      if (!extracted) return null;
+      const { fullText, rawHtml } = extracted;
 
       // ── 发布时间 ──
       // 格式: "发布时间： 2026-06-04 07:37" 或 "2026-06-04 07:37"
@@ -141,7 +128,7 @@ export class HunanOfficialCollector extends BaseCollector {
           undefined;
       }
 
-      return { fullText, publishedAt, author };
+      return { fullText, rawHtml, publishedAt, author };
     } catch {
       return null;
     }

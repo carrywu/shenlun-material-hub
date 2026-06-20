@@ -1,5 +1,6 @@
 import { BaseCollector, type RawArticle } from "../base";
 import { logger } from "@/lib/logger";
+import { extractArticleContent } from "../content-extractor";
 
 // 广东省政府网采集器
 // 使用栏目配置（CollectionChannel）进行采集
@@ -22,46 +23,26 @@ export class GuangdongOfficialCollector extends BaseCollector {
    */
   protected override async extractArticleDetail(
     url: string
-  ): Promise<{ fullText: string; publishedAt?: Date; author?: string } | null> {
+  ): Promise<{ fullText: string; rawHtml?: string; publishedAt?: Date; author?: string } | null> {
     try {
       const html = await this.fetchWithRetry(url);
       const $ = this.parseHtml(html);
 
       // ── 正文提取 ──
-      // 广东省政府网使用 div.zw 作为正文容器
-      const contentEl =
-        $(".zw").length > 0
-          ? $(".zw")
-          : $(".article-content").length > 0
-            ? $(".article-content")
-            : $(".TRS_Editor").length > 0
-              ? $(".TRS_Editor")
-              : $(".content").length > 0
-                ? $(".content")
-                : $("#zoom").length > 0
-                  ? $("#zoom")
-                  : $("article").length > 0
-                    ? $("article")
-                    : null;
-
-      if (!contentEl) return null;
-
-      // 移除非正文元素
-      contentEl
-        .find("script, style, .footer, .nav-path, .m-head, .m-menu, .search")
-        .remove();
-
-      const fullText = contentEl.text().trim();
-
-      if (!fullText || fullText.length < 300) {
-        return null;
-      }
+      // 用统一提取器：广东政府网正文容器优先 div.zw，保留 rawHtml + 结构化 fullText
+      const extracted = extractArticleContent(
+        $,
+        [".zw", ".article-content", ".TRS_Editor", ".content", "#zoom", "article"],
+        url
+      );
+      if (!extracted) return null;
+      const { fullText, rawHtml } = extracted;
 
       // ── 发布时间 ──
       // 格式: "时间  :  2026-06-04 10:13:50" 或 "2026-06-04"
       // P2-11: scope date extraction to content area + nearby metadata to avoid false matches
       let publishedAt: Date | undefined;
-      const contentAreaText = contentEl.text() + " " +
+      const contentAreaText = fullText + " " +
         ($(".article-date").text() || $(".pub-date").text() || $(".info").text() || "");
 
       // 先尝试完整日期时间
@@ -106,7 +87,7 @@ export class GuangdongOfficialCollector extends BaseCollector {
           undefined;
       }
 
-      return { fullText, publishedAt, author };
+      return { fullText, rawHtml, publishedAt, author };
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : String(error);

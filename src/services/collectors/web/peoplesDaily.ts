@@ -1,4 +1,5 @@
 import { BaseCollector, type RawArticle } from "../base";
+import { extractArticleContent } from "../content-extractor";
 
 const BASE_URL = "https://paper.people.com.cn";
 const TODAY_URL = `${BASE_URL}/rmrb/html`;
@@ -12,21 +13,19 @@ export class PeoplesDailyCollector extends BaseCollector {
    */
   protected override async extractArticleDetail(
     url: string
-  ): Promise<{ fullText: string; publishedAt?: Date; author?: string } | null> {
+  ): Promise<{ fullText: string; rawHtml?: string; publishedAt?: Date; author?: string } | null> {
     try {
       const html = await this.fetchWithRetry(url);
       const $ = this.parseHtml(html);
 
-      // 人民日报文章正文通常在 .ozmwen 或 #ozoom 中
-      const fullText =
-        $(".ozmwen").text().trim() ||
-        $("#ozoom").text().trim() ||
-        $(".text_con").text().trim() ||
-        $("td.news_content").text().trim();
-
-      if (!fullText || fullText.length < 300) {
-        return null;
-      }
+      // 用统一提取器：人民日报数字报正文通常在 .ozmwen / #ozoom 中，保留 rawHtml + 结构化 fullText
+      const extracted = extractArticleContent(
+        $,
+        [".ozmwen", "#ozoom", ".text_con", "td.news_content"],
+        url
+      );
+      if (!extracted) return null;
+      const { fullText, rawHtml } = extracted;
 
       // 提取日期
       const dateStr =
@@ -42,7 +41,7 @@ export class PeoplesDailyCollector extends BaseCollector {
         );
       }
 
-      return { fullText, publishedAt };
+      return { fullText, rawHtml, publishedAt };
     } catch {
       return null;
     }
@@ -150,6 +149,7 @@ export class PeoplesDailyCollector extends BaseCollector {
       result.push({
         ...art,
         fullText: detail.fullText,
+        rawHtml: detail.rawHtml,
         excerpt: detail.fullText.slice(0, 200),
         publishedAt: detail.publishedAt,
       });

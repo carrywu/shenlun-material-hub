@@ -1,4 +1,5 @@
 import { BaseCollector, type RawArticle } from "../base";
+import { extractArticleContent } from "../content-extractor";
 
 const BASE_URL = "https://opinion.people.com.cn";
 
@@ -11,22 +12,19 @@ export class PeopleOpinionCollector extends BaseCollector {
    */
   protected override async extractArticleDetail(
     url: string
-  ): Promise<{ fullText: string; publishedAt?: Date; author?: string } | null> {
+  ): Promise<{ fullText: string; rawHtml?: string; publishedAt?: Date; author?: string } | null> {
     try {
       const html = await this.fetchWithRetry(url);
       const $ = this.parseHtml(html);
 
-      // 人民网文章正文通常在 .rm_txt_con 或 #rwb_zw 中
-      const fullText =
-        $(".rm_txt_con").text().trim() ||
-        $("#rwb_zw").text().trim() ||
-        $(".text_con").text().trim() ||
-        $(".article_content").text().trim() ||
-        $("div[class*='content']").first().text().trim();
-
-      if (!fullText || fullText.length < 300) {
-        return null;
-      }
+      // 用统一提取器：人民网正文通常在 .rm_txt_con / #rwb_zw 中，保留 rawHtml + 结构化 fullText
+      const extracted = extractArticleContent(
+        $,
+        [".rm_txt_con", "#rwb_zw", ".text_con", ".article_content", "div[class*='content']"],
+        url
+      );
+      if (!extracted) return null;
+      const { fullText, rawHtml } = extracted;
 
       // 提取作者
       const author =
@@ -49,7 +47,7 @@ export class PeopleOpinionCollector extends BaseCollector {
         );
       }
 
-      return { fullText, publishedAt, author };
+      return { fullText, rawHtml, publishedAt, author };
     } catch {
       return null;
     }
@@ -120,6 +118,7 @@ export class PeopleOpinionCollector extends BaseCollector {
       detailed.push({
         ...article,
         fullText: detail.fullText,
+        rawHtml: detail.rawHtml,
         excerpt: detail.fullText.slice(0, 200),
         author: detail.author,
         publishedAt: detail.publishedAt,

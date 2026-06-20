@@ -1,4 +1,5 @@
 import { BaseCollector, type RawArticle } from "../base";
+import { extractArticleContent } from "../content-extractor";
 
 const BASE_URL = "https://tougao.12371.cn";
 const LIST_URL = `${BASE_URL}/wenhui.php`;
@@ -12,26 +13,26 @@ export class XianfengwenhuiCollector extends BaseCollector {
    */
   protected override async extractArticleDetail(
     url: string
-  ): Promise<{ fullText: string; publishedAt?: Date; author?: string } | null> {
+  ): Promise<{ fullText: string; rawHtml?: string; publishedAt?: Date; author?: string } | null> {
     try {
       const html = await this.fetchWithRetry(url);
       const $ = this.parseHtml(html);
 
-      // Discuz 帖子正文在 .t_f 或 #postmessage_ 开头的元素中
-      let fullText =
-        $(".t_f").first().text().trim() ||
-        $("[id^='postmessage_']").first().text().trim() ||
-        $(".message").first().text().trim();
-
-      if (!fullText) {
-        fullText =
-          $("#postlist").text().trim() ||
-          $(".forum-content").text().trim();
-      }
-
-      if (!fullText || fullText.length < 300) {
-        return null;
-      }
+      // 用统一提取器：Discuz 帖子正文优先 .t_f / #postmessage_ / .message，
+      // 兜底 #postlist / .forum-content；保留 rawHtml + 结构化 fullText。
+      const extracted = extractArticleContent(
+        $,
+        [
+          ".t_f",
+          "[id^='postmessage_']",
+          ".message",
+          "#postlist",
+          ".forum-content",
+        ],
+        url
+      );
+      if (!extracted) return null;
+      const { fullText, rawHtml } = extracted;
 
       // 提取日期
       const dateText =
@@ -57,7 +58,7 @@ export class XianfengwenhuiCollector extends BaseCollector {
         }
       }
 
-      return { fullText, publishedAt };
+      return { fullText, rawHtml, publishedAt };
     } catch {
       return null;
     }
@@ -109,6 +110,7 @@ export class XianfengwenhuiCollector extends BaseCollector {
       detailed.push({
         ...article,
         fullText: detail.fullText,
+        rawHtml: detail.rawHtml,
         excerpt: detail.fullText.slice(0, 200),
         publishedAt: detail.publishedAt,
       });

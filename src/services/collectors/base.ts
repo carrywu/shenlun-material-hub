@@ -1,15 +1,22 @@
 import * as cheerio from "cheerio";
-import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { runContentFilters } from "@/services/content-filter";
 import { parseRssUrl } from "@/lib/rss";
+import {
+  extractArticleContent,
+  computeArticleContentHash,
+  computeEffectiveLength,
+} from "@/services/collectors/content-extractor";
+import { extractPlainText } from "@/services/collectors/wechat/weRssNormalizer";
 
 export interface RawArticle {
   title: string;
   url: string;
   excerpt?: string;
   fullText?: string;
+  /** 清洗后的正文 HTML，供详情页渲染还原段落格式 */
+  rawHtml?: string;
   author?: string;
   publishedAt?: Date;
   section?: string;
@@ -80,10 +87,6 @@ export abstract class BaseCollector {
     return cheerio.load(html);
   }
 
-  protected computeContentHash(content: string): string {
-    return createHash("sha256").update(content).digest("hex").slice(0, 16);
-  }
-
   /**
    * 从列表页 HTML 中提取文章链接
    * 子类可覆盖此方法以自定义链接提取逻辑
@@ -127,30 +130,37 @@ export abstract class BaseCollector {
   }
 
   /**
-   * 从文章详情页提取全文
-   * 子类可覆盖此方法以适配特定网站结构
+   * 从文章详情页提取全文 + 正文 HTML
+   * 子类可覆盖此方法以适配特定网站结构。
+   *
+   * 返回 rawHtml（清洗 HTML）与 fullText（结构化纯文本）双份数据：
+   * - rawHtml 供详情页渲染还原段落/标题/列表/引用/图片位置
+   * - fullText 供 AI 评估 / 搜索 / 去重 / 有效字数
+   *
+   * 默认实现用统一 content-extractor + 通用选择器优先级。
    */
   protected async extractArticleDetail(
     url: string
-  ): Promise<{ fullText: string; publishedAt?: Date; author?: string } | null> {
+  ): Promise<{ fullText: string; rawHtml?: string; publishedAt?: Date; author?: string } | null> {
     try {
       const html = await this.fetchWithRetry(url);
       const $ = this.parseHtml(html);
 
       // 通用正文提取选择器（按优先级）
-      const fullText =
-        $(".article-content").text().trim() ||
-        $(".TRS_Editor").text().trim() ||
-        $(".content").text().trim() ||
-        $("#zoom").text().trim() ||
-        $("article").text().trim() ||
-        $(".rm_txt_con").text().trim() ||
-        $("#rwb_zw").text().trim() ||
-        $(".text_con").text().trim() ||
-        $(".t_f").first().text().trim() ||
-        $("[id^='postmessage_']").first().text().trim();
-
-      if (!fullText || fullText.length < 300) {
+      const GENERIC_SELECTORS = [
+        ".article-content",
+        ".TRS_Editor",
+        ".content",
+        "#zoom",
+        "article",
+        ".rm_txt_con",
+        "#rwb_zw",
+        ".text_con",
+        ".t_f",
+        "[id^='postmessage_']",
+      ];
+      const extracted = extractArticleContent($, GENERIC_SELECTORS, url);
+      if (!extracted) {
         return null;
       }
 
@@ -181,7 +191,12 @@ export abstract class BaseCollector {
         $(".author").text().trim() ||
         undefined;
 
-      return { fullText, publishedAt, author };
+      return {
+        fullText: extracted.fullText,
+        rawHtml: extracted.rawHtml,
+        publishedAt,
+        author,
+      };
     } catch {
       return null;
     }
@@ -210,16 +225,29 @@ export abstract class BaseCollector {
             const url = item.link || item.guid || "";
             if (!url || seen.has(url)) continue;
             seen.add(url);
-            
-            const fullText = item["content:encoded"] || item.content || item.contentSnippet || "";
+
+            // RSS 的 content:encoded / content 通常是 HTML：保留为 rawHtml，
+            // 并复用 wechat 已验证的 extractPlainText 生成结构化 fullText（段落不丢）。
+            const rawRssHtml = item["content:encoded"] || item.content || "";
+            const isHtml = /<[a-z/][^>]*>/i.test(rawRssHtml);
+            let fullText: string;
+            let rawHtml: string | undefined;
+            if (isHtml) {
+              fullText = extractPlainText(rawRssHtml) || item.contentSnippet || "";
+              rawHtml = rawRssHtml;
+            } else {
+              fullText = rawRssHtml || item.contentSnippet || "";
+            }
+
             const title = item.title || "无标题";
             const publishedAt = item.pubDate ? new Date(item.pubDate) : undefined;
             const author = item.creator;
-            
+
             articles.push({
               title,
               url,
               fullText,
+              rawHtml,
               excerpt: fullText.slice(0, 200),
               author,
               publishedAt,
@@ -265,6 +293,7 @@ export abstract class BaseCollector {
           title: link.title,
           url: link.url,
           fullText: detail.fullText,
+          rawHtml: detail.rawHtml,
           excerpt: detail.fullText.slice(0, 200),
           author: detail.author,
           publishedAt: detail.publishedAt,
@@ -308,11 +337,12 @@ export abstract class BaseCollector {
     }
 
     const fullText = raw.fullText ?? null;
+    const rawHtml = raw.rawHtml ?? null;
     const excerpt = raw.excerpt ?? fullText?.slice(0, 200) ?? null;
-    const contentHash = fullText ? this.computeContentHash(fullText) : null;
-    const effectiveTextLength = fullText
-      ? fullText.replace(/<[^>]+>/g, "").replace(/\s+/g, "").trim().length
-      : 0;
+    // contentHash / effectiveTextLength 统一基于结构化 fullText（已无 HTML 标签），
+    // 与 wechat 链路语义一致；复用 content-extractor 的纯函数避免多份实现。
+    const contentHash = fullText ? computeArticleContentHash(fullText) : null;
+    const effectiveTextLength = fullText ? computeEffectiveLength(fullText) : 0;
 
     // P0-5 质量门控：无全文或全文过短（<300字）直接标记为 filtered
     if (!fullText || effectiveTextLength < 300) {
@@ -334,6 +364,7 @@ export abstract class BaseCollector {
           section: raw.section ?? null,
           excerpt,
           fullText,
+          rawHtml,
           fullTextStored: !!fullText,
           contentHash,
           processingStatus: "filtered",
@@ -393,6 +424,7 @@ export abstract class BaseCollector {
         section: raw.section ?? null,
         excerpt,
         fullText,
+        rawHtml,
         fullTextStored: !!fullText,
         contentHash,
         processingStatus: filterResult.filtered
