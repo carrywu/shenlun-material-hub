@@ -100,6 +100,23 @@ describe("湖南省政府网采集器", () => {
       expect(result.publishedAt).toEqual(new Date(2026, 5, 4, 7, 37));
     });
 
+    it("应保留正文 HTML(rawHtml) 与段落结构(fullText 含 \\n\\n)", async () => {
+      vi.spyOn(collector as CollectorAny, "fetchWithRetry").mockResolvedValue(
+        HUNAN_ARTICLE_HTML
+      );
+
+      const result = await (collector as CollectorAny).extractArticleDetail(
+        "https://www.hunan.gov.cn/hnszf/hnyw/sxsp/202606/t20260604_33993282.html"
+      );
+
+      expect(result).not.toBeNull();
+      expect(result.rawHtml).toBeTruthy();
+      expect(result.rawHtml).toContain("<p>");
+      expect(result.fullText).toMatch(/\n\n/);
+      expect(result.fullText.split(/\n\n/).length).toBeGreaterThanOrEqual(2);
+      expect(result.fullText).not.toContain("<p>");
+    });
+
     it("应该提取信息来源（湖南日报）到 author 字段", async () => {
       vi.spyOn(collector as CollectorAny, "fetchWithRetry").mockResolvedValue(
         HUNAN_ARTICLE_HTML

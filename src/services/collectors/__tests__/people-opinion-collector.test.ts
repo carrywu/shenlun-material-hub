@@ -130,6 +130,23 @@ describe("人民网观点采集器", () => {
       expect(result.publishedAt).toEqual(new Date(2026, 5, 4));
     });
 
+    it("应保留正文 HTML(rawHtml) 与段落结构(fullText 含 \\n\\n)", async () => {
+      vi.spyOn(collector as CollectorAny, "fetchWithRetry").mockResolvedValue(
+        OPINION_ARTICLE_HTML
+      );
+
+      const result = await (collector as CollectorAny).extractArticleDetail(
+        "https://opinion.people.com.cn/GB/8213/49160/202606/t20260604_123456.html"
+      );
+
+      expect(result).not.toBeNull();
+      expect(result.rawHtml).toBeTruthy();
+      expect(result.rawHtml).toContain("<p>");
+      expect(result.fullText).toMatch(/\n\n/);
+      expect(result.fullText.split(/\n\n/).length).toBeGreaterThanOrEqual(2);
+      expect(result.fullText).not.toContain("<p>");
+    });
+
     it("应该提取作者到 author 字段", async () => {
       vi.spyOn(collector as CollectorAny, "fetchWithRetry").mockResolvedValue(
         OPINION_ARTICLE_HTML

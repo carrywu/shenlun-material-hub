@@ -123,6 +123,26 @@ describe("广东省政府网采集器", () => {
       expect(result.publishedAt).toEqual(new Date(2026, 5, 4, 10, 13, 50));
     });
 
+    it("应保留正文 HTML(rawHtml) 与段落结构(fullText 含 \\n\\n)", async () => {
+      vi.spyOn(collector as CollectorAny, "fetchWithRetry").mockResolvedValue(
+        GD_ARTICLE_HTML
+      );
+
+      const result = await (collector as CollectorAny).extractArticleDetail(
+        "https://www.gd.gov.cn/gdywdt/bmdt/content/post_4906500.html"
+      );
+
+      expect(result).not.toBeNull();
+      // rawHtml 非空，含 <p> 结构（供详情页渲染还原段落）
+      expect(result.rawHtml).toBeTruthy();
+      expect(result.rawHtml).toContain("<p>");
+      // fullText 为结构化纯文本，多段用 \n\n 连接（不再被挤成一行）
+      expect(result.fullText).toMatch(/\n\n/);
+      expect(result.fullText.split(/\n\n/).length).toBeGreaterThanOrEqual(3);
+      // fullText 不应残留 HTML 标签
+      expect(result.fullText).not.toContain("<p>");
+    });
+
     it("应该提取来源（广州日报）到 author 字段", async () => {
       vi.spyOn(collector as CollectorAny, "fetchWithRetry").mockResolvedValue(
         GD_ARTICLE_HTML

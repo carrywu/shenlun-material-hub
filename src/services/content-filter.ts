@@ -138,19 +138,23 @@ export function checkNavigationContentFilter(fullText: string | null): FilterRes
   const effectiveLength = fullText.replace(/\s+/g, "").trim().length;
   if (effectiveLength >= 1500) return { filtered: false };
 
-  const lines = fullText
-    .split(/\n/)
+  // 按「段落块」统计（双换行分隔），而非逐行。
+  // 新 fullText 是结构化文本，块级元素用 \n\n 连接、<br> 用单 \n 连接；
+  // 若按单 \n 分行，会把段内 <br> 折行也算成独立短行，误判短段真实文章。
+  // 改为按块统计后：真实短文章段数通常 <= 10（绕过门槛），真正的导航页仍有大量短块。
+  const blocks = fullText
+    .split(/\n\s*\n+/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
-  // If most lines are very short (< 20 chars), it's likely navigation
-  if (lines.length > 10) {
-    const shortLineCount = lines.filter((l) => l.length < 20).length;
-    const ratio = shortLineCount / lines.length;
+  // If most blocks are very short (< 20 chars), it's likely navigation
+  if (blocks.length > 10) {
+    const shortBlockCount = blocks.filter((l) => l.length < 20).length;
+    const ratio = shortBlockCount / blocks.length;
     if (ratio > 0.7) {
       return {
         filtered: true,
-        reason: `疑似导航页面（${(ratio * 100).toFixed(0)}% 行为短文本，共 ${lines.length} 行）`,
+        reason: `疑似导航页面（${(ratio * 100).toFixed(0)}% 段为短文本，共 ${blocks.length} 段）`,
       };
     }
   }

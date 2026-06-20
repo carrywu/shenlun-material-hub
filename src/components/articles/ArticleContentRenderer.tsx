@@ -270,8 +270,27 @@ export function insertAnnotationsIntoHtml(
 }
 
 function splitParagraphs(text: string): string[] {
-  return text
-    .split(/\n\s*\n/g)
+  // 先按双换行分段；若全文只有一段（或没有双换行），降级按单换行分段，
+  // 兼容只含单换行的旧 fullText（无 rawHtml 的历史文章降级显示）。
+  const normalized = text
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  if (!normalized) return [];
+
+  const doubleLineParagraphs = normalized
+    .split(/\n\s*\n+/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (doubleLineParagraphs.length > 1) {
+    return doubleLineParagraphs;
+  }
+
+  return normalized
+    .split(/\n+/g)
     .map((item) => item.trim())
     .filter(Boolean);
 }

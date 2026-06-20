@@ -85,7 +85,9 @@ describe("BaseCollector - RSS 模式", () => {
     expect(articles).toHaveLength(1);
     expect(articles[0].title).toBe("RSS 文章");
     expect(articles[0].url).toBe("https://example.com/article1");
-    expect(articles[0].fullText).toBe("<p>RSS 全文内容</p>");
+    // 新行为：content:encoded 是 HTML，fullText 转为结构化纯文本，rawHtml 保留 HTML
+    expect(articles[0].fullText).toBe("RSS 全文内容");
+    expect(articles[0].rawHtml).toBe("<p>RSS 全文内容</p>");
     expect(articles[0].author).toBe("RSS 作者");
   });
 
@@ -236,6 +238,8 @@ describe("BaseCollector - RSS 模式", () => {
 
     const articles = await collector.collectFromChannel(channel, SOURCE);
 
-    expect(articles[0].fullText).toBe("<p>完整 HTML 正文</p>");
+    // 新行为：HTML 内容转为结构化纯文本 + 保留 rawHtml
+    expect(articles[0].fullText).toBe("完整 HTML 正文");
+    expect(articles[0].rawHtml).toBe("<p>完整 HTML 正文</p>");
   });
 });

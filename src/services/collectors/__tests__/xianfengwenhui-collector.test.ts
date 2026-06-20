@@ -131,6 +131,25 @@ describe("先锋文汇采集器", () => {
       expect(result.publishedAt).toEqual(new Date(2026, 5, 4, 14, 30));
     });
 
+    it("应保留正文 HTML(rawHtml)，fullText 不残留 HTML 标签", async () => {
+      vi.spyOn(collector as CollectorAny, "fetchWithRetry").mockResolvedValue(
+        XFWH_ARTICLE_HTML
+      );
+
+      const result = await (collector as CollectorAny).extractArticleDetail(
+        "https://tougao.12371.cn/gaojian.php?tid=12345"
+      );
+
+      expect(result).not.toBeNull();
+      // Discuz .t_f 正文可能是裸文本（无 <p>），rawHtml 至少保留容器与正文内容
+      expect(result.rawHtml).toBeTruthy();
+      expect(result.rawHtml).toContain("基层党组织");
+      // fullText 为纯文本，不应残留 HTML 标签
+      expect(result.fullText).not.toContain("<p>");
+      expect(result.fullText).not.toContain("<br");
+      expect(result.fullText).not.toContain("<div");
+    });
+
     it("应该支持 [id^='postmessage_'] 选择器", async () => {
       vi.spyOn(collector as CollectorAny, "fetchWithRetry").mockResolvedValue(
         XFWH_POSTMSG_HTML

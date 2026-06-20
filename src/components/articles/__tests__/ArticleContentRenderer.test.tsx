@@ -17,6 +17,22 @@ describe("ArticleContentRenderer", () => {
     expect(paragraphs[1].textContent).toBe("第二段内容\n第三行仍属于第二段");
   });
 
+  it("只有单换行的纯文本降级分段（兼容无 rawHtml 的旧文章）", () => {
+    render(
+      <ArticleContentRenderer
+        fullText={"第一段内容\n第二段内容\n第三段内容"}
+      />
+    );
+
+    const content = screen.getByTestId("article-content");
+    const paragraphs = content.querySelectorAll("p");
+    // 无双换行 → 降级按单换行拆成 3 段，而非挤成一段
+    expect(paragraphs.length).toBe(3);
+    expect(paragraphs[0]).toHaveTextContent("第一段内容");
+    expect(paragraphs[1]).toHaveTextContent("第二段内容");
+    expect(paragraphs[2]).toHaveTextContent("第三段内容");
+  });
+
   it("保留 HTML 中的列表、表格和图片结构", () => {
     render(
       <ArticleContentRenderer

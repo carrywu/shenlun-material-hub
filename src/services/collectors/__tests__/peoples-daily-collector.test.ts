@@ -129,6 +129,23 @@ describe("人民日报采集器", () => {
       expect(result.publishedAt).toEqual(new Date(2026, 5, 4));
     });
 
+    it("应保留正文 HTML(rawHtml) 与段落结构(fullText 含 \\n\\n)", async () => {
+      vi.spyOn(collector as CollectorAny, "fetchWithRetry").mockResolvedValue(
+        RMRB_ARTICLE_HTML
+      );
+
+      const result = await (collector as CollectorAny).extractArticleDetail(
+        "https://paper.people.com.cn/rmrb/html/2026-06/04/nw.D110000renmrb_01.htm"
+      );
+
+      expect(result).not.toBeNull();
+      expect(result.rawHtml).toBeTruthy();
+      expect(result.rawHtml).toContain("<p>");
+      expect(result.fullText).toMatch(/\n\n/);
+      expect(result.fullText.split(/\n\n/).length).toBeGreaterThanOrEqual(2);
+      expect(result.fullText).not.toContain("<p>");
+    });
+
     it("应该支持 #ozoom 选择器", async () => {
       vi.spyOn(collector as CollectorAny, "fetchWithRetry").mockResolvedValue(
         RMRB_OZOOM_HTML
