@@ -41,6 +41,7 @@ done
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 log() { printf '[server-restart] %s\n' "$*"; }
+warn() { printf '[server-restart] WARNING: %s\n' "$*" >&2; }
 die() { printf '[server-restart] ERROR: %s\n' "$*" >&2; exit 1; }
 
 require_file() {
