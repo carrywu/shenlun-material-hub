@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { ArticleExportMenu } from "@/components/articles/ArticleExportMenu";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -827,6 +828,10 @@ export default function ArticleDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {/* Article export — PDF / Word（带批注版与无批注版）。Issue #7 */}
+            <div className="relative">
+              <ArticleExportMenu article={article} />
+            </div>
             {/* Reading state toggles — 使用用户私有状态（P1-3） */}
             <Button
               data-testid="article-bookmark-button"
