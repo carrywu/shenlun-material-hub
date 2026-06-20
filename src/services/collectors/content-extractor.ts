@@ -1,6 +1,11 @@
 import * as cheerio from "cheerio";
 import { computeContentHash } from "@/services/content-filter";
 
+// cheerio 节点类型：cheerio 未直接导出可解析的 AnyNode 类型，
+// 这里用一个别名承载，集中规避 no-explicit-any。
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CheerioNode = cheerio.Cheerio<any>;
+
 /**
  * 网站文章正文统一提取器。
  *
@@ -91,7 +96,7 @@ function resolveImageUrl(rawSrc: string | undefined, sourceUrl: string): string 
  * 在已选中的正文节点上修复图片：处理懒加载属性、相对 URL、删除事件属性。
  * 图片保留在原文位置（不挪到末尾）。原地修改。
  */
-function fixImages($: cheerio.CheerioAPI, node: cheerio.Cheerio<any>, sourceUrl: string): void {
+function fixImages($: cheerio.CheerioAPI, node: CheerioNode, sourceUrl: string): void {
   node.find("img").each((_, img) => {
     const $img = $(img);
     const lazySrc =
@@ -119,10 +124,10 @@ function fixImages($: cheerio.CheerioAPI, node: cheerio.Cheerio<any>, sourceUrl:
  * 移除正文内的噪声节点（导航/页脚/广告/分享/相关推荐等）。
  * 不粗暴删除所有 div，仅按精确选择器与完整词 class 匹配。
  */
-function removeNoise($: cheerio.CheerioAPI, node: cheerio.Cheerio<any>): void {
+function removeNoise($: cheerio.CheerioAPI, node: CheerioNode): void {
   node.find(NOISE_SELECTOR).remove();
   // 收集待删节点，避免遍历中修改导致跳过
-  const toRemove: cheerio.Cheerio<any>[] = [];
+  const toRemove: CheerioNode[] = [];
   node.find("*").each((_, el) => {
     const $el = $(el);
     const cls = $el.attr("class") || "";
@@ -155,7 +160,7 @@ function normalizeText(text: string): string {
  */
 function buildStructuredTextImpl(
   $: cheerio.CheerioAPI,
-  node: cheerio.Cheerio<any>
+  node: CheerioNode
 ): string {
   // <br> 占位替换：在取 text 前把 <br> 换成不可被空白归一化吞掉的占位文本
   node.find("br").each((_, br) => {
@@ -192,24 +197,32 @@ function buildStructuredTextImpl(
 
 interface PreparedNode {
   /** 克隆并清洗后的 cheerio 节点 */
-  node: cheerio.Cheerio<any>;
+  node: CheerioNode;
   /** 该节点的结构化纯文本（一次性计算） */
   text: string;
 }
 
 /**
  * 准备一个候选节点：克隆 → 清洗噪声 → 修图 → 计算 fullText。
+ * 传入 cheerio 节点（$(node) 包装后的 Cheerio 对象）。
  */
-function prepareNode(
-  $: cheerio.CheerioAPI,
-  el: cheerio.AnyNode,
-  sourceUrl: string
-): PreparedNode {
-  const node = $(el).clone();
-  removeNoise($, node);
-  fixImages($, node, sourceUrl);
-  const text = buildStructuredTextImpl($, node);
-  return { node, text };
+function prepareNode($: cheerio.CheerioAPI, node: CheerioNode, sourceUrl: string): PreparedNode {
+  const cloned = node.clone();
+  removeNoise($, cloned);
+  fixImages($, cloned, sourceUrl);
+  const text = buildStructuredTextImpl($, cloned);
+  return { node: cloned, text };
+}
+
+/**
+ * 把一个已准备好的节点封装成提取结果。
+ */
+function toResult($: cheerio.CheerioAPI, prepared: PreparedNode): ExtractedArticleContent {
+  return {
+    rawHtml: $.html(prepared.node),
+    fullText: prepared.text,
+    effectiveTextLength: computeEffectiveLength(prepared.text),
+  };
 }
 
 /**
@@ -226,40 +239,35 @@ export function extractArticleContent(
   if (!selectors.length) return null;
   const minLen = options.minEffectiveLength ?? DEFAULT_MIN_EFFECTIVE_LENGTH;
   const descendantSel = selectors.join(",");
+  // 用 holder 对象承载 each 回调内的赋值，避免 TS 控制流把 chosen 收窄为 never
+  const holder: { prepared: PreparedNode | null } = { prepared: null };
 
   for (const selector of selectors) {
     const candidates = $(selector);
     if (candidates.length === 0) continue;
-
-    let chosen: PreparedNode | null = null;
+    holder.prepared = null;
 
     candidates.each((_, el) => {
-      if (chosen) return;
-      const prepared = prepareNode($, el, sourceUrl);
+      if (holder.prepared) return;
+      const prepared = prepareNode($, $(el), sourceUrl);
 
       // 父子去重：若 prepared 内有更具体的后代也命中任一 selector 且达标，优先用后代
       const descendantHit = prepared.node.find(descendantSel).first();
       if (descendantHit.length > 0) {
-        // descendantHit 是 prepared.node 内的节点；需要重新清洗/计算（它继承自已清洗副本，但保险起见再清一次）
-        const dPrepared = prepareNode($, descendantHit.first().get(0) as unknown as cheerio.AnyNode, sourceUrl);
+        const dPrepared = prepareNode($, descendantHit, sourceUrl);
         if (computeEffectiveLength(dPrepared.text) >= minLen) {
-          chosen = dPrepared;
+          holder.prepared = dPrepared;
           return;
         }
       }
 
       if (computeEffectiveLength(prepared.text) >= minLen) {
-        chosen = prepared;
+        holder.prepared = prepared;
       }
     });
 
-    if (chosen) {
-      const rawHtml = $.html(chosen.node);
-      return {
-        rawHtml,
-        fullText: chosen.text,
-        effectiveTextLength: computeEffectiveLength(chosen.text),
-      };
+    if (holder.prepared) {
+      return toResult($, holder.prepared);
     }
   }
 

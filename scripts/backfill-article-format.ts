@@ -132,7 +132,6 @@ function isRssLikeHtml(fullText: string | null): boolean {
 
 // extractArticleDetail 是 protected，通过 as any 访问（脚本内部，不暴露公开 API）
 type AnyCollector = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extractArticleDetail(url: string): Promise<{
     fullText: string;
     rawHtml?: string;
