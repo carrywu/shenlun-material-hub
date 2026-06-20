@@ -355,3 +355,31 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - **关键改动**：登录页改服务端组件 `redirect()`；收藏/已读按钮加 pending guard；侧边栏加 `data-state`/`aria-expanded`；ES-006 用 `mockApiError` helper + storageState。
 - **验收**：lint 0 errors / test 735 passed / build 通过；4 目标测试隔离运行 ×15-20 全 0 flaky。
 - **遗留**：高并发同跑仍有环境性 timeout（非逻辑 flaky，`--retries=1` 可吸收）；5-project 全量长跑未重跑。
+
+---
+
+## 2026-06-20 补充：广东省政府网来源采集质量优化 + AI 全量评估
+
+详见 `docs/superpowers/specs/2026-06-20-guangdong-source-quality-design.md` 与计划 `docs/superpowers/plans/2026-06-20-guangdong-source-quality.md`。
+
+### 1. AI 全量评估（560 篇）
+- **背景**：404 篇文章从未做 AI 评估，需识别"无效文章"。
+- **执行**：新增 `scripts/ops/assess-pending-standalone.mjs`（自包含，纯 `pg`+`openai`+`node:crypto`，无 `@/` 业务依赖，cp 进 app 容器跑，复刻 `src/services/ai.ts` 的 assessRelevance+scoreContentItem 逻辑）。
+- **结果**：评估 402 篇 → accept 340 / reject 58 / skip 4 / error 0。全局终态 accept 454 / reject 93。
+- **写库差异**：accept 直接 `adminReviewStatus=approved`+`publicVisibleAt`（自动上架，非默认 pending_admin）；reject 标 filtered/rejected 隐藏。
+- **教训**：生产服务器磁盘紧张，**禁止**在其宿主机 pnpm install（曾致 SSH 卡死重启 ECS）。连库用 `docker exec psql` 或自包含脚本进容器跑，不用本地 SSH 隧道（ECONNRESET）。
+
+### 2. 删除无内容/被封禁文章（9 条）
+- 已删 9 条（blocked 4 + filtered 过短 5），保留 AI 拒绝。备份 `shenlun-purge-20260619-211950.dump`。
+
+### 3. 广东源栏目优化
+- **根因**：广东源通过率仅 64%（212 篇拒 77），3 个栏目都在 `/gdywdt/`（新闻动态），AI 判拒全对（ordinary_news 58 / meeting_news 11 / notice 7）。
+- **改动**（纯配置，未动 collector/content-filter 代码）：
+  - 停用「部门动态」(`/gdywdt/bmdt/`，拒率 61%)；
+  - 「地市动态」maxPages 3→1；
+  - 新增「政府文件库」(`/zwgk/wjk/qbwj/`)、「政策解读（部门）」(`/zwgk/zcjd/bmjd/`) 政策类栏目。
+- **删旧**：删除该源 77 篇 AI reject（事务，备份 `shenlun-gdquality-20260620-090223.dump`）。删后该源 reject=0，剩 185 篇全 accept/未评估。
+- **同步**：`src/scripts/seed-channels.ts` 已更新（部门动态入 DEPRECATED；新栏目命名「政策解读（部门）」避开 DEPRECATED 同名冲突）。commit `5efdc0c`。
+- **可采性验证**：文件库列表页有本栏目真实文章链接（`content/post_xxx`），正文页 200+正文可提取；collector 通用 urlPattern 兼容，无需改代码。
+- **遗留**：新栏目 `collectedCount=0`，等下次手动/定时采集验证入库量与 AI 通过率；列表页顶部「要闻」推荐链接会被 collector 误抓（既有行为，非本次引入，有去重兜底）。
+
