@@ -383,3 +383,63 @@ Batch 1-5（权限、用户管理、学习状态、前台 IA、UI 评估）全�
 - **可采性验证**：文件库列表页有本栏目真实文章链接（`content/post_xxx`），正文页 200+正文可提取；collector 通用 urlPattern 兼容，无需改代码。
 - **遗留**：新栏目 `collectedCount=0`，等下次手动/定时采集验证入库量与 AI 通过率；列表页顶部「要闻」推荐链接会被 collector 误抓（既有行为，非本次引入，有去重兜底）。
 
+
+---
+
+## 文章正文格式修复（2026-06-20，rawHtml + 结构化 fullText）
+
+### 背景
+网站采集的文章在详情页正文全部挤成一大段，段落/标题/列表/引用/图片位置丢失。
+根因：5 个网站采集器 + 基类 `extractArticleDetail()` 全用 cheerio `.text()` 抠正文，
+且从不生成/存储 `rawHtml`。DB 列 `rawHtml`（自 `0_init`）、API、渲染器都已就绪，
+只差采集端产出。本地库 476 篇 web_collector 文章，0 篇有 rawHtml。
+
+### 改动（按阶段小步提交）
+1. **统一提取器** `src/services/collectors/content-extractor.ts`（新增）：选择器优先级 + 父子去重，
+   清洗噪声（nav/footer/广告/分享/相关推荐按完整词 class），修图（懒加载 data-src 等、相对 URL、
+   占位图删除），同时产出 `rawHtml`（清洗 HTML）+ 结构化 `fullText`（块级 `\n\n`、`<br>`→`\n`）+
+   `effectiveTextLength`。复用 `content-filter` 的 `computeContentHash`，与 wechat 语义一致。
+   18 个 fixture 单测覆盖段落/标题/列表/引用/表格/图片/懒加载/父子去重/特殊字符等。
+2. **传播 rawHtml**：`RawArticle` 加 `rawHtml`；`extractArticleDetail` 返回 rawHtml（5 采集器 + 基类）；
+   `base.ts` RSS 分支（content:encoded 保留为 rawHtml + extractPlainText 生成结构化 fullText）、
+   `collectFromChannel`、`normalizeToContentItem` 两处 create 写入 rawHtml；
+   `contentHash`/`effectiveTextLength` 改用统一纯函数。微信链路不动（已正确双写）。
+3. **导航过滤器回归保护**：`checkNavigationContentFilter` 改按段落块（`\n\n`）统计短文本比例
+   （原按单 `\n` 行会把含 `<br>` 折行的短段真实文章误判为导航页）；新增回归 fixture。
+4. **渲染器降级**：`splitParagraphs` 先双换行分段、仅单段时降级按单换行拆（兼容无 rawHtml 旧文章）。
+5. **回填脚本** `scripts/backfill-article-format.ts`（新增）：`--dry-run`(默认)/`--execute`/`--limit`/
+   `--source`/`--article-id`/`--delay-ms`。普通文章用对应采集器重抓（复用选择器+fetchWithRetry，
+   含 hunan HTTP 降级）；RSS 类不重抓直接转；只更新 5 个正文字段，不触碰 ai*/审核/收藏/批注/素材卡；
+   孤儿跳过、单篇失败不终止、竞态保护。
+6. **E2E** `e2e/article-format.spec.ts`（新增）：rawHtml 多段渲染、段落间距、HTML 不外泄、
+   `<script>` 清洗、旧文章 fullText 降级、移动端不溢出。
+
+### 验收证据
+- `pnpm lint`：所改文件 **0 errors**（仅遗留 archived legacy spec + pre-existing warnings）。
+- `pnpm test`：**77 files / 761 passed**（含 18 个新 extractor fixture + 更新后的 6 个采集器断言 +
+  content-filter 回归 + 渲染器降级）。
+- `pnpm build`：**通过**（Compiled successfully, 91/91 static pages）。
+- `pnpm exec playwright test e2e/article-format.spec.ts`：**4 passed**。
+- 回填脚本真实 dry-run（本地库）：人民网观点/湖南/广东 各 3 篇 = **9/9 OK**，
+  全部新增 rawHtml + contentHash 变化，确认选择器对实时 HTML 仍命中。
+
+### contentHash 变化策略（已与用户确认）
+回填会重算 contentHash（fullText 从「挤成一段」→「`\n\n` 分段」）→ 已评估过的文章显示
+「评估过期」（`page.tsx:254` hashStale），**不自动重评**（需手动触发）。这是预期行为，
+未静默同步 `aiContentHash`。
+
+### 数据库变更
+**无 Prisma migration**——`rawHtml String?` 列自 `0_init` 已存在。
+
+### 手动验证步骤
+1. 新采集：触发任一网站采集 → 详情页应有多段落/标题/列表/图片在原位置。
+2. 历史回填：`pnpm tsx scripts/backfill-article-format.ts --dry-run --source=人民网观点` 看汇总，
+   确认后 `--execute` 写入。
+3. 旧文章降级：未回填的 web 文章详情页走 fullText 分段（不挤成一段）。
+4. 微信/RSS 文章渲染无回归。
+
+### 风险/遗留
+- 回填 `--execute` 后大量旧文章会同时显示「评估过期」（可见现象，非 bug）。
+- 现有 `e2e/article-detail.spec.ts` 的 `getByText('正文')` 因 hash 标签（评估正文 hash/当前正文 hash）
+  触发 strict-mode 是**既有问题**（page.tsx 未改动），与本任务无关。
+- 表格 `caption`/`colgroup`、gov 图片防盗链是 DOMPurify/已有局限，本轮未处理。

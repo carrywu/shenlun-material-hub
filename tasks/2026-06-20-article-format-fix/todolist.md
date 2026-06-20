@@ -26,17 +26,17 @@
 - [x] 1. 审计现状（核对完成）
 - [x] 2. 建立绿色测试基线（735 passed）
 - [x] 3. 新建统一 content-extractor.ts + 18 个 fixture 单测（754 passed）
-- [ ] 4. 扩展 RawArticle 加 rawHtml + extractArticleDetail 签名
-- [ ] 5. 改 base.ts（RSS 分支 / collectFromChannel / 两处 create 写 rawHtml）
-- [ ] 6. 改 5 个 web 采集器 + 3 个 collect() 传播 rawHtml
-- [ ] 7. content-filter 导航过滤器回归保护（\n → \n\n + fixture）
-- [ ] 8. 渲染器 splitParagraphs 单换行降级 + 渲染器测试
-- [ ] 9. 更新 6 个 collector 测试断言（rawHtml 非空、fullText 含 \n\n）
-- [ ] 10. 回填脚本 backfill-article-format.ts + 真实 dry-run
-- [ ] 11. Playwright article-format E2E
-- [ ] 12. pnpm lint / test / build / playwright 全量回归
-- [ ] 13. 分阶段 git 提交
-- [ ] 14. 更新 handoff 文档
+- [x] 4. 扩展 RawArticle 加 rawHtml + extractArticleDetail 签名
+- [x] 5. 改 base.ts（RSS 分支 / collectFromChannel / 两处 create 写 rawHtml）
+- [x] 6. 改 5 个 web 采集器 + 3 个 collect() 传播 rawHtml
+- [x] 7. content-filter 导航过滤器回归保护（\n → \n\n + fixture）
+- [x] 8. 渲染器 splitParagraphs 单换行降级 + 渲染器测试
+- [x] 9. 更新 6 个 collector 测试断言（rawHtml 非空、fullText 含 \n\n）
+- [x] 10. 回填脚本 backfill-article-format.ts + 真实 dry-run（9/9 OK）
+- [x] 11. Playwright article-format E2E（4 passed）
+- [x] 12. pnpm lint / test / build / playwright 全量回归（761 passed, build OK）
+- [x] 13. 分阶段 git 提交（7 commits）
+- [x] 14. 更新 handoff 文档
 
 ## Risks / Rollback
 - contentHash 变化导致旧文章 AI 评估标记「过期」（用户已确认接受，不自动重评）
