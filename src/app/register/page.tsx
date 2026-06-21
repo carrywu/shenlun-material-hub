@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
+import { AuthShell } from "@/components/layout/AuthShell";
 import { Loader2 } from "lucide-react";
 
 function RegisterForm() {
@@ -116,49 +117,27 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background text-foreground relative overflow-hidden font-sans">
-      {/* Background gradients */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-gradient-to-br from-violet-200/40 to-transparent rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-gradient-to-tl from-indigo-200/40 to-transparent rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Main card */}
-      <div className="w-full max-w-[440px] px-8 py-10 bg-card border border-border rounded-2xl shadow-lg relative z-10 transition-all duration-300 hover:shadow-xl">
-
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 mb-4 shadow-md">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            注册新账号
-          </h1>
-          <p className="text-xs text-muted-foreground mt-2">
-            请填写以下信息完成注册
-          </p>
-        </div>
-
-        <Suspense fallback={<div className="text-center text-sm text-muted-foreground py-8">加载中...</div>}>
-          <RegisterForm />
-        </Suspense>
-
-        {/* Footer */}
-        <div className="text-center mt-8 pt-6 border-t border-border">
+    <AuthShell
+      title="注册新账号"
+      description="请填写以下信息完成注册"
+      variant="register"
+      footer={
+        <>
           <p className="text-sm text-muted-foreground">
             已有账号？
-            <Link
-              href="/admin/login"
-              className="text-violet-600 hover:text-violet-500 font-medium transition-colors duration-200 ml-1"
-            >
+            <Link href="/login" className="ml-1 font-medium text-primary hover:underline">
               前往登录
             </Link>
           </p>
-          <p className="text-[10px] text-muted-foreground mt-3">
+          <p className="mt-3 text-[10px] text-muted-foreground">
             申论素材采集台 &copy; {new Date().getFullYear()} All Rights Reserved.
           </p>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">加载中...</div>}>
+        <RegisterForm />
+      </Suspense>
+    </AuthShell>
   );
 }
