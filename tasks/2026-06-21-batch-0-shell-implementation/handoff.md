@@ -20,7 +20,7 @@ Date: 2026-06-21
 - Base: current `origin/main`
 - Approved Figma file: https://www.figma.com/design/eDNdcn58oWO1xagFvJf68b
 - Approved nodes: `17:2`, `17:89`, `8:2`, `8:48`, `12:19`, `12:162`
-- Production implementation: not started
+- Production implementation: complete on the feature branch
 
 ## Completed
 
@@ -29,6 +29,10 @@ Date: 2026-06-21
 - Confirmed no V2/V3 or separate authentication shell frame exists.
 - Recorded the explicit user override for per-Frame palette and brand styling.
 - Created the implementation plan and live checklist.
+- Separated frontend, admin, and authentication shell ownership.
+- Implemented role-aware frontend navigation, account menu, mobile bottom tab, grouped admin navigation, responsive Drawer, and scoped light/dark tokens.
+- Verified the approved 390, 768, and 1440 layouts with Playwright and saved 14 implementation screenshots under `evidence/implementation/`.
+- Preserved API, Prisma, database, RBAC, and business-page semantics.
 
 ## Constraints
 
@@ -37,6 +41,18 @@ Date: 2026-06-21
 - Do not add a second component-library dependency.
 - Preserve existing accessibility and test contracts.
 
-## Next Action
+## Validation Summary
 
-Add focused failing tests that demonstrate the current double-shell and authentication-shell defects.
+- `pnpm lint`: PASS with existing warnings only.
+- `pnpm test`: PASS, 92 files and 854 tests.
+- Production build: PASS in an isolated current-tree copy, 91 pages generated.
+- Batch 0 Playwright: PASS, 14 tests.
+- Existing auth: PASS, 19 tests.
+- Critical regressions: PASS, with two pre-existing fixture-gated article tests skipped.
+- axe: PASS, no serious or critical findings.
+
+## Remaining Delivery
+
+- Push `feat/batch-0-shell-implementation`.
+- Open a Draft PR against `main`, linked to Issue #8.
+- Do not merge or begin Batch 1 before human review.

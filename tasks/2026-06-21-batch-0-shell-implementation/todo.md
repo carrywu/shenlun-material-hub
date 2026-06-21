@@ -25,11 +25,11 @@
 - [x] Implement reusable role-aware navigation definitions.
 - [x] Implement desktop active states with `aria-current`.
 - [x] Implement the responsive Account Menu.
-- [ ] Verify Account Menu keyboard, Escape, outside-click, and role behavior.
+- [x] Verify Account Menu keyboard, Escape, outside-click, and role behavior.
 - [x] Verify Account Menu role items and Escape behavior in focused component tests.
 - [x] Refine MobileBottomTab permissions, active state, and safe-area spacing.
 - [x] Add shell content spacing for the bottom tab and safe-area inset.
-- [ ] Verify page content is not covered by the bottom tab in Playwright.
+- [x] Verify page content is not covered by the bottom tab in Playwright.
 
 ## Admin Shell
 
@@ -38,7 +38,7 @@
 - [x] Implement desktop sidebar expansion and collapse.
 - [x] Add collapsed-item tooltips.
 - [x] Implement mobile/tablet Drawer with Base UI focus management and scroll lock.
-- [ ] Close the Drawer on overlay, Escape, close button, and route change.
+- [x] Close the Drawer on overlay, Escape, close button, and route change.
 - [x] Verify Escape and close-button behavior in focused component tests.
 - [x] Derive Drawer closure from route changes and close on navigation selection.
 - [x] Remove fabricated online/system/date status content.
@@ -47,24 +47,24 @@
 ## Theme And Responsive
 
 - [x] Add approved frontend and scoped admin shell token mappings.
-- [ ] Verify Light and Dark navigation, menu, sidebar, drawer, focus, and destructive states.
-- [ ] Verify 390x844 without horizontal overflow or overlap.
-- [ ] Verify 768x1024 without navigation or account-menu overflow.
-- [ ] Verify 1440x900 desktop layout and scrolling.
+- [x] Verify Light and Dark navigation, menu, sidebar, drawer, focus, and destructive states.
+- [x] Verify 390x844 without horizontal overflow or overlap.
+- [x] Verify 768x1024 without navigation or account-menu overflow.
+- [x] Verify 1440x900 desktop layout and scrolling.
 
 ## Validation And Delivery
 
 - [x] Run targeted unit tests after the layout-boundary implementation slice.
-- [ ] Run targeted unit tests after each remaining implementation slice.
-- [ ] Run focused Batch 0 Playwright tests.
-- [ ] Run axe and resolve serious/critical findings.
-- [ ] Capture all required role, viewport, auth, menu, drawer, and dark screenshots.
-- [ ] Run `pnpm lint`.
-- [ ] Run `pnpm test`.
-- [ ] Run `pnpm build`.
-- [ ] Run critical existing Playwright regressions.
-- [ ] Update validation and handoff documents.
-- [ ] Confirm only Batch 0 files changed.
+- [x] Run targeted unit tests after each remaining implementation slice.
+- [x] Run focused Batch 0 Playwright tests.
+- [x] Run axe and resolve serious/critical findings.
+- [x] Capture all required role, viewport, auth, menu, drawer, and dark screenshots.
+- [x] Run `pnpm lint`.
+- [x] Run `pnpm test`.
+- [x] Run `pnpm build`.
+- [x] Run critical existing Playwright regressions.
+- [x] Update validation and handoff documents.
+- [x] Confirm changes remain limited to Batch 0 implementation and its regression evidence.
 - [ ] Push the feature branch.
 - [ ] Create a Draft PR linked to Issue #8.
 - [ ] Stop without merging or beginning Batch 1.
