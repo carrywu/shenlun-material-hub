@@ -6,6 +6,8 @@
 - Added a shared `AuthShell` for `/login`, `/register`, and `/admin/login` without changing authentication behavior.
 - Corrected the registration page's login destination from `/admin/login` to `/login`.
 - Added tested role-aware navigation definitions for the upcoming frontend navigation slice.
+- Replaced flat account controls with a Base UI account menu that gates AI, IMA, and admin entries by role.
+- Added semantic active states to desktop navigation and a five-item, safe-area-aware mobile bottom tab.
 
 Date: 2026-06-21
 
