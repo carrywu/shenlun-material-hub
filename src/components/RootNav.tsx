@@ -18,7 +18,7 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
   const navItems = getFrontendNavigation(role);
 
   return (
-    <header className="hidden h-[4.5rem] shrink-0 border-b border-border/80 bg-card md:block">
+    <header data-testid="root-nav" className="hidden h-[4.5rem] shrink-0 border-b border-border/80 bg-card md:block">
       <div className="mx-auto flex h-full w-full max-w-[1440px] items-center gap-4 px-5 lg:gap-8 lg:px-8">
         <Link
           href="/"

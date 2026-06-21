@@ -26,7 +26,7 @@ export function AppShell({
       <RootNav currentUser={currentUser} />
       <main
         data-testid="frontend-shell-main"
-        className="flex min-h-0 flex-1 flex-col overflow-hidden pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0"
       >
         {children}
       </main>
