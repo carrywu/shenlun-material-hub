@@ -21,6 +21,7 @@ export function MobileBottomTab({ currentUser }: { currentUser: AuthUser | null 
 
   return (
     <nav
+      data-testid="mobile-bottom-tab"
       aria-label="移动端主导航"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >

@@ -290,7 +290,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <DialogContent
               showCloseButton={false}
               data-testid="admin-mobile-drawer"
-              className="inset-y-0 left-0 top-0 h-dvh w-[min(20rem,calc(100%-2rem))] max-w-none -translate-x-0 -translate-y-0 gap-0 rounded-none border-r border-border bg-card p-0 ring-0 sm:max-w-none lg:hidden"
+              className="admin-shell-theme inset-y-0 left-0 top-0 h-dvh w-[min(20rem,calc(100%-2rem))] max-w-none -translate-x-0 -translate-y-0 gap-0 rounded-none border-r border-border bg-card p-0 text-foreground ring-0 sm:max-w-none lg:hidden"
             >
               <DialogTitle className="sr-only">后台导航</DialogTitle>
               <DialogDescription className="sr-only">选择管理页面或账户操作</DialogDescription>
