@@ -8,6 +8,9 @@
 - Added tested role-aware navigation definitions for the upcoming frontend navigation slice.
 - Replaced flat account controls with a Base UI account menu that gates AI, IMA, and admin entries by role.
 - Added semantic active states to desktop navigation and a five-item, safe-area-aware mobile bottom tab.
+- Rebuilt the admin shell around grouped navigation, distinct semantic icons, a collapsible desktop sidebar, and a Base UI modal Drawer for tablet/mobile.
+- Removed fabricated online, system-status, and date content while preserving account, logout, and return-to-frontend actions.
+- Scoped the approved green admin palette to `.admin-shell-theme`; the frontend retains its purple CSS-variable palette.
 
 Date: 2026-06-21
 

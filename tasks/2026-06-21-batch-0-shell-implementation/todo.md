@@ -33,18 +33,20 @@
 
 ## Admin Shell
 
-- [ ] Add failing grouped-sidebar and drawer behavior tests.
-- [ ] Implement grouped admin navigation and distinct semantic icons.
-- [ ] Implement desktop sidebar expansion and collapse.
-- [ ] Add collapsed-item tooltips.
-- [ ] Implement mobile/tablet Drawer with focus management and scroll lock.
+- [x] Add failing grouped-sidebar tests and focused Drawer behavior tests.
+- [x] Implement grouped admin navigation and distinct semantic icons.
+- [x] Implement desktop sidebar expansion and collapse.
+- [x] Add collapsed-item tooltips.
+- [x] Implement mobile/tablet Drawer with Base UI focus management and scroll lock.
 - [ ] Close the Drawer on overlay, Escape, close button, and route change.
-- [ ] Remove fabricated online/system/date status content.
-- [ ] Preserve return-to-frontend, account, and logout actions.
+- [x] Verify Escape and close-button behavior in focused component tests.
+- [x] Derive Drawer closure from route changes and close on navigation selection.
+- [x] Remove fabricated online/system/date status content.
+- [x] Preserve return-to-frontend, account, and logout actions.
 
 ## Theme And Responsive
 
-- [ ] Add approved frontend and admin shell token mappings.
+- [x] Add approved frontend and scoped admin shell token mappings.
 - [ ] Verify Light and Dark navigation, menu, sidebar, drawer, focus, and destructive states.
 - [ ] Verify 390x844 without horizontal overflow or overlap.
 - [ ] Verify 768x1024 without navigation or account-menu overflow.
