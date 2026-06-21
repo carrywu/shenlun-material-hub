@@ -20,6 +20,10 @@ Layout-boundary and authentication-shell implementation is complete. Frontend an
 | AccountMenu semantic-query correction | EXPECTED FAIL | Base UI exposes link items as ARIA `menuitem`; tests were corrected to assert menu semantics and hrefs. |
 | `pnpm exec vitest run src/components/navigation/__tests__` | PASS | 4 files, 21 tests passed. |
 | Targeted ESLint for frontend navigation and AccountMenu | PASS | Exit code 0. |
+| Admin navigation test before implementation | EXPECTED FAIL | `admin-navigation` module was absent; this established the grouped-navigation RED state. |
+| `pnpm exec vitest run src/components/admin/__tests__/AdminShell.test.tsx src/components/admin/__tests__/admin-navigation.test.ts` | PASS | 2 files, 6 tests passed. |
+| Targeted ESLint for admin shell, navigation config, and tests | PASS | Exit code 0. |
+| `pnpm exec tsc --noEmit` | FAIL (BASELINE) | Existing errors in archived/current E2E, API route tests, and WeRSS tests; none reference Batch 0 files. Full build remains required. |
 
 ## Required Final Matrix
 
