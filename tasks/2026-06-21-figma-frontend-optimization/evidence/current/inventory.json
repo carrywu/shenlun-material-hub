@@ -1,0 +1,74 @@
+{
+  "targetUrl": "http://localhost:3001",
+  "capturedAt": "2026-06-21T03:24:14.596Z",
+  "roles": {
+    "USER": {
+      "authStatus": 200,
+      "auth": {
+        "authenticated": true,
+        "username": "e2e_usera",
+        "role": "USER",
+        "displayName": "e2e_usera"
+      },
+      "articlesStatus": 200,
+      "articleCount": 2,
+      "articleIds": [
+        "cmqhjuyf500adpavy617ca578",
+        "cmpwg7hon0003yhvykodnlhu5"
+      ],
+      "cardsStatus": 200,
+      "cardCount": 0,
+      "cardIds": [],
+      "homeUrl": "http://localhost:3001/",
+      "homeTitle": "申论素材采集台",
+      "errors": []
+    },
+    "VERIFIED_USER": {
+      "authStatus": 200,
+      "auth": {
+        "authenticated": true,
+        "username": "e2e_verified",
+        "role": "VERIFIED_USER",
+        "displayName": "e2e_verified"
+      },
+      "articlesStatus": 200,
+      "articleCount": 2,
+      "articleIds": [
+        "cmqhjuyf500adpavy617ca578",
+        "cmpwg7hon0003yhvykodnlhu5"
+      ],
+      "cardsStatus": 200,
+      "cardCount": 0,
+      "cardIds": [],
+      "homeUrl": "http://localhost:3001/",
+      "homeTitle": "申论素材采集台",
+      "errors": []
+    },
+    "ADMIN": {
+      "authStatus": 200,
+      "auth": {
+        "authenticated": true,
+        "username": "admin",
+        "role": "ADMIN",
+        "displayName": "admin"
+      },
+      "articlesStatus": 200,
+      "articleCount": 10,
+      "articleIds": [
+        "cmqlrars700amovvyk8061z2v",
+        "cmqlrarrp00alovvyknt5sv9j",
+        "cmqlrarr900akovvygm43hoet",
+        "cmqlrarqq00ajovvyz80hyf3u",
+        "cmqlrarqa00aiovvy6ij9syow"
+      ],
+      "cardsStatus": 200,
+      "cardCount": 1,
+      "cardIds": [
+        "cmpwgeww10004yhvyymgs20mi"
+      ],
+      "homeUrl": "http://localhost:3001/",
+      "homeTitle": "申论素材采集台",
+      "errors": []
+    }
+  }
+}
