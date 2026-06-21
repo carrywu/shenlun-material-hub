@@ -15,7 +15,7 @@ test.describe('登录页（未认证）', () => {
     await page.goto('/admin');
 
     await expect(page).toHaveURL(/\/admin\/login/);
-    await expect(page.getByTestId('login-page-header')).toContainText('申论素材采集台');
+    await expect(page.getByTestId('login-page-header')).toContainText('申论素材管理后台');
 
     guard.report(testInfo);
   });
@@ -146,7 +146,7 @@ test.describe('导航（已认证）', () => {
     // Check all main nav links in header (Round B nav refactor)
     // Scope to banner (header) to avoid matching homepage quick-link cards
     const nav = page.getByRole('banner');
-    await expect(nav.getByRole('link', { name: '首页' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: '首页', exact: true })).toBeVisible();
     await expect(nav.getByRole('link', { name: '文章', exact: true })).toBeVisible();
     await expect(nav.getByRole('link', { name: '素材卡' })).toBeVisible();
     await expect(nav.getByRole('link', { name: '检索' })).toBeVisible();
@@ -161,7 +161,8 @@ test.describe('导航（已认证）', () => {
     const guard = attachConsoleGuard(page);
 
     await page.goto('/');
-    await expect(page.getByRole('banner').getByRole('link', { name: '管理后台' })).toBeVisible();
+    await page.getByRole('button', { name: 'admin 账户菜单' }).click();
+    await expect(page.getByRole('menuitem', { name: /管理后台/ })).toBeVisible();
 
     guard.report(testInfo);
   });
@@ -286,8 +287,11 @@ test.describe('登出（已认证）', () => {
     const cookiesBefore = await page.context().cookies();
     expect(cookiesBefore.some((c) => c.name === 'auth_token')).toBe(true);
 
-    // Click logout button in the nav/header (RootNav renders "退出" as a Button)
-    await page.getByRole('banner').getByRole('button', { name: /登出|退出/ }).click();
+    // The admin shell keeps its account actions in the sidebar footer.
+    await page
+      .getByTestId('admin-sidebar')
+      .getByRole('button', { name: '退出登录' })
+      .click();
 
     // Should redirect to homepage after logout (RootNav pushes to /)
     await expect(page).toHaveURL(/\//, { timeout: 10000 });

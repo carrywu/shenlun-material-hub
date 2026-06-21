@@ -36,6 +36,7 @@ test.describe('同步记录 /admin/sync-records', () => {
   test('同步记录：表格或空状态', async ({ page }, testInfo) => {
     const guard = attachConsoleGuard(page);
     await page.goto('/admin/sync-records');
+    await expect(page.getByTestId('sync-records-page-header')).toBeVisible({ timeout: 10000 });
     // Either table with rows, or empty state message
     const hasTable = await page.locator('table').isVisible().catch(() => false);
     const hasEmpty = await page.getByText(/暂无|没有|empty/i).isVisible().catch(() => false);

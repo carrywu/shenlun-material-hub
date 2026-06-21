@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { attachConsoleGuard } from './helpers/consoleGuard';
+
+const materialCardItems = '[data-testid^="material-card-"]:not([data-testid="material-card-grid"])';
 import { ensureCardExists } from './helpers/seed';
 
 // P0-004 (B3): 文件级 admin storageState——素材卡列表与详情均依赖 admin 视角（管理、确认、删除）
@@ -17,7 +19,7 @@ test.describe('素材卡列表 /cards', () => {
     // Either cards are rendered, or the empty state is visible
     // heading 出现时卡片可能还在异步加载，轮询等数据落定
     await expect(async () => {
-      const hasCards = await page.locator('[data-testid^="material-card-"]').first().isVisible().catch(() => false);
+      const hasCards = await page.locator(materialCardItems).first().isVisible().catch(() => false);
       const hasEmpty = await page.getByTestId('cards-empty-state').isVisible().catch(() => false);
       expect(hasCards || hasEmpty).toBe(true);
     }).toPass({ timeout: 15000, intervals: [1000, 2000, 5000] });
@@ -82,7 +84,7 @@ test.describe('素材卡列表 /cards', () => {
     await expect(page.getByTestId('cards-page-header')).toBeVisible({ timeout: 15000 });
 
     // Find the first clickable card container（轮询等异步加载，避免 heading 一出现就扑空）
-    const firstCard = page.locator('[data-testid^="material-card-"]').first();
+    const firstCard = page.locator(materialCardItems).first();
     try {
       await expect(firstCard).toBeVisible({ timeout: 15000 });
     } catch {
