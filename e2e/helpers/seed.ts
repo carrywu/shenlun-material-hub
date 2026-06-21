@@ -73,14 +73,20 @@ export async function ensureArticleExists(): Promise<ArticleData> {
  * 找不到就 throw。
  */
 export async function ensureWechatArticleExists(): Promise<ArticleData> {
-  // 先尝试从 content-items 接口找微信文章
-  const res = await authedFetch(`${BASE_URL}/api/content-items?platform=wechat&pageSize=5`);
+  // 图片预览需要真实含图片的微信正文，不能假设列表第一篇一定有图。
+  const res = await authedFetch(`${BASE_URL}/api/content-items?platform=wechat&pageSize=100`);
   if (!res.ok) throw new Error(`content-items API 返回 ${res.status}`);
   const json = await res.json();
   if (!json.data?.length) {
     throw new Error('没有微信文章数据，请先导入微信文章');
   }
-  return { id: json.data[0].id, platform: 'wechat', title: json.data[0].title };
+  const article = json.data.find((item: { rawHtml?: string | null }) =>
+    /<img\b/i.test(item.rawHtml ?? ''),
+  );
+  if (!article) {
+    throw new Error('没有包含图片的微信文章，无法验证图片预览');
+  }
+  return { id: article.id, platform: 'wechat', title: article.title };
 }
 
 /**

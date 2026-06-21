@@ -30,7 +30,7 @@ test.describe('文章详情页', () => {
     expect(titleText!.length).toBeGreaterThan(0);
 
     // Content area should be visible — the 正文 card
-    await expect(page.getByText('正文')).toBeVisible();
+    await expect(page.getByText('正文', { exact: true })).toBeVisible();
 
     // No raw HTML in the visible body text
     const bodyText = await page.textContent('body');
@@ -135,7 +135,7 @@ test.describe('文章详情页', () => {
     await expect(page.getByTestId('article-detail-page-header')).toBeVisible({ timeout: 15000 });
 
     // Wait for content to fully render
-    await expect(page.getByText('正文')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('正文', { exact: true })).toBeVisible({ timeout: 10000 });
 
     // Find images inside the article content area
     const articleImages = page.locator('.article-content img');
