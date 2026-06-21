@@ -1,0 +1,796 @@
+{
+  "targetUrl": "http://localhost:3001",
+  "capturedAt": "2026-06-21T03:26:02.786Z",
+  "screenshots": [
+    {
+      "filename": "home__user__390x844__default.png",
+      "role": "USER",
+      "route": "/",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "articles__user__390x844__default.png",
+      "role": "USER",
+      "route": "/articles",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles",
+      "title": "申论素材采集台",
+      "errors": [
+        {
+          "type": "console",
+          "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        }
+      ]
+    },
+    {
+      "filename": "article-detail__user__390x844__default.png",
+      "role": "USER",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "cards__user__390x844__default.png",
+      "role": "USER",
+      "route": "/cards",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "review__user__390x844__default.png",
+      "role": "USER",
+      "route": "/review",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/review",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__user__768x1024__default.png",
+      "role": "USER",
+      "route": "/",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "articles__user__768x1024__default.png",
+      "role": "USER",
+      "route": "/articles",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles",
+      "title": "申论素材采集台",
+      "errors": [
+        {
+          "type": "console",
+          "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        }
+      ]
+    },
+    {
+      "filename": "article-detail__user__768x1024__default.png",
+      "role": "USER",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "cards__user__768x1024__default.png",
+      "role": "USER",
+      "route": "/cards",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "review__user__768x1024__default.png",
+      "role": "USER",
+      "route": "/review",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/review",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__user__1280x900__default.png",
+      "role": "USER",
+      "route": "/",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "articles__user__1280x900__default.png",
+      "role": "USER",
+      "route": "/articles",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles",
+      "title": "申论素材采集台",
+      "errors": [
+        {
+          "type": "console",
+          "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        }
+      ]
+    },
+    {
+      "filename": "article-detail__user__1280x900__default.png",
+      "role": "USER",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "cards__user__1280x900__default.png",
+      "role": "USER",
+      "route": "/cards",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "review__user__1280x900__default.png",
+      "role": "USER",
+      "route": "/review",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/review",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__user__1440x1000__default.png",
+      "role": "USER",
+      "route": "/",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "articles__user__1440x1000__default.png",
+      "role": "USER",
+      "route": "/articles",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles",
+      "title": "申论素材采集台",
+      "errors": [
+        {
+          "type": "console",
+          "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        }
+      ]
+    },
+    {
+      "filename": "article-detail__user__1440x1000__default.png",
+      "role": "USER",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "cards__user__1440x1000__default.png",
+      "role": "USER",
+      "route": "/cards",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "review__user__1440x1000__default.png",
+      "role": "USER",
+      "route": "/review",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/review",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__verified_user__390x844__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "article-detail__verified_user__390x844__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "cards__verified_user__390x844__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/cards",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "review__verified_user__390x844__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/review",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/review",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__verified_user__768x1024__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "article-detail__verified_user__768x1024__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "cards__verified_user__768x1024__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/cards",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "review__verified_user__768x1024__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/review",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/review",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__verified_user__1280x900__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "article-detail__verified_user__1280x900__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "cards__verified_user__1280x900__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/cards",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "review__verified_user__1280x900__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/review",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/review",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__verified_user__1440x1000__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "article-detail__verified_user__1440x1000__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "cards__verified_user__1440x1000__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/cards",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "review__verified_user__1440x1000__default.png",
+      "role": "VERIFIED_USER",
+      "route": "/review",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/review",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__admin__390x844__default.png",
+      "role": "ADMIN",
+      "route": "/",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "article-detail__admin__390x844__default.png",
+      "role": "ADMIN",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-home__admin__390x844__default.png",
+      "role": "ADMIN",
+      "route": "/admin",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-articles__admin__390x844__default.png",
+      "role": "ADMIN",
+      "route": "/admin/articles",
+      "viewport": "390x844",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/articles",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__admin__768x1024__default.png",
+      "role": "ADMIN",
+      "route": "/",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "article-detail__admin__768x1024__default.png",
+      "role": "ADMIN",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-home__admin__768x1024__default.png",
+      "role": "ADMIN",
+      "route": "/admin",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-articles__admin__768x1024__default.png",
+      "role": "ADMIN",
+      "route": "/admin/articles",
+      "viewport": "768x1024",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/articles",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__admin__1280x900__default.png",
+      "role": "ADMIN",
+      "route": "/",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "article-detail__admin__1280x900__default.png",
+      "role": "ADMIN",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-home__admin__1280x900__default.png",
+      "role": "ADMIN",
+      "route": "/admin",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-articles__admin__1280x900__default.png",
+      "role": "ADMIN",
+      "route": "/admin/articles",
+      "viewport": "1280x900",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/articles",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "home__admin__1440x1000__default.png",
+      "role": "ADMIN",
+      "route": "/",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "article-detail__admin__1440x1000__default.png",
+      "role": "ADMIN",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-home__admin__1440x1000__default.png",
+      "role": "ADMIN",
+      "route": "/admin",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-articles__admin__1440x1000__default.png",
+      "role": "ADMIN",
+      "route": "/admin/articles",
+      "viewport": "1440x1000",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/articles",
+      "title": "申论素材采集台",
+      "errors": []
+    }
+  ],
+  "routes": [
+    {
+      "filename": "articles__user__1280x900__route.png",
+      "role": "USER",
+      "route": "/articles",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles",
+      "title": "申论素材采集台",
+      "errors": [
+        {
+          "type": "console",
+          "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        }
+      ]
+    },
+    {
+      "filename": "cards__user__1280x900__route.png",
+      "role": "USER",
+      "route": "/cards",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "search__user__1280x900__route.png",
+      "role": "USER",
+      "route": "/search",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/search",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "review__user__1280x900__route.png",
+      "role": "USER",
+      "route": "/review",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/review",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "settings__user__1280x900__route.png",
+      "role": "USER",
+      "route": "/settings",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/settings",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "settings-account__user__1280x900__route.png",
+      "role": "USER",
+      "route": "/settings/account",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/settings/account",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "settings-ai__user__1280x900__route.png",
+      "role": "USER",
+      "route": "/settings/ai",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/settings",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "settings-ima__user__1280x900__route.png",
+      "role": "USER",
+      "route": "/settings/ima",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/settings",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "subscriptions__user__1280x900__route.png",
+      "role": "USER",
+      "route": "/subscriptions",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "sync-records__user__1280x900__route.png",
+      "role": "USER",
+      "route": "/sync-records",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "article-detail__verified_user__1280x900__route.png",
+      "role": "VERIFIED_USER",
+      "route": "/articles/cmqhjuyf500adpavy617ca578",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/articles/cmqhjuyf500adpavy617ca578",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "card-detail__verified_user__1280x900__route.png",
+      "role": "VERIFIED_USER",
+      "route": "/cards/cmpwgeww10004yhvyymgs20mi",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/cards/cmpwgeww10004yhvyymgs20mi",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-articles__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/articles",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/articles",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-sources__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/sources",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/sources",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-integrations-wechat-rss__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/integrations/wechat-rss",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/integrations/wechat-rss",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-sync-records__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/sync-records",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/sync-records",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-tasks__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/tasks",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/tasks",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-logs__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/logs",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/logs",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-settings-ai__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/settings/ai",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/settings/ai",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-backup__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/backup",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/backup",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-clean__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/clean",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/clean",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-invitations__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/invitations",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/invitations",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-users__admin__1280x900__route.png",
+      "role": "ADMIN",
+      "route": "/admin/users",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/users",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "login__anonymous__1280x900__default.png",
+      "role": "ANONYMOUS",
+      "route": "/login",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/login",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "register__anonymous__1280x900__default.png",
+      "role": "ANONYMOUS",
+      "route": "/register",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/register",
+      "title": "申论素材采集台",
+      "errors": []
+    },
+    {
+      "filename": "admin-login__anonymous__1280x900__default.png",
+      "role": "ANONYMOUS",
+      "route": "/admin/login",
+      "status": 200,
+      "finalUrl": "http://localhost:3001/admin/login",
+      "title": "申论素材采集台",
+      "errors": []
+    }
+  ]
+}
