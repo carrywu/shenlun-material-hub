@@ -65,6 +65,6 @@
 - [x] Run critical existing Playwright regressions.
 - [x] Update validation and handoff documents.
 - [x] Confirm changes remain limited to Batch 0 implementation and its regression evidence.
-- [ ] Push the feature branch.
-- [ ] Create a Draft PR linked to Issue #8.
-- [ ] Stop without merging or beginning Batch 1.
+- [x] Push the feature branch.
+- [x] Create a Draft PR linked to Issue #8.
+- [x] Stop without merging or beginning Batch 1.

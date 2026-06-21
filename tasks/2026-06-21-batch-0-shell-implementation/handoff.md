@@ -51,8 +51,9 @@ Date: 2026-06-21
 - Critical regressions: PASS, with two pre-existing fixture-gated article tests skipped.
 - axe: PASS, no serious or critical findings.
 
-## Remaining Delivery
+## Delivery
 
-- Push `feat/batch-0-shell-implementation`.
-- Open a Draft PR against `main`, linked to Issue #8.
-- Do not merge or begin Batch 1 before human review.
+- Remote branch: `origin/feat/batch-0-shell-implementation`.
+- Draft PR: https://github.com/carrywu/shenlun-material-hub/pull/9.
+- The PR is linked to Issue #8 and remains unmerged.
+- Batch 1 has not started.
