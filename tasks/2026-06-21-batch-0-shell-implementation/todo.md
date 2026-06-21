@@ -23,11 +23,13 @@
 
 - [x] Add failing role-navigation and active-state tests.
 - [x] Implement reusable role-aware navigation definitions.
-- [ ] Implement desktop active states with `aria-current`.
-- [ ] Implement the responsive Account Menu.
+- [x] Implement desktop active states with `aria-current`.
+- [x] Implement the responsive Account Menu.
 - [ ] Verify Account Menu keyboard, Escape, outside-click, and role behavior.
-- [ ] Refine MobileBottomTab permissions, active state, and safe-area spacing.
-- [ ] Ensure page content is not covered by the bottom tab.
+- [x] Verify Account Menu role items and Escape behavior in focused component tests.
+- [x] Refine MobileBottomTab permissions, active state, and safe-area spacing.
+- [x] Add shell content spacing for the bottom tab and safe-area inset.
+- [ ] Verify page content is not covered by the bottom tab in Playwright.
 
 ## Admin Shell
 

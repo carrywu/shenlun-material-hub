@@ -2,58 +2,48 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, CreditCard, RotateCcw, Settings, Home } from "lucide-react";
+
+import {
+  getFrontendNavigation,
+  isNavigationItemActive,
+} from "@/components/navigation/navigation-config";
 import type { AuthUser } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
-interface MobileBottomTabProps {
-  currentUser: AuthUser | null;
-}
-
-export function MobileBottomTab({ currentUser }: MobileBottomTabProps) {
+export function MobileBottomTab({ currentUser }: { currentUser: AuthUser | null }) {
   const pathname = usePathname();
 
-  // Don't show on login pages or admin pages
-  if (
-    !currentUser ||
-    pathname === "/login" ||
-    pathname === "/admin/login" ||
-    pathname.startsWith("/admin")
-  ) {
-    return null;
-  }
+  if (!currentUser) return null;
 
-  const role = currentUser.role;
-
-  // Role-based tab items
-  const tabs = [
-    { href: "/", label: "首页", icon: Home },
-    { href: "/articles", label: "文章", icon: FileText },
-    ...(role === "VERIFIED_USER" || role === "ADMIN"
-      ? [{ href: "/cards", label: "素材卡", icon: CreditCard }]
-      : []),
-    { href: "/review", label: "复习", icon: RotateCcw },
-    { href: "/settings", label: "设置", icon: Settings },
-  ];
+  const tabs = getFrontendNavigation(currentUser.role).filter(
+    (item) => item.href !== "/search"
+  );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card md:hidden">
-      <div className="flex items-center justify-around h-14">
+    <nav
+      aria-label="移动端主导航"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+    >
+      <div className="mx-auto flex h-14 max-w-lg items-stretch justify-around px-1">
         {tabs.map((tab) => {
-          const isActive =
-            pathname === tab.href ||
-            (tab.href !== "/" && pathname.startsWith(tab.href));
+          const active = isNavigationItemActive(pathname, tab.href);
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-xs transition-colors ${
-                isActive
-                  ? "text-primary font-medium"
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60",
+                active
+                  ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+              )}
             >
-              <tab.icon className="h-5 w-5" />
-              <span>{tab.label}</span>
+              {active && (
+                <span aria-hidden="true" className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary" />
+              )}
+              <tab.icon className="size-5" aria-hidden="true" />
+              <span className="truncate">{tab.label}</span>
             </Link>
           );
         })}
