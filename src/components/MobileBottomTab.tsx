@@ -36,13 +36,10 @@ export function MobileBottomTab({ currentUser }: { currentUser: AuthUser | null 
               className={cn(
                 "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60",
                 active
-                  ? "text-primary"
+                  ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {active && (
-                <span aria-hidden="true" className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary" />
-              )}
               <tab.icon className="size-5" aria-hidden="true" />
               <span className="truncate">{tab.label}</span>
             </Link>

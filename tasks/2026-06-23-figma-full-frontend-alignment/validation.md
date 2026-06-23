@@ -17,13 +17,31 @@
 - Evidence: approved nodes `17:2`, `17:89`, `8:2`, `8:48`, `12:19`, `12:162`, `14:20`, `14:103`, `15:20`, `16:113` all found.
 - Notes: no final frames found for full route set beyond shell/reader scope.
 
+- Command: `pnpm exec vitest run src/components/navigation/__tests__/RootNav.test.tsx src/components/navigation/__tests__/MobileBottomTab.test.tsx src/components/admin/__tests__/AdminShell.test.tsx`
+- Result: failed as expected before implementation, then passed after implementation
+- Evidence: RED failures covered text-only brand, mobile active background, and admin brand contract; GREEN result passed 3 files / 8 tests.
+- Notes: regression tests were added before the local Shell patch.
+
+- Command: `pnpm exec vitest run src/components/layout/__tests__/AppShell.test.tsx src/components/navigation/__tests__ src/components/admin/__tests__`
+- Result: passed
+- Evidence: 7 test files / 33 tests passed.
+- Notes: covers route-aware shell ownership, role-aware frontend nav, Account Menu surface, admin shell grouping, drawer basics, text-only brand, and active mobile tab styling.
+
+- Command: `rg -n "#244936|#91b29b|#5f806d|5f806d|91b29b|244936" src e2e tasks || true`
+- Result: passed
+- Evidence: no matches.
+- Notes: removed stale green admin palette in favor of global brand tokens.
+
+- Command: `pnpm exec eslint src/components/RootNav.tsx src/components/MobileBottomTab.tsx src/components/admin/AdminShell.tsx src/components/layout/AuthShell.tsx src/components/navigation/__tests__/RootNav.test.tsx src/components/navigation/__tests__/MobileBottomTab.test.tsx src/components/admin/__tests__/AdminShell.test.tsx e2e/batch-0-shell.spec.ts`
+- Result: passed
+- Evidence: command exited 0.
+- Notes: targeted lint for the Shell patch.
+
 ## Pending
 
 - `pnpm lint`
 - `pnpm test`
 - `pnpm build`
-- Targeted Vitest
 - Targeted Playwright
 - axe
 - Screenshots
-

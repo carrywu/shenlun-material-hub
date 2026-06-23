@@ -29,10 +29,9 @@ describe("MobileBottomTab", () => {
     const navigation = screen.getByRole("navigation", { name: "移动端主导航" });
     expect(navigation).toHaveClass("pb-[env(safe-area-inset-bottom)]");
     expect(screen.getAllByRole("link")).toHaveLength(5);
-    expect(screen.getByRole("link", { name: "素材卡" })).toHaveAttribute(
-      "aria-current",
-      "page"
-    );
+    const activeTab = screen.getByRole("link", { name: "素材卡" });
+    expect(activeTab).toHaveAttribute("aria-current", "page");
+    expect(activeTab).toHaveClass("bg-primary/10", "text-primary");
     expect(screen.queryByRole("link", { name: "检索" })).not.toBeInTheDocument();
   });
 

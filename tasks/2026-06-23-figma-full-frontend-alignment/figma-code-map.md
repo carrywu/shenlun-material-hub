@@ -6,10 +6,10 @@ Allowed status values: `未审查`, `已审查`, `待实现`, `实现中`, `已�
 |---|---|---|---|---|---|
 | `17:2` Foundations / Review Board | 全局 | 全部 | Light / Dark | `src/app/globals.css`, `components.json` | 已审查 |
 | `17:89` Components / Inventory & Mapping | 全局 | 全部 | 全部 | `src/components/ui/**`, shared components | 已审查 |
-| `8:2` Batch 1 / Frontend Shell / Desktop | 前台 Shell | USER / VERIFIED_USER / ADMIN | 1440 | `src/app/layout.tsx`, `src/components/RootNav.tsx` | 待实现 |
-| `8:48` Batch 1 / Frontend Shell / Mobile | 前台 Shell | USER / VERIFIED_USER / ADMIN | 390 | `src/components/MobileBottomTab.tsx` | 待实现 |
-| `12:19` Batch 1 / Admin Shell / Desktop | `/admin/*` except `/admin/login` | ADMIN | 1440 | `src/app/admin/layout.tsx`, `src/components/admin/AdminShell.tsx` | 待实现 |
-| `12:162` Batch 1 / Admin Shell / Mobile | `/admin/*` except `/admin/login` | ADMIN | 390 | `src/components/admin/AdminShell.tsx` | 待实现 |
+| `8:2` Batch 1 / Frontend Shell / Desktop | 前台 Shell | USER / VERIFIED_USER / ADMIN | 1440 | `src/app/layout.tsx`, `src/components/RootNav.tsx` | 已实现 |
+| `8:48` Batch 1 / Frontend Shell / Mobile | 前台 Shell | USER / VERIFIED_USER / ADMIN | 390 | `src/components/MobileBottomTab.tsx` | 已实现 |
+| `12:19` Batch 1 / Admin Shell / Desktop | `/admin/*` except `/admin/login` | ADMIN | 1440 | `src/app/admin/layout.tsx`, `src/components/admin/AdminShell.tsx` | 已实现 |
+| `12:162` Batch 1 / Admin Shell / Mobile | `/admin/*` except `/admin/login` | ADMIN | 390 | `src/components/admin/AdminShell.tsx` | 已实现 |
 | No final auth frame found | `/login` | anonymous | 390 / 768 / 1440 | `src/app/login/page.tsx`, `src/components/layout/AuthShell.tsx` | 有阻塞 |
 | No final auth frame found | `/register` | anonymous | 390 / 768 / 1440 | `src/app/register/page.tsx`, `src/components/layout/AuthShell.tsx` | 有阻塞 |
 | No final auth frame found | `/admin/login` | anonymous | 390 / 768 / 1440 | `src/app/admin/login/page.tsx`, `src/components/layout/AuthShell.tsx` | 有阻塞 |
@@ -27,4 +27,3 @@ Allowed status values: `未审查`, `已审查`, `待实现`, `实现中`, `已�
 | No final admin page frames found | `/admin`, `/admin/sources`, `/admin/integrations/wechat-rss`, `/admin/sync-records`, `/admin/tasks` | ADMIN | 390 / 768 / 1440 | `src/app/admin/**/page.tsx` | 有阻塞 |
 | No final admin system frames found | `/admin/logs`, `/admin/settings/ai`, `/admin/backup`, `/admin/clean`, `/admin/invitations`, `/admin/users` | ADMIN | 390 / 768 / 1440 | `src/app/admin/**/page.tsx` | 有阻塞 |
 | `16:113` Dev Handoff / Figma to Code | 全局交接 | 全部 | n/a | this task docs | 已审查 |
-

@@ -35,6 +35,11 @@ describe("AdminShell", () => {
     expect(await screen.findByTestId("admin-shell-heading")).toHaveTextContent(
       "系统概览"
     );
+    expect(screen.getByRole("link", { name: "申论素材" })).toHaveAttribute(
+      "href",
+      "/admin"
+    );
+    expect(screen.queryByText("申论素材后台")).not.toBeInTheDocument();
     expect(screen.getByText("内容运营")).toBeVisible();
     expect(screen.getByText("自动化与 AI")).toBeVisible();
     expect(screen.getByText("用户与权限")).toBeVisible();

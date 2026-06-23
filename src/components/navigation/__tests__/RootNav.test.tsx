@@ -31,6 +31,18 @@ describe("RootNav", () => {
     usePathname.mockReset();
   });
 
+  it("uses the text-only approved brand", () => {
+    usePathname.mockReturnValue("/");
+    render(<RootNav currentUser={makeUser("USER")} />);
+
+    expect(screen.getByRole("link", { name: "申论素材" })).toHaveAttribute(
+      "href",
+      "/"
+    );
+    expect(screen.queryByText("申论素材系统")).not.toBeInTheDocument();
+    expect(screen.queryByText("申论素材采集台")).not.toBeInTheDocument();
+  });
+
   it("marks the current route semantically and renders one account trigger", () => {
     usePathname.mockReturnValue("/articles/example");
     render(<RootNav currentUser={makeUser("ADMIN")} />);

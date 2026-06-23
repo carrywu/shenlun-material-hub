@@ -127,13 +127,16 @@ test.describe('Batch 0 ADMIN shells', () => {
     await expect(page.getByRole('navigation', { name: '主导航', exact: true })).toHaveCount(0);
     await expect(page.getByRole('navigation', { name: '移动端主导航', exact: true })).toHaveCount(0);
     await expect(page.getByRole('navigation', { name: '后台主导航' })).toBeVisible();
+    const rootPrimary = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(),
+    );
     await expect
       .poll(() =>
         page
           .locator('.admin-shell-theme')
           .evaluate((element) => getComputedStyle(element).getPropertyValue('--primary').trim()),
       )
-      .toBe('#244936');
+      .toBe(rootPrimary);
     const sidebar = page.getByTestId('admin-sidebar');
     for (const group of ['概览', '内容运营', '自动化与 AI', '用户与权限', '系统维护']) {
       await expect(sidebar.getByRole('heading', { name: group, exact: true })).toBeVisible();
@@ -149,13 +152,16 @@ test.describe('Batch 0 ADMIN shells', () => {
     await trigger.click();
     const drawer = page.getByTestId('admin-mobile-drawer');
     await expect(drawer).toBeVisible();
+    const rootPrimary = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(),
+    );
     await expect
       .poll(() =>
         drawer.evaluate((element) =>
           getComputedStyle(element).getPropertyValue('--primary').trim(),
         ),
       )
-      .toBe('#244936');
+      .toBe(rootPrimary);
     await expect
       .poll(() => page.evaluate(() => getComputedStyle(document.body).overflow))
       .toBe('hidden');

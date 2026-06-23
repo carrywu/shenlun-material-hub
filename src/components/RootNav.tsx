@@ -1,6 +1,5 @@
 "use client";
 
-import { Layers3 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -22,13 +21,10 @@ export default function RootNav({ currentUser }: { currentUser: AuthUser | null 
       <div className="mx-auto flex h-full w-full max-w-[1440px] items-center gap-4 px-5 lg:gap-8 lg:px-8">
         <Link
           href="/"
-          aria-label="申论素材系统首页"
-          className="flex shrink-0 items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          aria-label="申论素材"
+          className="flex shrink-0 items-center rounded-lg text-lg font-bold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
         >
-          <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Layers3 className="size-5" aria-hidden="true" />
-          </span>
-          <span className="hidden text-lg font-bold tracking-tight xl:inline">申论素材系统</span>
+          申论素材
         </Link>
 
         <nav aria-label="主导航" className="flex min-w-0 flex-1 items-center justify-center gap-1">

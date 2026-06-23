@@ -9,7 +9,6 @@ import {
   Loader2,
   LogOut,
   Menu,
-  ShieldCheck,
   UserRound,
   X,
 } from "lucide-react";
@@ -169,21 +168,14 @@ function AdminBrand({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <Link
       href="/admin"
-      aria-label="申论素材后台首页"
+      aria-label="申论素材"
       className={cn(
-        "flex min-w-0 items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        "flex min-w-0 items-center rounded-lg text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
         collapsed && "justify-center"
       )}
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <ShieldCheck className="size-5" aria-hidden="true" />
-      </span>
-      {!collapsed && (
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-bold">申论素材后台</span>
-          <span className="block text-[10px] text-muted-foreground">管理控制台</span>
-        </span>
-      )}
+      <span className={cn("truncate", collapsed && "sr-only")}>申论素材</span>
+      {collapsed && <span aria-hidden="true">申</span>}
     </Link>
   );
 }

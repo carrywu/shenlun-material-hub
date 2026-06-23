@@ -36,8 +36,7 @@ export function AuthShell({
         <header className="mb-8 text-center">
           <div
             className={cn(
-              "mx-auto mb-4 flex size-12 items-center justify-center rounded-xl text-white shadow-sm",
-              variant === "admin" ? "bg-[#244936] dark:bg-[#5f806d]" : "bg-primary"
+              "mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm"
             )}
           >
             <Icon className="size-6" aria-hidden="true" />
