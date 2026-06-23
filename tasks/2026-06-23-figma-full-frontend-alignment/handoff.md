@@ -26,11 +26,11 @@ Started. Scope is locked to Figma-verifiable Shell + Article Reader alignment. M
 
 ## In Progress
 
-- Push and Draft PR are pending.
+- Draft PR is open. Remaining work is blocked by missing final Figma frames and unavailable local PostgreSQL for browser validation.
 
 ## Next Step
 
-Push `feat/figma-full-frontend-alignment` and create a Draft PR linked to Issue #8 once the user accepts the documented Figma scope limitation and PostgreSQL browser-validation blocker.
+Provide a PostgreSQL-backed E2E environment, then rerun Playwright/axe/screenshots and update PR #10 before requesting review.
 
 ## Risks
 
@@ -45,3 +45,10 @@ Push `feat/figma-full-frontend-alignment` and create a Draft PR linked to Issue 
 - `pnpm test`: passed, 94 files / 862 tests.
 - `pnpm build`: passed after removing generated `.next/server/.DS_Store`.
 - `pnpm exec playwright test e2e/batch-0-shell.spec.ts --project=anonymous --project=verified --project=admin`: blocked before assertions by unavailable local PostgreSQL.
+
+## Branch / PR
+
+- Branch: `feat/figma-full-frontend-alignment`
+- Remote: `origin/feat/figma-full-frontend-alignment`
+- Draft PR: `https://github.com/carrywu/shenlun-material-hub/pull/10`
+- Merge status: not merged.

@@ -89,3 +89,13 @@
 - Result: failed once, then passed after cleaning generated `.next/server/.DS_Store`
 - Evidence: first run failed with `ENOTEMPTY: directory not empty, rmdir '.next/server'`; `.next/server` contained `.DS_Store` and no open file handles. Second run completed successfully and generated 91 static pages.
 - Notes: build failure was a generated artifact cleanup issue, not a TypeScript or compilation failure.
+
+- Command: `git push -u origin feat/figma-full-frontend-alignment`
+- Result: passed
+- Evidence: branch now tracks `origin/feat/figma-full-frontend-alignment`.
+- Notes: no merge was performed.
+
+- Command: `gh pr create --draft --base main --head feat/figma-full-frontend-alignment`
+- Result: passed
+- Evidence: Draft PR #10 created at `https://github.com/carrywu/shenlun-material-hub/pull/10`.
+- Notes: PR body links Issue #8 and lists completed, missing, and blocked validation scope.

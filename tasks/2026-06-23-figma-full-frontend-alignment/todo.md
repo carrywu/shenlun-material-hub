@@ -64,8 +64,23 @@ Status values: `todo`, `doing`, `blocked`, `done`.
 
 ## Finalization
 
-- [ ] Run lint/test/build.
+- [x] Run lint/test/build.
+  - Commit: `9290130`
+  - Verification: `pnpm lint`; `pnpm test`; `pnpm build`
+  - Screenshot: n/a
 - [ ] Run targeted Playwright, axe, and responsive checks.
+  - Commit: n/a
+  - Verification: blocked by unavailable local PostgreSQL on `localhost:5432`
+  - Screenshot: n/a
 - [ ] Save required screenshots.
-- [ ] Update validation and handoff.
-- [ ] Push branch and create Draft PR linked to Issue #8.
+  - Commit: n/a
+  - Verification: blocked by unavailable local PostgreSQL on `localhost:5432`
+  - Screenshot: `docs/testing/figma-alignment/` pending
+- [x] Update validation and handoff.
+  - Commit: `9290130`, this commit (`Document Draft PR handoff state`)
+  - Verification: task docs updated
+  - Screenshot: n/a
+- [x] Push branch and create Draft PR linked to Issue #8.
+  - Commit: this commit (`Document Draft PR handoff state`)
+  - Verification: `git push -u origin feat/figma-full-frontend-alignment`; `gh pr create --draft --base main --head feat/figma-full-frontend-alignment`
+  - Screenshot: n/a
