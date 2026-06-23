@@ -57,6 +57,31 @@
 - Evidence: no listener on 5432; existing `node` process listening on 3001.
 - Notes: Playwright web server reuse is possible, but authenticated browser setup still fails without PostgreSQL.
 
+- Command: `pnpm exec playwright test e2e/figma-approved-no-db.spec.ts --config e2e/figma-no-db.playwright.config.ts`
+- Result: failed as expected before implementation
+- Evidence: first run failed because `e2e/figma-no-db.playwright.config.ts` did not exist.
+- Notes: RED step for a dedicated no-DB browser evidence harness.
+
+- Command: `pnpm exec playwright test e2e/figma-approved-no-db.spec.ts --config e2e/figma-no-db.playwright.config.ts`
+- Result: failed during implementation, then passed after scope correction
+- Evidence: intermediate run passed auth pages but `/articles/[id]` redirected to `/login`, proving reader browser checks require an authenticated session and therefore PostgreSQL-backed session validation. Final run passed 3 tests for `/login`, `/register`, and `/admin/login`.
+- Notes: no-DB harness intentionally covers only auth pages, because protected frontend/admin/reader routes require real session validation.
+
+- Command: `pnpm exec eslint e2e/figma-approved-no-db.spec.ts e2e/figma-no-db.playwright.config.ts`
+- Result: passed
+- Evidence: command exited 0.
+- Notes: targeted lint for the no-DB Playwright harness.
+
+- Command: `pnpm lint`
+- Result: passed
+- Evidence: command exited 0 with 67 existing warnings.
+- Notes: rerun after adding the no-DB Playwright harness.
+
+- Screenshots: `docs/testing/figma-alignment/auth-login-mobile-light-no-db.png`, `docs/testing/figma-alignment/auth-register-mobile-light-no-db.png`, `docs/testing/figma-alignment/auth-admin-login-mobile-light-no-db.png`
+- Result: generated
+- Evidence: saved by the passing no-DB Playwright run.
+- Notes: authenticated role, shell, admin, and reader screenshots remain blocked by PostgreSQL.
+
 - Command: `pnpm exec vitest run src/app/__tests__/legacy-route-redirects.test.ts`
 - Result: passed
 - Evidence: 1 test file / 4 tests passed.
@@ -84,9 +109,10 @@
 
 ## Pending
 
-- Targeted Playwright (blocked by unavailable PostgreSQL)
-- axe
-- Screenshots
+- Auth-page no-DB Playwright/axe/screenshots: partial pass
+- Authenticated Shell/Reader/Admin Playwright: blocked by unavailable PostgreSQL
+- Authenticated Shell/Reader/Admin axe: blocked by unavailable PostgreSQL
+- Authenticated Shell/Reader/Admin screenshots: blocked by unavailable PostgreSQL
 
 ## Final Local Commands
 

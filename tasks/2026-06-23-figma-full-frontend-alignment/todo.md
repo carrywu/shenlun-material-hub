@@ -73,13 +73,13 @@ Status values: `todo`, `doing`, `blocked`, `done`.
   - Verification: `pnpm lint`; `pnpm test`; `pnpm build`
   - Screenshot: n/a
 - [ ] Run targeted Playwright, axe, and responsive checks.
-  - Commit: n/a
-  - Verification: blocked by unavailable local PostgreSQL on `localhost:5432`
-  - Screenshot: n/a
+  - Commit: partial no-DB auth evidence pending
+  - Verification: `pnpm exec playwright test e2e/figma-approved-no-db.spec.ts --config e2e/figma-no-db.playwright.config.ts` passed for `/login`, `/register`, `/admin/login`; authenticated shell/reader/admin checks remain blocked by unavailable local PostgreSQL on `localhost:5432`
+  - Screenshot: `docs/testing/figma-alignment/auth-*-mobile-light-no-db.png`
 - [ ] Save required screenshots.
-  - Commit: n/a
-  - Verification: blocked by unavailable local PostgreSQL on `localhost:5432`
-  - Screenshot: `docs/testing/figma-alignment/` pending
+  - Commit: partial no-DB auth evidence pending
+  - Verification: no-DB auth screenshots saved; authenticated role/admin/reader screenshots remain blocked by unavailable local PostgreSQL on `localhost:5432`
+  - Screenshot: `docs/testing/figma-alignment/auth-login-mobile-light-no-db.png`, `docs/testing/figma-alignment/auth-register-mobile-light-no-db.png`, `docs/testing/figma-alignment/auth-admin-login-mobile-light-no-db.png`
 - [x] Update validation and handoff.
   - Commit: `9290130`, this commit (`Document Draft PR handoff state`)
   - Verification: task docs updated

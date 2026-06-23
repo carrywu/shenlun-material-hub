@@ -33,3 +33,9 @@ Verified by Figma MCP on 2026-06-23:
 - Do not change private material-card ownership or IMA ownership.
 - Do not use legacy `src/components/ArticleDetail.tsx` as the reader source of truth.
 - Reader business preservation: export menu, AI score detail, summary/reason, annotation renderer/tooltip, admin annotations, material card list, image preview, raw HTML warning, no-body fallback, favorite/read/ignore, original link, and metadata remain in `src/app/articles/[id]/page.tsx`.
+
+## Browser Evidence Gaps
+
+- `/login`, `/register`, and `/admin/login` now have no-DB Playwright evidence for mobile auth shell rendering, no application navigation, no horizontal overflow, axe serious/critical checks, and screenshots.
+- `/articles/[id]` cannot be browser-verified without PostgreSQL because middleware correctly redirects protected article pages to `/login` when no valid DB-backed session exists.
+- Role-aware frontend/admin shell screenshots still require real USER / VERIFIED_USER / ADMIN sessions from a PostgreSQL-backed E2E environment.
