@@ -2,7 +2,7 @@
 
 ## Status
 
-Started. Scope is locked to Figma-verifiable Shell + Article Reader alignment. Missing final Figma frames for the rest of the requested routes are recorded as blockers, not implementation targets.
+Started. Scope is locked to Figma-verifiable Shell + Article Reader alignment. The current Figma cover/approval gate explicitly approves Batch 1 Shell/navigation and Batch 4 Article Reader only. Missing final Figma frames for the rest of the requested routes are recorded as blockers, not implementation targets.
 
 ## Current Branch
 
@@ -13,6 +13,7 @@ Started. Scope is locked to Figma-verifiable Shell + Article Reader alignment. M
 - Cleaned authorized `.mcp.json` local MCP config change.
 - Created feature branch from current `main`.
 - Re-read approved Figma nodes with official Figma MCP.
+- Re-read current Figma cover metadata (`0:1`) and confirmed the approval scope is Batch 1 + Batch 4 only.
 - Created task directory and initial planning/mapping/validation docs.
 - Brought in route-aware Shell implementation from the prior Batch 0 branch.
 - Added and passed Shell regression tests for text-only brand, mobile active state, and admin brand contract.
@@ -26,17 +27,17 @@ Started. Scope is locked to Figma-verifiable Shell + Article Reader alignment. M
 
 ## In Progress
 
-- Draft PR is open. Remaining work is blocked by missing final Figma frames and unavailable local PostgreSQL for browser validation.
+- Draft PR is open. Remaining work is blocked by approval-limited Figma scope and unavailable local PostgreSQL for browser validation.
 
 ## Next Step
 
-Provide a PostgreSQL-backed E2E environment, then rerun Playwright/axe/screenshots and update PR #10 before requesting review.
+Provide approved final Figma frame IDs for additional route batches and a PostgreSQL-backed E2E environment, then rerun Playwright/axe/screenshots and update PR #10 before requesting review.
 
 ## Risks
 
-- Full-route design implementation cannot be honestly completed from current Figma file because final route frames are missing.
+- Full-route design implementation cannot be honestly completed from current Figma file because its cover/approval gate only approves Batch 1 and Batch 4.
 - Article reader is a large client component; changes must preserve export, annotation, card generation, IMA, and role behavior.
-- Browser validation and screenshots are currently blocked by unavailable local PostgreSQL on `localhost:5432`; Playwright global setup cannot seed/login roles without it.
+- Browser validation and screenshots are currently blocked by unavailable local PostgreSQL on `localhost:5432`; Playwright global setup cannot seed/login roles without it. Local PostgreSQL CLI binaries (`postgres`, `initdb`, `pg_ctl`, `psql`, `createdb`) are not available on PATH, so a safe temporary local cluster cannot be created here.
 - Full-route Figma implementation is intentionally not claimed: current Figma file only exposes final Shell + Reader frames from the requested route set.
 
 ## Latest Verification

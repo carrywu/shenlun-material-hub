@@ -16,6 +16,10 @@ Status values: `todo`, `doing`, `blocked`, `done`.
   - Commit: n/a
   - Verification: Figma MCP `use_figma` read-only node scan
   - Screenshot: pending
+- [x] Re-read current Figma cover and approval gate.
+  - Commit: this commit (`Record current Figma approval boundary`)
+  - Verification: Figma MCP `get_metadata` for `0:1`; `rg -n "Approval Scope|No approved" tasks/2026-06-23-figma-full-frontend-alignment/figma-code-map.md`
+  - Screenshot: n/a
 - [x] Create task docs and initial mapping.
   - Commit: `2d695be`
   - Verification: `git diff --stat`, `git status --short --branch`

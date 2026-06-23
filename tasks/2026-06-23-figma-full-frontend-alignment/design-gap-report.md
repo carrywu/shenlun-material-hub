@@ -5,7 +5,9 @@
 Verified by Figma MCP on 2026-06-23:
 
 - Present: foundations, component inventory, frontend shell desktop/mobile, admin shell desktop/mobile, article reader desktop/mobile, reader roles/states, dev handoff.
-- Missing as final frames: auth pages, home, article list, cards, card detail, search, review, settings, most admin content/system pages.
+- Current approval scope: the file cover (`0:1`, text node `16:7`) says "当前审批范围：Batch 1 应用 Shell 与导航；Batch 4 文章阅读器。"
+- Approval gate: node `16:30` says source/API/Prisma/database/RBAC/business-semantic changes require an approved Figma URL, Frame/Node ID, and Batch.
+- Missing as approved final frames: auth pages, home, article list, cards, card detail, search, review, settings, most admin content/system pages.
 
 ## Current Code Gaps
 
@@ -20,7 +22,7 @@ Verified by Figma MCP on 2026-06-23:
 
 ## Requirement Conflicts
 
-- The prompt asks for full-route implementation, but current Figma evidence does not include final frames for most routes. Resolution: implement only verifiable Figma scope and mark missing pages as `有阻塞`.
+- The prompt asks for full-route implementation, but current Figma evidence explicitly approves only Batch 1 and Batch 4. Resolution: implement only approved/verifiable Figma scope and mark missing pages as `有阻塞`.
 - Previous Batch 0 handoff said a per-frame green admin palette and icon brand were approved. Current user instruction requires text-only brand and scheme A active state. Resolution: current user instruction wins.
 
 ## Business Preservation Notes

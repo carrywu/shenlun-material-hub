@@ -17,6 +17,11 @@
 - Evidence: approved nodes `17:2`, `17:89`, `8:2`, `8:48`, `12:19`, `12:162`, `14:20`, `14:103`, `15:20`, `16:113` all found.
 - Notes: no final frames found for full route set beyond shell/reader scope.
 
+- Command: Figma MCP `get_metadata` for `0:1`
+- Result: passed
+- Evidence: top-level file contains one page, `00 Cover & Index`; cover text node `16:7` says current approval scope is Batch 1 Shell/navigation and Batch 4 Article Reader; approval gate node `16:30` requires Figma URL, Frame/Node ID, and Batch before source/API/Prisma/database/RBAC/business-semantic changes.
+- Notes: this confirms the remaining full-route pages are blocked by current design approval scope, not by repo inspection.
+
 - Command: `pnpm exec vitest run src/components/navigation/__tests__/RootNav.test.tsx src/components/navigation/__tests__/MobileBottomTab.test.tsx src/components/admin/__tests__/AdminShell.test.tsx`
 - Result: failed as expected before implementation, then passed after implementation
 - Evidence: RED failures covered text-only brand, mobile active background, and admin brand contract; GREEN result passed 3 files / 8 tests.
@@ -41,6 +46,16 @@
 - Result: failed before browser assertions
 - Evidence: `seed:e2e-accounts` failed with PostgreSQL connection timeout; `globalSetup` then failed admin API login with HTTP 500.
 - Notes: `.env` contains `DATABASE_URL` for `localhost:5432/shenlun_material_hub`, but no local listener was found on port 5432. Per project rules, Docker/database services were not auto-started.
+
+- Command: `command -v postgres || true; command -v initdb || true; command -v pg_ctl || true; command -v psql || true; command -v createdb || true`
+- Result: passed
+- Evidence: no local PostgreSQL command-line binaries were found on PATH.
+- Notes: a safe temporary PostgreSQL data directory cannot be created from local binaries in this environment.
+
+- Command: `lsof -iTCP:5432 -sTCP:LISTEN -n -P || true; lsof -iTCP:3001 -sTCP:LISTEN -n -P || true`
+- Result: passed
+- Evidence: no listener on 5432; existing `node` process listening on 3001.
+- Notes: Playwright web server reuse is possible, but authenticated browser setup still fails without PostgreSQL.
 
 - Command: `pnpm exec vitest run src/app/__tests__/legacy-route-redirects.test.ts`
 - Result: passed
