@@ -52,6 +52,21 @@
 - Evidence: command exited 0.
 - Notes: targeted lint for route audit test and redirect pages.
 
+- Command: `pnpm exec vitest run 'src/app/articles/[id]/__tests__/page.test.tsx'`
+- Result: failed as expected before implementation, then passed after implementation
+- Evidence: RED failed on missing `article-reader-shell`; GREEN passed 1 file / 3 tests.
+- Notes: covers reader region markers and USER / VERIFIED_USER / ADMIN capability surfaces.
+
+- Command: `pnpm exec vitest run 'src/app/articles/[id]/__tests__/page.test.tsx' src/components/articles/__tests__/ArticleContentRenderer.test.tsx src/components/articles/__tests__/ArticleExportMenu.test.tsx src/components/articles/__tests__/ArticlePrintableContent.test.tsx`
+- Result: passed
+- Evidence: 4 test files / 24 tests passed.
+- Notes: covers page layout contracts plus article content rendering, export menu options, and printable content.
+
+- Command: `pnpm exec eslint 'src/app/articles/[id]/page.tsx' 'src/app/articles/[id]/__tests__/page.test.tsx' src/components/articles/ArticleContentRenderer.tsx src/components/articles/ArticleExportMenu.tsx`
+- Result: passed
+- Evidence: command exited 0.
+- Notes: targeted lint for reader patch.
+
 ## Pending
 
 - `pnpm lint`

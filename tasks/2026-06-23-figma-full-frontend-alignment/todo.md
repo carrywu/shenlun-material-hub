@@ -38,17 +38,17 @@ Status values: `todo`, `doing`, `blocked`, `done`.
 
 ## Batch 4 - Article Reader
 
-- [ ] Add reader capability regression tests before layout changes.
-  - Commit: pending
-  - Verification: targeted Vitest/Playwright expected RED where applicable, then GREEN
+- [x] Add reader capability regression tests before layout changes.
+  - Commit: this commit (`Align reader layout regions with Figma while preserving capabilities`)
+  - Verification: `pnpm exec vitest run 'src/app/articles/[id]/__tests__/page.test.tsx'` expected RED, then GREEN
   - Screenshot: n/a
-- [ ] Align desktop reader layout to Figma.
-  - Commit: pending
-  - Verification: `e2e/article-detail.spec.ts`
+- [x] Align desktop reader layout to Figma.
+  - Commit: this commit (`Align reader layout regions with Figma while preserving capabilities`)
+  - Verification: `pnpm exec vitest run 'src/app/articles/[id]/__tests__/page.test.tsx' src/components/articles/__tests__/ArticleContentRenderer.test.tsx src/components/articles/__tests__/ArticleExportMenu.test.tsx src/components/articles/__tests__/ArticlePrintableContent.test.tsx`; Playwright blocked by PostgreSQL
   - Screenshot: `docs/testing/figma-alignment/article-reader-desktop-*.png`
-- [ ] Align mobile reader layout and action surfaces.
-  - Commit: pending
-  - Verification: `e2e/mobile-responsive.spec.ts`
+- [x] Align mobile reader layout and action surfaces.
+  - Commit: this commit (`Align reader layout regions with Figma while preserving capabilities`)
+  - Verification: `pnpm exec eslint 'src/app/articles/[id]/page.tsx' 'src/app/articles/[id]/__tests__/page.test.tsx' src/components/articles/ArticleContentRenderer.tsx src/components/articles/ArticleExportMenu.tsx`; Playwright blocked by PostgreSQL
   - Screenshot: `docs/testing/figma-alignment/article-reader-mobile-*.png`
 
 ## Route Audit

@@ -15,8 +15,8 @@ Allowed status values: `未审查`, `已审查`, `待实现`, `实现中`, `已�
 | No final auth frame found | `/admin/login` | anonymous | 390 / 768 / 1440 | `src/app/admin/login/page.tsx`, `src/components/layout/AuthShell.tsx` | 有阻塞 |
 | No final home frame found | `/` | USER / VERIFIED_USER / ADMIN | 390 / 768 / 1440 | `src/app/page.tsx` | 有阻塞 |
 | No final article-list frame found | `/articles` | USER / VERIFIED_USER / ADMIN | 390 / 768 / 1440 | `src/app/articles/page.tsx`, `src/components/articles/ArticlesPage.tsx` | 有阻塞 |
-| `14:20` Batch 4 / Article Reader / Desktop / VERIFIED_USER | `/articles/[id]` | VERIFIED_USER baseline; USER/ADMIN via `15:20` | 1440 | `src/app/articles/[id]/page.tsx`, `ArticleContentRenderer`, `ArticleExportMenu` | 待实现 |
-| `14:103` Batch 4 / Article Reader / Mobile / VERIFIED_USER | `/articles/[id]` | VERIFIED_USER baseline; USER/ADMIN via `15:20` | 390 | `src/app/articles/[id]/page.tsx`, `ArticleContentRenderer`, `ArticleExportMenu` | 待实现 |
+| `14:20` Batch 4 / Article Reader / Desktop / VERIFIED_USER | `/articles/[id]` | VERIFIED_USER baseline; USER/ADMIN via `15:20` | 1440 | `src/app/articles/[id]/page.tsx`, `ArticleContentRenderer`, `ArticleExportMenu` | 已实现 |
+| `14:103` Batch 4 / Article Reader / Mobile / VERIFIED_USER | `/articles/[id]` | VERIFIED_USER baseline; USER/ADMIN via `15:20` | 390 | `src/app/articles/[id]/page.tsx`, `ArticleContentRenderer`, `ArticleExportMenu` | 已实现 |
 | `15:20` Batch 4 / Reader Roles & States | `/articles/[id]` | USER / VERIFIED_USER / ADMIN | all | `src/app/articles/[id]/page.tsx` | 已审查 |
 | No final cards frame found | `/cards` | VERIFIED_USER / ADMIN | 390 / 768 / 1440 | `src/app/cards/page.tsx`, `MaterialCard` | 有阻塞 |
 | No final card-detail frame found | `/cards/[id]` | VERIFIED_USER / ADMIN | 390 / 768 / 1440 | `src/app/cards/[id]/page.tsx` | 有阻塞 |

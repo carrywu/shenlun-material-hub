@@ -19,14 +19,18 @@ Started. Scope is locked to Figma-verifiable Shell + Article Reader alignment. M
 - Removed the stale green admin palette and made Admin/Auth shell surfaces inherit the global brand tokens.
 - Audited legacy `wewe-rss`, `subscriptions`, and `sync-records` route pages.
 - Added route redirect regression tests for the compatibility routes.
+- Re-read Figma reader nodes `14:20`, `14:103`, and `15:20`.
+- Added reader layout/role regression tests and aligned the implemented reader regions to the 760px reading column / 320px learning sidebar target.
+- Added mobile reader action bar and restored explicit ignore control.
+- Gated article IMA sync controls to `VERIFIED_USER` and `ADMIN`.
 
 ## In Progress
 
-- Article reader Figma/code alignment.
+- Final local validation that does not require PostgreSQL.
 
 ## Next Step
 
-Read the live article reader code against Figma nodes `14:20`, `14:103`, and `15:20`, then add focused regression tests before changing the reader layout.
+Run `pnpm lint`, `pnpm test`, and `pnpm build`; document any environment blockers. Browser screenshots/axe remain blocked until local PostgreSQL is available.
 
 ## Risks
 

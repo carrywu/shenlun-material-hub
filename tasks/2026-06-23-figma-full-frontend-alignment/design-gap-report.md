@@ -15,7 +15,7 @@ Verified by Figma MCP on 2026-06-23:
 4. `RootNav` uses a brand icon and flat account actions instead of a text-only brand plus Account Menu.
 5. `MobileBottomTab` lacks the approved active background treatment and safe-area polish.
 6. `AdminShell` needs Figma-aligned navigation grouping, mobile drawer, and route-safe shell ownership.
-7. Article reader layout is capability-rich but not yet Figma-aligned around the 700-760px reading column and 300-340px sidebar.
+7. Article reader layout was capability-rich but not Figma-aligned around the 700-760px reading column and 300-340px sidebar. Implemented: 1240px reader grid, 760px reading column marker, 320px learning sidebar marker, mobile article action bar, VERIFIED_USER private-card sidebar title, and role-gated IMA surfaces.
 8. `wewe-rss` routes exist outside the requested route contract. Audit result: both are explicit redirects to `/admin/integrations/wechat-rss`; `/subscriptions` and `/sync-records` are explicit redirects to their admin equivalents.
 
 ## Requirement Conflicts
@@ -30,3 +30,4 @@ Verified by Figma MCP on 2026-06-23:
 - Do not change reject/downlist semantics.
 - Do not change private material-card ownership or IMA ownership.
 - Do not use legacy `src/components/ArticleDetail.tsx` as the reader source of truth.
+- Reader business preservation: export menu, AI score detail, summary/reason, annotation renderer/tooltip, admin annotations, material card list, image preview, raw HTML warning, no-body fallback, favorite/read/ignore, original link, and metadata remain in `src/app/articles/[id]/page.tsx`.
