@@ -72,14 +72,14 @@ Status values: `todo`, `doing`, `blocked`, `done`.
   - Commit: `9290130`
   - Verification: `pnpm lint`; `pnpm test`; `pnpm build`
   - Screenshot: n/a
-- [ ] Run targeted Playwright, axe, and responsive checks.
-  - Commit: partial no-DB auth evidence pending
-  - Verification: `pnpm exec playwright test e2e/figma-approved-no-db.spec.ts --config e2e/figma-no-db.playwright.config.ts` passed for `/login`, `/register`, `/admin/login`; authenticated shell/reader/admin checks remain blocked by unavailable local PostgreSQL on `localhost:5432`
-  - Screenshot: `docs/testing/figma-alignment/auth-*-mobile-light-no-db.png`
-- [ ] Save required screenshots.
-  - Commit: partial no-DB auth evidence pending
-  - Verification: no-DB auth screenshots saved; authenticated role/admin/reader screenshots remain blocked by unavailable local PostgreSQL on `localhost:5432`
-  - Screenshot: `docs/testing/figma-alignment/auth-login-mobile-light-no-db.png`, `docs/testing/figma-alignment/auth-register-mobile-light-no-db.png`, `docs/testing/figma-alignment/auth-admin-login-mobile-light-no-db.png`
+- [x] Run targeted no-DB auth Playwright, axe, and responsive checks.
+  - Commit: this commit (`Broaden no-DB auth evidence across themes and breakpoints`)
+  - Verification: `pnpm exec playwright test e2e/figma-approved-no-db.spec.ts --config e2e/figma-no-db.playwright.config.ts` passed 18 auth checks across `/login`, `/register`, `/admin/login`, 390 / 768 / 1440, light / dark; authenticated shell/reader/admin checks remain blocked by unavailable local PostgreSQL on `localhost:5432`
+  - Screenshot: `docs/testing/figma-alignment/auth-*-no-db.png`
+- [x] Save no-DB auth screenshots.
+  - Commit: this commit (`Broaden no-DB auth evidence across themes and breakpoints`)
+  - Verification: 18 no-DB auth screenshots saved; authenticated role/admin/reader screenshots remain blocked by unavailable local PostgreSQL on `localhost:5432`
+  - Screenshot: `docs/testing/figma-alignment/auth-login-{mobile,tablet,desktop}-{light,dark}-no-db.png`, `docs/testing/figma-alignment/auth-register-{mobile,tablet,desktop}-{light,dark}-no-db.png`, `docs/testing/figma-alignment/auth-admin-login-{mobile,tablet,desktop}-{light,dark}-no-db.png`
 - [x] Update validation and handoff.
   - Commit: `9290130`, this commit (`Document Draft PR handoff state`)
   - Verification: task docs updated

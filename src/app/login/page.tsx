@@ -34,7 +34,7 @@ export default async function UserLoginPage({
         <>
           <p className="mb-2 text-sm text-muted-foreground">
             还没有账号？
-            <Link href="/register" className="ml-1 font-medium text-primary hover:underline">
+            <Link href="/register" className="ml-1 font-medium text-primary hover:underline dark:text-violet-300">
               立即注册
             </Link>
           </p>

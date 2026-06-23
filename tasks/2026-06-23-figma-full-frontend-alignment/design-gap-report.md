@@ -36,6 +36,6 @@ Verified by Figma MCP on 2026-06-23:
 
 ## Browser Evidence Gaps
 
-- `/login`, `/register`, and `/admin/login` now have no-DB Playwright evidence for mobile auth shell rendering, no application navigation, no horizontal overflow, axe serious/critical checks, and screenshots.
+- `/login`, `/register`, and `/admin/login` now have no-DB Playwright evidence for 390 / 768 / 1440, light / dark auth shell rendering, no application navigation, no horizontal overflow, axe serious/critical checks, and screenshots.
 - `/articles/[id]` cannot be browser-verified without PostgreSQL because middleware correctly redirects protected article pages to `/login` when no valid DB-backed session exists.
 - Role-aware frontend/admin shell screenshots still require real USER / VERIFIED_USER / ADMIN sessions from a PostgreSQL-backed E2E environment.

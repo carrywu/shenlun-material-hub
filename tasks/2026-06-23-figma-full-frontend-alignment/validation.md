@@ -67,19 +67,29 @@
 - Evidence: intermediate run passed auth pages but `/articles/[id]` redirected to `/login`, proving reader browser checks require an authenticated session and therefore PostgreSQL-backed session validation. Final run passed 3 tests for `/login`, `/register`, and `/admin/login`.
 - Notes: no-DB harness intentionally covers only auth pages, because protected frontend/admin/reader routes require real session validation.
 
+- Command: `pnpm exec playwright test e2e/figma-approved-no-db.spec.ts --config e2e/figma-no-db.playwright.config.ts`
+- Result: failed during coverage expansion, then passed after accessibility fixes
+- Evidence: expanded run initially failed dark-mode axe `color-contrast` checks: primary button white text on bright purple was 3.54:1, then auth footer links on the darker primary token were 3.04:1 on dark card backgrounds. Final run passed 18 tests for `/login`, `/register`, and `/admin/login` across 390x844, 768x1024, 1440x900, light and dark.
+- Notes: fixed by using the darker brand primary token in dark mode for primary surfaces and adding `dark:text-violet-300` to the login/register auth footer links. The spec asserts no application navigation, no horizontal overflow, and no serious/critical axe violations.
+
 - Command: `pnpm exec eslint e2e/figma-approved-no-db.spec.ts e2e/figma-no-db.playwright.config.ts`
 - Result: passed
 - Evidence: command exited 0.
 - Notes: targeted lint for the no-DB Playwright harness.
+
+- Command: `pnpm exec eslint e2e/figma-approved-no-db.spec.ts e2e/figma-no-db.playwright.config.ts src/app/globals.css src/app/login/page.tsx src/app/register/page.tsx`
+- Result: passed for configured TS/TSX targets
+- Evidence: command exited 0; ESLint reported `src/app/globals.css` as ignored by configuration.
+- Notes: targeted lint after expanding no-DB auth evidence and dark-mode contrast fixes.
 
 - Command: `pnpm lint`
 - Result: passed
 - Evidence: command exited 0 with 67 existing warnings.
 - Notes: rerun after adding the no-DB Playwright harness.
 
-- Screenshots: `docs/testing/figma-alignment/auth-login-mobile-light-no-db.png`, `docs/testing/figma-alignment/auth-register-mobile-light-no-db.png`, `docs/testing/figma-alignment/auth-admin-login-mobile-light-no-db.png`
+- Screenshots: `docs/testing/figma-alignment/auth-*-no-db.png`
 - Result: generated
-- Evidence: saved by the passing no-DB Playwright run.
+- Evidence: 18 screenshots saved by the passing no-DB Playwright run for `/login`, `/register`, `/admin/login` across mobile/tablet/desktop and light/dark.
 - Notes: authenticated role, shell, admin, and reader screenshots remain blocked by PostgreSQL.
 
 - Command: `pnpm exec vitest run src/app/__tests__/legacy-route-redirects.test.ts`
@@ -109,7 +119,7 @@
 
 ## Pending
 
-- Auth-page no-DB Playwright/axe/screenshots: partial pass
+- Auth-page no-DB Playwright/axe/screenshots: passed for `/login`, `/register`, `/admin/login` across 390 / 768 / 1440 and light / dark
 - Authenticated Shell/Reader/Admin Playwright: blocked by unavailable PostgreSQL
 - Authenticated Shell/Reader/Admin axe: blocked by unavailable PostgreSQL
 - Authenticated Shell/Reader/Admin screenshots: blocked by unavailable PostgreSQL

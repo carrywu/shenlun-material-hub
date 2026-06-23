@@ -38,24 +38,59 @@ test.describe('Figma-approved no-DB authentication evidence', () => {
     mkdirSync(evidenceDir, { recursive: true });
   });
 
+  const viewports = [
+    { name: 'mobile', width: 390, height: 844 },
+    { name: 'tablet', width: 768, height: 1024 },
+    { name: 'desktop', width: 1440, height: 900 },
+  ] as const;
+
+  const themes = ['light', 'dark'] as const;
+
   for (const route of ['/login', '/register', '/admin/login'] as const) {
-    test(`${route} keeps the auth shell navigation-free without PostgreSQL`, async ({ page }) => {
-      await page.setViewportSize({ width: 390, height: 844 });
-      await page.goto(route);
-      await hideDevOverlays(page);
+    for (const viewport of viewports) {
+      for (const theme of themes) {
+        test(`${route} keeps the auth shell navigation-free at ${viewport.width}x${viewport.height} ${theme} without PostgreSQL`, async ({ page }) => {
+          await page.setViewportSize({
+            width: viewport.width,
+            height: viewport.height,
+          });
+          if (theme === 'dark') {
+            await page.addInitScript(() =>
+              document.documentElement.classList.add('dark'),
+            );
+          }
+          await page.goto(route);
+          await hideDevOverlays(page);
+          if (theme === 'dark') {
+            await page.evaluate(() =>
+              document.documentElement.classList.add('dark'),
+            );
+          }
 
-      await expect(page.getByTestId('auth-shell')).toBeVisible();
-      await expect(page.getByRole('navigation', { name: '主导航', exact: true })).toHaveCount(0);
-      await expect(page.getByRole('navigation', { name: '移动端主导航', exact: true })).toHaveCount(0);
-      await expectNoHorizontalOverflow(page);
-      await expectNoSeriousAxeFindings(page);
+          await expect(page.getByTestId('auth-shell')).toBeVisible();
+          await expect(
+            page.getByRole('navigation', { name: '主导航', exact: true }),
+          ).toHaveCount(0);
+          await expect(
+            page.getByRole('navigation', {
+              name: '移动端主导航',
+              exact: true,
+            }),
+          ).toHaveCount(0);
+          await expectNoHorizontalOverflow(page);
+          await expectNoSeriousAxeFindings(page);
 
-      const name = route.replaceAll('/', '-').replace(/^-/, '') || 'home';
-      await page.screenshot({
-        path: resolve(evidenceDir, `auth-${name}-mobile-light-no-db.png`),
-        fullPage: true,
-        animations: 'disabled',
-      });
-    });
+          const name = route.replaceAll('/', '-').replace(/^-/, '') || 'home';
+          await page.screenshot({
+            path: resolve(
+              evidenceDir,
+              `auth-${name}-${viewport.name}-${theme}-no-db.png`,
+            ),
+            fullPage: true,
+            animations: 'disabled',
+          });
+        });
+      }
+    }
   }
 });

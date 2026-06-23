@@ -125,7 +125,7 @@ export default function RegisterPage() {
         <>
           <p className="text-sm text-muted-foreground">
             已有账号？
-            <Link href="/login" className="ml-1 font-medium text-primary hover:underline">
+            <Link href="/login" className="ml-1 font-medium text-primary hover:underline dark:text-violet-300">
               前往登录
             </Link>
           </p>
