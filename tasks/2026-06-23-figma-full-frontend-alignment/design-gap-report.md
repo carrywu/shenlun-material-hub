@@ -16,7 +16,7 @@ Verified by Figma MCP on 2026-06-23:
 5. `MobileBottomTab` lacks the approved active background treatment and safe-area polish.
 6. `AdminShell` needs Figma-aligned navigation grouping, mobile drawer, and route-safe shell ownership.
 7. Article reader layout is capability-rich but not yet Figma-aligned around the 700-760px reading column and 300-340px sidebar.
-8. `wewe-rss` routes exist outside the requested route contract and require audit.
+8. `wewe-rss` routes exist outside the requested route contract. Audit result: both are explicit redirects to `/admin/integrations/wechat-rss`; `/subscriptions` and `/sync-records` are explicit redirects to their admin equivalents.
 
 ## Requirement Conflicts
 
@@ -30,4 +30,3 @@ Verified by Figma MCP on 2026-06-23:
 - Do not change reject/downlist semantics.
 - Do not change private material-card ownership or IMA ownership.
 - Do not use legacy `src/components/ArticleDetail.tsx` as the reader source of truth.
-

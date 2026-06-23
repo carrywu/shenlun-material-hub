@@ -53,13 +53,13 @@ Status values: `todo`, `doing`, `blocked`, `done`.
 
 ## Route Audit
 
-- [ ] Audit `/integrations/wewe-rss` and `/admin/integrations/wewe-rss`.
-  - Commit: pending
-  - Verification: route smoke/middleware tests
+- [x] Audit `/integrations/wewe-rss` and `/admin/integrations/wewe-rss`.
+  - Commit: this commit (`Keep legacy integration routes as explicit redirects`)
+  - Verification: `sed -n` route inspection; `rg --files src/app | rg 'wewe-rss|wechat-rss|integrations|subscriptions|sync-records'`
   - Screenshot: n/a
-- [ ] Implement remove or redirect behavior to `/admin/integrations/wechat-rss`.
-  - Commit: pending
-  - Verification: route smoke/middleware tests
+- [x] Implement remove or redirect behavior to `/admin/integrations/wechat-rss`.
+  - Commit: this commit (`Keep legacy integration routes as explicit redirects`)
+  - Verification: `pnpm exec vitest run src/app/__tests__/legacy-route-redirects.test.ts`; `pnpm exec eslint src/app/__tests__/legacy-route-redirects.test.ts src/app/integrations/wewe-rss/page.tsx src/app/admin/integrations/wewe-rss/page.tsx src/app/subscriptions/page.tsx src/app/sync-records/page.tsx`
   - Screenshot: n/a
 
 ## Finalization

@@ -37,11 +37,26 @@
 - Evidence: command exited 0.
 - Notes: targeted lint for the Shell patch.
 
+- Command: `pnpm exec playwright test e2e/batch-0-shell.spec.ts --project=anonymous --project=verified --project=admin`
+- Result: failed before browser assertions
+- Evidence: `seed:e2e-accounts` failed with PostgreSQL connection timeout; `globalSetup` then failed admin API login with HTTP 500.
+- Notes: `.env` contains `DATABASE_URL` for `localhost:5432/shenlun_material_hub`, but no local listener was found on port 5432. Per project rules, Docker/database services were not auto-started.
+
+- Command: `pnpm exec vitest run src/app/__tests__/legacy-route-redirects.test.ts`
+- Result: passed
+- Evidence: 1 test file / 4 tests passed.
+- Notes: covers `/integrations/wewe-rss`, `/admin/integrations/wewe-rss`, `/subscriptions`, and `/sync-records` compatibility redirects.
+
+- Command: `pnpm exec eslint src/app/__tests__/legacy-route-redirects.test.ts src/app/integrations/wewe-rss/page.tsx src/app/admin/integrations/wewe-rss/page.tsx src/app/subscriptions/page.tsx src/app/sync-records/page.tsx`
+- Result: passed
+- Evidence: command exited 0.
+- Notes: targeted lint for route audit test and redirect pages.
+
 ## Pending
 
 - `pnpm lint`
 - `pnpm test`
 - `pnpm build`
-- Targeted Playwright
+- Targeted Playwright (blocked by unavailable PostgreSQL)
 - axe
 - Screenshots
