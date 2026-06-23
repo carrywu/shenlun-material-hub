@@ -69,9 +69,23 @@
 
 ## Pending
 
-- `pnpm lint`
-- `pnpm test`
-- `pnpm build`
 - Targeted Playwright (blocked by unavailable PostgreSQL)
 - axe
 - Screenshots
+
+## Final Local Commands
+
+- Command: `pnpm lint`
+- Result: passed
+- Evidence: command exited 0 with 67 existing warnings.
+- Notes: no lint errors.
+
+- Command: `pnpm test`
+- Result: passed
+- Evidence: 94 test files / 862 tests passed.
+- Notes: full Vitest suite.
+
+- Command: `pnpm build`
+- Result: failed once, then passed after cleaning generated `.next/server/.DS_Store`
+- Evidence: first run failed with `ENOTEMPTY: directory not empty, rmdir '.next/server'`; `.next/server` contained `.DS_Store` and no open file handles. Second run completed successfully and generated 91 static pages.
+- Notes: build failure was a generated artifact cleanup issue, not a TypeScript or compilation failure.

@@ -26,14 +26,22 @@ Started. Scope is locked to Figma-verifiable Shell + Article Reader alignment. M
 
 ## In Progress
 
-- Final local validation that does not require PostgreSQL.
+- Push and Draft PR are pending.
 
 ## Next Step
 
-Run `pnpm lint`, `pnpm test`, and `pnpm build`; document any environment blockers. Browser screenshots/axe remain blocked until local PostgreSQL is available.
+Push `feat/figma-full-frontend-alignment` and create a Draft PR linked to Issue #8 once the user accepts the documented Figma scope limitation and PostgreSQL browser-validation blocker.
 
 ## Risks
 
 - Full-route design implementation cannot be honestly completed from current Figma file because final route frames are missing.
 - Article reader is a large client component; changes must preserve export, annotation, card generation, IMA, and role behavior.
 - Browser validation and screenshots are currently blocked by unavailable local PostgreSQL on `localhost:5432`; Playwright global setup cannot seed/login roles without it.
+- Full-route Figma implementation is intentionally not claimed: current Figma file only exposes final Shell + Reader frames from the requested route set.
+
+## Latest Verification
+
+- `pnpm lint`: passed with existing warnings.
+- `pnpm test`: passed, 94 files / 862 tests.
+- `pnpm build`: passed after removing generated `.next/server/.DS_Store`.
+- `pnpm exec playwright test e2e/batch-0-shell.spec.ts --project=anonymous --project=verified --project=admin`: blocked before assertions by unavailable local PostgreSQL.
