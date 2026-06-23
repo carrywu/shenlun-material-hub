@@ -1,96 +1,218 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
+import { Tooltip } from "@base-ui/react/tooltip";
 import {
-  BookText,
   ChevronLeft,
   ChevronRight,
-  Database,
   ExternalLink,
-  FolderTree,
-  History,
-  LayoutDashboard,
-  ListTodo,
-  LogOut,
-  LucideIcon,
+  LayoutPanelLeft,
   Loader2,
+  LogOut,
   Menu,
-  Rss,
-  Settings,
-  Terminal,
-  Ticket,
-  User,
-  Shield,
+  UserRound,
   X,
 } from "lucide-react";
-import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-interface SidebarItem {
-  name: string;
-  href: string;
-  icon: LucideIcon;
+import {
+  ADMIN_NAVIGATION_GROUPS,
+  findActiveAdminNavigationItem,
+  isAdminNavigationItemActive,
+} from "@/components/admin/admin-navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+
+function AdminNavigation({
+  collapsed = false,
+  onNavigate,
+  pathname,
+}: {
+  collapsed?: boolean;
+  onNavigate?: () => void;
+  pathname: string;
+}) {
+  return (
+    <Tooltip.Provider>
+      <nav aria-label="后台主导航" className="flex-1 overflow-y-auto px-3 py-4">
+        {ADMIN_NAVIGATION_GROUPS.map((group, groupIndex) => (
+          <section
+            key={group.label}
+            aria-labelledby={`admin-nav-group-${groupIndex}`}
+            className={cn(groupIndex > 0 && "mt-5")}
+          >
+            <h2
+              id={`admin-nav-group-${groupIndex}`}
+              className={cn(
+                "mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground",
+                collapsed && "sr-only"
+              )}
+            >
+              {group.label}
+            </h2>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = isAdminNavigationItemActive(pathname, item.href);
+                const linkClassName = cn(
+                  "flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60",
+                  active
+                    ? "bg-accent text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  collapsed && "justify-center px-0"
+                );
+                const link = (
+                  <Link
+                    href={item.href}
+                    aria-label={collapsed ? item.name : undefined}
+                    aria-current={active ? "page" : undefined}
+                    className={linkClassName}
+                    onClick={onNavigate}
+                  >
+                    <item.icon className="size-[18px] shrink-0" aria-hidden="true" />
+                    {!collapsed && <span>{item.name}</span>}
+                    {active && <span className="sr-only">（当前页面）</span>}
+                  </Link>
+                );
+
+                if (!collapsed) return <div key={item.href}>{link}</div>;
+
+                return (
+                  <Tooltip.Root key={item.href}>
+                    <Tooltip.Trigger render={link} delay={250} />
+                    <Tooltip.Portal>
+                      <Tooltip.Positioner side="right" sideOffset={8} className="z-[80]">
+                        <Tooltip.Popup className="rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md">
+                          {item.name}
+                        </Tooltip.Popup>
+                      </Tooltip.Positioner>
+                    </Tooltip.Portal>
+                  </Tooltip.Root>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </nav>
+    </Tooltip.Provider>
+  );
 }
 
-const navItems: SidebarItem[] = [
-  { name: "系统概览", href: "/admin", icon: LayoutDashboard },
-  { name: "文章管理", href: "/admin/articles", icon: BookText },
-  { name: "来源管理", href: "/admin/sources", icon: FolderTree },
-  { name: "微信集成", href: "/admin/integrations/wechat-rss", icon: Rss },
-  { name: "同步记录", href: "/admin/sync-records", icon: History },
-  { name: "异步任务", href: "/admin/tasks", icon: ListTodo },
-  { name: "系统日志", href: "/admin/logs", icon: Terminal },
-  { name: "AI 配置", href: "/admin/settings/ai", icon: Settings },
-  { name: "数据备份", href: "/admin/backup", icon: Database },
-  { name: "数据清洗", href: "/admin/clean", icon: Terminal },
-  { name: "邀请码管理", href: "/admin/invitations", icon: Ticket },
-  { name: "用户管理", href: "/admin/users", icon: User },
-];
+function AdminSidebarFooter({
+  adminUser,
+  collapsed = false,
+  loggingOut,
+  onLogout,
+}: {
+  adminUser: string;
+  collapsed?: boolean;
+  loggingOut: boolean;
+  onLogout: () => void;
+}) {
+  return (
+    <div className="space-y-2 border-t border-border p-3">
+      <Link
+        href="/"
+        aria-label="返回前台学习区"
+        className={cn(
+          "flex min-h-10 items-center gap-3 rounded-lg border border-border px-3 text-sm font-medium text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60",
+          collapsed && "justify-center px-0"
+        )}
+      >
+        <ExternalLink className="size-4 shrink-0" aria-hidden="true" />
+        {!collapsed && <span>返回前台学习区</span>}
+      </Link>
+
+      <div className={cn("flex items-center gap-2 rounded-lg bg-muted/70 p-2", collapsed && "flex-col")}>
+        <Link
+          href="/settings/account"
+          aria-label={`${adminUser} 账户设置`}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <UserRound className="size-4" aria-hidden="true" />
+          </span>
+          {!collapsed && (
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-semibold text-foreground">{adminUser}</span>
+              <span className="block text-[10px] text-muted-foreground">管理员账户</span>
+            </span>
+          )}
+        </Link>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label="退出登录"
+          title="退出登录"
+          onClick={onLogout}
+          disabled={loggingOut}
+          className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        >
+          {loggingOut ? <Loader2 className="animate-spin" /> : <LogOut />}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AdminBrand({ collapsed = false }: { collapsed?: boolean }) {
+  return (
+    <Link
+      href="/admin"
+      aria-label="申论素材"
+      className={cn(
+        "flex min-w-0 items-center rounded-lg text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        collapsed && "justify-center"
+      )}
+    >
+      <span className={cn("truncate", collapsed && "sr-only")}>申论素材</span>
+      {collapsed && <span aria-hidden="true">申</span>}
+    </Link>
+  );
+}
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [adminUser, setAdminUser] = useState("管理员");
-  const [loggingOut, setLoggingOut] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [authorized, setAuthorized] = useState(false);
-  const { isAdmin } = useAuth();
-
-  // Only ADMIN can access admin backend — show full nav
-  const visibleNavItems = navItems;
+  const [collapsed, setCollapsed] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [mobileDialog, setMobileDialog] = useState({ open: false, pathname });
+  const mobileOpen = mobileDialog.open && mobileDialog.pathname === pathname;
+  const setMobileOpen = (open: boolean) => setMobileDialog({ open, pathname });
 
   useEffect(() => {
     let cancelled = false;
 
     async function checkSession() {
       try {
-        const res = await fetch("/api/auth/check");
-        if (!res.ok) {
-          throw new Error("Unauthenticated");
-        }
+        const response = await fetch("/api/auth/check");
+        if (!response.ok) throw new Error("Unauthenticated");
 
-        const data = await res.json();
-        if (!cancelled && data.username) {
-          setAdminUser(data.username);
-          // Non-admin users must not access admin backend
-          if (data.role !== "ADMIN") {
-            router.push("/");
-            return;
-          }
-          setAuthorized(true);
+        const data = await response.json();
+        if (cancelled) return;
+        if (data.role !== "ADMIN") {
+          router.push("/");
+          return;
         }
+        if (data.username) setAdminUser(data.username);
+        setAuthorized(true);
       } catch {
-        if (!cancelled) {
-          router.push("/admin/login");
-        }
+        if (!cancelled) router.push("/admin/login");
       }
     }
 
     void checkSession();
-
     return () => {
       cancelled = true;
     };
@@ -100,168 +222,117 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     if (loggingOut) return;
     setLoggingOut(true);
     try {
-      const res = await fetch("/api/auth/logout", { method: "POST" });
-      if (res.ok) {
-        router.push("/");
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Logout failed:", error);
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/");
+      router.refresh();
     } finally {
       setLoggingOut(false);
     }
   }
 
-  // Block rendering until role check confirms ADMIN
   if (!authorized) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="admin-shell-theme flex min-h-dvh items-center justify-center bg-background">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-label="正在验证管理员身份" />
       </div>
     );
   }
 
+  const activeItem = findActiveAdminNavigationItem(pathname);
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background font-sans text-foreground">
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Mobile menu button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-4 left-4 z-30 lg:hidden"
-        onClick={() => setMobileOpen(true)}
+    <div className="admin-shell-theme flex min-h-dvh overflow-hidden bg-background text-foreground">
+      <aside
+        data-testid="admin-sidebar"
+        data-state={collapsed ? "collapsed" : "expanded"}
+        className={cn(
+          "hidden h-dvh shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 lg:flex",
+          collapsed ? "w-[4.5rem]" : "w-[16.5rem]"
+        )}
       >
-        <Menu />
-      </Button>
-
-      <aside data-testid="admin-sidebar" data-state={collapsed ? "collapsed" : "expanded"} className={`flex h-full flex-shrink-0 flex-col border-r border-border bg-card transition-all duration-200
-        ${collapsed ? "w-16" : "w-64"}
-        ${mobileOpen ? "fixed inset-y-0 left-0 z-50 w-64" : "hidden lg:flex"}
-      `}>
-        <div className="flex h-16 items-center gap-3 border-b border-border px-4">
-          {!collapsed && (
-            <>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 shadow-sm">
-                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold tracking-tight text-foreground">申论素材后台</h2>
-                <span className="text-[10px] text-muted-foreground">管理控制台</span>
-              </div>
-            </>
-          )}
-          <div className="ml-auto flex items-center gap-1">
-            <Button
-              data-testid="admin-sidebar-toggle"
-              aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"}
-              aria-expanded={!collapsed}
-              variant="ghost"
-              size="icon-sm"
-              className="hidden lg:block"
-              onClick={() => setCollapsed(!collapsed)}
-              title={collapsed ? "展开侧边栏" : "收起侧边栏"}
-            >
-              {collapsed ? <ChevronRight /> : <ChevronLeft />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="lg:hidden"
-              onClick={() => setMobileOpen(false)}
-              title="关闭菜单"
-            >
-              <X />
-            </Button>
-          </div>
+        <div className={cn("flex h-[4.5rem] shrink-0 items-center border-b border-border px-4", collapsed && "justify-center px-2")}>
+          <AdminBrand collapsed={collapsed} />
         </div>
-
-        <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-6">
-          {visibleNavItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
-            const Icon = item.icon;
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? "bg-accent text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                } ${collapsed ? "justify-center" : ""}`}
-                title={collapsed ? item.name : undefined}
-              >
-                <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                {!collapsed && <span>{item.name}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="space-y-3 border-t border-border bg-card p-4">
-          <Link
-            href="/"
-            className="flex cursor-pointer items-center justify-between rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground"
-          >
-            <div className="flex items-center gap-2">
-              <ExternalLink className="h-3.5 w-3.5" />
-              <span>返回前台学习区</span>
-            </div>
-          </Link>
-
-          <div className="flex items-center justify-between px-2 pt-1">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted text-xs font-semibold text-primary">
-                <User className="h-4 w-4" />
-              </div>
-              <div className="flex flex-col">
-                <span className="max-w-[100px] truncate text-xs font-medium text-foreground">{adminUser}</span>
-                <span className="flex items-center gap-1 text-[10px] text-emerald-600">
-                  {isAdmin && <Shield className="h-2.5 w-2.5" />}
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></span>
-                  在线
-                </span>
-              </div>
-            </div>
-
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="hover:bg-red-50 hover:text-red-600"
-              title="退出登录"
-            >
-              <LogOut />
-            </Button>
-          </div>
-        </div>
+        <AdminNavigation collapsed={collapsed} pathname={pathname} />
+        <AdminSidebarFooter
+          adminUser={adminUser}
+          collapsed={collapsed}
+          loggingOut={loggingOut}
+          onLogout={handleLogout}
+        />
       </aside>
 
-      <main className="flex h-full flex-1 flex-col overflow-hidden bg-background">
-        <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-card px-8">
-          <h1 data-testid="admin-shell-heading" className="text-sm font-semibold tracking-wide text-foreground">
-            {visibleNavItems.find((item) => item.href === pathname || (item.href !== "/admin" && pathname.startsWith(item.href)))?.name || "控制台"}
-          </h1>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>系统状态: <strong className="font-medium text-emerald-600">正常运行</strong></span>
-            <span className="h-3 w-px bg-border"></span>
-            <span>当前时间: {new Date().toLocaleDateString("zh-CN")}</span>
+      <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-[4.5rem] shrink-0 items-center gap-3 border-b border-border bg-card px-4 md:px-6 lg:px-8">
+          <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
+            <DialogTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  data-testid="admin-mobile-menu-trigger"
+                  aria-label="打开后台导航"
+                  className="lg:hidden"
+                />
+              }
+            >
+              <Menu />
+            </DialogTrigger>
+            <DialogContent
+              showCloseButton={false}
+              data-testid="admin-mobile-drawer"
+              className="admin-shell-theme inset-y-0 left-0 top-0 h-dvh w-[min(20rem,calc(100%-2rem))] max-w-none -translate-x-0 -translate-y-0 gap-0 rounded-none border-r border-border bg-card p-0 text-foreground ring-0 sm:max-w-none lg:hidden"
+            >
+              <DialogTitle className="sr-only">后台导航</DialogTitle>
+              <DialogDescription className="sr-only">选择管理页面或账户操作</DialogDescription>
+              <div className="flex h-[4.5rem] shrink-0 items-center justify-between border-b border-border px-4">
+                <AdminBrand />
+                <DialogClose
+                  render={
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label="关闭后台导航" />
+                  }
+                >
+                  <X />
+                </DialogClose>
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
+                <AdminNavigation pathname={pathname} onNavigate={() => setMobileOpen(false)} />
+                <AdminSidebarFooter
+                  adminUser={adminUser}
+                  loggingOut={loggingOut}
+                  onLogout={handleLogout}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-muted-foreground">管理控制台</p>
+            <h1 data-testid="admin-shell-heading" className="truncate text-base font-semibold tracking-tight">
+              {activeItem?.name ?? "控制台"}
+            </h1>
           </div>
+
+          <Button
+            data-testid="admin-sidebar-toggle"
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"}
+            aria-expanded={!collapsed}
+            className="hidden lg:inline-flex"
+            onClick={() => setCollapsed((value) => !value)}
+          >
+            {collapsed ? <ChevronRight /> : <ChevronLeft />}
+          </Button>
+          <LayoutPanelLeft className="hidden size-4 text-muted-foreground lg:block" aria-hidden="true" />
         </header>
 
-        <div className="relative flex-1 overflow-y-auto bg-muted/50 p-8">{children}</div>
-      </main>
+        <main className="min-h-0 flex-1 overflow-y-auto bg-background p-4 md:p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

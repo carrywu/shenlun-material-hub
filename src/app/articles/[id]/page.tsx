@@ -767,13 +767,18 @@ export default function ArticleDetailPage() {
     : article.adminReviewStatus !== "approved"
       ? "该文章尚未通过管理员审核，无法生成素材卡。"
       : null;
+  const canUseIma = isVerifiedUser || isAdmin;
 
   const scoreDetail = article.aiScoreDetail
     ? (() => { try { return JSON.parse(article.aiScoreDetail); } catch { return null; } })()
     : null;
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      data-testid="article-reader-shell"
+      data-layout="reader"
+      className="relative flex min-h-full flex-col bg-background text-foreground"
+    >
       {/* Header */}
       <div className="border-b px-6 py-4">
         <div className="flex items-center justify-between">
@@ -875,6 +880,17 @@ export default function ArticleDetailPage() {
                 <EyeOff className="h-4 w-4" />
               )}
             </Button>
+            <Button
+              aria-label={article.userIgnored ? "取消忽略" : "忽略"}
+              aria-pressed={!!article.userIgnored}
+              data-state={article.userIgnored ? "active" : "inactive"}
+              variant="ghost"
+              size="sm"
+              onClick={toggleIgnored}
+              title={article.userIgnored ? "取消忽略" : "忽略"}
+            >
+              <EyeOff className={article.userIgnored ? "h-4 w-4 text-muted-foreground" : "h-4 w-4"} />
+            </Button>
             <a
               href={article.originalUrl}
               target="_blank"
@@ -884,28 +900,34 @@ export default function ArticleDetailPage() {
               <ExternalLink className="h-4 w-4" />
               查看原文
             </a>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSyncArticleToIma}
-              disabled={syncingToIma}
-            >
-              {syncingToIma ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              {syncingToIma ? "同步中..." : "同步到 IMA"}
-            </Button>
+            {canUseIma && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSyncArticleToIma}
+                disabled={syncingToIma}
+              >
+                {syncingToIma ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {syncingToIma ? "同步中..." : "同步到 IMA"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto px-6 py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex-1 overflow-auto px-4 pb-28 pt-6 md:px-6">
+        <div className="mx-auto grid w-full max-w-[1240px] grid-cols-1 gap-6 lg:grid-cols-[minmax(0,760px)_320px] lg:gap-10">
           {/* Main content */}
-          <div className="lg:col-span-2 space-y-4">
+          <div
+            data-testid="article-reading-column"
+            data-target-width="760"
+            className="min-w-0 space-y-5 lg:max-w-[760px]"
+          >
             {/* Tags */}
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -1061,7 +1083,11 @@ export default function ArticleDetailPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-4">
+          <div
+            data-testid="article-learning-sidebar"
+            data-target-width="320"
+            className="min-w-0 space-y-4 lg:w-[320px]"
+          >
             {/* Quick Actions */}
             <Card>
               <CardHeader className="pb-2">
@@ -1077,6 +1103,7 @@ export default function ArticleDetailPage() {
                   </div>
                 ) : canGenerateCard ? (
                   <div className="space-y-3">
+                    <p className="text-sm font-semibold">生成私有素材卡</p>
                     <p className="text-xs text-muted-foreground">
                       使用你的个人 AI 配置生成私有素材卡。
                     </p>
@@ -1137,6 +1164,33 @@ export default function ArticleDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {canUseIma && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">同步到个人 IMA</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    仅同步你可见的文章和自己的素材卡。
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSyncArticleToIma}
+                    disabled={syncingToIma}
+                    className="w-full text-xs"
+                  >
+                    {syncingToIma ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <Upload className="h-3 w-3 mr-1" />
+                    )}
+                    {syncingToIma ? "同步中..." : "同步本文"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Annotations list — admin only */}
             {isAdmin && (
@@ -1308,6 +1362,56 @@ export default function ArticleDetailPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+      </div>
+
+      <div
+        data-testid="article-mobile-action-bar"
+        className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2 border-t bg-background/95 px-3 py-3 backdrop-blur md:hidden"
+      >
+        <Button
+          type="button"
+          size="sm"
+          aria-pressed={!!article.userBookmarked}
+          disabled={bookmarking}
+          onClick={toggleBookmark}
+        >
+          {bookmarking ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {article.userBookmarked ? "已收藏" : "收藏"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          aria-pressed={!!article.userRead}
+          disabled={togglingRead}
+          onClick={toggleRead}
+        >
+          {togglingRead ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {article.userRead ? "已读" : "已读"}
+        </Button>
+        {canGenerateCard && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={generatingCard || !!generateDisabledReason}
+            onClick={handleGenerateCard}
+          >
+            素材卡
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          aria-pressed={!!article.userIgnored}
+          onClick={toggleIgnored}
+        >
+          {article.userIgnored ? "已忽略" : "忽略"}
+        </Button>
+        <div className="relative">
+          <ArticleExportMenu article={article} />
         </div>
       </div>
 

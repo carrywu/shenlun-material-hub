@@ -4,8 +4,7 @@ import { Toaster } from "sonner";
 import { cookies } from "next/headers";
 import { validateSession, type AuthUser } from "@/lib/auth";
 import { AuthProvider } from "@/lib/auth-context";
-import RootNav from "@/components/RootNav";
-import { MobileBottomTab } from "@/components/MobileBottomTab";
+import { AppShell } from "@/components/layout/AppShell";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export const metadata: Metadata = {
@@ -30,18 +29,14 @@ export default async function RootLayout({
     // cookies() may throw in edge cases; treat as unauthenticated
   }
 
-  const isAdmin = currentUser?.role === "ADMIN";
-
   return (
     <html lang="zh-CN" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full">
         <AuthProvider user={currentUser}>
           <Toaster position="top-right" richColors />
-          <RootNav currentUser={currentUser} />
-          <MobileBottomTab currentUser={currentUser} />
-          <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
+          <AppShell currentUser={currentUser}>
             <ErrorBoundary>{children}</ErrorBoundary>
-          </main>
+          </AppShell>
         </AuthProvider>
       </body>
     </html>
